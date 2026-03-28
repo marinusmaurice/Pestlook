@@ -11,6 +11,7 @@ using Pestlook.WebAPI.Domain.Entities;
 using Pestlook.WebAPI.Infrastructure;
 using Pestlook.WebAPI.Infrastructure.Services;
 using Pestlook.WebAPI.Infrastructure.Services.Interfaces;
+using Pestlook.WebAPI.OpenApi;
 using Pestlook.WebAPI.Options;
 using Pestlook.WebAPI.Validators;
 using Serilog;
@@ -165,6 +166,24 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
+    public static IServiceCollection AddOpenApiDocumentation(this IServiceCollection services)
+    {
+        services.AddOpenApi(options =>
+        {
+            options.AddDocumentTransformer((document, context, cancellationToken) =>
+            {
+                document.Info.Title       = "Pestlook API";
+                document.Info.Version     = "v1";
+                document.Info.Description = "Pestlook agricultural management platform API";
+                return Task.CompletedTask;
+            });
+
+            options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+        });
+
+        return services;
+    }
+
     public static IHostBuilder AddSerilog(this IHostBuilder host, IConfiguration config)
     {
         host.UseSerilog((ctx, lc) =>
@@ -174,16 +193,19 @@ public static class ServiceCollectionExtensions
               .WriteTo.Console(outputTemplate:
                   "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {NewLine}{Exception}");
 
-            var connStr = config.GetConnectionString("DefaultConnection");
-            if (!string.IsNullOrWhiteSpace(connStr))
+            if (!ctx.HostingEnvironment.IsDevelopment())
             {
-                lc.WriteTo.MSSqlServer(
-                    connectionString: connStr,
-                    sinkOptions: new MSSqlServerSinkOptions
-                    {
-                        TableName = "Logs",
-                        AutoCreateSqlTable = true
-                    });
+                var connStr = config.GetConnectionString("DefaultConnection");
+                if (!string.IsNullOrWhiteSpace(connStr))
+                {
+                    lc.WriteTo.MSSqlServer(
+                        connectionString: connStr,
+                        sinkOptions: new MSSqlServerSinkOptions
+                        {
+                            TableName = "Logs",
+                            AutoCreateSqlTable = true
+                        });
+                }
             }
         });
 

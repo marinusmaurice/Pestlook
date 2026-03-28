@@ -31,7 +31,7 @@ builder.Services.AddControllers();
 builder.Services.AddFluentValidationAutoValidation();
 
 // ── OpenAPI ───────────────────────────────────────────────────────────────────
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApiDocumentation();
 
 // ── Health checks ─────────────────────────────────────────────────────────────
 builder.Services.AddHealthChecks();
@@ -55,6 +55,9 @@ if (app.Environment.IsDevelopment())
 {
     app.UseOpenApiDocs();             // /openapi/v1.json + /scalar/v1
 }
+
+// ── Database migration ────────────────────────────────────────────────────────
+app.UseDatabaseMigration();
 
 // ── Seed roles ────────────────────────────────────────────────────────────────
 app.UseRolesSeeding();

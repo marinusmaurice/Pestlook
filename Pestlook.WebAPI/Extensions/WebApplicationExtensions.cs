@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+using Pestlook.WebAPI.Data;
 using Pestlook.WebAPI.Infrastructure.Middleware;
 using Scalar.AspNetCore;
 
@@ -33,6 +35,13 @@ public static class WebApplicationExtensions
             options.WithPreferredScheme("Bearer");
         });
 
+        return app;
+    }
+
+    public static WebApplication UseDatabaseMigration(this WebApplication app)
+    {
+        using var scope = app.Services.CreateScope();
+        scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Database.Migrate();
         return app;
     }
 
