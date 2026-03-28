@@ -13,8 +13,11 @@ public static class WebApplicationExtensions
         app.UseMiddleware<RequestResponseLoggingMiddleware>();
         app.UseMiddleware<SecurityHeadersMiddleware>();
 
-        app.UseHttpsRedirection();
-        app.UseHsts();
+        if (!app.Environment.IsDevelopment())
+        {
+            app.UseHttpsRedirection();
+            app.UseHsts();
+        }
 
         return app;
     }

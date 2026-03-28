@@ -4,6 +4,15 @@ public sealed class SecurityHeadersMiddleware(RequestDelegate next)
 {
     public async Task InvokeAsync(HttpContext context)
     {
+        // Skip security headers for OpenAPI/Scalar dev-only endpoints
+        var path = context.Request.Path.Value ?? string.Empty;
+        if (path.StartsWith("/openapi", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("/scalar", StringComparison.OrdinalIgnoreCase))
+        {
+            await next(context);
+            return;
+        }
+
         var headers = context.Response.Headers;
 
         headers["X-Content-Type-Options"] = "nosniff";
