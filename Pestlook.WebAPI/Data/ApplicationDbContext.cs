@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Pestlook.WebAPI.Domain.Entities;
+using Pestlook.WebAPI.Domain.Enums;
 using Pestlook.WebAPI.Infrastructure;
 using Pestlook.WebAPI.Infrastructure.Services.Interfaces;
 
@@ -20,6 +21,13 @@ public sealed class ApplicationDbContext(
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<ExceptionLog> ExceptionLogs => Set<ExceptionLog>();
+    public DbSet<Farm> Farms => Set<Farm>();
+    public DbSet<Field> Fields => Set<Field>();
+    public DbSet<MonitoringPoint> MonitoringPoints => Set<MonitoringPoint>();
+    public DbSet<Pest> Pests => Set<Pest>();
+    public DbSet<MonitoringPointPest> MonitoringPointPests => Set<MonitoringPointPest>();
+    public DbSet<Observation> Observations => Set<Observation>();
+    public DbSet<BillingSnapshot> BillingSnapshots => Set<BillingSnapshot>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -69,6 +77,122 @@ public sealed class ApplicationDbContext(
             e.HasKey(ex => ex.Id);
             e.Property(ex => ex.RequestPath).HasMaxLength(500);
             e.Property(ex => ex.RequestMethod).HasMaxLength(10);
+        });
+
+        builder.Entity<Farm>(e =>
+        {
+            e.HasKey(f => f.Id);
+            e.Property(f => f.Name).HasMaxLength(200).IsRequired();
+            e.Property(f => f.Address).HasMaxLength(500);
+            e.HasOne(f => f.Tenant)
+             .WithMany(t => t.Farms)
+             .HasForeignKey(f => f.TenantId)
+             .OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(f => f.DeletedAt == null &&
+                (tenantContext.TenantId == null || f.TenantId == tenantContext.TenantId));
+        });
+
+        builder.Entity<Field>(e =>
+        {
+            e.HasKey(f => f.Id);
+            e.Property(f => f.Name).HasMaxLength(200).IsRequired();
+            e.Property(f => f.CropType).HasMaxLength(100);
+            e.HasOne(f => f.Farm)
+             .WithMany(fm => fm.Fields)
+             .HasForeignKey(f => f.FarmId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(f => f.DeletedAt == null &&
+                (tenantContext.TenantId == null || f.TenantId == tenantContext.TenantId));
+        });
+
+        builder.Entity<MonitoringPoint>(e =>
+        {
+            e.HasKey(mp => mp.Id);
+            e.Property(mp => mp.Name).HasMaxLength(200);
+            e.Property(mp => mp.TrapType).HasMaxLength(100);
+            e.Property(mp => mp.PointType)
+             .HasConversion<string>()
+             .HasMaxLength(50)
+             .IsRequired();
+            e.HasOne(mp => mp.Field)
+             .WithMany(f => f.MonitoringPoints)
+             .HasForeignKey(mp => mp.FieldId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(mp => mp.CreatedBy)
+             .WithMany()
+             .HasForeignKey(mp => mp.CreatedByUserId)
+             .OnDelete(DeleteBehavior.SetNull);
+            e.HasQueryFilter(mp => mp.DeletedAt == null &&
+                (tenantContext.TenantId == null || mp.TenantId == tenantContext.TenantId));
+        });
+
+        builder.Entity<Pest>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.Property(p => p.Name).HasMaxLength(200).IsRequired();
+            e.Property(p => p.ScientificName).HasMaxLength(300);
+            e.Property(p => p.Category)
+             .HasConversion<string>()
+             .HasMaxLength(50);
+            e.HasOne(p => p.Tenant)
+             .WithMany()
+             .HasForeignKey(p => p.TenantId)
+             .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(p => new { p.TenantId, p.Name }).IsUnique()
+             .HasFilter("[DeletedAt] IS NULL");
+            e.HasQueryFilter(p => p.DeletedAt == null &&
+                (tenantContext.TenantId == null || p.TenantId == tenantContext.TenantId));
+        });
+
+        builder.Entity<MonitoringPointPest>(e =>
+        {
+            e.HasKey(mpp => mpp.Id);
+            e.HasOne(mpp => mpp.MonitoringPoint)
+             .WithMany(mp => mp.MonitoringPointPests)
+             .HasForeignKey(mpp => mpp.MonitoringPointId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(mpp => mpp.Pest)
+             .WithMany(p => p.MonitoringPointPests)
+             .HasForeignKey(mpp => mpp.PestId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(mpp => new { mpp.MonitoringPointId, mpp.PestId }).IsUnique();
+        });
+
+        builder.Entity<Observation>(e =>
+        {
+            e.HasKey(o => o.Id);
+            e.Property(o => o.PestNameText).HasMaxLength(200);
+            e.Property(o => o.LifeStage).HasMaxLength(100);
+            e.HasOne(o => o.MonitoringPoint)
+             .WithMany(mp => mp.Observations)
+             .HasForeignKey(o => o.MonitoringPointId)
+             .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(o => o.Scout)
+             .WithMany()
+             .HasForeignKey(o => o.ScoutUserId)
+             .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(o => o.Pest)
+             .WithMany()
+             .HasForeignKey(o => o.PestId)
+             .OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(o => new { o.MonitoringPointId, o.ObservedAt });
+            e.HasQueryFilter(o => tenantContext.TenantId == null || o.TenantId == tenantContext.TenantId);
+        });
+
+        builder.Entity<BillingSnapshot>(e =>
+        {
+            e.HasKey(b => b.Id);
+            e.Property(b => b.Status).HasMaxLength(20).IsRequired();
+            e.HasOne(b => b.Tenant)
+             .WithMany(t => t.BillingSnapshots)
+             .HasForeignKey(b => b.TenantId)
+             .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(b => b.Owner)
+             .WithMany()
+             .HasForeignKey(b => b.OwnerId)
+             .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(b => new { b.TenantId, b.BillingMonth }).IsUnique();
+            e.HasQueryFilter(b => tenantContext.TenantId == null || b.TenantId == tenantContext.TenantId);
         });
 
         // Clean up Identity table names

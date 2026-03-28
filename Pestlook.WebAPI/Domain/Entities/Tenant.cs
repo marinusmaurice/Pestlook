@@ -9,4 +9,6 @@ public sealed class Tenant
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<ApplicationUser> Users { get; set; } = [];
+    public ICollection<Farm> Farms { get; set; } = [];
+    public ICollection<BillingSnapshot> BillingSnapshots { get; set; } = [];
 }
