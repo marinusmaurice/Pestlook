@@ -8,8 +8,8 @@ using Pestlook.WebAPI.DTOs.Common;
 
 namespace Pestlook.Tests.Integration.Auth;
 
+[Collection("Integration")]
 public sealed class AuthControllerTests(TestWebApplicationFactory factory)
-    : IClassFixture<TestWebApplicationFactory>
 {
     private readonly HttpClient _client = factory.CreateTenantClient();
 

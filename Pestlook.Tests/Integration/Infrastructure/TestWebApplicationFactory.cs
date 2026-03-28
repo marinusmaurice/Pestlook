@@ -17,6 +17,7 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
 {
     public static readonly Guid DefaultTenantId = Guid.Parse("11111111-1111-1111-1111-111111111111");
     public static readonly string DefaultTenantSlug = "test-tenant";
+    private readonly string _dbName = $"TestDb_{Guid.NewGuid():N}";
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -39,7 +40,7 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
             services.RemoveAll(typeof(IDbContextOptionsConfiguration<ApplicationDbContext>));
             services.RemoveAll<DbContextOptions<ApplicationDbContext>>();
             services.AddDbContext<ApplicationDbContext>((_, options) =>
-                options.UseInMemoryDatabase("TestDb"));
+                options.UseInMemoryDatabase(_dbName));
 
             // Swap JWT validation to use the test secret
             services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
