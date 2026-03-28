@@ -16,10 +16,9 @@ namespace Pestlook.Tests.Integration.Roles;
 public sealed class RolesControllerTests(TestWebApplicationFactory factory)
     : IAsyncLifetime
 {
-    // Seeded users reused across tests
-    private string _superAdminId = string.Empty;
-    private string _adminId     = string.Empty;
-    private string _userId      = string.Empty;
+    private string _agronomistId = string.Empty;
+    private string _farmerId     = string.Empty;
+    private string _scoutId      = string.Empty;
 
     // ── Seed ──────────────────────────────────────────────────────────────────
 
@@ -28,13 +27,14 @@ public sealed class RolesControllerTests(TestWebApplicationFactory factory)
         using var scope = factory.Services.CreateScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
-        _superAdminId = await SeedUserAsync(userManager, "superadmin_roles@test.com", "SuperAdmin");
-        _adminId      = await SeedUserAsync(userManager, "admin_roles@test.com",      "Admin");
-        _userId       = await SeedUserAsync(userManager, "user_roles@test.com",       "User");
+        _agronomistId = await SeedUserAsync(userManager, "agronomist_roles@test.com", "Agronomist");
+        _farmerId     = await SeedUserAsync(userManager, "farmer_roles@test.com",     "Farmer");
+        _scoutId      = await SeedUserAsync(userManager, "scout_roles@test.com",      "Scout");
     }
 
     public Task DisposeAsync() => Task.CompletedTask;
 
+    // Creates or returns the existing user with the given role (idempotent).
     private static async Task<string> SeedUserAsync(
         UserManager<ApplicationUser> userManager,
         string email,
@@ -57,6 +57,24 @@ public sealed class RolesControllerTests(TestWebApplicationFactory factory)
         return user.Id;
     }
 
+    // Creates a user with no roles so assign-role tests start from a clean state.
+    private static async Task<string> CreateFreshUserAsync(
+        UserManager<ApplicationUser> userManager,
+        string email)
+    {
+        var user = new ApplicationUser
+        {
+            UserName  = email,
+            Email     = email,
+            FirstName = "Fresh",
+            LastName  = "User",
+            TenantId  = TestWebApplicationFactory.DefaultTenantId
+        };
+
+        await userManager.CreateAsync(user, "P@ssw0rd1!");
+        return user.Id;
+    }
+
     private HttpClient ClientFor(string userId, string email, string role) =>
         factory.CreateTenantClient(jwtToken: JwtTestHelper.GenerateToken(
             userId, email, TestWebApplicationFactory.DefaultTenantId, roles: [role]));
@@ -66,37 +84,36 @@ public sealed class RolesControllerTests(TestWebApplicationFactory factory)
     [Fact]
     public async Task GetRoles_Unauthenticated_ShouldReturn401()
     {
-        var client   = factory.CreateTenantClient();
-        var response = await client.GetAsync("/api/v1/roles");
+        var response = await factory.CreateTenantClient().GetAsync("/api/v1/roles");
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
-    public async Task GetRoles_AsUser_ShouldReturn403()
+    public async Task GetRoles_AsScout_ShouldReturn403()
     {
-        var client   = ClientFor(_userId, "user_roles@test.com", "User");
-        var response = await client.GetAsync("/api/v1/roles");
+        var response = await ClientFor(_scoutId, "scout_roles@test.com", "Scout")
+            .GetAsync("/api/v1/roles");
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
     [Fact]
-    public async Task GetRoles_AsAdmin_ShouldReturn200WithRoles()
+    public async Task GetRoles_AsFarmer_ShouldReturn200WithAllRoles()
     {
-        var client   = ClientFor(_adminId, "admin_roles@test.com", "Admin");
-        var response = await client.GetAsync("/api/v1/roles");
+        var response = await ClientFor(_farmerId, "farmer_roles@test.com", "Farmer")
+            .GetAsync("/api/v1/roles");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await response.Content.ReadFromJsonAsync<ApiResponse<IList<string>>>();
-        body!.Data.Should().Contain("User").And.Contain("Admin").And.Contain("SuperAdmin");
+        body!.Data.Should().Contain("Agronomist").And.Contain("Farmer").And.Contain("Scout");
     }
 
     // ── GET /api/v1/roles/users ───────────────────────────────────────────────
 
     [Fact]
-    public async Task GetUsers_AsAdmin_ShouldReturn200WithUsers()
+    public async Task GetUsers_AsFarmer_ShouldReturn200WithUsers()
     {
-        var client   = ClientFor(_adminId, "admin_roles@test.com", "Admin");
-        var response = await client.GetAsync("/api/v1/roles/users");
+        var response = await ClientFor(_farmerId, "farmer_roles@test.com", "Farmer")
+            .GetAsync("/api/v1/roles/users");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await response.Content.ReadFromJsonAsync<ApiResponse<IList<UserInfoResponse>>>();
@@ -104,109 +121,215 @@ public sealed class RolesControllerTests(TestWebApplicationFactory factory)
     }
 
     [Fact]
-    public async Task GetUsers_AsUser_ShouldReturn403()
+    public async Task GetUsers_AsScout_ShouldReturn403()
     {
-        var client   = ClientFor(_userId, "user_roles@test.com", "User");
-        var response = await client.GetAsync("/api/v1/roles/users");
+        var response = await ClientFor(_scoutId, "scout_roles@test.com", "Scout")
+            .GetAsync("/api/v1/roles/users");
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
     // ── GET /api/v1/roles/users/{userId} ──────────────────────────────────────
 
     [Fact]
-    public async Task GetUser_AsAdmin_ShouldReturn200()
+    public async Task GetUser_AsFarmer_ShouldReturn200()
     {
-        var client   = ClientFor(_adminId, "admin_roles@test.com", "Admin");
-        var response = await client.GetAsync($"/api/v1/roles/users/{_userId}");
+        var response = await ClientFor(_farmerId, "farmer_roles@test.com", "Farmer")
+            .GetAsync($"/api/v1/roles/users/{_scoutId}");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await response.Content.ReadFromJsonAsync<ApiResponse<UserInfoResponse>>();
-        body!.Data!.Email.Should().Be("user_roles@test.com");
+        body!.Data!.Email.Should().Be("scout_roles@test.com");
     }
 
     [Fact]
     public async Task GetUser_WhenNotFound_ShouldReturn404()
     {
-        var client   = ClientFor(_adminId, "admin_roles@test.com", "Admin");
-        var response = await client.GetAsync("/api/v1/roles/users/nonexistent-id");
+        var response = await ClientFor(_farmerId, "farmer_roles@test.com", "Farmer")
+            .GetAsync("/api/v1/roles/users/nonexistent-id");
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    // ── POST /api/v1/roles/users/{userId}/assign ──────────────────────────────
+    // ── POST /api/v1/roles/users/{userId}/assign — happy paths ───────────────
 
     [Fact]
-    public async Task AssignRole_AsSuperAdmin_ShouldReturn204()
+    public async Task AssignRole_AsAgronomist_CanAssignFarmer_ShouldReturn204()
     {
-        var targetEmail = $"assign_target_{Guid.NewGuid():N}@test.com";
-        var targetId    = await SeedUserAsync(
-            factory.Services.CreateScope().ServiceProvider
-                .GetRequiredService<UserManager<ApplicationUser>>(),
-            targetEmail, "User");
+        using var scope = factory.Services.CreateScope();
+        var um       = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var targetId = await CreateFreshUserAsync(um, $"target_af_{Guid.NewGuid():N}@test.com");
 
-        var client   = ClientFor(_superAdminId, "superadmin_roles@test.com", "SuperAdmin");
-        var response = await client.PostAsJsonAsync(
-            $"/api/v1/roles/users/{targetId}/assign",
-            new AssignRoleRequest("Admin"));
+        var response = await ClientFor(_agronomistId, "agronomist_roles@test.com", "Agronomist")
+            .PostAsJsonAsync($"/api/v1/roles/users/{targetId}/assign", new AssignRoleRequest("Farmer"));
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
 
     [Fact]
-    public async Task AssignRole_AsAdmin_ShouldReturn403()
+    public async Task AssignRole_AsAgronomist_CanAssignScout_ShouldReturn204()
     {
-        var client   = ClientFor(_adminId, "admin_roles@test.com", "Admin");
-        var response = await client.PostAsJsonAsync(
-            $"/api/v1/roles/users/{_userId}/assign",
-            new AssignRoleRequest("Admin"));
+        using var scope = factory.Services.CreateScope();
+        var um       = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var targetId = await CreateFreshUserAsync(um, $"target_as_{Guid.NewGuid():N}@test.com");
+
+        var response = await ClientFor(_agronomistId, "agronomist_roles@test.com", "Agronomist")
+            .PostAsJsonAsync($"/api/v1/roles/users/{targetId}/assign", new AssignRoleRequest("Scout"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
+    public async Task AssignRole_AsFarmer_CanAssignScout_ShouldReturn204()
+    {
+        using var scope = factory.Services.CreateScope();
+        var um       = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var targetId = await CreateFreshUserAsync(um, $"target_fs_{Guid.NewGuid():N}@test.com");
+
+        var response = await ClientFor(_farmerId, "farmer_roles@test.com", "Farmer")
+            .PostAsJsonAsync($"/api/v1/roles/users/{targetId}/assign", new AssignRoleRequest("Scout"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
+    // ── POST /api/v1/roles/users/{userId}/assign — forbidden paths ────────────
+
+    [Fact]
+    public async Task AssignRole_AsFarmer_CannotAssignFarmer_ShouldReturn403()
+    {
+        using var scope = factory.Services.CreateScope();
+        var um       = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var targetId = await CreateFreshUserAsync(um, $"target_ff_{Guid.NewGuid():N}@test.com");
+
+        var response = await ClientFor(_farmerId, "farmer_roles@test.com", "Farmer")
+            .PostAsJsonAsync($"/api/v1/roles/users/{targetId}/assign", new AssignRoleRequest("Farmer"));
 
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
     [Fact]
+    public async Task AssignRole_AsFarmer_CannotAssignAgronomist_ShouldReturn403()
+    {
+        using var scope = factory.Services.CreateScope();
+        var um       = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var targetId = await CreateFreshUserAsync(um, $"target_fa_{Guid.NewGuid():N}@test.com");
+
+        var response = await ClientFor(_farmerId, "farmer_roles@test.com", "Farmer")
+            .PostAsJsonAsync($"/api/v1/roles/users/{targetId}/assign", new AssignRoleRequest("Agronomist"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task AssignRole_AsScout_ShouldReturn403()
+    {
+        var response = await ClientFor(_scoutId, "scout_roles@test.com", "Scout")
+            .PostAsJsonAsync($"/api/v1/roles/users/{_farmerId}/assign", new AssignRoleRequest("Scout"));
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task AssignRole_AsAgronomist_CannotAssignAgronomist_ShouldReturn403()
+    {
+        using var scope = factory.Services.CreateScope();
+        var um       = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var targetId = await CreateFreshUserAsync(um, $"target_aa_{Guid.NewGuid():N}@test.com");
+
+        var response = await ClientFor(_agronomistId, "agronomist_roles@test.com", "Agronomist")
+            .PostAsJsonAsync($"/api/v1/roles/users/{targetId}/assign", new AssignRoleRequest("Agronomist"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task AssignRole_AsScout_CannotAssignFarmer_ShouldReturn403()
+    {
+        var response = await ClientFor(_scoutId, "scout_roles@test.com", "Scout")
+            .PostAsJsonAsync($"/api/v1/roles/users/{_farmerId}/assign", new AssignRoleRequest("Farmer"));
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task AssignRole_AsScout_CannotAssignAgronomist_ShouldReturn403()
+    {
+        var response = await ClientFor(_scoutId, "scout_roles@test.com", "Scout")
+            .PostAsJsonAsync($"/api/v1/roles/users/{_agronomistId}/assign", new AssignRoleRequest("Agronomist"));
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    // ── POST /api/v1/roles/users/{userId}/assign — error cases ───────────────
+
+    [Fact]
     public async Task AssignRole_WhenUserAlreadyHasRole_ShouldReturn400()
     {
-        var client   = ClientFor(_superAdminId, "superadmin_roles@test.com", "SuperAdmin");
-        var response = await client.PostAsJsonAsync(
-            $"/api/v1/roles/users/{_userId}/assign",
-            new AssignRoleRequest("User"));
-
+        // Scout already has Scout — Agronomist tries to assign Scout again
+        var response = await ClientFor(_agronomistId, "agronomist_roles@test.com", "Agronomist")
+            .PostAsJsonAsync($"/api/v1/roles/users/{_scoutId}/assign", new AssignRoleRequest("Scout"));
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
     public async Task AssignRole_WhenUserNotFound_ShouldReturn404()
     {
-        var client   = ClientFor(_superAdminId, "superadmin_roles@test.com", "SuperAdmin");
-        var response = await client.PostAsJsonAsync(
-            "/api/v1/roles/users/nonexistent-id/assign",
-            new AssignRoleRequest("Admin"));
-
+        var response = await ClientFor(_agronomistId, "agronomist_roles@test.com", "Agronomist")
+            .PostAsJsonAsync("/api/v1/roles/users/nonexistent-id/assign", new AssignRoleRequest("Farmer"));
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    // ── DELETE /api/v1/roles/users/{userId}/roles/{role} ─────────────────────
+    // ── DELETE /api/v1/roles/users/{userId}/roles/{role} — happy paths ────────
 
     [Fact]
-    public async Task RevokeRole_AsSuperAdmin_ShouldReturn204()
+    public async Task RevokeRole_AsAgronomist_CanRevokeFarmer_ShouldReturn204()
     {
-        // Seed a disposable user with Admin role then revoke it
-        var scope       = factory.Services.CreateScope();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        var email       = $"revoke_target_{Guid.NewGuid():N}@test.com";
-        var targetId    = await SeedUserAsync(userManager, email, "Admin");
+        using var scope = factory.Services.CreateScope();
+        var um       = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var email    = $"revoke_agro_{Guid.NewGuid():N}@test.com";
+        var targetId = await SeedUserAsync(um, email, "Farmer");
 
-        var client   = ClientFor(_superAdminId, "superadmin_roles@test.com", "SuperAdmin");
-        var response = await client.DeleteAsync($"/api/v1/roles/users/{targetId}/roles/Admin");
+        var response = await ClientFor(_agronomistId, "agronomist_roles@test.com", "Agronomist")
+            .DeleteAsync($"/api/v1/roles/users/{targetId}/roles/Farmer");
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
 
     [Fact]
+    public async Task RevokeRole_AsFarmer_CanRevokeScout_ShouldReturn204()
+    {
+        using var scope = factory.Services.CreateScope();
+        var um       = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var email    = $"revoke_farmer_{Guid.NewGuid():N}@test.com";
+        var targetId = await SeedUserAsync(um, email, "Scout");
+
+        var response = await ClientFor(_farmerId, "farmer_roles@test.com", "Farmer")
+            .DeleteAsync($"/api/v1/roles/users/{targetId}/roles/Scout");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
+    // ── DELETE /api/v1/roles/users/{userId}/roles/{role} — forbidden paths ────
+
+    [Fact]
+    public async Task RevokeRole_AsFarmer_CannotRevokeFarmer_ShouldReturn403()
+    {
+        var response = await ClientFor(_farmerId, "farmer_roles@test.com", "Farmer")
+            .DeleteAsync($"/api/v1/roles/users/{_farmerId}/roles/Farmer");
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task RevokeRole_AsFarmer_CannotRevokeAgronomist_ShouldReturn403()
+    {
+        var response = await ClientFor(_farmerId, "farmer_roles@test.com", "Farmer")
+            .DeleteAsync($"/api/v1/roles/users/{_agronomistId}/roles/Agronomist");
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    // ── DELETE /api/v1/roles/users/{userId}/roles/{role} — error cases ────────
+
+    [Fact]
     public async Task RevokeRole_WhenUserDoesNotHaveRole_ShouldReturn400()
     {
-        var client   = ClientFor(_superAdminId, "superadmin_roles@test.com", "SuperAdmin");
-        var response = await client.DeleteAsync($"/api/v1/roles/users/{_userId}/roles/SuperAdmin");
-
+        // Scout user doesn't have Farmer — Agronomist tries to revoke it
+        var response = await ClientFor(_agronomistId, "agronomist_roles@test.com", "Agronomist")
+            .DeleteAsync($"/api/v1/roles/users/{_scoutId}/roles/Farmer");
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 }

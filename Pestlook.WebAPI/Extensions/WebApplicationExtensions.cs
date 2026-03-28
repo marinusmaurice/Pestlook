@@ -41,7 +41,7 @@ public static class WebApplicationExtensions
         using var scope = app.Services.CreateScope();
         var roleManager = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.Identity.RoleManager<Microsoft.AspNetCore.Identity.IdentityRole>>();
 
-        foreach (var role in new[] { "SuperAdmin", "Admin", "User" })
+        foreach (var role in new[] { "Agronomist", "Farmer", "Scout" })
         {
             if (!roleManager.RoleExistsAsync(role).GetAwaiter().GetResult())
                 roleManager.CreateAsync(new Microsoft.AspNetCore.Identity.IdentityRole(role)).GetAwaiter().GetResult();

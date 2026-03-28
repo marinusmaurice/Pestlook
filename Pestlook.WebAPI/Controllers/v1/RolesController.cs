@@ -22,9 +22,13 @@ public sealed class RolesController(
     RoleManager<IdentityRole> roleManager,
     IMapper mapper) : ControllerBase
 {
+    // Roles each tier may assign/revoke
+    private static readonly string[] _agronomistManageable = ["Farmer", "Scout"];
+    private static readonly string[] _farmerManageable     = ["Scout"];
+
     // GET /api/v1/roles
     [HttpGet]
-    [Authorize(Roles = "SuperAdmin,Admin")]
+    [Authorize(Roles = "Agronomist,Farmer")]
     [ProducesResponseType(typeof(ApiResponse<IList<string>>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -40,13 +44,12 @@ public sealed class RolesController(
 
     // GET /api/v1/roles/users
     [HttpGet("users")]
-    [Authorize(Roles = "SuperAdmin,Admin")]
+    [Authorize(Roles = "Agronomist,Farmer")]
     [ProducesResponseType(typeof(ApiResponse<IList<UserInfoResponse>>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetUsers()
     {
-        // userManager.Users applies the tenant global query filter automatically
         var users = await userManager.Users
             .OrderBy(u => u.Email)
             .ToListAsync();
@@ -63,7 +66,7 @@ public sealed class RolesController(
 
     // GET /api/v1/roles/users/{userId}
     [HttpGet("users/{userId}")]
-    [Authorize(Roles = "SuperAdmin,Admin")]
+    [Authorize(Roles = "Agronomist,Farmer")]
     [ProducesResponseType(typeof(ApiResponse<UserInfoResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -80,7 +83,7 @@ public sealed class RolesController(
 
     // POST /api/v1/roles/users/{userId}/assign
     [HttpPost("users/{userId}/assign")]
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize(Roles = "Agronomist,Farmer")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -88,6 +91,9 @@ public sealed class RolesController(
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> AssignRole(string userId, [FromBody] AssignRoleRequest request)
     {
+        if (!CallerCanManageRole(request.Role))
+            return Forbid();
+
         var user = await userManager.FindByIdAsync(userId)
             ?? throw new KeyNotFoundException("User not found.");
 
@@ -106,7 +112,7 @@ public sealed class RolesController(
 
     // DELETE /api/v1/roles/users/{userId}/roles/{role}
     [HttpDelete("users/{userId}/roles/{role}")]
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize(Roles = "Agronomist,Farmer")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -114,6 +120,9 @@ public sealed class RolesController(
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> RevokeRole(string userId, string role)
     {
+        if (!CallerCanManageRole(role))
+            return Forbid();
+
         var user = await userManager.FindByIdAsync(userId)
             ?? throw new KeyNotFoundException("User not found.");
 
@@ -129,4 +138,11 @@ public sealed class RolesController(
 
         return NoContent();
     }
+
+    // Returns true when the JWT caller is permitted to manage the given role.
+    // Agronomist → can manage Farmer and Scout.
+    // Farmer      → can manage Scout only.
+    private bool CallerCanManageRole(string role) =>
+        User.IsInRole("Agronomist") && _agronomistManageable.Contains(role, StringComparer.OrdinalIgnoreCase) ||
+        User.IsInRole("Farmer")     && _farmerManageable.Contains(role, StringComparer.OrdinalIgnoreCase);
 }

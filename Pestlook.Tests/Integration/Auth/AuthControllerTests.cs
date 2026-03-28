@@ -172,7 +172,26 @@ public sealed class AuthControllerTests(TestWebApplicationFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await response.Content.ReadFromJsonAsync<ApiResponse<UserInfoResponse>>();
         body!.Data!.Email.Should().Be(email);
-        body.Data.Roles.Should().Contain("User");
+        body.Data.Roles.Should().Contain("Scout");
+    }
+
+    // ── No tenant header ──────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Register_ShouldDefaultToScoutRole()
+    {
+        var email = $"scout_default_{Guid.NewGuid():N}@test.com";
+        var registerResp = await _client.PostAsJsonAsync("/api/v1/auth/register",
+            new RegisterRequest(email, "P@ssw0rd1!", "New", "Scout"));
+
+        var tokens = (await registerResp.Content
+            .ReadFromJsonAsync<ApiResponse<TokenResponse>>())!.Data!;
+
+        var authedClient = factory.CreateTenantClient(jwtToken: tokens.AccessToken);
+        var body = (await (await authedClient.GetAsync("/api/v1/auth/me")).Content
+            .ReadFromJsonAsync<ApiResponse<UserInfoResponse>>())!;
+
+        body.Data!.Roles.Should().ContainSingle(r => r == "Scout");
     }
 
     // ── No tenant header ──────────────────────────────────────────────────────

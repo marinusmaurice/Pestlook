@@ -5,7 +5,7 @@ namespace Pestlook.WebAPI.Validators;
 
 public sealed class AssignRoleRequestValidator : AbstractValidator<AssignRoleRequest>
 {
-    private static readonly string[] ValidRoles = ["SuperAdmin", "Admin", "User"];
+    private static readonly string[] ValidRoles = ["Agronomist", "Farmer", "Scout"];
 
     public AssignRoleRequestValidator()
     {
