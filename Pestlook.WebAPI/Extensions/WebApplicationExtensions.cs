@@ -44,7 +44,9 @@ public static class WebApplicationExtensions
     public static WebApplication UseDatabaseMigration(this WebApplication app)
     {
         using var scope = app.Services.CreateScope();
-        scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Database.Migrate();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        if (db.Database.IsRelational())
+            db.Database.Migrate();
         return app;
     }
 
@@ -53,7 +55,7 @@ public static class WebApplicationExtensions
         using var scope = app.Services.CreateScope();
         var roleManager = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.Identity.RoleManager<Microsoft.AspNetCore.Identity.IdentityRole>>();
 
-        foreach (var role in new[] { "Agronomist", "Farmer", "Scout" })
+        foreach (var role in new[] { "Admin", "Scout" })
         {
             if (!roleManager.RoleExistsAsync(role).GetAwaiter().GetResult())
                 roleManager.CreateAsync(new Microsoft.AspNetCore.Identity.IdentityRole(role)).GetAwaiter().GetResult();

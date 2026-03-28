@@ -27,6 +27,7 @@ public sealed class AuthController(
             : HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
     [HttpPost("register")]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(ApiResponse<TokenResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken ct)

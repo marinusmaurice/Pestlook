@@ -27,5 +27,9 @@ public sealed class RegisterRequestValidator : AbstractValidator<RegisterRequest
         RuleFor(x => x.LastName)
             .NotEmpty().WithMessage("Last name is required.")
             .MaximumLength(100);
+
+        RuleFor(x => x.Role)
+            .Must(r => r is null || r.Equals("Admin", StringComparison.Ordinal) || r.Equals("Scout", StringComparison.Ordinal))
+            .WithMessage("Role must be 'Admin' or 'Scout'.");
     }
 }

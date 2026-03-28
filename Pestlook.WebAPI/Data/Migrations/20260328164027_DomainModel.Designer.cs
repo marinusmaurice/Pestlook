@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Pestlook.WebAPI.Data;
 
@@ -11,9 +12,11 @@ using Pestlook.WebAPI.Data;
 namespace Pestlook.WebAPI.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260328164027_DomainModel")]
+    partial class DomainModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -287,46 +290,6 @@ namespace Pestlook.WebAPI.Data.Migrations
                     b.ToTable("AuditLogs");
                 });
 
-            modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.BillingSnapshot", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("ActivePointCount")
-                        .HasColumnType("int");
-
-                    b.Property<int>("AmountCents")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("BillingMonth")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("OwnerId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OwnerId");
-
-                    b.HasIndex("TenantId", "BillingMonth")
-                        .IsUnique();
-
-                    b.ToTable("BillingSnapshots");
-                });
-
             modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.ExceptionLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -377,9 +340,6 @@ namespace Pestlook.WebAPI.Data.Migrations
                     b.Property<string>("Address")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("BoundaryGeoJson")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -473,7 +433,7 @@ namespace Pestlook.WebAPI.Data.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid?>("FarmId")
+                    b.Property<Guid>("FarmId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("FieldId")
@@ -604,9 +564,6 @@ namespace Pestlook.WebAPI.Data.Migrations
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int?>("ThresholdCount")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("TenantId", "CommonName")
@@ -641,10 +598,6 @@ namespace Pestlook.WebAPI.Data.Migrations
 
                     b.Property<bool>("IsUnknownPest")
                         .HasColumnType("bit");
-
-                    b.Property<string>("LifeStage")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
 
                     b.Property<Guid>("MonitoringPointId")
                         .HasColumnType("uniqueidentifier");
@@ -892,25 +845,6 @@ namespace Pestlook.WebAPI.Data.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.BillingSnapshot", b =>
-                {
-                    b.HasOne("Pestlook.WebAPI.Domain.Entities.ApplicationUser", "Owner")
-                        .WithMany()
-                        .HasForeignKey("OwnerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Pestlook.WebAPI.Domain.Entities.Tenant", "Tenant")
-                        .WithMany("BillingSnapshots")
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Owner");
-
-                    b.Navigation("Tenant");
-                });
-
             modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.Farm", b =>
                 {
                     b.HasOne("Pestlook.WebAPI.Domain.Entities.Tenant", "Tenant")
@@ -943,7 +877,8 @@ namespace Pestlook.WebAPI.Data.Migrations
                     b.HasOne("Pestlook.WebAPI.Domain.Entities.Farm", "Farm")
                         .WithMany("MonitoringPoints")
                         .HasForeignKey("FarmId")
-                        .OnDelete(DeleteBehavior.NoAction);
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
 
                     b.HasOne("Pestlook.WebAPI.Domain.Entities.Field", "Field")
                         .WithMany("MonitoringPoints")
@@ -1093,8 +1028,6 @@ namespace Pestlook.WebAPI.Data.Migrations
 
             modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.Tenant", b =>
                 {
-                    b.Navigation("BillingSnapshots");
-
                     b.Navigation("Farms");
 
                     b.Navigation("ScoutingSessions");

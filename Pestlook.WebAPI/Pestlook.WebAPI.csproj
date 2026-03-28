@@ -26,4 +26,8 @@
     <PackageReference Include="Serilog.Sinks.MSSqlServer" Version="9.0.3" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="DTOs\BillingSnapshots\" />
+  </ItemGroup>
+
 </Project>

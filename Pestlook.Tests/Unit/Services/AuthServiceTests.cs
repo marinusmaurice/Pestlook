@@ -107,10 +107,10 @@ public sealed class AuthServiceTests : IDisposable
         _userManagerMock.Setup(m => m.FindByEmailAsync(It.IsAny<string>())).ReturnsAsync((ApplicationUser?)null);
         _userManagerMock.Setup(m => m.CreateAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()))
             .ReturnsAsync(IdentityResult.Success);
-        _userManagerMock.Setup(m => m.AddToRoleAsync(It.IsAny<ApplicationUser>(), "User"))
+        _userManagerMock.Setup(m => m.AddToRoleAsync(It.IsAny<ApplicationUser>(), "Scout"))
             .ReturnsAsync(IdentityResult.Success);
         _userManagerMock.Setup(m => m.GetRolesAsync(It.IsAny<ApplicationUser>()))
-            .ReturnsAsync(["User"]);
+            .ReturnsAsync(["Scout"]);
         _userManagerMock.Setup(m => m.UpdateAsync(It.IsAny<ApplicationUser>()))
             .ReturnsAsync(IdentityResult.Success);
 

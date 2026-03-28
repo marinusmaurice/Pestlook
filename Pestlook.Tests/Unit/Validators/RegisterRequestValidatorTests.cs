@@ -61,4 +61,29 @@ public sealed class RegisterRequestValidatorTests
         var result = _validator.TestValidate(Valid());
         result.IsValid.Should().BeTrue();
     }
+
+    [Theory]
+    [InlineData("Admin")]
+    [InlineData("Scout")]
+    public void Role_WhenKnownRole_ShouldPass(string role)
+    {
+        var result = _validator.TestValidate(Valid() with { Role = role });
+        result.ShouldNotHaveValidationErrorFor(x => x.Role);
+    }
+
+    [Fact]
+    public void Role_WhenNull_ShouldPass()
+    {
+        var result = _validator.TestValidate(Valid());
+        result.ShouldNotHaveValidationErrorFor(x => x.Role);
+    }
+
+    [Theory]
+    [InlineData("Farmer")]
+    [InlineData("SuperAdmin")]
+    public void Role_WhenInvalid_ShouldFail(string role)
+    {
+        var result = _validator.TestValidate(Valid() with { Role = role });
+        result.ShouldHaveValidationErrorFor(x => x.Role);
+    }
 }

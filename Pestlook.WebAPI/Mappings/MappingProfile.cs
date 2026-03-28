@@ -1,6 +1,15 @@
 using AutoMapper;
+using System.Text.Json;
 using Pestlook.WebAPI.Domain.Entities;
 using Pestlook.WebAPI.DTOs.Auth;
+using Pestlook.WebAPI.DTOs.BillingSnapshots;
+using Pestlook.WebAPI.DTOs.Farms;
+using Pestlook.WebAPI.DTOs.Fields;
+using Pestlook.WebAPI.DTOs.MonitoringPoints;
+using Pestlook.WebAPI.DTOs.PestObservations;
+using Pestlook.WebAPI.DTOs.Pests;
+using Pestlook.WebAPI.DTOs.ScoutingSessions;
+using Pestlook.WebAPI.DTOs.TrapTypes;
 
 namespace Pestlook.WebAPI.Mappings;
 
@@ -16,5 +25,33 @@ public sealed class MappingProfile : Profile
                 src.LastName,
                 src.TenantId,
                 []));
+
+        CreateMap<Farm, FarmResponse>();
+
+        CreateMap<Field, FieldResponse>();
+
+        CreateMap<TrapType, TrapTypeResponse>();
+
+        CreateMap<MonitoringPoint, MonitoringPointResponse>()
+            .ForMember(d => d.TrapTypeName, o => o.MapFrom(s => s.TrapType != null ? s.TrapType.Name : null))
+            .ForMember(d => d.AssignedPests, o => o.MapFrom(s => s.MonitoringPointPests));
+
+        CreateMap<MonitoringPointPest, AssignedPestSummary>()
+            .ForMember(d => d.MonitoringPointPestId, o => o.MapFrom(s => s.Id))
+            .ForMember(d => d.PestName, o => o.MapFrom(s => s.Pest != null ? s.Pest.CommonName : string.Empty));
+
+        CreateMap<Pest, PestResponse>();
+
+        CreateMap<ScoutingSession, ScoutingSessionResponse>()
+            .ForMember(d => d.ObservationCount, o => o.MapFrom(s => s.PestObservations.Count));
+
+        CreateMap<PestObservation, PestObservationResponse>()
+            .ForMember(d => d.PestName, o => o.MapFrom(s => s.Pest != null ? s.Pest.CommonName : null))
+            .ForMember(d => d.PhotoUrls, o => o.MapFrom(s =>
+                s.PhotoUrlsJson != null
+                    ? JsonSerializer.Deserialize<List<string>>(s.PhotoUrlsJson, (JsonSerializerOptions?)null) ?? new List<string>()
+                    : new List<string>()));
+
+        CreateMap<BillingSnapshot, BillingSnapshotResponse>();
     }
 }

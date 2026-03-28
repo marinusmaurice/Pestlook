@@ -52,7 +52,7 @@ public sealed class AuthService(
             throw new InvalidOperationException($"Registration failed: {errors}");
         }
 
-        await userManager.AddToRoleAsync(user, "Scout");
+        await userManager.AddToRoleAsync(user, request.Role ?? "Scout");
 
         logger.LogInformation("User {Email} registered in tenant {TenantId}", user.Email, user.TenantId);
 

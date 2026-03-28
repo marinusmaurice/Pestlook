@@ -12,6 +12,7 @@ namespace Pestlook.Tests.Integration.Auth;
 public sealed class AuthControllerTests(TestWebApplicationFactory factory)
 {
     private readonly HttpClient _client = factory.CreateTenantClient();
+    private readonly HttpClient _adminClient = factory.CreateAdminClient();
 
     // ── POST /api/v1/auth/register ────────────────────────────────────────────
 
@@ -24,7 +25,7 @@ public sealed class AuthControllerTests(TestWebApplicationFactory factory)
             FirstName: "John",
             LastName: "Doe");
 
-        var response = await _client.PostAsJsonAsync("/api/v1/auth/register", request);
+        var response = await _adminClient.PostAsJsonAsync("/api/v1/auth/register", request);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await response.Content.ReadFromJsonAsync<ApiResponse<TokenResponse>>();
@@ -47,7 +48,7 @@ public sealed class AuthControllerTests(TestWebApplicationFactory factory)
     {
         var request = new RegisterRequest(email, password, firstName, lastName);
 
-        var response = await _client.PostAsJsonAsync("/api/v1/auth/register", request);
+        var response = await _adminClient.PostAsJsonAsync("/api/v1/auth/register", request);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
@@ -58,8 +59,8 @@ public sealed class AuthControllerTests(TestWebApplicationFactory factory)
         var email = $"dup_{Guid.NewGuid():N}@test.com";
         var request = new RegisterRequest(email, "P@ssw0rd1!", "John", "Doe");
 
-        await _client.PostAsJsonAsync("/api/v1/auth/register", request);
-        var response = await _client.PostAsJsonAsync("/api/v1/auth/register", request);
+        await _adminClient.PostAsJsonAsync("/api/v1/auth/register", request);
+        var response = await _adminClient.PostAsJsonAsync("/api/v1/auth/register", request);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
@@ -71,7 +72,7 @@ public sealed class AuthControllerTests(TestWebApplicationFactory factory)
     {
         var email = $"login_{Guid.NewGuid():N}@test.com";
         var password = "P@ssw0rd1!";
-        await _client.PostAsJsonAsync("/api/v1/auth/register",
+        await _adminClient.PostAsJsonAsync("/api/v1/auth/register",
             new RegisterRequest(email, password, "Login", "User"));
 
         var response = await _client.PostAsJsonAsync("/api/v1/auth/login",
@@ -87,7 +88,7 @@ public sealed class AuthControllerTests(TestWebApplicationFactory factory)
     public async Task Login_WithWrongPassword_ShouldReturn401()
     {
         var email = $"wp_{Guid.NewGuid():N}@test.com";
-        await _client.PostAsJsonAsync("/api/v1/auth/register",
+        await _adminClient.PostAsJsonAsync("/api/v1/auth/register",
             new RegisterRequest(email, "P@ssw0rd1!", "Test", "User"));
 
         var response = await _client.PostAsJsonAsync("/api/v1/auth/login",
@@ -111,7 +112,7 @@ public sealed class AuthControllerTests(TestWebApplicationFactory factory)
     public async Task Refresh_WithValidTokens_ShouldReturn200WithNewTokens()
     {
         var email = $"refresh_{Guid.NewGuid():N}@test.com";
-        var registerResp = await _client.PostAsJsonAsync("/api/v1/auth/register",
+        var registerResp = await _adminClient.PostAsJsonAsync("/api/v1/auth/register",
             new RegisterRequest(email, "P@ssw0rd1!", "Refresh", "User"));
 
         var tokens = (await registerResp.Content
@@ -160,7 +161,7 @@ public sealed class AuthControllerTests(TestWebApplicationFactory factory)
     public async Task Me_WithValidRegisteredUser_ShouldReturn200WithUserInfo()
     {
         var email = $"me_{Guid.NewGuid():N}@test.com";
-        var registerResp = await _client.PostAsJsonAsync("/api/v1/auth/register",
+        var registerResp = await _adminClient.PostAsJsonAsync("/api/v1/auth/register",
             new RegisterRequest(email, "P@ssw0rd1!", "Me", "Test"));
 
         var tokens = (await registerResp.Content
@@ -181,7 +182,7 @@ public sealed class AuthControllerTests(TestWebApplicationFactory factory)
     public async Task Register_ShouldDefaultToScoutRole()
     {
         var email = $"scout_default_{Guid.NewGuid():N}@test.com";
-        var registerResp = await _client.PostAsJsonAsync("/api/v1/auth/register",
+        var registerResp = await _adminClient.PostAsJsonAsync("/api/v1/auth/register",
             new RegisterRequest(email, "P@ssw0rd1!", "New", "Scout"));
 
         var tokens = (await registerResp.Content

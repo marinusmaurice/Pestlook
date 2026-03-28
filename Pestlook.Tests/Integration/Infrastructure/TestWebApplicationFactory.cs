@@ -17,6 +17,8 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
 {
     public static readonly Guid DefaultTenantId = Guid.Parse("11111111-1111-1111-1111-111111111111");
     public static readonly string DefaultTenantSlug = "test-tenant";
+    public static readonly string DefaultAdminId = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+    public static readonly string DefaultAdminEmail = "admin@test-tenant.com";
     private readonly string _dbName = $"TestDb_{Guid.NewGuid():N}";
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -64,6 +66,7 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
     {
         using var scope = Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var userManager = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<ApplicationUser>>();
 
         if (!db.Tenants.Any())
         {
@@ -75,6 +78,21 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
                 IsActive = true
             });
             await db.SaveChangesAsync();
+        }
+
+        if (await userManager.FindByIdAsync(DefaultAdminId) is null)
+        {
+            var admin = new ApplicationUser
+            {
+                Id = DefaultAdminId,
+                UserName = DefaultAdminEmail,
+                Email = DefaultAdminEmail,
+                FirstName = "Admin",
+                LastName = "Test",
+                TenantId = DefaultTenantId
+            };
+            await userManager.CreateAsync(admin, "Admin@123!");
+            await userManager.AddToRoleAsync(admin, "Admin");
         }
     }
 
@@ -91,4 +109,8 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
 
         return client;
     }
+
+    public HttpClient CreateAdminClient() =>
+        CreateTenantClient(jwtToken: JwtTestHelper.GenerateToken(
+            DefaultAdminId, DefaultAdminEmail, DefaultTenantId, roles: ["Admin"]));
 }
