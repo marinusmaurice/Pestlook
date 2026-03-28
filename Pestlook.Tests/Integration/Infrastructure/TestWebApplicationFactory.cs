@@ -1,0 +1,93 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.IdentityModel.Tokens;
+using Pestlook.WebAPI.Data;
+using Pestlook.WebAPI.Domain.Entities;
+using Pestlook.Tests.Helpers;
+using System.Text;
+
+namespace Pestlook.Tests.Integration.Infrastructure;
+
+public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
+{
+    public static readonly Guid DefaultTenantId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+    public static readonly string DefaultTenantSlug = "test-tenant";
+
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        // Override connection string so Serilog SQL Server sink is never configured in tests
+        builder.UseSetting("ConnectionStrings:DefaultConnection", string.Empty);
+
+        // Make IOptions<JwtOptions> (used by TokenService) use the same secret as
+        // the PostConfigure<JwtBearerOptions> override below, so tokens issued during
+        // integration tests are accepted by [Authorize] endpoints.
+        builder.UseSetting("Jwt:Secret", JwtTestHelper.TestSecret);
+        builder.UseSetting("Jwt:Issuer", JwtTestHelper.TestIssuer);
+        builder.UseSetting("Jwt:Audience", JwtTestHelper.TestAudience);
+
+        builder.ConfigureServices(services =>
+        {
+            // Remove SQL Server provider AND its per-context options configuration.
+            // EF Core 8+ accumulates IDbContextOptionsConfiguration<T> entries; removing
+            // only DbContextOptions<T> still leaves the SQL Server config in place, which
+            // causes the "multiple providers" error when InMemory is added next.
+            services.RemoveAll(typeof(IDbContextOptionsConfiguration<ApplicationDbContext>));
+            services.RemoveAll<DbContextOptions<ApplicationDbContext>>();
+            services.AddDbContext<ApplicationDbContext>((_, options) =>
+                options.UseInMemoryDatabase("TestDb"));
+
+            // Swap JWT validation to use the test secret
+            services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = JwtTestHelper.TestIssuer,
+                    ValidAudience = JwtTestHelper.TestAudience,
+                    IssuerSigningKey = new SymmetricSecurityKey(
+                        Encoding.UTF8.GetBytes(JwtTestHelper.TestSecret))
+                };
+            });
+        });
+    }
+
+    // Seed using the app's own service provider AFTER the host is built
+    public async Task InitializeAsync()
+    {
+        using var scope = Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        if (!db.Tenants.Any())
+        {
+            db.Tenants.Add(new Tenant
+            {
+                Id = DefaultTenantId,
+                Name = "Test Tenant",
+                Slug = DefaultTenantSlug,
+                IsActive = true
+            });
+            await db.SaveChangesAsync();
+        }
+    }
+
+    public new Task DisposeAsync() => base.DisposeAsync().AsTask();
+
+    public HttpClient CreateTenantClient(string? jwtToken = null)
+    {
+        var client = CreateClient();
+        client.DefaultRequestHeaders.Add("X-Tenant-ID", DefaultTenantSlug);
+
+        if (jwtToken is not null)
+            client.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwtToken);
+
+        return client;
+    }
+}

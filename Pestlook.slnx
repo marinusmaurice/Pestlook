@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Pestlook.Tests/Pestlook.Tests.csproj" />
+  <Project Path="Pestlook.WebAPI/Pestlook.WebAPI.csproj" />
+</Solution>
