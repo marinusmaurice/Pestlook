@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Pestlook.WebAPI.Domain.Entities;
+using Pestlook.WebAPI.Domain.Enums;
 using Pestlook.WebAPI.Infrastructure;
 using Pestlook.WebAPI.Infrastructure.Services.Interfaces;
 
@@ -20,6 +21,14 @@ public sealed class ApplicationDbContext(
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<ExceptionLog> ExceptionLogs => Set<ExceptionLog>();
+    public DbSet<Farm> Farms => Set<Farm>();
+    public DbSet<Field> Fields => Set<Field>();
+    public DbSet<MonitoringPoint> MonitoringPoints => Set<MonitoringPoint>();
+    public DbSet<Pest> Pests => Set<Pest>();
+    public DbSet<MonitoringPointPest> MonitoringPointPests => Set<MonitoringPointPest>();
+    public DbSet<Observation> Observations => Set<Observation>();
+    public DbSet<ObservationPest> ObservationPests => Set<ObservationPest>();
+    public DbSet<Subscription> Subscriptions => Set<Subscription>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -69,6 +78,106 @@ public sealed class ApplicationDbContext(
             e.HasKey(ex => ex.Id);
             e.Property(ex => ex.RequestPath).HasMaxLength(500);
             e.Property(ex => ex.RequestMethod).HasMaxLength(10);
+        });
+
+        builder.Entity<Farm>(e =>
+        {
+            e.HasKey(f => f.Id);
+            e.Property(f => f.Name).HasMaxLength(200).IsRequired();
+            e.HasOne(f => f.Tenant)
+             .WithMany(t => t.Farms)
+             .HasForeignKey(f => f.TenantId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(f => tenantContext.TenantId == null || f.TenantId == tenantContext.TenantId);
+        });
+
+        builder.Entity<Field>(e =>
+        {
+            e.HasKey(f => f.Id);
+            e.Property(f => f.Name).HasMaxLength(200).IsRequired();
+            e.HasOne(f => f.Farm)
+             .WithMany(fm => fm.Fields)
+             .HasForeignKey(f => f.FarmId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(f => tenantContext.TenantId == null || f.TenantId == tenantContext.TenantId);
+        });
+
+        builder.Entity<MonitoringPoint>(e =>
+        {
+            e.HasKey(mp => mp.Id);
+            e.Property(mp => mp.Name).HasMaxLength(200).IsRequired();
+            e.Property(mp => mp.Type).HasConversion<string>();
+            e.HasOne(mp => mp.Farm)
+             .WithMany(f => f.MonitoringPoints)
+             .HasForeignKey(mp => mp.FarmId)
+             .OnDelete(DeleteBehavior.ClientSetNull);
+            e.HasOne(mp => mp.Field)
+             .WithMany(f => f.MonitoringPoints)
+             .HasForeignKey(mp => mp.FieldId)
+             .OnDelete(DeleteBehavior.ClientSetNull);
+            e.HasQueryFilter(mp => tenantContext.TenantId == null || mp.TenantId == tenantContext.TenantId);
+        });
+
+        builder.Entity<Pest>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.Property(p => p.Name).HasMaxLength(200).IsRequired();
+            e.Property(p => p.Category).HasConversion<string>();
+            e.HasQueryFilter(p => tenantContext.TenantId == null || p.TenantId == tenantContext.TenantId);
+        });
+
+        builder.Entity<MonitoringPointPest>(e =>
+        {
+            e.HasKey(mpp => mpp.Id);
+            e.HasIndex(mpp => new { mpp.MonitoringPointId, mpp.PestId }).IsUnique();
+            e.HasOne(mpp => mpp.MonitoringPoint)
+             .WithMany(mp => mp.MonitoringPointPests)
+             .HasForeignKey(mpp => mpp.MonitoringPointId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(mpp => mpp.Pest)
+             .WithMany(p => p.MonitoringPointPests)
+             .HasForeignKey(mpp => mpp.PestId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<Observation>(e =>
+        {
+            e.HasKey(o => o.Id);
+            e.HasOne(o => o.MonitoringPoint)
+             .WithMany(mp => mp.Observations)
+             .HasForeignKey(o => o.MonitoringPointId)
+             .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(o => o.CreatedBy)
+             .WithMany()
+             .HasForeignKey(o => o.CreatedByUserId)
+             .OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(o => tenantContext.TenantId == null || o.TenantId == tenantContext.TenantId);
+        });
+
+        builder.Entity<ObservationPest>(e =>
+        {
+            e.HasKey(op => op.Id);
+            e.Property(op => op.PestName).HasMaxLength(200);
+            e.HasOne(op => op.Observation)
+             .WithMany(o => o.ObservationPests)
+             .HasForeignKey(op => op.ObservationId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(op => op.Pest)
+             .WithMany(p => p.ObservationPests)
+             .HasForeignKey(op => op.PestId)
+             .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        builder.Entity<Subscription>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.Property(s => s.Plan).HasConversion<string>();
+            e.Property(s => s.PricePerMonth).HasColumnType("decimal(18,2)");
+            e.HasOne(s => s.Tenant)
+             .WithMany(t => t.Subscriptions)
+             .HasForeignKey(s => s.TenantId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(s => tenantContext.TenantId == null || s.TenantId == tenantContext.TenantId);
         });
 
         // Clean up Identity table names
