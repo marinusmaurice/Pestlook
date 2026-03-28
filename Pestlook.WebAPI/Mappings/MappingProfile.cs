@@ -9,6 +9,12 @@ public sealed class MappingProfile : Profile
     public MappingProfile()
     {
         CreateMap<ApplicationUser, UserInfoResponse>()
-            .ForMember(dest => dest.Roles, opt => opt.Ignore());
+            .ConstructUsing((src, _) => new UserInfoResponse(
+                src.Id,
+                src.Email!,
+                src.FirstName,
+                src.LastName,
+                src.TenantId,
+                []));
     }
 }
