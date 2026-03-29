@@ -855,122 +855,226 @@
 
     <!-- ════════════════ FARMS ════════════════ -->
     <div class="view" id="view-farms">
-      <div class="section-head" style="margin-bottom: 20px;">
-        <div>
-          <div style="font-family:'Fraunces',serif; font-size:1.4rem; font-weight:700; color:#fff; letter-spacing:-0.02em;">Farms & Fields</div>
-          <div style="font-size:0.82rem; color:var(--text-dim);">Manage your farm properties and crop fields</div>
+
+      <!-- Farm list panel -->
+      <div id="farms-list-panel">
+        <div class="section-head" style="margin-bottom: 20px;">
+          <div>
+            <div style="font-family:'Fraunces',serif; font-size:1.4rem; font-weight:700; color:#fff; letter-spacing:-0.02em;">Farms & Fields</div>
+            <div style="font-size:0.82rem; color:var(--text-dim);">Click a farm to manage its fields</div>
+          </div>
+          <button class="btn-primary" onclick="alert('Add Farm dialog')">＋ Add Farm</button>
         </div>
-        <button class="btn-primary" onclick="alert('Add Farm dialog')">＋ Add Farm</button>
+
+        <div class="three-col">
+          <div class="card" style="cursor:pointer;" onclick="openFarmFields(0)">
+            <div style="height:110px;background:linear-gradient(135deg,#1a3d20,#2a5e30);border-radius:13px 13px 0 0;display:flex;align-items:center;justify-content:center;font-size:3rem;position:relative;overflow:hidden;">
+              <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(109,222,132,0.07) 1px,transparent 1px),linear-gradient(90deg,rgba(109,222,132,0.07) 1px,transparent 1px);background-size:18px 18px;"></div>🌾
+            </div>
+            <div class="card-p">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <div style="font-weight:600;color:#fff;font-size:0.95rem;">Sunrise Farm</div>
+                <span class="tag tag-green">Active</span>
+              </div>
+              <div style="font-size:0.78rem;color:var(--text-dim);margin-bottom:12px;">📍 Stellenbosch, Western Cape</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;"><div style="font-size:0.65rem;color:var(--text-dim);margin-bottom:2px;text-transform:uppercase;letter-spacing:0.06em;">Fields</div><div style="font-family:'Fraunces',serif;font-weight:700;color:var(--green);font-size:1.2rem;" id="farm-field-count-0">5</div></div>
+                <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;"><div style="font-size:0.65rem;color:var(--text-dim);margin-bottom:2px;text-transform:uppercase;letter-spacing:0.06em;">Mon. Points</div><div style="font-family:'Fraunces',serif;font-weight:700;color:var(--blue);font-size:1.2rem;">9</div></div>
+              </div>
+              <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+                <span style="font-size:0.75rem;color:var(--text-dim);">Maize · 340 ha</span>
+                <span style="font-size:0.72rem;color:var(--green);font-weight:500;">Manage fields →</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="cursor:pointer;" onclick="openFarmFields(1)">
+            <div style="height:110px;background:linear-gradient(135deg,#1f3520,#3a5530);border-radius:13px 13px 0 0;display:flex;align-items:center;justify-content:center;font-size:3rem;position:relative;overflow:hidden;">
+              <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(109,222,132,0.07) 1px,transparent 1px),linear-gradient(90deg,rgba(109,222,132,0.07) 1px,transparent 1px);background-size:18px 18px;"></div>🌿
+            </div>
+            <div class="card-p">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <div style="font-weight:600;color:#fff;font-size:0.95rem;">Greenfield East</div>
+                <span class="tag tag-green">Active</span>
+              </div>
+              <div style="font-size:0.78rem;color:var(--text-dim);margin-bottom:12px;">📍 Paarl, Western Cape</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;"><div style="font-size:0.65rem;color:var(--text-dim);margin-bottom:2px;text-transform:uppercase;letter-spacing:0.06em;">Fields</div><div style="font-family:'Fraunces',serif;font-weight:700;color:var(--green);font-size:1.2rem;" id="farm-field-count-1">3</div></div>
+                <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;"><div style="font-size:0.65rem;color:var(--text-dim);margin-bottom:2px;text-transform:uppercase;letter-spacing:0.06em;">Mon. Points</div><div style="font-family:'Fraunces',serif;font-weight:700;color:var(--blue);font-size:1.2rem;">6</div></div>
+              </div>
+              <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+                <span style="font-size:0.75rem;color:var(--text-dim);">Wheat · 180 ha</span>
+                <span style="font-size:0.72rem;color:var(--green);font-weight:500;">Manage fields →</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="cursor:pointer;" onclick="openFarmFields(2)">
+            <div style="height:110px;background:linear-gradient(135deg,#2a2f1a,#3d4520);border-radius:13px 13px 0 0;display:flex;align-items:center;justify-content:center;font-size:3rem;position:relative;overflow:hidden;">
+              <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(109,222,132,0.07) 1px,transparent 1px),linear-gradient(90deg,rgba(109,222,132,0.07) 1px,transparent 1px);background-size:18px 18px;"></div>🍇
+            </div>
+            <div class="card-p">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <div style="font-weight:600;color:#fff;font-size:0.95rem;">Valley View</div>
+                <span class="tag tag-amber">Monitoring</span>
+              </div>
+              <div style="font-size:0.78rem;color:var(--text-dim);margin-bottom:12px;">📍 Franschhoek, WC</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;"><div style="font-size:0.65rem;color:var(--text-dim);margin-bottom:2px;text-transform:uppercase;letter-spacing:0.06em;">Fields</div><div style="font-family:'Fraunces',serif;font-weight:700;color:var(--green);font-size:1.2rem;" id="farm-field-count-2">4</div></div>
+                <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;"><div style="font-size:0.65rem;color:var(--text-dim);margin-bottom:2px;text-transform:uppercase;letter-spacing:0.06em;">Mon. Points</div><div style="font-family:'Fraunces',serif;font-weight:700;color:var(--blue);font-size:1.2rem;">7</div></div>
+              </div>
+              <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+                <span style="font-size:0.75rem;color:var(--text-dim);">Grapes · 95 ha</span>
+                <span style="font-size:0.72rem;color:var(--green);font-weight:500;">Manage fields →</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="cursor:pointer;" onclick="openFarmFields(3)">
+            <div style="height:110px;background:linear-gradient(135deg,#1a2830,#203545);border-radius:13px 13px 0 0;display:flex;align-items:center;justify-content:center;font-size:3rem;position:relative;overflow:hidden;">
+              <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(96,168,224,0.07) 1px,transparent 1px),linear-gradient(90deg,rgba(96,168,224,0.07) 1px,transparent 1px);background-size:18px 18px;"></div>🌻
+            </div>
+            <div class="card-p">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <div style="font-weight:600;color:#fff;font-size:0.95rem;">Riverside Plots</div>
+                <span class="tag tag-green">Active</span>
+              </div>
+              <div style="font-size:0.78rem;color:var(--text-dim);margin-bottom:12px;">📍 Worcester, Western Cape</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;"><div style="font-size:0.65rem;color:var(--text-dim);margin-bottom:2px;text-transform:uppercase;letter-spacing:0.06em;">Fields</div><div style="font-family:'Fraunces',serif;font-weight:700;color:var(--green);font-size:1.2rem;" id="farm-field-count-3">6</div></div>
+                <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;"><div style="font-size:0.65rem;color:var(--text-dim);margin-bottom:2px;text-transform:uppercase;letter-spacing:0.06em;">Mon. Points</div><div style="font-family:'Fraunces',serif;font-weight:700;color:var(--blue);font-size:1.2rem;">2</div></div>
+              </div>
+              <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+                <span style="font-size:0.75rem;color:var(--text-dim);">Sunflower · 210 ha</span>
+                <span style="font-size:0.72rem;color:var(--green);font-weight:500;">Manage fields →</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="cursor:pointer;border-style:dashed;display:flex;align-items:center;justify-content:center;min-height:240px;opacity:0.5;transition:opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='0.5'" onclick="alert('Add Farm')">
+            <div style="text-align:center;"><div style="font-size:2rem;margin-bottom:8px;">＋</div><div style="font-size:0.85rem;color:var(--text-dim);">Add New Farm</div></div>
+          </div>
+        </div>
       </div>
 
-      <div class="three-col">
-        <!-- Farm cards -->
-        <div class="card" style="cursor:pointer;" onclick="">
-          <div style="height: 110px; background: linear-gradient(135deg, #1a3d20, #2a5e30); border-radius: 13px 13px 0 0; display:flex; align-items:center; justify-content:center; font-size: 3rem; position:relative; overflow:hidden;">
-            <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(109,222,132,0.07) 1px,transparent 1px),linear-gradient(90deg,rgba(109,222,132,0.07) 1px,transparent 1px);background-size:18px 18px;"></div>
-            🌾
+      <!-- Fields detail panel (hidden by default) -->
+      <div id="farms-fields-panel" style="display:none;">
+        <!-- Breadcrumb -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">
+          <button onclick="closeFarmFields()" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text-mid);font-size:0.8rem;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor='var(--border)'">← Back to Farms</button>
+          <span style="color:var(--text-dim);font-size:0.8rem;">/</span>
+          <span style="font-size:0.85rem;color:var(--text);font-weight:500;" id="fields-farm-name">Sunrise Farm</span>
+          <span style="color:var(--text-dim);font-size:0.8rem;">/</span>
+          <span style="font-size:0.85rem;color:var(--green);">Fields</span>
+        </div>
+
+        <!-- Farm summary strip -->
+        <div id="fields-farm-banner" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:20px;">
+          <div style="font-size:2.2rem;" id="fields-farm-emoji">🌾</div>
+          <div style="flex:1;">
+            <div style="font-family:'Fraunces',serif;font-weight:700;font-size:1.1rem;color:#fff;" id="fields-farm-title">Sunrise Farm</div>
+            <div style="font-size:0.78rem;color:var(--text-dim);margin-top:2px;" id="fields-farm-location">📍 Stellenbosch, Western Cape</div>
           </div>
-          <div class="card-p">
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-              <div style="font-weight:600; color:#fff; font-size:0.95rem;">Sunrise Farm</div>
-              <span class="tag tag-green">Active</span>
+          <div style="display:flex;gap:16px;">
+            <div style="text-align:center;">
+              <div style="font-family:'Fraunces',serif;font-weight:700;font-size:1.5rem;color:var(--green);" id="fields-count-display">5</div>
+              <div style="font-size:0.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;">Fields</div>
             </div>
-            <div style="font-size:0.78rem; color:var(--text-dim); margin-bottom:12px;">📍 Stellenbosch, Western Cape</div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-              <div style="background:var(--surface2); border-radius:8px; padding:8px 10px;">
-                <div style="font-size:0.65rem; color:var(--text-dim); margin-bottom:2px; text-transform:uppercase; letter-spacing:0.06em;">Fields</div>
-                <div style="font-family:'Fraunces',serif; font-weight:700; color:var(--green); font-size:1.2rem;">5</div>
-              </div>
-              <div style="background:var(--surface2); border-radius:8px; padding:8px 10px;">
-                <div style="font-size:0.65rem; color:var(--text-dim); margin-bottom:2px; text-transform:uppercase; letter-spacing:0.06em;">Mon. Points</div>
-                <div style="font-family:'Fraunces',serif; font-weight:700; color:var(--blue); font-size:1.2rem;">9</div>
-              </div>
+            <div style="text-align:center;">
+              <div style="font-family:'Fraunces',serif;font-weight:700;font-size:1.5rem;color:var(--amber);" id="fields-ha-display">340</div>
+              <div style="font-size:0.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;">Total ha</div>
             </div>
-            <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border); font-size:0.75rem; color:var(--text-dim);">Crop: Maize · 340 ha</div>
           </div>
         </div>
 
-        <div class="card" style="cursor:pointer;">
-          <div style="height: 110px; background: linear-gradient(135deg, #1f3520, #3a5530); border-radius: 13px 13px 0 0; display:flex; align-items:center; justify-content:center; font-size: 3rem; position:relative; overflow:hidden;">
-            <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(109,222,132,0.07) 1px,transparent 1px),linear-gradient(90deg,rgba(109,222,132,0.07) 1px,transparent 1px);background-size:18px 18px;"></div>
-            🌿
+        <!-- Fields table header -->
+        <div class="section-head" style="margin-bottom:14px;">
+          <div>
+            <div class="section-title">Fields</div>
+            <div class="section-sub" id="fields-subtitle">Crop fields within this farm</div>
           </div>
-          <div class="card-p">
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-              <div style="font-weight:600; color:#fff; font-size:0.95rem;">Greenfield East</div>
-              <span class="tag tag-green">Active</span>
-            </div>
-            <div style="font-size:0.78rem; color:var(--text-dim); margin-bottom:12px;">📍 Paarl, Western Cape</div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-              <div style="background:var(--surface2); border-radius:8px; padding:8px 10px;">
-                <div style="font-size:0.65rem; color:var(--text-dim); margin-bottom:2px; text-transform:uppercase; letter-spacing:0.06em;">Fields</div>
-                <div style="font-family:'Fraunces',serif; font-weight:700; color:var(--green); font-size:1.2rem;">3</div>
-              </div>
-              <div style="background:var(--surface2); border-radius:8px; padding:8px 10px;">
-                <div style="font-size:0.65rem; color:var(--text-dim); margin-bottom:2px; text-transform:uppercase; letter-spacing:0.06em;">Mon. Points</div>
-                <div style="font-family:'Fraunces',serif; font-weight:700; color:var(--blue); font-size:1.2rem;">6</div>
-              </div>
-            </div>
-            <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border); font-size:0.75rem; color:var(--text-dim);">Crop: Wheat · 180 ha</div>
+          <button class="btn-primary" onclick="openFieldModal(null)">＋ Add Field</button>
+        </div>
+
+        <!-- Fields table -->
+        <div class="card">
+          <table class="data-table" id="fields-table">
+            <thead>
+              <tr>
+                <th>Field Name</th>
+                <th>Crop Type</th>
+                <th>Season</th>
+                <th>Area (ha)</th>
+                <th>Geo Boundary</th>
+                <th>Created</th>
+                <th style="text-align:right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="fields-tbody"></tbody>
+          </table>
+          <div id="fields-empty" style="display:none;padding:40px;text-align:center;">
+            <div style="font-size:2.5rem;margin-bottom:10px;">🌱</div>
+            <div style="font-size:0.9rem;color:var(--text-dim);">No fields yet. Add the first field to this farm.</div>
+            <button class="btn-primary" style="margin:16px auto 0;display:inline-flex;" onclick="openFieldModal(null)">＋ Add Field</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ Field Add/Edit Modal ══ -->
+    <div class="modal-overlay" id="field-modal" onclick="if(event.target===this)closeFieldModal()">
+      <div class="modal-box" style="width:520px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <div>
+            <div style="font-family:'Fraunces',serif;font-size:1.2rem;font-weight:700;color:#fff;" id="field-modal-title">Add Field</div>
+            <div style="font-size:0.78rem;color:var(--text-dim);margin-top:2px;" id="field-modal-subtitle">New crop field for this farm</div>
+          </div>
+          <button onclick="closeFieldModal()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;width:32px;height:32px;cursor:pointer;color:var(--text-dim);font-size:1rem;display:flex;align-items:center;justify-content:center;">×</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div style="grid-column:1/-1;">
+            <div class="input-label">Field Name <span style="color:var(--red);">*</span></div>
+            <input class="input-field" id="field-name" placeholder="e.g. North Block A" type="text">
+          </div>
+          <div>
+            <div class="input-label">Crop Type</div>
+            <input class="input-field" id="field-crop" placeholder="e.g. Maize, Wheat, Grapes" type="text">
+          </div>
+          <div>
+            <div class="input-label">Season</div>
+            <input class="input-field" id="field-season" placeholder="e.g. Summer 2025/26" type="text">
+          </div>
+          <div>
+            <div class="input-label">Area (hectares)</div>
+            <input class="input-field" id="field-area" placeholder="e.g. 45.5" type="number" step="0.1" min="0">
+          </div>
+          <div>
+            <div class="input-label">Geo Boundary</div>
+            <input class="input-field" id="field-geo" placeholder="GeoJSON or polygon ref" type="text">
           </div>
         </div>
 
-        <div class="card" style="cursor:pointer;">
-          <div style="height: 110px; background: linear-gradient(135deg, #2a2f1a, #3d4520); border-radius: 13px 13px 0 0; display:flex; align-items:center; justify-content:center; font-size: 3rem; position:relative; overflow:hidden;">
-            <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(109,222,132,0.07) 1px,transparent 1px),linear-gradient(90deg,rgba(109,222,132,0.07) 1px,transparent 1px);background-size:18px 18px;"></div>
-            🍇
-          </div>
-          <div class="card-p">
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-              <div style="font-weight:600; color:#fff; font-size:0.95rem;">Valley View</div>
-              <span class="tag tag-amber">Monitoring</span>
-            </div>
-            <div style="font-size:0.78rem; color:var(--text-dim); margin-bottom:12px;">📍 Franschhoek, WC</div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-              <div style="background:var(--surface2); border-radius:8px; padding:8px 10px;">
-                <div style="font-size:0.65rem; color:var(--text-dim); margin-bottom:2px; text-transform:uppercase; letter-spacing:0.06em;">Fields</div>
-                <div style="font-family:'Fraunces',serif; font-weight:700; color:var(--green); font-size:1.2rem;">4</div>
-              </div>
-              <div style="background:var(--surface2); border-radius:8px; padding:8px 10px;">
-                <div style="font-size:0.65rem; color:var(--text-dim); margin-bottom:2px; text-transform:uppercase; letter-spacing:0.06em;">Mon. Points</div>
-                <div style="font-family:'Fraunces',serif; font-weight:700; color:var(--blue); font-size:1.2rem;">7</div>
-              </div>
-            </div>
-            <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border); font-size:0.75rem; color:var(--text-dim);">Crop: Grapes · 95 ha</div>
-          </div>
+        <div style="display:flex;gap:10px;margin-top:20px;">
+          <button class="btn-outline" onclick="closeFieldModal()" style="flex:1;">Cancel</button>
+          <button class="btn-primary" onclick="saveField()" style="flex:2;justify-content:center;" id="field-save-btn">＋ Add Field</button>
         </div>
+      </div>
+    </div>
 
-        <div class="card" style="cursor:pointer;">
-          <div style="height: 110px; background: linear-gradient(135deg, #1a2830, #203545); border-radius: 13px 13px 0 0; display:flex; align-items:center; justify-content:center; font-size: 3rem; position:relative; overflow:hidden;">
-            <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(96,168,224,0.07) 1px,transparent 1px),linear-gradient(90deg,rgba(96,168,224,0.07) 1px,transparent 1px);background-size:18px 18px;"></div>
-            🌻
-          </div>
-          <div class="card-p">
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-              <div style="font-weight:600; color:#fff; font-size:0.95rem;">Riverside Plots</div>
-              <span class="tag tag-green">Active</span>
-            </div>
-            <div style="font-size:0.78rem; color:var(--text-dim); margin-bottom:12px;">📍 Worcester, Western Cape</div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-              <div style="background:var(--surface2); border-radius:8px; padding:8px 10px;">
-                <div style="font-size:0.65rem; color:var(--text-dim); margin-bottom:2px; text-transform:uppercase; letter-spacing:0.06em;">Fields</div>
-                <div style="font-family:'Fraunces',serif; font-weight:700; color:var(--green); font-size:1.2rem;">6</div>
-              </div>
-              <div style="background:var(--surface2); border-radius:8px; padding:8px 10px;">
-                <div style="font-size:0.65rem; color:var(--text-dim); margin-bottom:2px; text-transform:uppercase; letter-spacing:0.06em;">Mon. Points</div>
-                <div style="font-family:'Fraunces',serif; font-weight:700; color:var(--blue); font-size:1.2rem;">2</div>
-              </div>
-            </div>
-            <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border); font-size:0.75rem; color:var(--text-dim);">Crop: Sunflower · 210 ha</div>
-          </div>
+    <!-- ══ Delete Confirm Modal ══ -->
+    <div class="modal-overlay" id="delete-modal" onclick="if(event.target===this)closeDeleteModal()">
+      <div class="modal-box" style="width:420px;text-align:center;">
+        <div style="font-size:2.5rem;margin-bottom:12px;">🗑️</div>
+        <div style="font-family:'Fraunces',serif;font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:8px;">Delete Field?</div>
+        <div style="font-size:0.85rem;color:var(--text-dim);margin-bottom:6px;">You are about to delete:</div>
+        <div style="font-size:0.95rem;font-weight:600;color:var(--red);margin-bottom:16px;" id="delete-field-name">"North Block A"</div>
+        <div style="font-size:0.8rem;color:var(--text-dim);background:rgba(224,96,96,0.08);border:1px solid rgba(224,96,96,0.15);border-radius:8px;padding:10px 14px;margin-bottom:20px;">
+          This will permanently remove the field and cannot be undone. Any monitoring points linked to this field will be unlinked.
         </div>
-
-        <!-- Add card -->
-        <div class="card" style="cursor:pointer; border-style:dashed; display:flex; align-items:center; justify-content:center; min-height:240px; opacity:0.5; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='0.5'" onclick="alert('Add Farm')">
-          <div style="text-align:center;">
-            <div style="font-size:2rem; margin-bottom:8px;">＋</div>
-            <div style="font-size:0.85rem; color:var(--text-dim);">Add New Farm</div>
-          </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn-outline" onclick="closeDeleteModal()" style="flex:1;">Cancel</button>
+          <button onclick="confirmDelete()" style="flex:1;background:#8a2020;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:0.82rem;font-weight:600;cursor:pointer;font-family:inherit;transition:background 0.15s;" onmouseover="this.style.background='#b02828'" onmouseout="this.style.background='#8a2020'">Delete Field</button>
         </div>
       </div>
     </div>
@@ -1338,22 +1442,22 @@
           <div style="display:flex;flex-direction:column;gap:10px;">
             <div style="display:flex;align-items:center;gap:12px;">
               <div class="user-avatar" style="width:36px;height:36px;font-size:0.8rem;">JD</div>
-              <div style="flex:1;"><div style="font-size:0.85rem;font-weight:600;color:var(--text);">Jamie Dlamini</div><div style="font-size:0.72rem;color:var(--text-dim);">jamie@agri-wc.co.za</div></div>
+              <div style="flex:1;"><div style="font-size:0.85rem;font-weight:600;color:var(--text);">Jamie Dlamini</div><div style="font-size:0.72rem;color:var(--text-dim);"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="442e25292d21042523362d6933276a272b6a3e25">[email&#160;protected]</a></div></div>
               <span class="tag tag-green">Manager</span>
             </div>
             <div style="display:flex;align-items:center;gap:12px;">
               <div class="user-avatar" style="width:36px;height:36px;font-size:0.8rem;background:linear-gradient(135deg,#4a6e9e,#2a4e7e);">TM</div>
-              <div style="flex:1;"><div style="font-size:0.85rem;font-weight:600;color:var(--text);">Thabo Mokoena</div><div style="font-size:0.72rem;color:var(--text-dim);">thabo@agri-wc.co.za</div></div>
+              <div style="flex:1;"><div style="font-size:0.85rem;font-weight:600;color:var(--text);">Thabo Mokoena</div><div style="font-size:0.72rem;color:var(--text-dim);"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="76021e171419361711041f5b0115581519580c17">[email&#160;protected]</a></div></div>
               <span class="tag tag-blue">Scout</span>
             </div>
             <div style="display:flex;align-items:center;gap:12px;">
               <div class="user-avatar" style="width:36px;height:36px;font-size:0.8rem;background:linear-gradient(135deg,#8e4a9e,#5a2a7e);">NK</div>
-              <div style="flex:1;"><div style="font-size:0.85rem;font-weight:600;color:var(--text);">Nomsa Khumalo</div><div style="font-size:0.72rem;color:var(--text-dim);">nomsa@agri-wc.co.za</div></div>
+              <div style="flex:1;"><div style="font-size:0.85rem;font-weight:600;color:var(--text);">Nomsa Khumalo</div><div style="font-size:0.72rem;color:var(--text-dim);"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="c6a8a9abb5a786a7a1b4afebb1a5e8a5a9e8bca7">[email&#160;protected]</a></div></div>
               <span class="tag tag-blue">Sr. Scout</span>
             </div>
             <div style="display:flex;align-items:center;gap:12px;">
               <div class="user-avatar" style="width:36px;height:36px;font-size:0.8rem;background:linear-gradient(135deg,#9e7a4a,#7e5a2a);">SD</div>
-              <div style="flex:1;"><div style="font-size:0.85rem;font-weight:600;color:var(--text);">Sipho Dlamini</div><div style="font-size:0.72rem;color:var(--text-dim);">sipho@agri-wc.co.za</div></div>
+              <div style="flex:1;"><div style="font-size:0.85rem;font-weight:600;color:var(--text);">Sipho Dlamini</div><div style="font-size:0.72rem;color:var(--text-dim);"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="20534950484f60414752490d57430e434f0e5a41">[email&#160;protected]</a></div></div>
               <span class="tag tag-blue">Scout</span>
             </div>
             <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">
@@ -1413,40 +1517,214 @@
 </div>
 
 <script>
+  // ── Navigation ──────────────────────────────────────────
   const titles = {
-    dashboard: 'Dashboard',
-    farms: 'Farms & Fields',
-    monitoring: 'Monitoring Points',
-    sessions: 'Scouting Sessions',
-    observations: 'Pest Observations',
-    pests: 'Pest Catalogue',
-    settings: 'Settings'
+    dashboard: 'Dashboard', farms: 'Farms & Fields',
+    monitoring: 'Monitoring Points', sessions: 'Scouting Sessions',
+    observations: 'Pest Observations', pests: 'Pest Catalogue', settings: 'Settings'
   };
 
   function navigate(view, el) {
-    // Update active view
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById('view-' + view).classList.add('active');
-
-    // Update nav
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     el.classList.add('active');
-
-    // Update title
     document.getElementById('pageTitle').textContent = titles[view] || view;
+    if (view === 'farms') closeFarmFields();
   }
 
-  function switchTab(btn, tab) {
+  function switchTab(btn) {
     btn.closest('.tab-bar').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
   }
 
-  function openModal() {
-    document.getElementById('modal').classList.add('open');
+  function openModal()  { document.getElementById('modal').classList.add('open'); }
+  function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+  // ── Farm data ─────────────────────────────────────────────
+  const farms = [
+    { name: 'Sunrise Farm',    emoji: '🌾', location: '📍 Stellenbosch, Western Cape' },
+    { name: 'Greenfield East', emoji: '🌿', location: '📍 Paarl, Western Cape' },
+    { name: 'Valley View',     emoji: '🍇', location: '📍 Franschhoek, WC' },
+    { name: 'Riverside Plots', emoji: '🌻', location: '📍 Worcester, Western Cape' },
+  ];
+
+  const fieldsDB = {
+    0: [
+      { id:1,  name:'North Maize Block', crop:'Maize',     season:'Summer 2025/26', area:85,   geo:'Polygon ref #A1', created:'2025-10-01' },
+      { id:2,  name:'South Block A',     crop:'Maize',     season:'Summer 2025/26', area:72.5, geo:'Polygon ref #A2', created:'2025-10-01' },
+      { id:3,  name:'Irrigation Border', crop:'Maize',     season:'Summer 2025/26', area:40,   geo:'',                created:'2025-11-15' },
+      { id:4,  name:'East Ridge',        crop:'Soya',      season:'Summer 2025/26', area:90,   geo:'Polygon ref #A4', created:'2025-10-01' },
+      { id:5,  name:'River Block',       crop:'Maize',     season:'Summer 2025/26', area:52.5, geo:'',                created:'2025-12-01' },
+    ],
+    1: [
+      { id:10, name:'Wheat Block A', crop:'Wheat', season:'Winter 2025', area:65, geo:'Polygon ref #B1', created:'2025-04-10' },
+      { id:11, name:'Wheat Block B', crop:'Wheat', season:'Winter 2025', area:70, geo:'Polygon ref #B2', created:'2025-04-10' },
+      { id:12, name:'Cover Strip',   crop:'Rye',   season:'Winter 2025', area:45, geo:'',               created:'2025-05-01' },
+    ],
+    2: [
+      { id:20, name:'Vineyard Row 1-4',  crop:'Grapes', season:'2025/26', area:22, geo:'Polygon ref #C1', created:'2024-08-01' },
+      { id:21, name:'Vineyard Row 5-10', crop:'Grapes', season:'2025/26', area:28, geo:'Polygon ref #C2', created:'2024-08-01' },
+      { id:22, name:'Upper Terrace',     crop:'Grapes', season:'2025/26', area:18, geo:'',               created:'2025-01-15' },
+      { id:23, name:'Dam Block',         crop:'Olives', season:'2025/26', area:27, geo:'Polygon ref #C4', created:'2025-03-01' },
+    ],
+    3: [
+      { id:30, name:'Sunflower North', crop:'Sunflower', season:'Summer 2025/26', area:40, geo:'',               created:'2025-10-01' },
+      { id:31, name:'Sunflower South', crop:'Sunflower', season:'Summer 2025/26', area:38, geo:'Polygon ref #D2', created:'2025-10-01' },
+      { id:32, name:'Cover East',      crop:'Mustard',   season:'Summer 2025/26', area:25, geo:'',               created:'2025-11-01' },
+      { id:33, name:'Dryland A',       crop:'Sunflower', season:'Summer 2025/26', area:55, geo:'Polygon ref #D4', created:'2025-10-01' },
+      { id:34, name:'Dryland B',       crop:'Sunflower', season:'Summer 2025/26', area:42, geo:'',               created:'2025-10-01' },
+      { id:35, name:'River Strip',     crop:'Soya',      season:'Summer 2025/26', area:10, geo:'',               created:'2025-12-15' },
+    ],
+  };
+
+  let nextId = 100;
+  let activeFarmIndex = null;
+  let editingFieldId  = null;
+  let deletingFieldId = null;
+
+  // ── Open farm's fields panel ──────────────────────────────
+  function openFarmFields(farmIdx) {
+    activeFarmIndex = farmIdx;
+    const farm = farms[farmIdx];
+    document.getElementById('farms-list-panel').style.display   = 'none';
+    document.getElementById('farms-fields-panel').style.display = 'block';
+    document.getElementById('fields-farm-name').textContent     = farm.name;
+    document.getElementById('fields-farm-title').textContent    = farm.name;
+    document.getElementById('fields-farm-location').textContent = farm.location;
+    document.getElementById('fields-farm-emoji').textContent    = farm.emoji;
+    renderFieldsTable();
   }
-  function closeModal() {
-    document.getElementById('modal').classList.remove('open');
+
+  function closeFarmFields() {
+    document.getElementById('farms-list-panel').style.display   = 'block';
+    document.getElementById('farms-fields-panel').style.display = 'none';
+    activeFarmIndex = null;
   }
+
+  // ── Render fields table ───────────────────────────────────
+  function renderFieldsTable() {
+    const fields = fieldsDB[activeFarmIndex] || [];
+    const tbody  = document.getElementById('fields-tbody');
+    const empty  = document.getElementById('fields-empty');
+    const table  = document.getElementById('fields-table');
+
+    const totalHa = fields.reduce((s, f) => s + (parseFloat(f.area) || 0), 0);
+    document.getElementById('fields-count-display').textContent = fields.length;
+    document.getElementById('fields-ha-display').textContent    = totalHa % 1 === 0 ? totalHa : totalHa.toFixed(1);
+    document.getElementById('fields-subtitle').textContent      = `${fields.length} field${fields.length !== 1 ? 's' : ''} · ${totalHa % 1 === 0 ? totalHa : totalHa.toFixed(1)} ha total`;
+
+    const badge = document.getElementById('farm-field-count-' + activeFarmIndex);
+    if (badge) badge.textContent = fields.length;
+
+    if (fields.length === 0) { table.style.display = 'none'; empty.style.display = 'block'; return; }
+    table.style.display = 'table'; empty.style.display = 'none';
+
+    tbody.innerHTML = fields.map(f => `
+      <tr>
+        <td><div style="font-weight:600;color:#fff;">${escHtml(f.name)}</div></td>
+        <td>${f.crop ? `<span class="tag tag-green" style="font-size:0.72rem;">${escHtml(f.crop)}</span>` : '<span style="color:var(--text-dim);font-size:0.8rem;">—</span>'}</td>
+        <td style="font-size:0.82rem;color:var(--text-mid);">${escHtml(f.season)||'—'}</td>
+        <td>
+          <span style="font-family:'Fraunces',serif;font-weight:700;font-size:1.05rem;color:var(--amber);">${f.area!=null&&f.area!==''?f.area:'—'}</span>
+          ${f.area!=null&&f.area!==''?'<span style="font-size:0.7rem;color:var(--text-dim);margin-left:2px;">ha</span>':''}
+        </td>
+        <td style="font-size:0.78rem;color:var(--text-dim);font-family:'JetBrains Mono',monospace;">${f.geo?`<span style="color:var(--blue);">✓</span> ${escHtml(f.geo)}`:'<span style="color:var(--text-dim);">—</span>'}</td>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--text-dim);">${f.created}</td>
+        <td style="text-align:right;">
+          <div style="display:flex;gap:6px;justify-content:flex-end;">
+            <button onclick="openFieldModal(${f.id})" style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:5px 11px;color:var(--text-mid);font-size:0.75rem;cursor:pointer;font-family:inherit;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--border2)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-mid)'">✏ Edit</button>
+            <button onclick="openDeleteModal(${f.id},'${escHtml(f.name).replace(/'/g,"\\'")}' )" style="background:rgba(224,96,96,0.08);border:1px solid rgba(224,96,96,0.2);border-radius:7px;padding:5px 11px;color:var(--red);font-size:0.75rem;cursor:pointer;font-family:inherit;transition:all 0.15s;" onmouseover="this.style.background='rgba(224,96,96,0.16)'" onmouseout="this.style.background='rgba(224,96,96,0.08)'">🗑 Delete</button>
+          </div>
+        </td>
+      </tr>`).join('');
+  }
+
+  // ── Add / Edit modal ──────────────────────────────────────
+  function openFieldModal(fieldId) {
+    editingFieldId = fieldId;
+    const isEdit = fieldId !== null;
+    document.getElementById('field-modal-title').textContent    = isEdit ? 'Edit Field' : 'Add Field';
+    document.getElementById('field-modal-subtitle').textContent = isEdit ? 'Update field details' : 'New crop field for this farm';
+    document.getElementById('field-save-btn').textContent       = isEdit ? '💾 Save Changes' : '＋ Add Field';
+
+    if (isEdit) {
+      const field = (fieldsDB[activeFarmIndex]||[]).find(f => f.id === fieldId);
+      if (field) {
+        document.getElementById('field-name').value   = field.name;
+        document.getElementById('field-crop').value   = field.crop   || '';
+        document.getElementById('field-season').value = field.season || '';
+        document.getElementById('field-area').value   = field.area   != null ? field.area : '';
+        document.getElementById('field-geo').value    = field.geo    || '';
+      }
+    } else {
+      ['field-name','field-crop','field-season','field-area','field-geo'].forEach(id => document.getElementById(id).value = '');
+    }
+
+    document.getElementById('field-modal').classList.add('open');
+    setTimeout(() => document.getElementById('field-name').focus(), 100);
+  }
+
+  function closeFieldModal() {
+    document.getElementById('field-modal').classList.remove('open');
+    editingFieldId = null;
+  }
+
+  function saveField() {
+    const name   = document.getElementById('field-name').value.trim();
+    const crop   = document.getElementById('field-crop').value.trim();
+    const season = document.getElementById('field-season').value.trim();
+    const area   = document.getElementById('field-area').value;
+    const geo    = document.getElementById('field-geo').value.trim();
+
+    if (!name) {
+      const inp = document.getElementById('field-name');
+      inp.style.borderColor = 'var(--red)';
+      inp.focus();
+      setTimeout(() => inp.style.borderColor = '', 1500);
+      return;
+    }
+
+    if (!fieldsDB[activeFarmIndex]) fieldsDB[activeFarmIndex] = [];
+    const fields = fieldsDB[activeFarmIndex];
+
+    if (editingFieldId !== null) {
+      const idx = fields.findIndex(f => f.id === editingFieldId);
+      if (idx > -1) fields[idx] = { ...fields[idx], name, crop, season, area: area !== '' ? parseFloat(area) : null, geo };
+    } else {
+      const today = new Date().toISOString().split('T')[0];
+      fields.push({ id: nextId++, name, crop, season, area: area !== '' ? parseFloat(area) : null, geo, created: today });
+    }
+
+    closeFieldModal();
+    renderFieldsTable();
+  }
+
+  // ── Delete modal ──────────────────────────────────────────
+  function openDeleteModal(fieldId, fieldName) {
+    deletingFieldId = fieldId;
+    document.getElementById('delete-field-name').textContent = `"${fieldName}"`;
+    document.getElementById('delete-modal').classList.add('open');
+  }
+
+  function closeDeleteModal() {
+    document.getElementById('delete-modal').classList.remove('open');
+    deletingFieldId = null;
+  }
+
+  function confirmDelete() {
+    if (deletingFieldId === null || activeFarmIndex === null) return;
+    const fields = fieldsDB[activeFarmIndex] || [];
+    const idx = fields.findIndex(f => f.id === deletingFieldId);
+    if (idx > -1) fields.splice(idx, 1);
+    closeDeleteModal();
+    renderFieldsTable();
+  }
+
+  function escHtml(str) {
+    return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
 </script>
 
 </body>
