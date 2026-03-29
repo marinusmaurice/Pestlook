@@ -306,6 +306,19 @@ body {
   transition: background 0.15s;
 }
 .user-chip:hover { background: var(--surface3); }
+.logout-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+  line-height: 1;
+}
+.logout-btn:hover { color: #ef4444; background: rgba(239,68,68,0.1); }
 .user-avatar {
   width: 30px; height: 30px;
   border-radius: 50%;

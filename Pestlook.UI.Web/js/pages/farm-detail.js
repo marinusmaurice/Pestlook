@@ -1,4 +1,4 @@
-import { getFarm } from '../api/farms.js';
+import { getFarm, updateFarm } from '../api/farms.js';
 import { getFields, createField, deleteField } from '../api/fields.js';
 import { getMonitoringPoints } from '../api/monitoring-points.js';
 import { setPageTitle, setTopbarCta } from '../components/topbar.js';
@@ -73,9 +73,10 @@ function renderDetail(farm, fields, points, container, params) {
           <div class="section-title">${escapeHtml(farm.name)}</div>
           <div class="section-sub">📍 ${escapeHtml(farm.address || 'No address')}${farm.latitude ? ` · ${farm.latitude.toFixed(4)}, ${farm.longitude.toFixed(4)}` : ''}</div>
         </div>
-        <div style="display:flex;gap:8px;">
+        <div style="display:flex;gap:8px;align-items:center;">
           ${tag(fields.length + ' fields', 'green')}
           ${tag(points.length + ' monitoring points', 'blue')}
+          <button class="btn-outline" id="editFarmBtn" style="padding:5px 12px;font-size:0.78rem;">✏️ Edit</button>
         </div>
       </div>
     </div>
@@ -92,6 +93,7 @@ function renderDetail(farm, fields, points, container, params) {
   `;
 
   document.getElementById('addFieldBtn')?.addEventListener('click', () => showCreateFieldModal(farm.id, container, params));
+  document.getElementById('editFarmBtn')?.addEventListener('click', () => showEditFarmModal(farm, container, params));
 
   el.querySelectorAll('[data-delete-field]').forEach(btn => {
     btn.addEventListener('click', async (e) => {
@@ -106,6 +108,62 @@ function renderDetail(farm, fields, points, container, params) {
         showToast(err.message, 'error');
       }
     });
+  });
+}
+
+function showEditFarmModal(farm, listContainer, params) {
+  const form = document.createElement('div');
+  form.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <label class="input-label">Farm Name</label>
+        <input class="input-field" type="text" id="editFarmName" value="${escapeHtml(farm.name)}" required>
+      </div>
+      <div>
+        <label class="input-label">Address</label>
+        <input class="input-field" type="text" id="editFarmAddress" value="${escapeHtml(farm.address || '')}">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <label class="input-label">Latitude</label>
+          <input class="input-field" type="number" step="any" id="editFarmLat" value="${farm.latitude ?? ''}">
+        </div>
+        <div>
+          <label class="input-label">Longitude</label>
+          <input class="input-field" type="number" step="any" id="editFarmLng" value="${farm.longitude ?? ''}">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:6px;">
+        <button class="btn-outline" style="flex:1;" id="cancelEditFarm">Cancel</button>
+        <button class="btn-primary" style="flex:2;justify-content:center;" id="saveEditFarm">💾 Save Changes</button>
+      </div>
+    </div>
+  `;
+
+  openModal({ title: 'Edit Farm', subtitle: 'Update farm details', content: form });
+
+  document.getElementById('cancelEditFarm').addEventListener('click', closeModal);
+  document.getElementById('saveEditFarm').addEventListener('click', async () => {
+    const btn = document.getElementById('saveEditFarm');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>';
+
+    try {
+      await updateFarm(farm.id, {
+        name: document.getElementById('editFarmName').value.trim(),
+        address: document.getElementById('editFarmAddress').value.trim() || null,
+        latitude: parseFloat(document.getElementById('editFarmLat').value) || null,
+        longitude: parseFloat(document.getElementById('editFarmLng').value) || null,
+        boundaryGeoJson: farm.boundaryGeoJson || null,
+      });
+      closeModal();
+      showToast('Farm updated!', 'success');
+      renderFarmDetail(listContainer, params);
+    } catch (err) {
+      showToast(err.message, 'error');
+      btn.disabled = false;
+      btn.textContent = '💾 Save Changes';
+    }
   });
 }
 

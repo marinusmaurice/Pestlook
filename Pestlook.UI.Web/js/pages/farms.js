@@ -1,4 +1,4 @@
-import { getFarms, createFarm, deleteFarm } from '../api/farms.js';
+import { getFarms, createFarm, updateFarm, deleteFarm } from '../api/farms.js';
 import { getFields } from '../api/fields.js';
 import { getMonitoringPoints } from '../api/monitoring-points.js';
 import { setPageTitle, setTopbarCta } from '../components/topbar.js';
@@ -66,12 +66,12 @@ function renderFarmGrid(farms, fields, points, container) {
     const ha = topField?.areaHectares ? `${topField.areaHectares} ha` : '';
 
     html += `
-      <div class="card" style="cursor:pointer;" onclick="location.hash='#/farms/${farm.id}'">
-        <div class="farm-card-header" style="background:linear-gradient(135deg,${c[0]},${c[1]});">
+      <div class="card" style="display:flex;flex-direction:column;">
+        <div class="farm-card-header" style="background:linear-gradient(135deg,${c[0]},${c[1]});cursor:pointer;" onclick="location.hash='#/farms/${farm.id}'">
           <div class="grid-overlay"></div>
           ${emoji}
         </div>
-        <div class="card-p">
+        <div class="card-p" style="flex:1;cursor:pointer;" onclick="location.hash='#/farms/${farm.id}'">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
             <div style="font-weight:600;color:#fff;font-size:0.95rem;">${escapeHtml(farm.name)}</div>
             ${tag('Active', 'green')}
@@ -89,6 +89,10 @@ function renderFarmGrid(farms, fields, points, container) {
           </div>
           ${crop !== '—' || ha ? `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:0.75rem;color:var(--text-dim);">Crop: ${escapeHtml(crop)}${ha ? ' · ' + ha : ''}</div>` : ''}
         </div>
+        <div style="display:flex;gap:6px;padding:10px 14px;border-top:1px solid var(--border);">
+          <button class="btn-outline" style="flex:1;padding:5px 0;font-size:0.75rem;justify-content:center;" data-edit-farm="${farm.id}">✏️ Edit</button>
+          <button class="btn-danger" style="flex:1;padding:5px 0;font-size:0.75rem;" data-delete-farm="${farm.id}">🗑 Delete</button>
+        </div>
       </div>
     `;
   });
@@ -105,6 +109,83 @@ function renderFarmGrid(farms, fields, points, container) {
   grid.innerHTML = html;
 
   document.addEventListener('addFarm', () => showCreateFarmModal(container), { once: true });
+
+  grid.querySelectorAll('[data-edit-farm]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const farm = farms.find(f => f.id === btn.dataset.editFarm);
+      if (farm) showEditFarmModal(farm, container);
+    });
+  });
+
+  grid.querySelectorAll('[data-delete-farm]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const farm = farms.find(f => f.id === btn.dataset.deleteFarm);
+      if (!farm) return;
+      if (!confirm(`Delete "${farm.name}"? This cannot be undone.`)) return;
+      try {
+        await deleteFarm(farm.id);
+        showToast('Farm deleted.', 'success');
+        renderFarms(container);
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  });
+}
+
+function showEditFarmModal(farm, listContainer) {
+  const form = document.createElement('div');
+  form.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <label class="input-label">Farm Name</label>
+        <input class="input-field" type="text" id="editFarmName" value="${escapeHtml(farm.name)}" required>
+      </div>
+      <div>
+        <label class="input-label">Address</label>
+        <input class="input-field" type="text" id="editFarmAddress" value="${escapeHtml(farm.address || '')}">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <label class="input-label">Latitude</label>
+          <input class="input-field" type="number" step="any" id="editFarmLat" value="${farm.latitude ?? ''}">
+        </div>
+        <div>
+          <label class="input-label">Longitude</label>
+          <input class="input-field" type="number" step="any" id="editFarmLng" value="${farm.longitude ?? ''}">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:6px;">
+        <button class="btn-outline" style="flex:1;" id="cancelEditFarm">Cancel</button>
+        <button class="btn-primary" style="flex:2;justify-content:center;" id="saveEditFarm">💾 Save Changes</button>
+      </div>
+    </div>
+  `;
+
+  openModal({ title: 'Edit Farm', subtitle: 'Update farm details', content: form });
+
+  document.getElementById('cancelEditFarm').addEventListener('click', closeModal);
+  document.getElementById('saveEditFarm').addEventListener('click', async () => {
+    const btn = document.getElementById('saveEditFarm');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>';
+    try {
+      await updateFarm(farm.id, {
+        name: document.getElementById('editFarmName').value.trim(),
+        address: document.getElementById('editFarmAddress').value.trim() || null,
+        latitude: parseFloat(document.getElementById('editFarmLat').value) || null,
+        longitude: parseFloat(document.getElementById('editFarmLng').value) || null,
+        boundaryGeoJson: farm.boundaryGeoJson || null,
+      });
+      closeModal();
+      showToast('Farm updated!', 'success');
+      renderFarms(listContainer);
+    } catch (err) {
+      showToast(err.message, 'error');
+      btn.disabled = false;
+      btn.textContent = '💾 Save Changes';
+    }
+  });
 }
 
 function showCreateFarmModal(listContainer) {

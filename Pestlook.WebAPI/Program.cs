@@ -53,7 +53,11 @@ var spaRoot = Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, "..
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(spaRoot),
-    RequestPath  = ""
+    RequestPath  = "",
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers["Cache-Control"] = "no-store";
+    }
 });
 
 // ── Endpoints ─────────────────────────────────────────────────────────────────

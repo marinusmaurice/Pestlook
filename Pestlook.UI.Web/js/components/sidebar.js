@@ -63,12 +63,17 @@ export function renderSidebar(container) {
           <div class="user-name">${firstName} ${lastName}</div>
           <div class="user-role">${role}</div>
         </div>
-        <span style="margin-left:auto;color:var(--text-dim);font-size:0.85rem;">⋯</span>
+        <button class="logout-btn" id="logoutBtn" title="Sign out">⏻</button>
       </div>
     </div>
   `;
 
   container.innerHTML = html;
+
+  document.getElementById('logoutBtn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    navigate('/logout');
+  });
 }
 
 export function updateActiveNav(path) {

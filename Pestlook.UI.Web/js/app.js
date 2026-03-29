@@ -1,8 +1,10 @@
 import { registerRoute, navigate, startRouter, setBeforeNavigate, currentPath } from './utils/router.js';
-import { isAuthenticated, clearTokens, getUser } from './utils/storage.js';
+import { isAuthenticated, clearTokens, getRefreshToken, getUser } from './utils/storage.js';
 import { renderSidebar, updateActiveNav } from './components/sidebar.js';
 import { renderTopbar, setPageTitle } from './components/topbar.js';
 
+import { revoke } from './api/auth.js';
+import { showToast } from './components/toast.js';
 import { renderLanding } from './pages/landing.js';
 import { renderLogin } from './pages/login.js';
 import { renderSignUp } from './pages/signup.js';
@@ -131,9 +133,14 @@ registerRoute('/settings', authedRoute(async (content) => {
 }));
 
 registerRoute('/logout', async () => {
+  try {
+    const rt = getRefreshToken();
+    if (rt) await revoke(rt);
+  } catch { /* best-effort */ }
   clearTokens();
   currentShell = null;
   navigate('/login');
+  showToast('You have been signed out.', 'success');
 });
 
 // ── Start ──
