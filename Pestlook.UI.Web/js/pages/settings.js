@@ -40,7 +40,7 @@ export async function renderSettings(container) {
           <div class="skeleton-block" style="height:48px;border-radius:8px;"></div>
         </div>
         <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:14px;">
-          <button class="btn-outline" id="invite-btn" style="width:100%;">＋ Invite Team Member</button>
+          <button class="btn-outline" id="invite-btn" style="width:100%;">＋ Add Team Member</button>
         </div>
       </div>
     </div>
@@ -243,7 +243,7 @@ async function loadTeamMembers(container) {
 
 function openInviteModal(container) {
   const body = openModal({
-    title: 'Invite Team Member',
+    title: 'Add Team Member',
     subtitle: 'Register a new user for your tenant',
     content: `
       <div style="display:flex;flex-direction:column;gap:14px;">
@@ -267,7 +267,7 @@ function openInviteModal(container) {
         </div>
         <div style="display:flex;gap:10px;margin-top:6px;">
           <button class="btn-outline" id="inv-cancel" style="flex:1;">Cancel</button>
-          <button class="btn-primary" id="inv-submit" style="flex:2;justify-content:center;">📧 Send Invite</button>
+          <button class="btn-primary" id="inv-submit" style="flex:2;justify-content:center;">＋ Add Member</button>
         </div>
       </div>
     `,
@@ -286,16 +286,16 @@ function openInviteModal(container) {
     }
 
     const btn = body.querySelector('#inv-submit');
-    btn.disabled = true; btn.textContent = 'Sending…';
+    btn.disabled = true; btn.textContent = 'Adding…';
 
     try {
       await registerUser({ email, password, firstName, lastName });
       closeModal();
-      showToast('Team member invited');
+      showToast('Team member added');
       loadTeamMembers(container);
     } catch (err) {
-      showToast(err.message || 'Failed to invite', 'error');
-      btn.disabled = false; btn.textContent = '📧 Send Invite';
+      showToast(err.message || 'Failed to add member', 'error');
+      btn.disabled = false; btn.textContent = '＋ Add Member';
     }
   });
 }
