@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Pestlook.WebAPI.Data;
 
@@ -11,9 +12,11 @@ using Pestlook.WebAPI.Data;
 namespace Pestlook.WebAPI.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260329125846_AddTimestampsToTrapTypes")]
+    partial class AddTimestampsToTrapTypes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -831,9 +834,6 @@ namespace Pestlook.WebAPI.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("Description")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -843,14 +843,13 @@ namespace Pestlook.WebAPI.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<DateTime?>("UpdatedAt")
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
                     b.HasIndex("Name")
-                        .IsUnique()
-                        .HasFilter("[DeletedAt] IS NULL");
+                        .IsUnique();
 
                     b.ToTable("TrapTypes");
 
@@ -860,77 +859,88 @@ namespace Pestlook.WebAPI.Data.Migrations
                             Id = new Guid("a0000000-0000-0000-0000-000000000001"),
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Triangular tent-shaped trap with a sticky inner surface, typically baited with pheromone lures to attract and capture moths.",
-                            Name = "Delta Trap"
+                            Name = "Delta Trap",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             Id = new Guid("a0000000-0000-0000-0000-000000000002"),
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Container-style trap with a funnel lid; pests fall into the bucket and cannot escape, often used with pheromones or kill strips.",
-                            Name = "Bucket Trap"
+                            Name = "Bucket Trap",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             Id = new Guid("a0000000-0000-0000-0000-000000000003"),
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Cone-shaped mesh or wire trap with a collection chamber at the top, designed for strong-flying moths like corn earworm.",
-                            Name = "Cone Trap"
+                            Name = "Cone Trap",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             Id = new Guid("a0000000-0000-0000-0000-000000000004"),
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Yellow adhesive card used to attract and trap flying insects such as aphids, whiteflies, and leafminers.",
-                            Name = "Sticky Card (Yellow)"
+                            Name = "Sticky Card (Yellow)",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             Id = new Guid("a0000000-0000-0000-0000-000000000005"),
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Blue adhesive card specifically effective for thrips monitoring.",
-                            Name = "Sticky Card (Blue)"
+                            Name = "Sticky Card (Blue)",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             Id = new Guid("a0000000-0000-0000-0000-000000000006"),
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Red adhesive card used to attract leafhoppers.",
-                            Name = "Sticky Card (Red)"
+                            Name = "Sticky Card (Red)",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             Id = new Guid("a0000000-0000-0000-0000-000000000007"),
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Container buried flush with the ground surface to capture crawling insects like ground beetles and earwigs.",
-                            Name = "Pitfall Trap"
+                            Name = "Pitfall Trap",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             Id = new Guid("a0000000-0000-0000-0000-000000000008"),
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "UV or blacklight lamp with a collection container below, attracting night-flying moths and beetles.",
-                            Name = "Light Trap"
+                            Name = "Light Trap",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             Id = new Guid("a0000000-0000-0000-0000-000000000009"),
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Lynfield or McPhail style trap with liquid lure (e.g., torula yeast or pheromone) for monitoring Mediterranean fruit flies and olive flies.",
-                            Name = "Fruit Fly Trap"
+                            Name = "Fruit Fly Trap",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             Id = new Guid("a0000000-0000-0000-0000-00000000000a"),
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Red, sphere-shaped sticky trap that mimics ripe fruit, used in orchards for fruit worms and apple maggot.",
-                            Name = "Red Ball Trap"
+                            Name = "Red Ball Trap",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             Id = new Guid("a0000000-0000-0000-0000-00000000000b"),
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "A digital trap equipped with a camera and connectivity for remote image capture and automated pest counting.",
-                            Name = "Smart / Automated Trap"
+                            Name = "Smart / Automated Trap",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         });
                 });
 

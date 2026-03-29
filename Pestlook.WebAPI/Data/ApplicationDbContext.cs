@@ -125,7 +125,24 @@ public sealed class ApplicationDbContext(
             e.HasKey(t => t.Id);
             e.Property(t => t.Name).HasMaxLength(100).IsRequired();
             e.Property(t => t.Description).HasMaxLength(500);
-            e.HasIndex(t => t.Name).IsUnique();
+            e.HasIndex(t => t.Name).IsUnique()
+             .HasFilter("[DeletedAt] IS NULL");
+            e.HasQueryFilter(t => t.DeletedAt == null);
+
+            var seedDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            e.HasData(
+                new TrapType { Id = Guid.Parse("a0000000-0000-0000-0000-000000000001"), Name = "Delta Trap", Description = "Triangular tent-shaped trap with a sticky inner surface, typically baited with pheromone lures to attract and capture moths.", CreatedAt = seedDate },
+                new TrapType { Id = Guid.Parse("a0000000-0000-0000-0000-000000000002"), Name = "Bucket Trap", Description = "Container-style trap with a funnel lid; pests fall into the bucket and cannot escape, often used with pheromones or kill strips.", CreatedAt = seedDate },
+                new TrapType { Id = Guid.Parse("a0000000-0000-0000-0000-000000000003"), Name = "Cone Trap", Description = "Cone-shaped mesh or wire trap with a collection chamber at the top, designed for strong-flying moths like corn earworm.", CreatedAt = seedDate },
+                new TrapType { Id = Guid.Parse("a0000000-0000-0000-0000-000000000004"), Name = "Sticky Card (Yellow)", Description = "Yellow adhesive card used to attract and trap flying insects such as aphids, whiteflies, and leafminers.", CreatedAt = seedDate },
+                new TrapType { Id = Guid.Parse("a0000000-0000-0000-0000-000000000005"), Name = "Sticky Card (Blue)", Description = "Blue adhesive card specifically effective for thrips monitoring.", CreatedAt = seedDate },
+                new TrapType { Id = Guid.Parse("a0000000-0000-0000-0000-000000000006"), Name = "Sticky Card (Red)", Description = "Red adhesive card used to attract leafhoppers.", CreatedAt = seedDate },
+                new TrapType { Id = Guid.Parse("a0000000-0000-0000-0000-000000000007"), Name = "Pitfall Trap", Description = "Container buried flush with the ground surface to capture crawling insects like ground beetles and earwigs.", CreatedAt = seedDate },
+                new TrapType { Id = Guid.Parse("a0000000-0000-0000-0000-000000000008"), Name = "Light Trap", Description = "UV or blacklight lamp with a collection container below, attracting night-flying moths and beetles.", CreatedAt = seedDate },
+                new TrapType { Id = Guid.Parse("a0000000-0000-0000-0000-000000000009"), Name = "Fruit Fly Trap", Description = "Lynfield or McPhail style trap with liquid lure (e.g., torula yeast or pheromone) for monitoring Mediterranean fruit flies and olive flies.", CreatedAt = seedDate },
+                new TrapType { Id = Guid.Parse("a0000000-0000-0000-0000-00000000000a"), Name = "Red Ball Trap", Description = "Red, sphere-shaped sticky trap that mimics ripe fruit, used in orchards for fruit worms and apple maggot.", CreatedAt = seedDate },
+                new TrapType { Id = Guid.Parse("a0000000-0000-0000-0000-00000000000b"), Name = "Smart / Automated Trap", Description = "A digital trap equipped with a camera and connectivity for remote image capture and automated pest counting.", CreatedAt = seedDate }
+            );
         });
 
         builder.Entity<MonitoringPoint>(e =>
