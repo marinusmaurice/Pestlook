@@ -23,4 +23,7 @@ public sealed record FarmResponse(
     double? Longitude,
     string? BoundaryGeoJson,
     DateTime CreatedAt,
-    DateTime UpdatedAt);
+    DateTime UpdatedAt)
+{
+    public FarmResponse() : this(default, default, string.Empty, default, default, default, default, default, default) { }
+}

@@ -40,11 +40,17 @@ public sealed record MonitoringPointResponse(
     string? Notes,
     DateTime CreatedAt,
     DateTime UpdatedAt,
-    List<AssignedPestSummary> AssignedPests);
+    List<AssignedPestSummary> AssignedPests)
+{
+    public MonitoringPointResponse() : this(default, default, default, default, default, default, default, default, default, default, default, default, default, default, new List<AssignedPestSummary>()) { }
+};
 
 public sealed record AssignedPestSummary(
     Guid MonitoringPointPestId,
     Guid PestId,
     string PestName,
     bool AllowUnknown,
-    bool IsActive);
+    bool IsActive)
+{
+    public AssignedPestSummary() : this(default, default, string.Empty, default, default) { }
+}

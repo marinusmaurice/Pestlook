@@ -4,6 +4,7 @@ using Pestlook.WebAPI.Data;
 using Pestlook.WebAPI.Domain.Entities;
 using Pestlook.WebAPI.DTOs.Common;
 using Pestlook.WebAPI.Infrastructure;
+using Pestlook.WebAPI.Infrastructure.Exceptions;
 using Pestlook.WebAPI.Infrastructure.Services.Interfaces;
 
 namespace Pestlook.WebAPI.Infrastructure.Middleware;
@@ -29,8 +30,9 @@ public sealed class ExceptionHandlingMiddleware(
         var (statusCode, message) = ex switch
         {
             UnauthorizedAccessException => (HttpStatusCode.Unauthorized, ex.Message),
-            InvalidOperationException => (HttpStatusCode.BadRequest, ex.Message),
-            KeyNotFoundException => (HttpStatusCode.NotFound, ex.Message),
+            ConflictException           => (HttpStatusCode.Conflict, ex.Message),
+            InvalidOperationException   => (HttpStatusCode.BadRequest, ex.Message),
+            KeyNotFoundException        => (HttpStatusCode.NotFound, ex.Message),
             _ => (HttpStatusCode.InternalServerError, "An unexpected error occurred.")
         };
 

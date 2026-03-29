@@ -1,6 +1,6 @@
 namespace Pestlook.Tests.Integration.Infrastructure;
 
-[CollectionDefinition("Integration")]
+[CollectionDefinition("Integration", DisableParallelization = true)]
 public sealed class IntegrationTestCollection : ICollectionFixture<TestWebApplicationFactory>
 {
 }

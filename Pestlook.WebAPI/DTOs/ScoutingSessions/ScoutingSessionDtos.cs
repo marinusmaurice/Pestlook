@@ -17,4 +17,7 @@ public sealed record ScoutingSessionResponse(
     string? WeatherConditions,
     string? Notes,
     DateTime CreatedAt,
-    int ObservationCount);
+    int ObservationCount)
+{
+    public ScoutingSessionResponse() : this(default, default, string.Empty, default, default, default, default, default, default) { }
+}

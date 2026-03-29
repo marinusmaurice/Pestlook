@@ -26,32 +26,40 @@ public sealed class MappingProfile : Profile
                 src.TenantId,
                 []));
 
-        CreateMap<Farm, FarmResponse>();
+        CreateMap<Farm, FarmResponse>()
+            .ConstructUsing(_ => new FarmResponse());
 
-        CreateMap<Field, FieldResponse>();
+        CreateMap<Field, FieldResponse>()
+            .ConstructUsing(_ => new FieldResponse());
 
-        CreateMap<TrapType, TrapTypeResponse>();
+        CreateMap<TrapType, TrapTypeResponse>()
+            .ConstructUsing(_ => new TrapTypeResponse());
 
         CreateMap<MonitoringPoint, MonitoringPointResponse>()
             .ForMember(d => d.TrapTypeName, o => o.MapFrom(s => s.TrapType != null ? s.TrapType.Name : null))
             .ForMember(d => d.AssignedPests, o => o.MapFrom(s => s.MonitoringPointPests));
 
         CreateMap<MonitoringPointPest, AssignedPestSummary>()
+            .ConstructUsing(_ => new AssignedPestSummary())
             .ForMember(d => d.MonitoringPointPestId, o => o.MapFrom(s => s.Id))
             .ForMember(d => d.PestName, o => o.MapFrom(s => s.Pest != null ? s.Pest.CommonName : string.Empty));
 
-        CreateMap<Pest, PestResponse>();
+        CreateMap<Pest, PestResponse>()
+            .ConstructUsing(_ => new PestResponse());
 
         CreateMap<ScoutingSession, ScoutingSessionResponse>()
+            .ConstructUsing(_ => new ScoutingSessionResponse())
             .ForMember(d => d.ObservationCount, o => o.MapFrom(s => s.PestObservations.Count));
 
         CreateMap<PestObservation, PestObservationResponse>()
+            .ConstructUsing(_ => new PestObservationResponse())
             .ForMember(d => d.PestName, o => o.MapFrom(s => s.Pest != null ? s.Pest.CommonName : null))
             .ForMember(d => d.PhotoUrls, o => o.MapFrom(s =>
                 s.PhotoUrlsJson != null
                     ? JsonSerializer.Deserialize<List<string>>(s.PhotoUrlsJson, (JsonSerializerOptions?)null) ?? new List<string>()
                     : new List<string>()));
 
-        CreateMap<BillingSnapshot, BillingSnapshotResponse>();
+        CreateMap<BillingSnapshot, BillingSnapshotResponse>()
+            .ConstructUsing(_ => new BillingSnapshotResponse());
     }
 }

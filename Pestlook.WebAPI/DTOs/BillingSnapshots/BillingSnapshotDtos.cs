@@ -8,4 +8,7 @@ public sealed record BillingSnapshotResponse(
     int ActivePointCount,
     int AmountCents,
     string Status,
-    DateTime CreatedAt);
+    DateTime CreatedAt)
+{
+    public BillingSnapshotResponse() : this(default, default, string.Empty, default, default, default, string.Empty, default) { }
+}

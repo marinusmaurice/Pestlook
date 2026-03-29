@@ -33,6 +33,14 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
         builder.UseSetting("Jwt:Issuer", JwtTestHelper.TestIssuer);
         builder.UseSetting("Jwt:Audience", JwtTestHelper.TestAudience);
 
+        // Disable effective rate limiting in tests: all requests share the same IP
+        // ("unknown") on TestServer, so a real window limit would queue/block tests
+        // for up to WindowSeconds. QueueLimit=0 ensures any over-limit request fails
+        // immediately (429) rather than hanging, as a safety net.
+        builder.UseSetting("RateLimit:GlobalPermitLimit", "1000000");
+        builder.UseSetting("RateLimit:AuthPermitLimit", "1000000");
+        builder.UseSetting("RateLimit:QueueLimit", "0");
+
         builder.ConfigureServices(services =>
         {
             // Remove SQL Server provider AND its per-context options configuration.

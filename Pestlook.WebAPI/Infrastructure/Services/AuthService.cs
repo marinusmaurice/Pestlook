@@ -3,8 +3,10 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Pestlook.WebAPI.Data;
 using Pestlook.WebAPI.Domain.Entities;
+using Pestlook.WebAPI.Domain.Enums;
 using Pestlook.WebAPI.DTOs.Auth;
 using Pestlook.WebAPI.Infrastructure;
+using Pestlook.WebAPI.Infrastructure.Exceptions;
 using Pestlook.WebAPI.Infrastructure.Services.Interfaces;
 using Pestlook.WebAPI.Options;
 using Microsoft.Extensions.Options;
@@ -22,6 +24,60 @@ public sealed class AuthService(
     private const int MaxFailedAttempts = 5;
     private static readonly TimeSpan LockDuration = TimeSpan.FromMinutes(15);
     private readonly JwtOptions _jwt = jwtOptions.Value;
+
+    public async Task<TokenResponse> SignUpAsync(SignUpRequest request, string ipAddress, CancellationToken ct = default)
+    {
+        var slugTaken = await db.Tenants.AnyAsync(t => t.Slug == request.TenantSlug, ct);
+        if (slugTaken)
+            throw new ConflictException($"The organization slug '{request.TenantSlug}' is already in use.");
+
+        var existingUser = await userManager.FindByEmailAsync(request.Email);
+        if (existingUser is not null)
+            throw new ConflictException("Email is already registered.");
+
+        var plan = request.SubscriptionPlan;
+
+        var tenant = new Tenant
+        {
+            Name = request.TenantName,
+            Slug = request.TenantSlug.ToLowerInvariant(),
+            SubscriptionPlan = plan,
+            MonitoringPointQuota = plan switch
+            {
+                SubscriptionPlan.Professional => 50,
+                SubscriptionPlan.Enterprise   => 200,
+                _                             => 10
+            }
+        };
+
+        db.Tenants.Add(tenant);
+        await db.SaveChangesAsync(ct);
+
+        var user = new ApplicationUser
+        {
+            UserName  = request.Email,
+            Email     = request.Email,
+            FirstName = request.FirstName,
+            LastName  = request.LastName,
+            TenantId  = tenant.Id
+        };
+
+        var result = await userManager.CreateAsync(user, request.Password);
+        if (!result.Succeeded)
+        {
+            db.Tenants.Remove(tenant);
+            await db.SaveChangesAsync(ct);
+            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+            throw new InvalidOperationException($"Sign-up failed: {errors}");
+        }
+
+        await userManager.AddToRoleAsync(user, "Admin");
+
+        logger.LogInformation("New tenant {TenantId} ({Slug}) created via sign-up by {Email}",
+            tenant.Id, tenant.Slug, user.Email);
+
+        return await IssueTokensAsync(user, ipAddress, ct);
+    }
 
     public async Task<TokenResponse> RegisterAsync(RegisterRequest request, string ipAddress, CancellationToken ct = default)
     {

@@ -26,6 +26,17 @@ public sealed class AuthController(
             ? forwarded.ToString()
             : HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
+    [HttpPost("sign-up")]
+    [ProducesResponseType(typeof(ApiResponse<TokenResponse>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> SignUp([FromBody] SignUpRequest request, CancellationToken ct)
+    {
+        var result = await authService.SignUpAsync(request, IpAddress, ct);
+        return StatusCode(StatusCodes.Status201Created,
+            ApiResponse<TokenResponse>.Ok(result, "Account created successfully."));
+    }
+
     [HttpPost("register")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(ApiResponse<TokenResponse>), StatusCodes.Status200OK)]

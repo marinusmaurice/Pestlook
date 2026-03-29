@@ -31,4 +31,7 @@ public sealed record PestResponse(
     string? Description,
     string? ImageUrl,
     bool IsSystemPest,
-    DateTime CreatedAt);
+    DateTime CreatedAt)
+{
+    public PestResponse() : this(default, default, string.Empty, default, default, default, default, default, default, default, default) { }
+}

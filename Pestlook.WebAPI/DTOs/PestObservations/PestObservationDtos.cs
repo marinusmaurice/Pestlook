@@ -36,4 +36,7 @@ public sealed record PestObservationResponse(
     List<string> PhotoUrls,
     string? Notes,
     DateTime ObservedAt,
-    DateTime CreatedAt);
+    DateTime CreatedAt)
+{
+    public PestObservationResponse() : this(default, default, default, default, default, default, default, default, default, default, default, default, default, default, new List<string>(), default, default, default) { }
+}

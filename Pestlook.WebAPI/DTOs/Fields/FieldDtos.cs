@@ -25,4 +25,7 @@ public sealed record FieldResponse(
     string? CropType,
     string? Season,
     DateTime CreatedAt,
-    DateTime UpdatedAt);
+    DateTime UpdatedAt)
+{
+    public FieldResponse() : this(default, default, default, string.Empty, default, default, default, default, default, default) { }
+}
