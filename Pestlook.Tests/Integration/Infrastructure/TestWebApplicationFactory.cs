@@ -121,4 +121,9 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
     public HttpClient CreateAdminClient() =>
         CreateTenantClient(jwtToken: JwtTestHelper.GenerateToken(
             DefaultAdminId, DefaultAdminEmail, DefaultTenantId, roles: ["Admin"]));
+
+    public HttpClient CreateScoutClient() =>
+        CreateTenantClient(jwtToken: JwtTestHelper.GenerateToken(
+            "ssssssss-ssss-ssss-ssss-ssssssssssss", "scout@test-tenant.com",
+            DefaultTenantId, roles: ["Scout"]));
 }

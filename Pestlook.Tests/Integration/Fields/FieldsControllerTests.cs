@@ -12,6 +12,7 @@ namespace Pestlook.Tests.Integration.Fields;
 public sealed class FieldsControllerTests(TestWebApplicationFactory factory) : IAsyncLifetime
 {
     private readonly HttpClient _admin = factory.CreateAdminClient();
+    private readonly HttpClient _scout = factory.CreateScoutClient();
     private readonly HttpClient _anon  = factory.CreateTenantClient();
     private Guid _farmId;
     private Guid _fieldId;
@@ -205,6 +206,45 @@ public sealed class FieldsControllerTests(TestWebApplicationFactory factory) : I
         await _admin.DeleteAsync($"/api/v1/fields/{id}");
         var resp = await _admin.DeleteAsync($"/api/v1/fields/{id}");
         resp.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    // ── Scout role restrictions ──────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetAll_AsScout_ShouldReturn200()
+    {
+        var resp = await _scout.GetAsync("/api/v1/fields");
+        resp.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task GetById_AsScout_ShouldReturn200()
+    {
+        var resp = await _scout.GetAsync($"/api/v1/fields/{_fieldId}");
+        resp.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Create_AsScout_ShouldReturn403()
+    {
+        var resp = await _scout.PostAsJsonAsync("/api/v1/fields",
+            new CreateFieldRequest(_farmId, "Scout Field", null, null, null, null));
+        resp.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Update_AsScout_ShouldReturn403()
+    {
+        var resp = await _scout.PutAsJsonAsync($"/api/v1/fields/{_fieldId}",
+            new UpdateFieldRequest("Scout Rename", null, null, null, null));
+        resp.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Delete_AsScout_ShouldReturn403()
+    {
+        var resp = await _scout.DeleteAsync($"/api/v1/fields/{_fieldId}");
+        resp.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

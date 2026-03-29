@@ -13,6 +13,7 @@ namespace Pestlook.Tests.Integration.Farms;
 public sealed class FarmsControllerTests(TestWebApplicationFactory factory) : IAsyncLifetime
 {
     private readonly HttpClient _admin = factory.CreateAdminClient();
+    private readonly HttpClient _scout = factory.CreateScoutClient();
     private readonly HttpClient _anon  = factory.CreateTenantClient(); // tenant header, no JWT
     private Guid _farmId;
 
@@ -186,6 +187,45 @@ public sealed class FarmsControllerTests(TestWebApplicationFactory factory) : IA
 
         var resp = await _admin.DeleteAsync($"/api/v1/farms/{id}");
         resp.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    // ── Scout role restrictions ──────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetAll_AsScout_ShouldReturn200()
+    {
+        var resp = await _scout.GetAsync("/api/v1/farms");
+        resp.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task GetById_AsScout_ShouldReturn200()
+    {
+        var resp = await _scout.GetAsync($"/api/v1/farms/{_farmId}");
+        resp.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Create_AsScout_ShouldReturn403()
+    {
+        var resp = await _scout.PostAsJsonAsync("/api/v1/farms",
+            new CreateFarmRequest("Scout Farm", null, null, null, null));
+        resp.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Update_AsScout_ShouldReturn403()
+    {
+        var resp = await _scout.PutAsJsonAsync($"/api/v1/farms/{_farmId}",
+            new UpdateFarmRequest("Scout Rename", null, null, null, null));
+        resp.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Delete_AsScout_ShouldReturn403()
+    {
+        var resp = await _scout.DeleteAsync($"/api/v1/farms/{_farmId}");
+        resp.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
