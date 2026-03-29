@@ -192,6 +192,7 @@ public sealed class ApplicationDbContext(
              .HasForeignKey(mpp => mpp.AssignedByUserId)
              .OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(mpp => new { mpp.MonitoringPointId, mpp.PestId }).IsUnique();
+            e.HasQueryFilter(mpp => mpp.DeletedAt == null);
         });
 
         builder.Entity<ScoutingSession>(e =>
@@ -207,7 +208,8 @@ public sealed class ApplicationDbContext(
              .WithMany()
              .HasForeignKey(ss => ss.ScouterId)
              .OnDelete(DeleteBehavior.Restrict);
-            e.HasQueryFilter(ss => tenantContext.TenantId == null || ss.TenantId == tenantContext.TenantId);
+            e.HasQueryFilter(ss => ss.DeletedAt == null &&
+                (tenantContext.TenantId == null || ss.TenantId == tenantContext.TenantId));
         });
 
         builder.Entity<PestObservation>(e =>
@@ -230,7 +232,8 @@ public sealed class ApplicationDbContext(
              .HasForeignKey(o => o.PestId)
              .OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(o => new { o.MonitoringPointId, o.ObservedAt });
-            e.HasQueryFilter(o => tenantContext.TenantId == null || o.TenantId == tenantContext.TenantId);
+            e.HasQueryFilter(o => o.DeletedAt == null &&
+                (tenantContext.TenantId == null || o.TenantId == tenantContext.TenantId));
         });
 
         builder.Entity<BillingSnapshot>(e =>

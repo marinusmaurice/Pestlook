@@ -12,4 +12,5 @@ public sealed class MonitoringPointPest
     public DateTime AssignedAt { get; set; } = DateTime.UtcNow;
     public string? AssignedByUserId { get; set; }
     public ApplicationUser? AssignedBy { get; set; }
+    public DateTime? DeletedAt { get; set; }
 }

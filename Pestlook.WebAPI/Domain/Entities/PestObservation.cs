@@ -31,4 +31,5 @@ public sealed class PestObservation : IHasTenant
     public string? Notes { get; set; }
     public DateTime ObservedAt { get; set; } = DateTime.UtcNow;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? DeletedAt { get; set; }
 }

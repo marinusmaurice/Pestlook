@@ -12,6 +12,7 @@ public sealed class ScoutingSession : IHasTenant
     public string? WeatherConditions { get; set; }
     public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? DeletedAt { get; set; }
 
     public ICollection<PestObservation> PestObservations { get; set; } = [];
 }

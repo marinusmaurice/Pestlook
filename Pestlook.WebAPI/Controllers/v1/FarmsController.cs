@@ -86,10 +86,36 @@ public sealed class FarmsController(
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
-        var farm = await db.Farms.FirstOrDefaultAsync(f => f.Id == id, ct);
+        var farm = await db.Farms
+            .Include(f => f.Fields)
+            .FirstOrDefaultAsync(f => f.Id == id, ct);
+
         if (farm is null) return NotFound(ApiResponse<object>.Fail("Farm not found."));
 
-        farm.DeletedAt = DateTime.UtcNow;
+        var now = DateTime.UtcNow;
+        var fieldIds = farm.Fields.Select(f => f.Id).ToList();
+
+        // Load all monitoring points belonging to this farm (directly or via its fields)
+        var monitoringPoints = await db.MonitoringPoints
+            .Include(mp => mp.PestObservations)
+            .Include(mp => mp.MonitoringPointPests)
+            .Where(mp => mp.FarmId == id ||
+                         (mp.FieldId != null && fieldIds.Contains(mp.FieldId.Value)))
+            .ToListAsync(ct);
+
+        foreach (var mp in monitoringPoints)
+        {
+            foreach (var obs in mp.PestObservations)
+                obs.DeletedAt = now;
+            foreach (var mpp in mp.MonitoringPointPests)
+                mpp.DeletedAt = now;
+            mp.DeletedAt = now;
+        }
+
+        foreach (var field in farm.Fields)
+            field.DeletedAt = now;
+
+        farm.DeletedAt = now;
         await db.SaveChangesAsync(ct);
         return NoContent();
     }
