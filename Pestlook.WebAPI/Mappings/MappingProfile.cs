@@ -23,6 +23,7 @@ public sealed class MappingProfile : Profile
                 src.Email!,
                 src.FirstName,
                 src.LastName,
+                src.IsActive,
                 src.TenantId,
                 src.Tenant != null ? src.Tenant.Slug : string.Empty,
                 []));

@@ -263,4 +263,78 @@ public sealed class RolesControllerTests(TestWebApplicationFactory factory)
             .DeleteAsync($"/api/v1/roles/users/{_scoutId}/roles/Admin");
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
+
+    // ── PUT /api/v1/roles/users/{userId} ──────────────────────────────────────
+
+    [Fact]
+    public async Task UpdateUser_AsAdmin_WithValidData_ShouldReturn200WithUpdatedUser()
+    {
+        using var scope = factory.Services.CreateScope();
+        var um       = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var targetId = await CreateFreshUserAsync(um, $"edit_valid_{Guid.NewGuid():N}@test.com");
+        await um.AddToRoleAsync(await um.FindByIdAsync(targetId)!, "Scout");
+
+        var request = new UpdateUserRequest("Updated", "Name", IsActive: false, Role: "Admin");
+        var response = await ClientFor(_adminId, "admin_roles@test.com", "Admin")
+            .PutAsJsonAsync($"/api/v1/roles/users/{targetId}", request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<UserInfoResponse>>();
+        body!.Data!.FirstName.Should().Be("Updated");
+        body.Data.LastName.Should().Be("Name");
+        body.Data.IsActive.Should().BeFalse();
+        body.Data.Roles.Should().Contain("Admin");
+    }
+
+    [Fact]
+    public async Task UpdateUser_AsAdmin_ShouldSwapRole()
+    {
+        using var scope = factory.Services.CreateScope();
+        var um       = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var targetId = await CreateFreshUserAsync(um, $"edit_role_{Guid.NewGuid():N}@test.com");
+        var user     = await um.FindByIdAsync(targetId)!;
+        await um.AddToRoleAsync(user!, "Scout");
+
+        var response = await ClientFor(_adminId, "admin_roles@test.com", "Admin")
+            .PutAsJsonAsync($"/api/v1/roles/users/{targetId}",
+                new UpdateUserRequest("Fresh", "User", IsActive: true, Role: "Admin"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<UserInfoResponse>>();
+        body!.Data!.Roles.Should().Contain("Admin").And.NotContain("Scout");
+    }
+
+    [Fact]
+    public async Task UpdateUser_AsAdmin_WithInvalidRole_ShouldReturn400()
+    {
+        using var scope = factory.Services.CreateScope();
+        var um       = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var targetId = await CreateFreshUserAsync(um, $"edit_badrole_{Guid.NewGuid():N}@test.com");
+
+        var response = await ClientFor(_adminId, "admin_roles@test.com", "Admin")
+            .PutAsJsonAsync($"/api/v1/roles/users/{targetId}",
+                new UpdateUserRequest("Fresh", "User", IsActive: true, Role: "Manager"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task UpdateUser_WhenUserNotFound_ShouldReturn404()
+    {
+        var response = await ClientFor(_adminId, "admin_roles@test.com", "Admin")
+            .PutAsJsonAsync("/api/v1/roles/users/nonexistent-id",
+                new UpdateUserRequest("First", "Last", IsActive: true, Role: "Scout"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task UpdateUser_AsScout_ShouldReturn403()
+    {
+        var response = await ClientFor(_scoutId, "scout_roles@test.com", "Scout")
+            .PutAsJsonAsync($"/api/v1/roles/users/{_adminId}",
+                new UpdateUserRequest("First", "Last", IsActive: true, Role: "Scout"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
 }

@@ -1,5 +1,5 @@
 import { getTrapTypes, createTrapType, updateTrapType, deleteTrapType } from '../api/trap-types.js';
-import { getUsers } from '../api/roles.js';
+import { getUsers, updateUser } from '../api/roles.js';
 import { registerUser } from '../api/auth.js';
 import { getUser } from '../utils/storage.js';
 import { setPageTitle, setTopbarCta } from '../components/topbar.js';
@@ -226,16 +226,21 @@ async function loadTeamMembers(container) {
       const roleColor = role === 'Admin' ? 'green' : role === 'Manager' ? 'green' : 'blue';
 
       return `
-        <div style="display:flex;align-items:center;gap:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
           <div class="user-avatar" style="width:36px;height:36px;font-size:0.8rem;background:${avatarGradients[i % avatarGradients.length]};">${userInitials}</div>
           <div style="flex:1;">
             <div style="font-size:0.85rem;font-weight:600;color:var(--text);">${escapeHtml(fullName)}</div>
             <div style="font-size:0.72rem;color:var(--text-dim);">${escapeHtml(u.email || '')}</div>
           </div>
           ${tag(role, roleColor)}
+          <button class="btn-outline user-edit-btn" style="padding:4px 10px;font-size:0.72rem;" data-id="${u.id}" data-first="${escapeHtml(u.firstName || '')}" data-last="${escapeHtml(u.lastName || '')}" data-email="${escapeHtml(u.email || '')}" data-active="${u.isActive}" data-role="${escapeHtml(role)}">Edit</button>
         </div>
       `;
     }).join('');
+
+    list.querySelectorAll('.user-edit-btn').forEach(btn => {
+      btn.addEventListener('click', () => openEditUserModal(container, btn.dataset));
+    });
   } catch (err) {
     list.innerHTML = `<div style="color:var(--red);font-size:0.82rem;">Failed to load team members</div>`;
   }
@@ -265,6 +270,13 @@ function openInviteModal(container) {
           <div class="input-label">Temporary Password *</div>
           <input class="input-field" id="inv-pass" placeholder="Min 8 characters" type="password">
         </div>
+        <div>
+          <div class="input-label">Role</div>
+          <select class="input-field" id="inv-role">
+            <option value="Scout">Scout</option>
+            <option value="Admin">Admin</option>
+          </select>
+        </div>
         <div style="display:flex;gap:10px;margin-top:6px;">
           <button class="btn-outline" id="inv-cancel" style="flex:1;">Cancel</button>
           <button class="btn-primary" id="inv-submit" style="flex:2;justify-content:center;">＋ Add Member</button>
@@ -279,6 +291,7 @@ function openInviteModal(container) {
     const password = body.querySelector('#inv-pass').value;
     const firstName = body.querySelector('#inv-first').value.trim();
     const lastName = body.querySelector('#inv-last').value.trim();
+    const role = body.querySelector('#inv-role').value;
 
     if (!email || !password || !firstName || !lastName) {
       showToast('All fields are required', 'error');
@@ -289,7 +302,7 @@ function openInviteModal(container) {
     btn.disabled = true; btn.textContent = 'Adding…';
 
     try {
-      await registerUser({ email, password, firstName, lastName });
+      await registerUser({ email, password, firstName, lastName, role });
       closeModal();
       showToast('Team member added');
       loadTeamMembers(container);
@@ -299,3 +312,70 @@ function openInviteModal(container) {
     }
   });
 }
+
+function openEditUserModal(container, data) {
+  const body = openModal({
+    title: "Edit Team Member",
+    subtitle: "Update user details and role",
+    content: `
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <div class="input-label">First Name *</div>
+            <input class="input-field" id="edit-first" placeholder="First name" type="text" value="${escapeHtml(data.first||'')}">
+          </div>
+          <div>
+            <div class="input-label">Last Name *</div>
+            <input class="input-field" id="edit-last" placeholder="Last name" type="text" value="${escapeHtml(data.last||'')}">
+          </div>
+        </div>
+        <div>
+          <div class="input-label">Email</div>
+          <input class="input-field" id="edit-email" type="email" value="${escapeHtml(data.email||'')}" disabled style="background:var(--surface3);cursor:default;">
+        </div>
+        <div>
+          <div class="input-label">Role</div>
+          <select class="input-field" id="edit-role">
+            <option value="Scout" ${data.role==='Scout'?'selected':''}>Scout</option>
+            <option value="Admin" ${data.role==='Admin'?'selected':''}>Admin</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="checkbox" id="edit-active" ${data.active==='true'?'checked':''}>
+          <label for="edit-active" class="input-label" style="margin:0;">Active</label>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:6px;">
+          <button class="btn-outline" id="edit-cancel" style="flex:1;">Cancel</button>
+          <button class="btn-primary" id="edit-submit" style="flex:2;justify-content:center;">Save Changes</button>
+        </div>
+      </div>
+    `,
+  });
+
+  body.querySelector("#edit-cancel").addEventListener("click", closeModal);
+  body.querySelector("#edit-submit").addEventListener("click", async () => {
+    const firstName = body.querySelector("#edit-first").value.trim();
+    const lastName = body.querySelector("#edit-last").value.trim();
+    const role = body.querySelector("#edit-role").value;
+    const isActive = body.querySelector("#edit-active").checked;
+
+    if (!firstName || !lastName) {
+      showToast("First and last name are required", "error");
+      return;
+    }
+
+    const btn = body.querySelector("#edit-submit");
+    btn.disabled = true; btn.textContent = "Saving…";
+
+    try {
+      await updateUser(data.id, { firstName, lastName, isActive, role });
+      closeModal();
+      showToast("User updated");
+      loadTeamMembers(container);
+    } catch (err) {
+      showToast(err.message || "Failed to update user", "error");
+      btn.disabled = false; btn.textContent = "Save Changes";
+    }
+  });
+}
+

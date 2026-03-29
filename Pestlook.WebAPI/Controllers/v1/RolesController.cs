@@ -104,6 +104,55 @@ public sealed class RolesController(
         return NoContent();
     }
 
+    // PUT /api/v1/roles/users/{userId}
+    [HttpPut("users/{userId}")]
+    [ProducesResponseType(typeof(ApiResponse<UserInfoResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> UpdateUser(string userId, [FromBody] UpdateUserRequest request)
+    {
+        var user = await userManager.FindByIdAsync(userId)
+            ?? throw new KeyNotFoundException("User not found.");
+
+        user.FirstName = request.FirstName;
+        user.LastName = request.LastName;
+        user.IsActive = request.IsActive;
+
+        var updateResult = await userManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+        {
+            var errors = string.Join(", ", updateResult.Errors.Select(e => e.Description));
+            throw new InvalidOperationException($"Failed to update user: {errors}");
+        }
+
+        var normalizedRole = _adminManageable.First(r =>
+            r.Equals(request.Role, StringComparison.OrdinalIgnoreCase));
+
+        var currentRoles = await userManager.GetRolesAsync(user);
+        if (!currentRoles.Contains(normalizedRole, StringComparer.OrdinalIgnoreCase))
+        {
+            var removeResult = await userManager.RemoveFromRolesAsync(user, currentRoles);
+            if (!removeResult.Succeeded)
+            {
+                var errors = string.Join(", ", removeResult.Errors.Select(e => e.Description));
+                throw new InvalidOperationException($"Failed to update roles: {errors}");
+            }
+
+            var addResult = await userManager.AddToRoleAsync(user, normalizedRole);
+            if (!addResult.Succeeded)
+            {
+                var errors = string.Join(", ", addResult.Errors.Select(e => e.Description));
+                throw new InvalidOperationException($"Failed to assign role: {errors}");
+            }
+        }
+
+        var roles = await userManager.GetRolesAsync(user);
+        var dto = mapper.Map<UserInfoResponse>(user) with { Roles = roles };
+        return Ok(ApiResponse<UserInfoResponse>.Ok(dto));
+    }
+
     // DELETE /api/v1/roles/users/{userId}/roles/{role}
     [HttpDelete("users/{userId}/roles/{role}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

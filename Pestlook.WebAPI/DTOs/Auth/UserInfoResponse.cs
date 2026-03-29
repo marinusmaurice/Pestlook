@@ -5,6 +5,7 @@ public sealed record UserInfoResponse(
     string Email,
     string FirstName,
     string LastName,
+    bool IsActive,
     Guid TenantId,
     string TenantSlug,
     IList<string> Roles);

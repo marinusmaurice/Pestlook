@@ -1,4 +1,4 @@
-import { get, post } from './client.js';
+import { get, post, put } from './client.js';
 
 export function getRoles() {
   return get('/roles');
@@ -14,4 +14,8 @@ export function getUser(userId) {
 
 export function assignRole(userId, role) {
   return post(`/roles/users/${userId}/assign`, { role });
+}
+
+export function updateUser(userId, data) {
+  return put(`/roles/users/${userId}`, data);
 }
