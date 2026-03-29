@@ -1,0 +1,13 @@
+{
+  "name": "pestlook-ui-web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pestlook Field Intelligence Platform — Vanilla JS Frontend",
+  "scripts": {
+    "dev": "npx tailwindcss -i ./css/input.css -o ./css/styles.css --watch",
+    "build": "npx tailwindcss -i ./css/input.css -o ./css/styles.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0"
+  }
+}

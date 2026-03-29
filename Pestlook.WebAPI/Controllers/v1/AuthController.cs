@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using Pestlook.WebAPI.Domain.Entities;
 using Pestlook.WebAPI.DTOs.Auth;
 using Pestlook.WebAPI.DTOs.Common;
@@ -80,7 +81,9 @@ public sealed class AuthController(
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Me()
     {
-        var user = await userManager.FindByIdAsync(currentUserService.UserId!);
+        var user = await userManager.Users
+            .Include(u => u.Tenant)
+            .FirstOrDefaultAsync(u => u.Id == currentUserService.UserId);
         if (user is null) return Unauthorized();
 
         var roles = await userManager.GetRolesAsync(user);

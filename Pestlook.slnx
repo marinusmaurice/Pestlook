@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Pestlook.UI.Web/">
+    <File Path="Pestlook.UI.Web/pestlook-app.html" />
+  </Folder>
   <Project Path="Pestlook.Tests/Pestlook.Tests.csproj" />
   <Project Path="Pestlook.WebAPI/Pestlook.WebAPI.csproj" />
 </Solution>

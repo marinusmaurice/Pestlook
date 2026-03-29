@@ -24,6 +24,7 @@ public sealed class MappingProfile : Profile
                 src.FirstName,
                 src.LastName,
                 src.TenantId,
+                src.Tenant != null ? src.Tenant.Slug : string.Empty,
                 []));
 
         CreateMap<Farm, FarmResponse>()

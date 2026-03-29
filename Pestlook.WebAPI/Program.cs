@@ -1,6 +1,7 @@
 
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using Microsoft.Extensions.FileProviders;
 using Pestlook.WebAPI.Extensions;
 using Pestlook.WebAPI.Options;
 using Serilog;
@@ -47,6 +48,14 @@ app.UseTenantResolution();            // X-Tenant-ID → ITenantContext
 app.UseAuthentication();
 app.UseAuthorization();
 
+// ── Serve SPA static files from Pestlook.UI.Web ──────────────────────────────
+var spaRoot = Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, "..", "Pestlook.UI.Web"));
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(spaRoot),
+    RequestPath  = ""
+});
+
 // ── Endpoints ─────────────────────────────────────────────────────────────────
 app.MapControllers().RequireRateLimiting("global");
 app.MapHealthChecks("/health");
@@ -55,6 +64,13 @@ if (app.Environment.IsDevelopment())
 {
     app.UseOpenApiDocs();             // /openapi/v1.json + /scalar/v1
 }
+
+// ── SPA fallback — non-API, non-file requests serve index.html ────────────────
+app.MapFallback(async context =>
+{
+    context.Response.ContentType = "text/html";
+    await context.Response.SendFileAsync(Path.Combine(spaRoot, "index.html"));
+});
 
 // ── Database migration ────────────────────────────────────────────────────────
 app.UseDatabaseMigration();

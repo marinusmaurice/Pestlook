@@ -6,4 +6,5 @@ public sealed record UserInfoResponse(
     string FirstName,
     string LastName,
     Guid TenantId,
+    string TenantSlug,
     IList<string> Roles);
