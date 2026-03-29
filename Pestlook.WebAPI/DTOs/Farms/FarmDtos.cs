@@ -12,7 +12,8 @@ public sealed record UpdateFarmRequest(
     string? Address,
     double? Latitude,
     double? Longitude,
-    string? BoundaryGeoJson);
+    string? BoundaryGeoJson,
+    bool IsActive = true);
 
 public sealed record FarmResponse(
     Guid Id,
@@ -22,8 +23,9 @@ public sealed record FarmResponse(
     double? Latitude,
     double? Longitude,
     string? BoundaryGeoJson,
+    bool IsActive,
     DateTime CreatedAt,
     DateTime UpdatedAt)
 {
-    public FarmResponse() : this(default, default, string.Empty, default, default, default, default, default, default) { }
+    public FarmResponse() : this(default, default, string.Empty, default, default, default, default, true, default, default) { }
 }

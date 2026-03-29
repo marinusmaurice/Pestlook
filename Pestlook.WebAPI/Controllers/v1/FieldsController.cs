@@ -81,6 +81,7 @@ public sealed class FieldsController(
         field.AreaHectares = request.AreaHectares;
         field.CropType = request.CropType;
         field.Season = request.Season;
+        field.IsActive = request.IsActive;
         field.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
 

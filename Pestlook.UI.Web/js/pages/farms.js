@@ -72,7 +72,7 @@ function renderFarmGrid(farms, fields, points) {
         <div class="card-p" style="flex:1;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
             <div style="font-weight:600;color:#fff;font-size:0.95rem;">${escapeHtml(farm.name)}</div>
-            ${tag('Active', 'green')}
+            ${farm.isActive !== false ? tag('Active', 'green') : tag('Inactive', 'red')}
           </div>
           <div style="font-size:0.78rem;color:var(--text-dim);margin-bottom:12px;">📍 ${escapeHtml(farm.address || 'No address')}</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -191,7 +191,7 @@ function renderFieldsPanel(farm, farmIdx, fields, points) {
     fieldsHtml = `<table class="data-table">
       <thead>
         <tr>
-          <th>Field Name</th><th>Crop Type</th><th>Season</th>
+          <th>Field Name</th><th>Status</th><th>Crop Type</th><th>Season</th>
           <th>Area (ha)</th><th>Geo Boundary</th><th>Created</th>
           <th style="text-align:right;">Actions</th>
         </tr>
@@ -202,6 +202,7 @@ function renderFieldsPanel(farm, farmIdx, fields, points) {
       fieldsHtml += `
         <tr>
           <td><div style="font-weight:600;color:#fff;">${escapeHtml(f.name)}</div></td>
+          <td>${f.isActive !== false ? tag('Active', 'green') : tag('Inactive', 'red')}</td>
           <td>${f.cropType
             ? `<span class="tag tag-green" style="font-size:0.72rem;">${escapeHtml(f.cropType)}</span>`
             : '<span style="color:var(--text-dim);font-size:0.8rem;">—</span>'}</td>
@@ -318,6 +319,12 @@ function showFieldModal(field, farm, farmIdx) {
         <label class="input-label">Geo Boundary</label>
         <input class="input-field" type="text" id="fldGeo" placeholder="GeoJSON or polygon ref" value="${isEdit ? escapeHtml(field.geoBoundary || '') : ''}">
       </div>
+      ${isEdit ? `<div style="grid-column:1/-1;display:flex;align-items:center;gap:10px;">
+        <label class="input-label" style="margin-bottom:0;">Status</label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.82rem;color:var(--text-mid);">
+          <input type="checkbox" id="fldActive" ${field.isActive !== false ? 'checked' : ''}> Active
+        </label>
+      </div>` : ''}
       <div style="grid-column:1/-1;display:flex;gap:10px;margin-top:6px;">
         <button class="btn-outline" style="flex:1;" id="cancelFld">Cancel</button>
         <button class="btn-primary" style="flex:2;justify-content:center;" id="saveFld">${isEdit ? '💾 Save Changes' : '🌱 Create Field'}</button>
@@ -350,6 +357,9 @@ function showFieldModal(field, farm, farmIdx) {
       season:       document.getElementById('fldSeason').value.trim() || null,
       geoBoundary:  document.getElementById('fldGeo').value.trim()    || null,
     };
+    if (isEdit) {
+      payload.isActive = document.getElementById('fldActive').checked;
+    }
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>';
     try {
@@ -430,6 +440,12 @@ function showEditFarmModal(farm, farmIdx) {
           <input class="input-field" type="number" step="any" id="editFarmLng" value="${farm.longitude ?? ''}">
         </div>
       </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <label class="input-label" style="margin-bottom:0;">Status</label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.82rem;color:var(--text-mid);">
+          <input type="checkbox" id="editFarmActive" ${farm.isActive !== false ? 'checked' : ''}> Active
+        </label>
+      </div>
       <div style="display:flex;gap:10px;margin-top:6px;">
         <button class="btn-outline" style="flex:1;" id="cancelEditFarm">Cancel</button>
         <button class="btn-primary" style="flex:2;justify-content:center;" id="saveEditFarm">💾 Save Changes</button>
@@ -446,6 +462,7 @@ function showEditFarmModal(farm, farmIdx) {
     const newAddress = document.getElementById('editFarmAddress').value.trim() || null;
     const newLat     = parseFloat(document.getElementById('editFarmLat').value) || null;
     const newLng     = parseFloat(document.getElementById('editFarmLng').value) || null;
+    const newActive  = document.getElementById('editFarmActive').checked;
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>';
     try {
@@ -453,10 +470,11 @@ function showEditFarmModal(farm, farmIdx) {
         name: newName, address: newAddress,
         latitude: newLat, longitude: newLng,
         boundaryGeoJson: farm.boundaryGeoJson || null,
+        isActive: newActive,
       });
       closeModal();
       showToast('Farm updated!', 'success');
-      const updatedFarm = { ...farm, name: newName, address: newAddress, latitude: newLat, longitude: newLng };
+      const updatedFarm = { ...farm, name: newName, address: newAddress, latitude: newLat, longitude: newLng, isActive: newActive };
       const inFieldsPanel = document.getElementById('farms-fields-panel')?.style.display !== 'none';
       if (inFieldsPanel && farmIdx !== undefined) {
         await openFarmFields(updatedFarm, farmIdx);

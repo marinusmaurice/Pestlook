@@ -75,6 +75,7 @@ public sealed class FarmsController(
         farm.Latitude = request.Latitude;
         farm.Longitude = request.Longitude;
         farm.BoundaryGeoJson = request.BoundaryGeoJson;
+        farm.IsActive = request.IsActive;
         farm.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
 

@@ -11,6 +11,7 @@ public sealed class Farm : IHasTenant
     public double? Longitude { get; set; }
     /// <summary>GeoJSON polygon representing the farm boundary.</summary>
     public string? BoundaryGeoJson { get; set; }
+    public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? DeletedAt { get; set; }

@@ -11,6 +11,7 @@ public sealed class Field : IHasTenant
     public double? AreaHectares { get; set; }
     public string? CropType { get; set; }
     public string? Season { get; set; }
+    public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? DeletedAt { get; set; }

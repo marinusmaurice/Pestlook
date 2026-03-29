@@ -13,7 +13,8 @@ public sealed record UpdateFieldRequest(
     string? GeoBoundary,
     double? AreaHectares,
     string? CropType,
-    string? Season);
+    string? Season,
+    bool IsActive = true);
 
 public sealed record FieldResponse(
     Guid Id,
@@ -24,8 +25,9 @@ public sealed record FieldResponse(
     double? AreaHectares,
     string? CropType,
     string? Season,
+    bool IsActive,
     DateTime CreatedAt,
     DateTime UpdatedAt)
 {
-    public FieldResponse() : this(default, default, default, string.Empty, default, default, default, default, default, default) { }
+    public FieldResponse() : this(default, default, default, string.Empty, default, default, default, default, true, default, default) { }
 }
