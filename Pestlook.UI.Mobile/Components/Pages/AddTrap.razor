@@ -1,0 +1,239 @@
+@page "/add-trap"
+@inject LocalDatabase Db
+@inject ApiClient Api
+@inject GpsService Gps
+@inject ConnectivityService Conn
+@inject NavigationManager Nav
+
+<div class="app-shell">
+    <div class="ab">
+        <button class="ab-btn" @onclick="Cancel">✕ Cancel</button>
+        <span class="ab-title">Add trap</span>
+        <div style="width:52px;"></div>
+    </div>
+
+    <div class="app-body">
+        @if (!string.IsNullOrEmpty(error))
+        {
+            <div class="error-box">@error</div>
+        }
+
+        <!-- Name -->
+        <div class="sl">Trap name *</div>
+        <div style="margin:4px 10px;">
+            <input class="inp" placeholder="e.g. Trap-01 North Block" @bind="name" />
+        </div>
+
+        <!-- Barcode -->
+        <div class="sl">Barcode / QR code <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></div>
+        <div style="margin:4px 10px;display:flex;gap:8px;">
+            <input class="inp" style="flex:1;" placeholder="Scan or type barcode" @bind="barcode" />
+            <button class="bo" style="padding:8px 12px;font-size:13px;flex-shrink:0;" @onclick="ScanBarcode">📷 Scan</button>
+        </div>
+
+        <!-- Trap type -->
+        <div class="sl">Trap type</div>
+        @if (trapTypes.Count > 0)
+        {
+            <div style="margin:4px 10px;">
+                <select class="pk-select" @bind="selectedTrapTypeId">
+                    <option value="">Select trap type…</option>
+                    @foreach (var t in trapTypes)
+                    {
+                        <option value="@t.Id">@t.Name</option>
+                    }
+                </select>
+            </div>
+        }
+        else
+        {
+            <div style="padding:8px 12px;font-size:12px;color:var(--text-dim);">No trap types available</div>
+        }
+
+        <!-- GPS coordinates -->
+        <div class="sl">GPS location</div>
+        <div class="cd" style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:15px;">📍</span>
+            <div style="flex:1;">
+                @if (useGps && Gps.HasFix)
+                {
+                    <div style="font-size:12px;font-weight:600;">@Gps.Latitude?.ToString("F4"), @Gps.Longitude?.ToString("F4")</div>
+                    <div style="font-size:11px;color:var(--text-dim);">Accuracy: @(Gps.AccuracyMetres?.ToString("F1") ?? "—")m</div>
+                }
+                else if (useGps)
+                {
+                    <div style="font-size:12px;color:var(--text-dim);">Acquiring GPS fix…</div>
+                }
+                else if (manualLat.HasValue && manualLng.HasValue)
+                {
+                    <div style="font-size:12px;font-weight:600;">@manualLat.Value.ToString("F4"), @manualLng.Value.ToString("F4")</div>
+                    <div style="font-size:11px;color:var(--text-dim);">Manual coordinates</div>
+                }
+                else
+                {
+                    <div style="font-size:12px;color:var(--text-dim);">No location set</div>
+                }
+            </div>
+            @if (useGps && Gps.HasFix)
+            {
+                <span class="ch cs">OK</span>
+            }
+            else if (useGps)
+            {
+                <span class="spinner-sm" style="width:14px;height:14px;"></span>
+            }
+        </div>
+
+        <div class="seg" style="margin:4px 10px;">
+            <button class="seg-btn @(useGps ? "on" : "")" @onclick="() => useGps = true">📡 Use GPS</button>
+            <button class="seg-btn @(!useGps ? "on" : "")" @onclick="() => useGps = false">✏️ Enter manually</button>
+        </div>
+
+        @if (!useGps)
+        {
+            <div style="display:flex;gap:8px;margin:4px 10px;">
+                <input class="inp" style="flex:1;" type="number" step="any" placeholder="Latitude" @bind="manualLat" />
+                <input class="inp" style="flex:1;" type="number" step="any" placeholder="Longitude" @bind="manualLng" />
+            </div>
+        }
+
+        <!-- Notes -->
+        <div class="sl">Notes <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></div>
+        <div style="margin:4px 10px;">
+            <input class="inp" placeholder="Optional notes about this trap" @bind="notes" />
+        </div>
+    </div>
+
+    <!-- Bottom -->
+    <div style="padding:8px 10px;border-top:.5px solid var(--border);flex-shrink:0;">
+        <button class="bp" style="margin:0;width:100%;" @onclick="Save" disabled="@saving">
+            @if (saving) { <span class="spinner-sm"></span> } 🪤 Create trap
+        </button>
+    </div>
+</div>
+
+@code {
+    private List<CachedTrapType> trapTypes = new();
+    private string name = "";
+    private string barcode = "";
+    private string selectedTrapTypeId = "";
+    private bool useGps = true;
+    private double? manualLat;
+    private double? manualLng;
+    private string notes = "";
+    private string? error;
+    private bool saving;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Db.InitAsync();
+        trapTypes = await Db.GetCachedTrapTypesAsync();
+    }
+
+    private async Task ScanBarcode()
+    {
+        // Placeholder: in a real app, integrate ZXing or MAUI barcode scanner
+        // For now just focus the input
+        error = "Barcode scanning requires camera permission. Please type the barcode manually.";
+    }
+
+    private async Task Save()
+    {
+        error = null;
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            error = "Please enter a trap name.";
+            return;
+        }
+
+        double? lat = null, lng = null;
+        if (useGps && Gps.HasFix)
+        {
+            lat = Gps.Latitude;
+            lng = Gps.Longitude;
+        }
+        else if (!useGps)
+        {
+            lat = manualLat;
+            lng = manualLng;
+        }
+
+        saving = true;
+        StateHasChanged();
+
+        try
+        {
+            if (Conn.IsOnline && Api.IsLoggedIn)
+            {
+                // Create on server
+                var req = new CreateTrapApiRequest
+                {
+                    Name = name.Trim(),
+                    Barcode = string.IsNullOrWhiteSpace(barcode) ? null : barcode.Trim(),
+                    TrapTypeId = Guid.TryParse(selectedTrapTypeId, out var ttid) ? ttid : null,
+                    Latitude = lat,
+                    Longitude = lng,
+                    Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim()
+                };
+
+                var result = await Api.CreateTrapAsync(req);
+                if (result.Success && result.Data is not null)
+                {
+                    // Cache locally
+                    var trap = new CachedTrap
+                    {
+                        Id = result.Data.Id.ToString(),
+                        Name = result.Data.Name,
+                        Barcode = result.Data.Barcode,
+                        TrapTypeId = result.Data.TrapTypeId?.ToString(),
+                        TrapTypeName = result.Data.TrapTypeName,
+                        MonitoringPointId = result.Data.MonitoringPointId?.ToString(),
+                        MonitoringPointName = result.Data.MonitoringPointName,
+                        Latitude = result.Data.Latitude,
+                        Longitude = result.Data.Longitude,
+                        IsEnabled = result.Data.IsEnabled,
+                        Notes = result.Data.Notes
+                    };
+                    await Db.SaveTrapAsync(trap);
+                    Nav.NavigateTo("/traps");
+                    return;
+                }
+                else
+                {
+                    error = result.Message ?? "Failed to create trap on server.";
+                }
+            }
+            else
+            {
+                // Save locally only (offline)
+                var trap = new CachedTrap
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Name = name.Trim(),
+                    Barcode = string.IsNullOrWhiteSpace(barcode) ? null : barcode.Trim(),
+                    TrapTypeId = string.IsNullOrEmpty(selectedTrapTypeId) ? null : selectedTrapTypeId,
+                    TrapTypeName = trapTypes.FirstOrDefault(t => t.Id == selectedTrapTypeId)?.Name,
+                    Latitude = lat,
+                    Longitude = lng,
+                    IsEnabled = true,
+                    Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim()
+                };
+                await Db.SaveTrapAsync(trap);
+                Nav.NavigateTo("/traps");
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            error = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            saving = false;
+            StateHasChanged();
+        }
+    }
+
+    private void Cancel() => Nav.NavigateTo("/traps");
+}

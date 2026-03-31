@@ -1,0 +1,177 @@
+@page "/trap-detail/{TrapId}"
+@inject LocalDatabase Db
+@inject ApiClient Api
+@inject ConnectivityService Conn
+@inject NavigationManager Nav
+
+<div class="app-shell">
+    <div class="ab">
+        <button class="ab-btn" @onclick="GoBack">← Back</button>
+        <span class="ab-title">Trap detail</span>
+        <div style="width:48px;"></div>
+    </div>
+
+    <div class="app-body">
+        @if (loading)
+        {
+            <div class="loading-center"><span class="spinner-sm"></span> Loading...</div>
+        }
+        else if (trap is null)
+        {
+            <div style="text-align:center;padding:40px 20px;color:var(--text-dim);font-size:13px;">Trap not found</div>
+        }
+        else
+        {
+            <!-- Trap identity -->
+            <div class="cd" style="display:flex;align-items:center;gap:12px;">
+                <div style="width:52px;height:52px;border-radius:12px;background:@(trap.IsEnabled ? "rgba(109,222,132,.12)" : "rgba(224,96,96,.12)");display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;">
+                    🪤
+                </div>
+                <div style="flex:1;">
+                    <div style="font-size:17px;font-weight:600;">@trap.Name</div>
+                    @if (!string.IsNullOrEmpty(trap.Barcode))
+                    {
+                        <div style="font-size:12px;color:var(--text-dim);margin-top:2px;">🏷 @trap.Barcode</div>
+                    }
+                    <div style="display:flex;gap:4px;margin-top:6px;">
+                        <span class="ch @(trap.IsEnabled ? "cs" : "ce")" style="font-size:9px;">@(trap.IsEnabled ? "Enabled" : "Disabled")</span>
+                        @if (!string.IsNullOrEmpty(trap.TrapTypeName))
+                        {
+                            <span class="ch cn" style="font-size:9px;">@trap.TrapTypeName</span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Properties -->
+            <div class="sl">Properties</div>
+            <div class="cd" style="padding:0;overflow:hidden;">
+                <div style="display:flex;align-items:center;padding:10px 12px;border-bottom:.5px solid var(--border);">
+                    <span style="font-size:12px;color:var(--text-dim);min-width:120px;">Barcode</span>
+                    <span style="font-size:13px;font-weight:500;">@(trap.Barcode ?? "Not set")</span>
+                </div>
+                <div style="display:flex;align-items:center;padding:10px 12px;border-bottom:.5px solid var(--border);">
+                    <span style="font-size:12px;color:var(--text-dim);min-width:120px;">Trap type</span>
+                    <span style="font-size:13px;font-weight:500;">@(trap.TrapTypeName ?? "Not set")</span>
+                </div>
+                <div style="display:flex;align-items:center;padding:10px 12px;border-bottom:.5px solid var(--border);">
+                    <span style="font-size:12px;color:var(--text-dim);min-width:120px;">Monitoring point</span>
+                    <span style="font-size:13px;font-weight:500;">@(trap.MonitoringPointName ?? "None")</span>
+                </div>
+                <div style="display:flex;align-items:center;padding:10px 12px;border-bottom:.5px solid var(--border);">
+                    <span style="font-size:12px;color:var(--text-dim);min-width:120px;">Status</span>
+                    <span class="ch @(trap.IsEnabled ? "cs" : "ce")" style="font-size:10px;">@(trap.IsEnabled ? "Enabled" : "Disabled")</span>
+                </div>
+                <div style="display:flex;align-items:center;padding:10px 12px;">
+                    <span style="font-size:12px;color:var(--text-dim);min-width:120px;">Notes</span>
+                    <span style="font-size:13px;color:var(--text-mid);">@(trap.Notes ?? "—")</span>
+                </div>
+            </div>
+
+            <!-- Location -->
+            <div class="sl">Location</div>
+            <div class="cd" style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:15px;">📍</span>
+                @if (trap.Latitude.HasValue && trap.Longitude.HasValue)
+                {
+                    <div style="flex:1;">
+                        <div style="font-size:12px;font-weight:600;">@trap.Latitude.Value.ToString("F6"), @trap.Longitude.Value.ToString("F6")</div>
+                        <div style="font-size:11px;color:var(--text-dim);">GPS coordinates</div>
+                    </div>
+                    <button class="bo" style="padding:5px 10px;font-size:11px;" @onclick="OpenMap">🗺 View on map</button>
+                }
+                else
+                {
+                    <div style="flex:1;">
+                        <div style="font-size:12px;color:var(--text-dim);">No GPS coordinates set</div>
+                    </div>
+                }
+            </div>
+
+            @if (trap.Latitude.HasValue && trap.Longitude.HasValue)
+            {
+                <!-- Map embed -->
+                <div style="margin:4px 10px;border-radius:10px;overflow:hidden;border:.5px solid var(--border);height:200px;">
+                    <iframe
+                        width="100%" height="100%" frameborder="0" style="border:0;"
+                        src="https://www.openstreetmap.org/export/embed.html?bbox=@((trap.Longitude.Value - 0.005).ToString(System.Globalization.CultureInfo.InvariantCulture)),@((trap.Latitude.Value - 0.005).ToString(System.Globalization.CultureInfo.InvariantCulture)),@((trap.Longitude.Value + 0.005).ToString(System.Globalization.CultureInfo.InvariantCulture)),@((trap.Latitude.Value + 0.005).ToString(System.Globalization.CultureInfo.InvariantCulture))&layer=mapnik&marker=@(trap.Latitude.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)),@(trap.Longitude.Value.ToString(System.Globalization.CultureInfo.InvariantCulture))"
+                        allowfullscreen>
+                    </iframe>
+                </div>
+            }
+
+            <!-- Toggle button -->
+            <div style="padding:12px 10px;">
+                <button class="@(trap.IsEnabled ? "bo" : "bp")"
+                        style="width:100%;@(trap.IsEnabled ? "color:var(--red);border-color:rgba(224,96,96,.3);" : "")"
+                        @onclick="ToggleTrap" disabled="@toggling">
+                    @if (toggling) { <span class="spinner-sm"></span> }
+                    @(trap.IsEnabled ? "⏸ Disable trap" : "▶ Enable trap")
+                </button>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string TrapId { get; set; } = "";
+
+    private bool loading = true;
+    private bool toggling;
+    private CachedTrap? trap;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        loading = true;
+        StateHasChanged();
+
+        await Db.InitAsync();
+        trap = await Db.GetCachedTrapAsync(TrapId);
+        loading = false;
+    }
+
+    private async Task ToggleTrap()
+    {
+        if (trap is null || !Conn.IsOnline || !Api.IsLoggedIn) return;
+
+        toggling = true;
+        StateHasChanged();
+
+        try
+        {
+            if (Guid.TryParse(trap.Id, out var id))
+            {
+                var result = await Api.ToggleTrapAsync(id);
+                if (result.Success && result.Data is not null)
+                {
+                    trap.IsEnabled = result.Data.IsEnabled;
+                    await Db.SaveTrapAsync(trap);
+                }
+            }
+        }
+        catch { /* silent */ }
+        finally
+        {
+            toggling = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OpenMap()
+    {
+        if (trap?.Latitude is not null && trap?.Longitude is not null)
+        {
+            try
+            {
+                var loc = new Location(trap.Latitude.Value, trap.Longitude.Value);
+                await Microsoft.Maui.ApplicationModel.Map.Default.OpenAsync(loc, new MapLaunchOptions
+                {
+                    Name = trap.Name
+                });
+            }
+            catch { /* map not available */ }
+        }
+    }
+
+    private void GoBack() => Nav.NavigateTo("/traps");
+}

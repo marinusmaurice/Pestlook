@@ -98,6 +98,21 @@
             <span class="ch cs">OK</span>
         </div>
 
+        <!-- Trap (optional) -->
+        @if (traps.Count > 0)
+        {
+            <div class="sl">Trap <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></div>
+            <div style="margin:4px 10px;">
+                <select class="pk-select" @bind="selectedTrapId">
+                    <option value="">No trap selected</option>
+                    @foreach (var t in traps)
+                    {
+                        <option value="@t.Id">🪤 @t.Name@(!string.IsNullOrEmpty(t.Barcode) ? $" · {t.Barcode}" : "")</option>
+                    }
+                </select>
+            </div>
+        }
+
         <!-- Photos -->
         <div class="sl">Photos</div>
         <div style="display:flex;gap:6px;padding:4px 10px;flex-wrap:wrap;">
@@ -132,9 +147,11 @@
     [Parameter] public string PointId { get; set; } = "";
 
     private List<CachedPest> pests = new();
+    private List<CachedTrap> traps = new();
     private bool pestsLoading = true;
     private LocalMonitoringPoint? point;
     private string selectedPestId = "";
+    private string selectedTrapId = "";
     private int captureMode; // 0=Count, 1=PresentAbsent, 2=Unknown
     private int count;
     private int threshold;
@@ -151,6 +168,7 @@
 
         point = await Db.GetPointAsync(PointId);
         pests = await Db.GetCachedPestsAsync();
+        traps = await Db.GetEnabledTrapsAsync();
         pestsLoading = false;
     }
 
@@ -227,6 +245,8 @@
             CaptureMode = captureMode == 2 ? 0 : captureMode,
             Count = (captureMode == 0 || captureMode == 2) ? count : null,
             IsPresent = captureMode == 1 ? present : null,
+            TrapId = string.IsNullOrEmpty(selectedTrapId) ? null : selectedTrapId,
+            TrapName = string.IsNullOrEmpty(selectedTrapId) ? null : traps.FirstOrDefault(t => t.Id == selectedTrapId)?.Name,
             CapturedLat = point?.Latitude,
             CapturedLng = point?.Longitude,
             Notes = string.IsNullOrWhiteSpace(notes) ? null : notes

@@ -27,6 +27,10 @@ public sealed class PestObservation : IHasTenant
     public double? CapturedLat { get; set; }
     public double? CapturedLng { get; set; }
 
+    // Optional trap that was being inspected
+    public Guid? TrapId { get; set; }
+    public Trap? Trap { get; set; }
+
     public string? PhotoUrlsJson { get; set; }
     public string? Notes { get; set; }
     public DateTime ObservedAt { get; set; } = DateTime.UtcNow;

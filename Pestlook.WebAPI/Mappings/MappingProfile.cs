@@ -9,6 +9,7 @@ using Pestlook.WebAPI.DTOs.MonitoringPoints;
 using Pestlook.WebAPI.DTOs.PestObservations;
 using Pestlook.WebAPI.DTOs.Pests;
 using Pestlook.WebAPI.DTOs.ScoutingSessions;
+using Pestlook.WebAPI.DTOs.Traps;
 using Pestlook.WebAPI.DTOs.TrapTypes;
 
 namespace Pestlook.WebAPI.Mappings;
@@ -57,10 +58,16 @@ public sealed class MappingProfile : Profile
         CreateMap<PestObservation, PestObservationResponse>()
             .ConstructUsing(_ => new PestObservationResponse())
             .ForMember(d => d.PestName, o => o.MapFrom(s => s.Pest != null ? s.Pest.CommonName : null))
+            .ForMember(d => d.TrapName, o => o.MapFrom(s => s.Trap != null ? s.Trap.Name : null))
             .ForMember(d => d.PhotoUrls, o => o.MapFrom(s =>
                 s.PhotoUrlsJson != null
                     ? JsonSerializer.Deserialize<List<string>>(s.PhotoUrlsJson, (JsonSerializerOptions?)null) ?? new List<string>()
                     : new List<string>()));
+
+        CreateMap<Trap, TrapResponse>()
+            .ConstructUsing(_ => new TrapResponse())
+            .ForMember(d => d.TrapTypeName, o => o.MapFrom(s => s.TrapType != null ? s.TrapType.Name : null))
+            .ForMember(d => d.MonitoringPointName, o => o.MapFrom(s => s.MonitoringPoint != null ? s.MonitoringPoint.Name : null));
 
         CreateMap<BillingSnapshot, BillingSnapshotResponse>()
             .ConstructUsing(_ => new BillingSnapshotResponse());

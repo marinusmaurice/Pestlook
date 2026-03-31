@@ -1,0 +1,115 @@
+@page "/traps"
+@inject LocalDatabase Db
+@inject ApiClient Api
+@inject ConnectivityService Conn
+@inject NavigationManager Nav
+
+<div class="app-shell">
+    <div class="ab">
+        <button class="bo" style="padding:5px 10px;font-size:12px;color:var(--blue);border-color:rgba(96,168,224,.25);"
+                @onclick='() => Nav.NavigateTo("/trap-map")'>🗺 Map</button>
+        <span class="ab-title">Traps</span>
+        <button class="bo" style="padding:5px 10px;font-size:12px;color:var(--green);border-color:rgba(109,222,132,.25);"
+                @onclick="AddNew">+ New</button>
+    </div>
+
+    <!-- Search -->
+    <div class="srch">
+        🔍 <input type="text" placeholder="Search traps or scan barcode…" @bind="searchText" @bind:event="oninput" />
+    </div>
+
+    <!-- Filter chips -->
+    <div class="chip-row">
+        <span class="ch @(statusFilter == null ? "cs" : "cn")" style="cursor:pointer;" @onclick="() => statusFilter = null">All (@allTraps.Count)</span>
+        <span class="ch @(statusFilter == true ? "cs" : "cn")" style="cursor:pointer;" @onclick="() => statusFilter = true">Enabled (@enabledCount)</span>
+        <span class="ch @(statusFilter == false ? "cw" : "cn")" style="cursor:pointer;" @onclick="() => statusFilter = false">Disabled (@disabledCount)</span>
+    </div>
+
+    <div class="app-body">
+        @if (loading)
+        {
+            <div class="loading-center"><span class="spinner-sm"></span> Loading traps...</div>
+        }
+        else if (FilteredTraps.Count == 0)
+        {
+            <div style="text-align:center;padding:40px 20px;color:var(--text-dim);">
+                <div style="font-size:32px;margin-bottom:8px;">🪤</div>
+                <div style="font-size:14px;">No traps found</div>
+                <div style="font-size:12px;margin-top:4px;">Tap + New to register a trap</div>
+            </div>
+        }
+        else
+        {
+            @foreach (var trap in FilteredTraps)
+            {
+                <div class="cd" style="display:flex;align-items:center;gap:10px;cursor:pointer;opacity:@(trap.IsEnabled ? "1" : "0.55");"
+                     @onclick="() => ViewTrap(trap)">
+                    <div style="width:44px;height:44px;border-radius:10px;background:@(trap.IsEnabled ? "rgba(109,222,132,.12)" : "rgba(224,96,96,.12)");display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">
+                        🪤
+                    </div>
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">@trap.Name</div>
+                        @if (!string.IsNullOrEmpty(trap.Barcode))
+                        {
+                            <div style="font-size:11px;color:var(--text-dim);margin-top:1px;">🏷 @trap.Barcode</div>
+                        }
+                        <div style="display:flex;gap:4px;margin-top:4px;">
+                            @if (!string.IsNullOrEmpty(trap.TrapTypeName))
+                            {
+                                <span class="ch cn" style="font-size:9px;">@trap.TrapTypeName</span>
+                            }
+                            @if (trap.Latitude.HasValue && trap.Longitude.HasValue)
+                            {
+                                <span class="ch cn" style="font-size:9px;">📍 @trap.Latitude.Value.ToString("F2"), @trap.Longitude.Value.ToString("F2")</span>
+                            }
+                            <span class="ch @(trap.IsEnabled ? "cs" : "ce")" style="font-size:9px;">@(trap.IsEnabled ? "Enabled" : "Disabled")</span>
+                        </div>
+                    </div>
+                    <span style="color:var(--text-dim);font-size:13px;">›</span>
+                </div>
+            }
+        }
+    </div>
+
+    <TabBar ActiveTab="traps" />
+</div>
+
+@code {
+    private List<CachedTrap> allTraps = new();
+    private bool loading = true;
+    private string searchText = "";
+    private bool? statusFilter;
+    private int enabledCount;
+    private int disabledCount;
+
+    private List<CachedTrap> FilteredTraps
+    {
+        get
+        {
+            var list = allTraps.AsEnumerable();
+            if (statusFilter.HasValue)
+                list = list.Where(t => t.IsEnabled == statusFilter.Value);
+            if (!string.IsNullOrWhiteSpace(searchText))
+            {
+                var q = searchText.Trim();
+                list = list.Where(t =>
+                    (t.Name?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (t.Barcode?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (t.TrapTypeName?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false));
+            }
+            return list.ToList();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Db.InitAsync();
+        allTraps = await Db.GetCachedTrapsAsync();
+        enabledCount = allTraps.Count(t => t.IsEnabled);
+        disabledCount = allTraps.Count(t => !t.IsEnabled);
+        loading = false;
+    }
+
+    private void ViewTrap(CachedTrap trap) => Nav.NavigateTo($"/trap-detail/{trap.Id}");
+    private void AddNew() => Nav.NavigateTo("/add-trap");
+}

@@ -16,12 +16,17 @@ public sealed class SecurityHeadersMiddleware(RequestDelegate next)
         var headers = context.Response.Headers;
 
         headers["X-Content-Type-Options"] = "nosniff";
-        headers["X-Frame-Options"] = "DENY";
+        headers["X-Frame-Options"] = "SAMEORIGIN";
         headers["X-XSS-Protection"] = "1; mode=block";
         headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
         headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
         headers["Content-Security-Policy"] =
-            "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:";
+            "default-src 'self'; " +
+            "script-src 'self' https://unpkg.com; " +
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; " +
+            "font-src 'self' https://fonts.gstatic.com; " +
+            "img-src 'self' data: https://*.tile.openstreetmap.org https://*.google.com https://*.googleapis.com https://unpkg.com; " +
+            "connect-src 'self'";
 
         // HSTS is handled by app.UseHsts() in production; we still set it as a header fallback
         if (!context.Request.IsHttps)

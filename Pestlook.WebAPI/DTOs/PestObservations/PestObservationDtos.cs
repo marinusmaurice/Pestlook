@@ -14,6 +14,7 @@ public sealed record CreatePestObservationRequest(
     string? LifeStage,
     double? CapturedLat,
     double? CapturedLng,
+    Guid? TrapId,
     List<string>? PhotoUrls,
     string? Notes,
     DateTime? ObservedAt);
@@ -33,10 +34,12 @@ public sealed record PestObservationResponse(
     string? LifeStage,
     double? CapturedLat,
     double? CapturedLng,
+    Guid? TrapId,
+    string? TrapName,
     List<string> PhotoUrls,
     string? Notes,
     DateTime ObservedAt,
     DateTime CreatedAt)
 {
-    public PestObservationResponse() : this(default, default, default, default, default, default, default, default, default, default, default, default, default, default, new List<string>(), default, default, default) { }
+    public PestObservationResponse() : this(default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, new List<string>(), default, default, default) { }
 }

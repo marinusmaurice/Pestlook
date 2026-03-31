@@ -22,6 +22,7 @@ public class LocalDatabase
         await _db.CreateTableAsync<CachedTrapType>();
         await _db.CreateTableAsync<CachedFarm>();
         await _db.CreateTableAsync<CachedField>();
+        await _db.CreateTableAsync<CachedTrap>();
         await _db.CreateTableAsync<LocalAppSetting>();
     }
 
@@ -127,6 +128,29 @@ public class LocalDatabase
             conn.InsertAll(fields);
         });
 
+    // ── Cached Traps ──────────────────────────────────────────
+    public Task<List<CachedTrap>> GetCachedTrapsAsync()
+        => _db.Table<CachedTrap>().OrderBy(t => t.Name).ToListAsync();
+
+    public Task<List<CachedTrap>> GetEnabledTrapsAsync()
+        => _db.Table<CachedTrap>().Where(t => t.IsEnabled).OrderBy(t => t.Name).ToListAsync();
+
+    public Task<CachedTrap?> GetCachedTrapAsync(string id)
+        => _db.Table<CachedTrap>().FirstOrDefaultAsync(t => t.Id == id);
+
+    public Task<CachedTrap?> GetCachedTrapByBarcodeAsync(string barcode)
+        => _db.Table<CachedTrap>().FirstOrDefaultAsync(t => t.Barcode == barcode);
+
+    public Task SaveTrapsAsync(List<CachedTrap> traps)
+        => _db.RunInTransactionAsync(conn =>
+        {
+            conn.DeleteAll<CachedTrap>();
+            conn.InsertAll(traps);
+        });
+
+    public Task SaveTrapAsync(CachedTrap trap)
+        => _db.InsertOrReplaceAsync(trap);
+
     // ── App Settings ──────────────────────────────────────────
     public async Task<string?> GetSettingAsync(string key)
     {
@@ -151,6 +175,7 @@ public class LocalDatabase
         await _db.DeleteAllAsync<CachedTrapType>();
         await _db.DeleteAllAsync<CachedFarm>();
         await _db.DeleteAllAsync<CachedField>();
+        await _db.DeleteAllAsync<CachedTrap>();
     }
 
     public async Task<long> GetDatabaseSizeAsync()

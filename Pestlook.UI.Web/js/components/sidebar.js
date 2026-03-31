@@ -9,6 +9,7 @@ const navItems = [
   { section: 'Field Management', items: [
     { id: 'farms', icon: '🌾', label: 'Farms & Fields', path: '/farms' },
     { id: 'monitoring', icon: '📍', label: 'Monitoring Points', path: '/monitoring-points', badgeId: 'mp-badge' },
+    { id: 'traps', icon: '🪤', label: 'Traps', path: '/traps' },
   ]},
   { section: 'Operations', items: [
     { id: 'sessions', icon: '🥾', label: 'Scouting Sessions', path: '/sessions' },

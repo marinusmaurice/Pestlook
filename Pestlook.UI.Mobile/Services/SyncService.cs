@@ -82,6 +82,25 @@ public class SyncService
                     Description = t.Description
                 }).ToList());
             }
+
+            var trapsRes = await _api.GetTrapsAsync();
+            if (trapsRes.Success && trapsRes.Data is not null)
+            {
+                await _db.SaveTrapsAsync(trapsRes.Data.Select(t => new CachedTrap
+                {
+                    Id = t.Id.ToString(),
+                    Name = t.Name,
+                    Barcode = t.Barcode,
+                    TrapTypeId = t.TrapTypeId?.ToString(),
+                    TrapTypeName = t.TrapTypeName,
+                    MonitoringPointId = t.MonitoringPointId?.ToString(),
+                    MonitoringPointName = t.MonitoringPointName,
+                    Latitude = t.Latitude,
+                    Longitude = t.Longitude,
+                    IsEnabled = t.IsEnabled,
+                    Notes = t.Notes
+                }).ToList());
+            }
         }
         catch
         {

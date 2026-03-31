@@ -116,6 +116,25 @@ public class ApiClient
     public Task<ApiResult<List<TrapTypeResponse>>> GetTrapTypesAsync()
         => GetAsync<List<TrapTypeResponse>>("trap-types");
 
+    // ── Traps ─────────────────────────────────────────────────
+    public Task<ApiResult<List<TrapApiResponse>>> GetTrapsAsync(bool? enabled = null)
+    {
+        var q = enabled.HasValue ? $"?enabled={enabled.Value.ToString().ToLowerInvariant()}" : "";
+        return GetAsync<List<TrapApiResponse>>($"traps{q}");
+    }
+
+    public Task<ApiResult<TrapApiResponse>> GetTrapAsync(Guid id)
+        => GetAsync<TrapApiResponse>($"traps/{id}");
+
+    public Task<ApiResult<TrapApiResponse>> GetTrapByBarcodeAsync(string barcode)
+        => GetAsync<TrapApiResponse>($"traps/barcode/{Uri.EscapeDataString(barcode)}");
+
+    public Task<ApiResult<TrapApiResponse>> CreateTrapAsync(CreateTrapApiRequest req)
+        => PostAsync<TrapApiResponse>("traps", req);
+
+    public Task<ApiResult<TrapApiResponse>> ToggleTrapAsync(Guid id)
+        => PatchAsync<TrapApiResponse>($"traps/{id}/toggle", new { });
+
     // ── Pests ─────────────────────────────────────────────────
     public Task<ApiResult<List<PestResponse>>> GetPestsAsync()
         => GetAsync<List<PestResponse>>("pests");
@@ -370,4 +389,33 @@ public class CreateObservationRequest
     [JsonPropertyName("capturedLng")] public double? CapturedLng { get; set; }
     [JsonPropertyName("notes")] public string? Notes { get; set; }
     [JsonPropertyName("observedAt")] public DateTime? ObservedAt { get; set; }
+}
+
+public class TrapApiResponse
+{
+    [JsonPropertyName("id")] public Guid Id { get; set; }
+    [JsonPropertyName("tenantId")] public Guid TenantId { get; set; }
+    [JsonPropertyName("name")] public string Name { get; set; } = "";
+    [JsonPropertyName("barcode")] public string? Barcode { get; set; }
+    [JsonPropertyName("trapTypeId")] public Guid? TrapTypeId { get; set; }
+    [JsonPropertyName("trapTypeName")] public string? TrapTypeName { get; set; }
+    [JsonPropertyName("monitoringPointId")] public Guid? MonitoringPointId { get; set; }
+    [JsonPropertyName("monitoringPointName")] public string? MonitoringPointName { get; set; }
+    [JsonPropertyName("latitude")] public double? Latitude { get; set; }
+    [JsonPropertyName("longitude")] public double? Longitude { get; set; }
+    [JsonPropertyName("isEnabled")] public bool IsEnabled { get; set; }
+    [JsonPropertyName("notes")] public string? Notes { get; set; }
+    [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
+    [JsonPropertyName("updatedAt")] public DateTime UpdatedAt { get; set; }
+}
+
+public class CreateTrapApiRequest
+{
+    [JsonPropertyName("name")] public string Name { get; set; } = "";
+    [JsonPropertyName("barcode")] public string? Barcode { get; set; }
+    [JsonPropertyName("trapTypeId")] public Guid? TrapTypeId { get; set; }
+    [JsonPropertyName("monitoringPointId")] public Guid? MonitoringPointId { get; set; }
+    [JsonPropertyName("latitude")] public double? Latitude { get; set; }
+    [JsonPropertyName("longitude")] public double? Longitude { get; set; }
+    [JsonPropertyName("notes")] public string? Notes { get; set; }
 }

@@ -15,6 +15,7 @@ import { renderMonitoringPoints } from './pages/monitoring-points.js';
 import { renderSessions } from './pages/sessions.js';
 import { renderObservations } from './pages/observations.js';
 import { renderPests } from './pages/pests.js';
+import { renderTraps } from './pages/traps.js';
 import { renderSettings } from './pages/settings.js';
 
 const appRoot = document.getElementById('app-root');
@@ -126,6 +127,10 @@ registerRoute('/observations', authedRoute(async (content) => {
 
 registerRoute('/pests', authedRoute(async (content) => {
   await renderPests(content);
+}));
+
+registerRoute('/traps', authedRoute(async (content) => {
+  await renderTraps(content);
 }));
 
 registerRoute('/settings', authedRoute(async (content) => {

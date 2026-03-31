@@ -31,7 +31,7 @@ public sealed class PestObservationsController(
         [FromQuery] DateTime? to,
         CancellationToken ct)
     {
-        var query = db.PestObservations.Include(o => o.Pest).AsQueryable();
+        var query = db.PestObservations.Include(o => o.Pest).Include(o => o.Trap).AsQueryable();
 
         if (sessionId.HasValue)        query = query.Where(o => o.SessionId == sessionId.Value);
         if (monitoringPointId.HasValue) query = query.Where(o => o.MonitoringPointId == monitoringPointId.Value);
@@ -49,6 +49,7 @@ public sealed class PestObservationsController(
     {
         var obs = await db.PestObservations
             .Include(o => o.Pest)
+            .Include(o => o.Trap)
             .FirstOrDefaultAsync(o => o.Id == id, ct);
         if (obs is null) return NotFound(ApiResponse<object>.Fail("Observation not found."));
         return Ok(ApiResponse<PestObservationResponse>.Ok(mapper.Map<PestObservationResponse>(obs)));
@@ -107,6 +108,7 @@ public sealed class PestObservationsController(
             LifeStage = request.LifeStage,
             CapturedLat = request.CapturedLat,
             CapturedLng = request.CapturedLng,
+            TrapId = request.TrapId,
             PhotoUrlsJson = request.PhotoUrls is { Count: > 0 }
                 ? JsonSerializer.Serialize(request.PhotoUrls)
                 : null,
@@ -119,6 +121,7 @@ public sealed class PestObservationsController(
 
         var created = await db.PestObservations
             .Include(o => o.Pest)
+            .Include(o => o.Trap)
             .FirstAsync(o => o.Id == obs.Id, ct);
 
         return CreatedAtAction(nameof(GetById), new { id = obs.Id },

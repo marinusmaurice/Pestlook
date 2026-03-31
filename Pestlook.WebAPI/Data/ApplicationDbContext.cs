@@ -29,6 +29,7 @@ public sealed class ApplicationDbContext(
     public DbSet<MonitoringPointPest> MonitoringPointPests => Set<MonitoringPointPest>();
     public DbSet<ScoutingSession> ScoutingSessions => Set<ScoutingSession>();
     public DbSet<PestObservation> PestObservations => Set<PestObservation>();
+    public DbSet<Trap> Traps => Set<Trap>();
     public DbSet<BillingSnapshot> BillingSnapshots => Set<BillingSnapshot>();
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -248,9 +249,33 @@ public sealed class ApplicationDbContext(
              .WithMany()
              .HasForeignKey(o => o.PestId)
              .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(o => o.Trap)
+             .WithMany()
+             .HasForeignKey(o => o.TrapId)
+             .OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(o => new { o.MonitoringPointId, o.ObservedAt });
             e.HasQueryFilter(o => o.DeletedAt == null &&
                 (tenantContext.TenantId == null || o.TenantId == tenantContext.TenantId));
+        });
+
+        builder.Entity<Trap>(e =>
+        {
+            e.HasKey(t => t.Id);
+            e.Property(t => t.Name).HasMaxLength(200).IsRequired();
+            e.Property(t => t.Barcode).HasMaxLength(200);
+            e.Property(t => t.Notes).HasMaxLength(1000);
+            e.HasIndex(t => new { t.TenantId, t.Barcode }).IsUnique()
+             .HasFilter("[DeletedAt] IS NULL AND [Barcode] IS NOT NULL");
+            e.HasOne(t => t.TrapType)
+             .WithMany()
+             .HasForeignKey(t => t.TrapTypeId)
+             .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(t => t.MonitoringPoint)
+             .WithMany()
+             .HasForeignKey(t => t.MonitoringPointId)
+             .OnDelete(DeleteBehavior.SetNull);
+            e.HasQueryFilter(t => t.DeletedAt == null &&
+                (tenantContext.TenantId == null || t.TenantId == tenantContext.TenantId));
         });
 
         builder.Entity<BillingSnapshot>(e =>

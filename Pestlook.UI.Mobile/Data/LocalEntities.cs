@@ -61,6 +61,8 @@ public class LocalObservation
     public int? Count { get; set; }
     public bool? IsPresent { get; set; }
     public string? Notes { get; set; }
+    public string? TrapId { get; set; }
+    public string? TrapName { get; set; }
     public double? CapturedLat { get; set; }
     public double? CapturedLng { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -122,6 +124,24 @@ public class CachedField
     public string Name { get; set; } = "";
     public string? CropType { get; set; }
     public bool IsActive { get; set; }
+    public DateTime CachedAt { get; set; } = DateTime.UtcNow;
+}
+
+// ── Cached Trap ──────────────────────────────────────────────
+public class CachedTrap
+{
+    [PrimaryKey]
+    public string Id { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string? Barcode { get; set; }
+    public string? TrapTypeId { get; set; }
+    public string? TrapTypeName { get; set; }
+    public string? MonitoringPointId { get; set; }
+    public string? MonitoringPointName { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+    public bool IsEnabled { get; set; }
+    public string? Notes { get; set; }
     public DateTime CachedAt { get; set; } = DateTime.UtcNow;
 }
 

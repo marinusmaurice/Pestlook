@@ -1,0 +1,107 @@
+@page "/trap-map"
+@inject LocalDatabase Db
+@inject NavigationManager Nav
+
+<div class="app-shell">
+    <div class="ab">
+        <button class="ab-btn" @onclick="GoBack">← Back</button>
+        <span class="ab-title">Trap locations</span>
+        <div style="width:48px;"></div>
+    </div>
+
+    <div class="app-body">
+        @if (loading)
+        {
+            <div class="loading-center"><span class="spinner-sm"></span> Loading...</div>
+        }
+        else if (locatedTraps.Count == 0)
+        {
+            <div style="text-align:center;padding:40px 20px;color:var(--text-dim);">
+                <div style="font-size:28px;margin-bottom:8px;">🗺</div>
+                <div style="font-size:14px;">No traps with GPS coordinates</div>
+                <div style="font-size:12px;margin-top:4px;">Add coordinates to your traps to see them on the map</div>
+            </div>
+        }
+        else
+        {
+            <!-- Summary -->
+            <div class="cd" style="padding:0;overflow:hidden;">
+                <div style="display:flex;">
+                    <div style="flex:1;padding:12px 8px;text-align:center;border-right:.5px solid var(--border);">
+                        <div style="font-size:20px;font-weight:600;">@locatedTraps.Count</div>
+                        <div style="font-size:10px;color:var(--text-dim);">On map</div>
+                    </div>
+                    <div style="flex:1;padding:12px 8px;text-align:center;border-right:.5px solid var(--border);">
+                        <div style="font-size:20px;font-weight:600;color:var(--green);">@locatedTraps.Count(t => t.IsEnabled)</div>
+                        <div style="font-size:10px;color:var(--text-dim);">Enabled</div>
+                    </div>
+                    <div style="flex:1;padding:12px 8px;text-align:center;">
+                        <div style="font-size:20px;font-weight:600;color:var(--red);">@locatedTraps.Count(t => !t.IsEnabled)</div>
+                        <div style="font-size:10px;color:var(--text-dim);">Disabled</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map -->
+            <div style="margin:8px 10px;border-radius:10px;overflow:hidden;border:.5px solid var(--border);height:300px;">
+                <iframe
+                    width="100%" height="100%" frameborder="0" style="border:0;"
+                    src="https://www.openstreetmap.org/export/embed.html?bbox=@BBox&layer=mapnik"
+                    allowfullscreen>
+                </iframe>
+            </div>
+
+            <!-- Trap list -->
+            <div class="sl">All trap locations</div>
+            @foreach (var trap in locatedTraps)
+            {
+                <div class="rw" style="cursor:pointer;opacity:@(trap.IsEnabled ? "1" : "0.55");" @onclick="() => ViewTrap(trap)">
+                    <span style="font-size:15px;">🪤</span>
+                    <div style="flex:1;">
+                        <div style="font-size:13px;font-weight:600;">@trap.Name</div>
+                        <div style="font-size:11px;color:var(--text-dim);">📍 @trap.Latitude?.ToString("F4"), @trap.Longitude?.ToString("F4")</div>
+                    </div>
+                    <span class="ch @(trap.IsEnabled ? "cs" : "ce")" style="font-size:9px;">@(trap.IsEnabled ? "On" : "Off")</span>
+                    <span style="color:var(--text-dim);font-size:13px;">›</span>
+                </div>
+            }
+        }
+    </div>
+
+    <TabBar ActiveTab="traps" />
+</div>
+
+@code {
+    private bool loading = true;
+    private List<CachedTrap> locatedTraps = new();
+
+    private string BBox
+    {
+        get
+        {
+            if (locatedTraps.Count == 0) return "0,0,0,0";
+            double minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+            foreach (var t in locatedTraps)
+            {
+                if (t.Latitude!.Value < minLat) minLat = t.Latitude.Value;
+                if (t.Latitude.Value > maxLat) maxLat = t.Latitude.Value;
+                if (t.Longitude!.Value < minLng) minLng = t.Longitude.Value;
+                if (t.Longitude.Value > maxLng) maxLng = t.Longitude.Value;
+            }
+            double pad = 0.01;
+            var ci = System.Globalization.CultureInfo.InvariantCulture;
+            return $"{(minLng - pad).ToString(ci)},{(minLat - pad).ToString(ci)},{(maxLng + pad).ToString(ci)},{(maxLat + pad).ToString(ci)}";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Db.InitAsync();
+        var all = await Db.GetCachedTrapsAsync();
+        locatedTraps = all.Where(t => t.Latitude.HasValue && t.Longitude.HasValue).ToList();
+        loading = false;
+    }
+
+    private void ViewTrap(CachedTrap trap) => Nav.NavigateTo($"/trap-detail/{trap.Id}");
+    private void GoBack() => Nav.NavigateTo("/traps");
+}

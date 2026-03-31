@@ -97,7 +97,11 @@
                         <span style="font-size:17px;">@(obs.IsUnknownPest ? "❓" : "🦟")</span>
                         <div style="flex:1;">
                             <div style="font-size:13px;font-weight:600;@(obs.IsUnknownPest ? "color:var(--amber);" : "")">@(obs.IsUnknownPest ? "Unknown pest" : (obs.PestName ?? "—"))</div>
-                            @if (!string.IsNullOrEmpty(obs.UnknownPestDescription))
+                            @if (!string.IsNullOrEmpty(obs.TrapName))
+                            {
+                                <div style="font-size:11px;color:var(--text-dim);">🪤 @obs.TrapName</div>
+                            }
+                            else if (!string.IsNullOrEmpty(obs.UnknownPestDescription))
                             {
                                 <div style="font-size:11px;color:var(--text-dim);">"@obs.UnknownPestDescription"</div>
                             }

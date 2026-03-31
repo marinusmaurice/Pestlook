@@ -533,6 +533,10 @@ body {
 }
 .data-table tr:last-child td { border-bottom: none; }
 .data-table tr:hover td { background: var(--surface2); }
+.data-table tr.trap-row-selected td {
+  background: rgba(59,130,246,0.12);
+  box-shadow: inset 3px 0 0 var(--blue);
+}
 
 /* ── Progress bar ── */
 .progress-bar {
