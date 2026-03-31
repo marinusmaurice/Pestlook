@@ -27,6 +27,7 @@ public sealed class ScoutingSessionsController(
     public async Task<IActionResult> GetAll(CancellationToken ct)
     {
         var sessions = await db.ScoutingSessions
+            .Include(ss => ss.Scouter)
             .Include(ss => ss.PestObservations)
             .OrderByDescending(ss => ss.StartedAt)
             .ToListAsync(ct);
@@ -39,6 +40,7 @@ public sealed class ScoutingSessionsController(
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
     {
         var session = await db.ScoutingSessions
+            .Include(ss => ss.Scouter)
             .Include(ss => ss.PestObservations)
             .FirstOrDefaultAsync(ss => ss.Id == id, ct);
         if (session is null) return NotFound(ApiResponse<object>.Fail("Scouting session not found."));
@@ -64,6 +66,7 @@ public sealed class ScoutingSessionsController(
         await db.SaveChangesAsync(ct);
 
         var created = await db.ScoutingSessions
+            .Include(ss => ss.Scouter)
             .Include(ss => ss.PestObservations)
             .FirstAsync(ss => ss.Id == session.Id, ct);
 
@@ -79,6 +82,7 @@ public sealed class ScoutingSessionsController(
     public async Task<IActionResult> Complete(Guid id, [FromBody] CompleteScoutingSessionRequest request, CancellationToken ct)
     {
         var session = await db.ScoutingSessions
+            .Include(ss => ss.Scouter)
             .Include(ss => ss.PestObservations)
             .FirstOrDefaultAsync(ss => ss.Id == id, ct);
         if (session is null) return NotFound(ApiResponse<object>.Fail("Scouting session not found."));

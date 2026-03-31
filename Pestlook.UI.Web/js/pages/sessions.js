@@ -45,7 +45,7 @@ function renderTable(sessions, container) {
     rows += `
       <tr>
         <td style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text-dim);">${s.id.substring(0, 8)}</td>
-        <td><div style="font-weight:500;color:var(--text);">${escapeHtml(s.scouterId)}</div></td>
+        <td><div style="font-weight:500;color:var(--text);">${escapeHtml(s.scouterName || s.scouterId)}</div></td>
         <td style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--text-dim);">${formatDateTime(s.startedAt)}</td>
         <td style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--text-dim);">${s.completedAt ? formatDateTime(s.completedAt) : '—'}</td>
         <td>${escapeHtml(s.weatherConditions || '—')}</td>

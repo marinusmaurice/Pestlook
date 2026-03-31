@@ -102,7 +102,7 @@ function renderActiveSessions(active, allSessions) {
     const statusTag = isActive ? tag('● Active', 'green') : tag('✓ Complete', 'blue');
     rows += `
       <tr>
-        <td><div style="font-weight:600;color:var(--text);">${escapeHtml(s.scouterId)}</div></td>
+        <td><div style="font-weight:600;color:var(--text);">${escapeHtml(s.scouterName || s.scouterId)}</div></td>
         <td style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--text-dim);">${formatTime(s.startedAt)}</td>
         <td style="font-family:'Fraunces',serif;font-weight:700;color:var(--amber);">${s.observationCount}</td>
         <td>${statusTag}</td>

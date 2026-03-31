@@ -51,7 +51,8 @@ public sealed class MappingProfile : Profile
 
         CreateMap<ScoutingSession, ScoutingSessionResponse>()
             .ConstructUsing(_ => new ScoutingSessionResponse())
-            .ForMember(d => d.ObservationCount, o => o.MapFrom(s => s.PestObservations.Count));
+            .ForMember(d => d.ObservationCount, o => o.MapFrom(s => s.PestObservations.Count))
+            .ForMember(d => d.ScouterName, o => o.MapFrom(s => s.Scouter != null ? s.Scouter.FirstName + " " + s.Scouter.LastName : null));
 
         CreateMap<PestObservation, PestObservationResponse>()
             .ConstructUsing(_ => new PestObservationResponse())

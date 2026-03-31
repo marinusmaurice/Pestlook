@@ -12,6 +12,7 @@ public sealed record ScoutingSessionResponse(
     Guid Id,
     Guid TenantId,
     string ScouterId,
+    string? ScouterName,
     DateTime StartedAt,
     DateTime? CompletedAt,
     string? WeatherConditions,
@@ -19,5 +20,5 @@ public sealed record ScoutingSessionResponse(
     DateTime CreatedAt,
     int ObservationCount)
 {
-    public ScoutingSessionResponse() : this(default, default, string.Empty, default, default, default, default, default, default) { }
+    public ScoutingSessionResponse() : this(default, default, string.Empty, default, default, default, default, default, default, default) { }
 }
