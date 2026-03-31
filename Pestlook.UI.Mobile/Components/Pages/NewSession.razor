@@ -1,0 +1,281 @@
+@page "/new-session"
+@inject ApiClient Api
+@inject LocalDatabase Db
+@inject ConnectivityService Conn
+@inject NavigationManager Nav
+
+<div class="app-shell">
+    <!-- App bar -->
+    <div class="ab">
+        <button class="ab-btn" @onclick="GoBack">← Back</button>
+        <span class="ab-title">New Session</span>
+        <div style="width:52px;"></div>
+    </div>
+
+    <div class="app-body">
+        @if (!string.IsNullOrEmpty(error))
+        {
+            <div class="error-box">@error</div>
+        }
+
+        <!-- Farm (required) -->
+        <div class="sl">Farm <span style="color:var(--red);font-weight:700;">*</span></div>
+        @if (farmsLoading)
+        {
+            <div class="loading-center" style="padding:12px;"><span class="spinner-sm"></span></div>
+        }
+        else if (farms.Count == 0)
+        {
+            <div style="padding:8px 12px;font-size:12px;color:var(--amber);">No farms available. Ask an admin to assign farms to your tenant.</div>
+        }
+        else
+        {
+            <div style="margin:4px 10px;">
+                <select class="pk-select" @bind="selectedFarmId" @bind:after="OnFarmChanged">
+                    <option value="">Select a farm…</option>
+                    @foreach (var f in farms)
+                    {
+                        <option value="@f.Id">@f.Name</option>
+                    }
+                </select>
+            </div>
+        }
+
+        <!-- Field (optional) -->
+        <div class="sl">Field <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></div>
+        @if (fieldsLoading)
+        {
+            <div style="padding:8px 12px;font-size:12px;color:var(--text-dim);">Loading fields…</div>
+        }
+        else if (string.IsNullOrEmpty(selectedFarmId))
+        {
+            <div style="padding:8px 12px;font-size:12px;color:var(--text-dim);">Select a farm first</div>
+        }
+        else if (fields.Count == 0)
+        {
+            <div style="padding:8px 12px;font-size:12px;color:var(--text-dim);">No fields for this farm</div>
+        }
+        else
+        {
+            <div style="margin:4px 10px;">
+                <select class="pk-select" @bind="selectedFieldId">
+                    <option value="">— None —</option>
+                    @foreach (var f in fields)
+                    {
+                        <option value="@f.Id">@f.Name@(f.CropType != null ? $" · {f.CropType}" : "")</option>
+                    }
+                </select>
+            </div>
+        }
+
+        <!-- Weather condition -->
+        <div class="sl">Weather condition</div>
+        <div class="wx-row">
+            <button class="wx-btn @(weather == "Sunny" ? "on" : "")" @onclick='() => weather = "Sunny"'>
+                <span class="wx-icon">☀️</span><span class="wx-lbl">Sunny</span>
+            </button>
+            <button class="wx-btn @(weather == "Cloudy" ? "on" : "")" @onclick='() => weather = "Cloudy"'>
+                <span class="wx-icon">☁️</span><span class="wx-lbl">Cloudy</span>
+            </button>
+            <button class="wx-btn @(weather == "Rainy" ? "on" : "")" @onclick='() => weather = "Rainy"'>
+                <span class="wx-icon">🌧️</span><span class="wx-lbl">Rainy</span>
+            </button>
+            <button class="wx-btn @(weather == "Windy" ? "on" : "")" @onclick='() => weather = "Windy"'>
+                <span class="wx-icon">💨</span><span class="wx-lbl">Windy</span>
+            </button>
+        </div>
+
+        <!-- Temperature -->
+        <div class="sl">Temperature (°C)</div>
+        <div style="display:flex;align-items:center;gap:14px;padding:8px 12px;">
+            <button class="cb" style="width:44px;height:44px;font-size:22px;" @onclick="() => { if (temperature > -10) temperature--; }">−</button>
+            <div style="text-align:center;min-width:60px;">
+                <span style="font-size:32px;font-weight:600;color:@TempColor;">@temperature°</span>
+            </div>
+            <button class="cb" style="width:44px;height:44px;font-size:22px;" @onclick="() => { if (temperature < 50) temperature++; }">+</button>
+        </div>
+
+        <!-- Notes (optional) -->
+        <div class="sl">Notes <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></div>
+        <div style="margin:4px 10px;">
+            <textarea class="inp" rows="2" placeholder="Any notes about today's conditions…" @bind="notes"></textarea>
+        </div>
+
+        <!-- Offline indicator -->
+        @if (!Conn.IsOnline)
+        {
+            <div class="bn">
+                <span style="font-size:13px;">📡</span>
+                <span style="font-size:12px;color:var(--amber);">Offline — session will be stored locally</span>
+            </div>
+        }
+
+        <!-- Summary card -->
+        @if (!string.IsNullOrEmpty(selectedFarmId))
+        {
+            <div class="sl">Summary</div>
+            <div class="cd" style="padding:0;overflow:hidden;">
+                <div class="sess-info-row">
+                    <span style="font-size:12px;color:var(--text-dim);">Farm</span>
+                    <span style="font-size:12px;font-weight:600;">@SelectedFarmName</span>
+                </div>
+                @if (!string.IsNullOrEmpty(selectedFieldId))
+                {
+                    <div class="sess-info-row">
+                        <span style="font-size:12px;color:var(--text-dim);">Field</span>
+                        <span style="font-size:12px;font-weight:600;">@SelectedFieldName</span>
+                    </div>
+                }
+                <div class="sess-info-row">
+                    <span style="font-size:12px;color:var(--text-dim);">Weather</span>
+                    <span style="font-size:12px;font-weight:600;">@(weather ?? "—"), @temperature°C</span>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Bottom -->
+    <div style="padding:8px 10px;border-top:.5px solid var(--border);flex-shrink:0;">
+        <button class="bp" style="margin:0;width:100%;" @onclick="StartScouting" disabled="@(saving || string.IsNullOrEmpty(selectedFarmId))">
+            @if (saving) { <span class="spinner-sm"></span> } 🥾 Start scouting →
+        </button>
+    </div>
+</div>
+
+@code {
+    private List<CachedFarm> farms = new();
+    private List<CachedField> fields = new();
+    private bool farmsLoading = true;
+    private bool fieldsLoading;
+    private string selectedFarmId = "";
+    private string selectedFieldId = "";
+    private string? weather;
+    private int temperature = 22;
+    private string notes = "";
+    private string? error;
+    private bool saving;
+
+    private string SelectedFarmName => farms.FirstOrDefault(f => f.Id == selectedFarmId)?.Name ?? "—";
+    private string SelectedFieldName => fields.FirstOrDefault(f => f.Id == selectedFieldId)?.Name ?? "—";
+    private string TempColor => temperature switch
+    {
+        <= 5 => "var(--blue)",
+        <= 15 => "var(--text)",
+        <= 30 => "var(--amber)",
+        _ => "var(--red)"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Api.IsLoggedIn) { Nav.NavigateTo("/"); return; }
+
+        await Db.InitAsync();
+
+        // Load from cache first, then refresh from API if online
+        farms = await Db.GetCachedFarmsAsync();
+
+        if (Conn.IsOnline)
+        {
+            var res = await Api.GetFarmsAsync();
+            if (res.Success && res.Data is not null)
+            {
+                await Db.SaveFarmsAsync(res.Data.Select(f => new CachedFarm
+                {
+                    Id = f.Id.ToString(),
+                    Name = f.Name,
+                    Location = f.Address,
+                    IsActive = f.IsActive
+                }).ToList());
+                farms = await Db.GetCachedFarmsAsync();
+            }
+        }
+
+        farmsLoading = false;
+    }
+
+    private async Task OnFarmChanged()
+    {
+        fields.Clear();
+        selectedFieldId = "";
+
+        if (string.IsNullOrEmpty(selectedFarmId)) return;
+
+        fieldsLoading = true;
+        StateHasChanged();
+
+        fields = await Db.GetCachedFieldsAsync(selectedFarmId);
+
+        if (Conn.IsOnline && Guid.TryParse(selectedFarmId, out var farmId))
+        {
+            var res = await Api.GetFieldsAsync(farmId);
+            if (res.Success && res.Data is not null)
+            {
+                var cached = res.Data.Select(f => new CachedField
+                {
+                    Id = f.Id.ToString(),
+                    FarmId = f.FarmId.ToString(),
+                    Name = f.Name,
+                    CropType = f.CropType,
+                    IsActive = f.IsActive
+                }).ToList();
+                await Db.SaveFieldsAsync(cached);
+                fields = await Db.GetCachedFieldsAsync(selectedFarmId);
+            }
+        }
+
+        fieldsLoading = false;
+    }
+
+    private async Task StartScouting()
+    {
+        error = null;
+
+        if (string.IsNullOrEmpty(selectedFarmId))
+        {
+            error = "Please select a farm.";
+            return;
+        }
+
+        saving = true;
+        StateHasChanged();
+
+        // Create session locally in SQLite
+        var session = new LocalSession
+        {
+            FarmId = selectedFarmId,
+            FieldId = string.IsNullOrEmpty(selectedFieldId) ? null : selectedFieldId,
+            FarmName = SelectedFarmName,
+            FieldName = string.IsNullOrEmpty(selectedFieldId) ? null : SelectedFieldName,
+            ScouterId = Api.CurrentUser?.Id,
+            TenantId = Api.CurrentUser?.TenantSlug,
+            StartedAt = DateTime.UtcNow,
+            Status = 0, // Active
+            WeatherCondition = weather,
+            Temperature = temperature,
+            Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim()
+        };
+
+        await Db.SaveSessionAsync(session);
+
+        // Also create on server if online (best-effort, session is local-first)
+        if (Conn.IsOnline)
+        {
+            var weatherStr = weather ?? "—";
+            if (temperature != 0) weatherStr += $", {temperature}°C";
+            var res = await Api.StartSessionAsync(weatherStr, session.Notes);
+            if (res.Success && res.Data is not null)
+            {
+                session.RemoteId = res.Data.Id.ToString();
+                await Db.SaveSessionAsync(session);
+            }
+        }
+
+        saving = false;
+        Nav.NavigateTo($"/points-list/{session.Id}");
+    }
+
+    private void GoBack()
+    {
+        Nav.NavigateTo("/home");
+    }
+}

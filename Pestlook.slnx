@@ -23,5 +23,6 @@
     </Project>
   </Folder>
   <Project Path="Pestlook.Tests/Pestlook.Tests.csproj" />
+  <Project Path="Pestlook.UI.Mobile/Pestlook.UI.Mobile.csproj" Id="9843b288-36ab-4254-b32e-c90477002eac" />
   <Project Path="Pestlook.WebAPI/Pestlook.WebAPI.csproj" />
 </Solution>

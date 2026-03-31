@@ -1,0 +1,163 @@
+using SQLite;
+
+namespace Pestlook.UI.Mobile.Data;
+
+public class LocalDatabase
+{
+    private readonly SQLiteAsyncConnection _db;
+
+    public LocalDatabase()
+    {
+        var dbPath = Path.Combine(FileSystem.AppDataDirectory, "pestlook.db3");
+        _db = new SQLiteAsyncConnection(dbPath);
+    }
+
+    public async Task InitAsync()
+    {
+        await _db.CreateTableAsync<LocalSession>();
+        await _db.CreateTableAsync<LocalMonitoringPoint>();
+        await _db.CreateTableAsync<LocalObservation>();
+        await _db.CreateTableAsync<LocalObservationPhoto>();
+        await _db.CreateTableAsync<CachedPest>();
+        await _db.CreateTableAsync<CachedTrapType>();
+        await _db.CreateTableAsync<CachedFarm>();
+        await _db.CreateTableAsync<CachedField>();
+        await _db.CreateTableAsync<LocalAppSetting>();
+    }
+
+    // ── Sessions ──────────────────────────────────────────────
+    public Task<List<LocalSession>> GetSessionsAsync()
+        => _db.Table<LocalSession>().OrderByDescending(s => s.StartedAt).ToListAsync();
+
+    public Task<LocalSession?> GetSessionAsync(string id)
+        => _db.Table<LocalSession>().FirstOrDefaultAsync(s => s.Id == id);
+
+    public Task<List<LocalSession>> GetSessionsByStatusAsync(int status)
+        => _db.Table<LocalSession>().Where(s => s.Status == status).OrderByDescending(s => s.StartedAt).ToListAsync();
+
+    public Task<List<LocalSession>> GetCompletedUnsyncedSessionsAsync()
+        => _db.Table<LocalSession>().Where(s => s.Status == 1).OrderBy(s => s.CompletedAt).ToListAsync();
+
+    public Task SaveSessionAsync(LocalSession session)
+        => _db.InsertOrReplaceAsync(session);
+
+    public Task DeleteSessionAsync(string id)
+        => _db.DeleteAsync<LocalSession>(id);
+
+    // ── Monitoring Points ─────────────────────────────────────
+    public Task<List<LocalMonitoringPoint>> GetPointsForSessionAsync(string sessionId)
+        => _db.Table<LocalMonitoringPoint>().Where(p => p.SessionId == sessionId).OrderBy(p => p.CreatedAt).ToListAsync();
+
+    public Task<LocalMonitoringPoint?> GetPointAsync(string id)
+        => _db.Table<LocalMonitoringPoint>().FirstOrDefaultAsync(p => p.Id == id);
+
+    public Task SavePointAsync(LocalMonitoringPoint point)
+        => _db.InsertOrReplaceAsync(point);
+
+    public Task DeletePointAsync(string id)
+        => _db.DeleteAsync<LocalMonitoringPoint>(id);
+
+    // ── Observations ──────────────────────────────────────────
+    public Task<List<LocalObservation>> GetObservationsForPointAsync(string pointId)
+        => _db.Table<LocalObservation>().Where(o => o.MonitoringPointId == pointId).OrderBy(o => o.CreatedAt).ToListAsync();
+
+    public Task<List<LocalObservation>> GetObservationsForSessionAsync(string sessionId)
+        => _db.Table<LocalObservation>().Where(o => o.SessionId == sessionId).OrderBy(o => o.CreatedAt).ToListAsync();
+
+    public Task<LocalObservation?> GetObservationAsync(string id)
+        => _db.Table<LocalObservation>().FirstOrDefaultAsync(o => o.Id == id);
+
+    public Task SaveObservationAsync(LocalObservation obs)
+        => _db.InsertOrReplaceAsync(obs);
+
+    public Task DeleteObservationAsync(string id)
+        => _db.DeleteAsync<LocalObservation>(id);
+
+    // ── Observation Photos ────────────────────────────────────
+    public Task<List<LocalObservationPhoto>> GetPhotosForObservationAsync(string observationId)
+        => _db.Table<LocalObservationPhoto>().Where(p => p.ObservationId == observationId).ToListAsync();
+
+    public Task SavePhotoAsync(LocalObservationPhoto photo)
+        => _db.InsertOrReplaceAsync(photo);
+
+    public Task DeletePhotoAsync(string id)
+        => _db.DeleteAsync<LocalObservationPhoto>(id);
+
+    // ── Cached Pests ──────────────────────────────────────────
+    public Task<List<CachedPest>> GetCachedPestsAsync()
+        => _db.Table<CachedPest>().OrderBy(p => p.CommonName).ToListAsync();
+
+    public Task SavePestsAsync(List<CachedPest> pests)
+        => _db.RunInTransactionAsync(conn =>
+        {
+            conn.DeleteAll<CachedPest>();
+            conn.InsertAll(pests);
+        });
+
+    // ── Cached TrapTypes ──────────────────────────────────────
+    public Task<List<CachedTrapType>> GetCachedTrapTypesAsync()
+        => _db.Table<CachedTrapType>().OrderBy(t => t.Name).ToListAsync();
+
+    public Task SaveTrapTypesAsync(List<CachedTrapType> types)
+        => _db.RunInTransactionAsync(conn =>
+        {
+            conn.DeleteAll<CachedTrapType>();
+            conn.InsertAll(types);
+        });
+
+    // ── Cached Farms ──────────────────────────────────────────
+    public Task<List<CachedFarm>> GetCachedFarmsAsync()
+        => _db.Table<CachedFarm>().Where(f => f.IsActive).OrderBy(f => f.Name).ToListAsync();
+
+    public Task SaveFarmsAsync(List<CachedFarm> farms)
+        => _db.RunInTransactionAsync(conn =>
+        {
+            conn.DeleteAll<CachedFarm>();
+            conn.InsertAll(farms);
+        });
+
+    // ── Cached Fields ─────────────────────────────────────────
+    public Task<List<CachedField>> GetCachedFieldsAsync(string farmId)
+        => _db.Table<CachedField>().Where(f => f.FarmId == farmId && f.IsActive).OrderBy(f => f.Name).ToListAsync();
+
+    public Task SaveFieldsAsync(List<CachedField> fields)
+        => _db.RunInTransactionAsync(conn =>
+        {
+            conn.DeleteAll<CachedField>();
+            conn.InsertAll(fields);
+        });
+
+    // ── App Settings ──────────────────────────────────────────
+    public async Task<string?> GetSettingAsync(string key)
+    {
+        var s = await _db.Table<LocalAppSetting>().FirstOrDefaultAsync(x => x.Key == key);
+        return s?.Value;
+    }
+
+    public Task SetSettingAsync(string key, string? value)
+        => _db.InsertOrReplaceAsync(new LocalAppSetting { Key = key, Value = value });
+
+    // ── Counts (for profile stats) ────────────────────────────
+    public Task<int> CountSessionsAsync()
+        => _db.Table<LocalSession>().CountAsync();
+
+    public Task<int> CountObservationsAsync()
+        => _db.Table<LocalObservation>().CountAsync();
+
+    // ── Clear cache ───────────────────────────────────────────
+    public async Task ClearCacheAsync()
+    {
+        await _db.DeleteAllAsync<CachedPest>();
+        await _db.DeleteAllAsync<CachedTrapType>();
+        await _db.DeleteAllAsync<CachedFarm>();
+        await _db.DeleteAllAsync<CachedField>();
+    }
+
+    public async Task<long> GetDatabaseSizeAsync()
+    {
+        var path = Path.Combine(FileSystem.AppDataDirectory, "pestlook.db3");
+        if (File.Exists(path))
+            return new FileInfo(path).Length;
+        return 0;
+    }
+}

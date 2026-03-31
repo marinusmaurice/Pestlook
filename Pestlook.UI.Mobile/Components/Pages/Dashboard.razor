@@ -1,0 +1,243 @@
+@page "/home"
+@inject ApiClient Api
+@inject LocalDatabase Db
+@inject SyncService Sync
+@inject ConnectivityService Conn
+@inject NavigationManager Nav
+@implements IDisposable
+
+<div class="app-shell">
+    <!-- App bar -->
+    <div class="ab">
+        <div class="ib">🐛</div>
+        <span class="ab-title">Pestlook</span>
+        <div class="ib" @onclick="SyncNow" title="Sync">↻</div>
+        <div class="ib">🔔</div>
+    </div>
+
+    <!-- Offline indicator -->
+    @if (!Conn.IsOnline)
+    {
+        <div class="bn">
+            <span style="font-size:13px;">📡</span>
+            <span style="font-size:12px;color:var(--amber);">Offline — data saved locally</span>
+        </div>
+    }
+
+    @if (pendingSessions.Count > 0)
+    {
+        <div class="sync-row">
+            <span style="font-size:13px;">📤</span>
+            <div style="flex:1;">
+                <div style="font-size:12px;font-weight:600;color:var(--amber);">@pendingSessions.Count sessions pending upload</div>
+                <div style="font-size:11px;color:var(--text-dim);">@syncStatus</div>
+            </div>
+            <button class="bo" style="padding:5px 10px;font-size:12px;color:var(--amber);border-color:rgba(240,168,64,.3);"
+                    @onclick="SyncNow" disabled="@Sync.IsSyncing">
+                @if (Sync.IsSyncing) { <span class="spinner-sm" style="width:12px;height:12px;margin-right:4px;"></span> }Sync now
+            </button>
+        </div>
+    }
+
+    <div class="app-body">
+        <!-- Greeting -->
+        <div style="padding:16px 12px 8px;">
+            <div style="font-size:18px;font-weight:600;color:#fff;">@greeting, @userName</div>
+            <div style="font-size:12px;color:var(--text-dim);margin-top:2px;">@DateTime.Now.ToString("dddd, d MMMM yyyy")</div>
+        </div>
+
+        <!-- Start session -->
+        <button class="bp" @onclick="StartNewSession">🥾 Start new session →</button>
+
+        @if (loading)
+        {
+            <div class="loading-center"><span class="spinner-sm"></span> Loading...</div>
+        }
+        else
+        {
+            <!-- Active sessions -->
+            @if (activeSessions.Count > 0)
+            {
+                <div class="sl">Active sessions</div>
+                @foreach (var s in activeSessions)
+                {
+                    <div class="sess-card" style="border-color:rgba(109,222,132,.25);"
+                         @onclick="() => OpenSession(s)">
+                        <div class="sess-head" style="background:var(--green-glow);">
+                            <span style="font-size:16px;">🌾</span>
+                            <div style="flex:1;">
+                                <div style="font-size:13px;font-weight:600;color:var(--green);">@(s.FarmName ?? "Session") · @s.StartedAt.ToLocalTime().ToString("d MMM")</div>
+                                <div style="font-size:11px;color:var(--text-dim);">Started @s.StartedAt.ToLocalTime().ToString("HH:mm")</div>
+                            </div>
+                            <span class="ch cs">● Live</span>
+                        </div>
+                        <div class="sess-stats">
+                            <div class="sess-stat">
+                                <div style="font-size:16px;font-weight:600;">@(pointCounts.GetValueOrDefault(s.Id, 0))</div>
+                                <div style="font-size:10px;color:var(--text-dim);">Points</div>
+                            </div>
+                            <div class="sess-stat">
+                                <div style="font-size:16px;font-weight:600;">@(s.WeatherCondition ?? "—")</div>
+                                <div style="font-size:10px;color:var(--text-dim);">Weather</div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+
+            <!-- Sync queue -->
+            @if (pendingSessions.Count > 0)
+            {
+                <div class="sl">Sync queue</div>
+                <div class="cd" style="padding:0;overflow:hidden;">
+                    @foreach (var s in pendingSessions)
+                    {
+                        <div class="obs-item">
+                            <span style="font-size:15px;">🗂</span>
+                            <div style="flex:1;">
+                                <div style="font-size:12px;font-weight:600;">@(s.FarmName ?? "Session") · @s.StartedAt.ToLocalTime().ToString("d MMM HH:mm")</div>
+                                <div style="font-size:11px;color:var(--text-dim);">@(obsCounts.GetValueOrDefault(s.Id, 0)) obs</div>
+                            </div>
+                            <span class="ch cw">Queued</span>
+                        </div>
+                    }
+                </div>
+            }
+
+            <!-- Past sessions (synced) -->
+            <div class="sl">Past sessions</div>
+            @if (syncedSessions.Count == 0)
+            {
+                <div style="text-align:center;padding:20px;color:var(--text-dim);font-size:13px;">No completed sessions yet</div>
+            }
+            @foreach (var s in syncedSessions)
+            {
+                <div class="rw" style="cursor:pointer;" @onclick="() => ViewSession(s)">
+                    <div style="flex:1;">
+                        <div style="font-size:13px;font-weight:600;">@(s.FarmName ?? "Session") · @s.StartedAt.ToLocalTime().ToString("d MMM")</div>
+                        <div style="font-size:11px;color:var(--text-dim);">@(obsCounts.GetValueOrDefault(s.Id, 0)) obs</div>
+                    </div>
+                    <span class="ch cs">✓ Synced</span>
+                </div>
+            }
+        }
+    </div>
+
+    <!-- Tab bar -->
+    <TabBar ActiveTab="home" />
+</div>
+
+@code {
+    private string greeting = "Hello";
+    private string userName = "Scout";
+    private string syncStatus = "Tap to sync";
+    private bool loading = true;
+    private List<LocalSession> activeSessions = new();
+    private List<LocalSession> pendingSessions = new();
+    private List<LocalSession> syncedSessions = new();
+    private Dictionary<string, int> pointCounts = new();
+    private Dictionary<string, int> obsCounts = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Api.IsLoggedIn) { Nav.NavigateTo("/"); return; }
+
+        var hour = DateTime.Now.Hour;
+        greeting = hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : "Evening";
+        userName = Api.CurrentUser?.FirstName ?? "Scout";
+
+        Conn.OnConnectivityChanged += OnConnChanged;
+        Sync.OnProgress += OnSyncProgress;
+        Sync.OnCompleted += OnSyncDone;
+
+        await Db.InitAsync();
+
+        // Cache reference data if online
+        if (Conn.IsOnline)
+        {
+            _ = Sync.CacheReferenceDataAsync();
+        }
+
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        loading = true;
+        StateHasChanged();
+
+        var all = await Db.GetSessionsAsync();
+        activeSessions = all.Where(s => s.Status == 0).ToList();
+        pendingSessions = all.Where(s => s.Status == 1).ToList();
+        syncedSessions = all.Where(s => s.Status == 2).ToList();
+
+        // Load counts per session
+        pointCounts.Clear();
+        obsCounts.Clear();
+        foreach (var s in all)
+        {
+            var pts = await Db.GetPointsForSessionAsync(s.Id);
+            var obs = await Db.GetObservationsForSessionAsync(s.Id);
+            pointCounts[s.Id] = pts.Count;
+            obsCounts[s.Id] = obs.Count;
+        }
+
+        loading = false;
+        StateHasChanged();
+    }
+
+    private async Task SyncNow()
+    {
+        if (!Conn.IsOnline) return;
+        syncStatus = "Syncing...";
+        StateHasChanged();
+        await Sync.SyncCompletedSessionsAsync();
+        await LoadData();
+    }
+
+    private void OnConnChanged()
+    {
+        InvokeAsync(async () =>
+        {
+            if (Conn.IsOnline && pendingSessions.Count > 0)
+            {
+                await SyncNow();
+            }
+            StateHasChanged();
+        });
+    }
+
+    private void OnSyncProgress(string msg)
+    {
+        syncStatus = msg;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnSyncDone()
+    {
+        syncStatus = $"Last synced: {DateTime.Now:HH:mm}";
+        InvokeAsync(async () => { await LoadData(); });
+    }
+
+    private void StartNewSession()
+    {
+        Nav.NavigateTo("/new-session");
+    }
+
+    private void OpenSession(LocalSession s)
+    {
+        Nav.NavigateTo($"/points-list/{s.Id}");
+    }
+
+    private void ViewSession(LocalSession s)
+    {
+        Nav.NavigateTo($"/session-detail/{s.Id}");
+    }
+
+    public void Dispose()
+    {
+        Conn.OnConnectivityChanged -= OnConnChanged;
+        Sync.OnProgress -= OnSyncProgress;
+        Sync.OnCompleted -= OnSyncDone;
+    }
+}

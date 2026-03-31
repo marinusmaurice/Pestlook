@@ -1,0 +1,177 @@
+@page "/sessions"
+@inject ApiClient Api
+@inject NavigationManager Nav
+
+<div class="app-shell">
+    <div class="ab">
+        <div style="width:32px;"></div>
+        <span class="ab-title">Sessions</span>
+        <button class="bo" style="padding:5px 10px;font-size:12px;color:var(--green);border-color:rgba(109,222,132,.25);"
+                @onclick="StartNew">+ New</button>
+    </div>
+
+    <!-- Filter tabs -->
+    <div class="filter-tabs">
+        <button class="filter-tab @(filter == "all" ? "on" : "")" @onclick='() => filter = "all"'>All (@allSessions.Count)</button>
+        <button class="filter-tab @(filter == "pending" ? "on" : "")" @onclick='() => filter = "pending"'>Pending (@pending.Count)</button>
+        <button class="filter-tab @(filter == "synced" ? "on" : "")" @onclick='() => filter = "synced"'>Synced (@synced.Count)</button>
+    </div>
+
+    <div class="app-body">
+        @if (loading)
+        {
+            <div class="loading-center"><span class="spinner-sm"></span> Loading...</div>
+        }
+        else
+        {
+            @if (filter is "all" or "pending")
+            {
+                <!-- Active sessions -->
+                @if (active.Count > 0)
+                {
+                    <div class="sl">Active</div>
+                    @foreach (var s in active)
+                    {
+                        <div class="sess-card" style="border-color:rgba(109,222,132,.25);"
+                             @onclick="() => OpenSession(s)">
+                            <div class="sess-head" style="background:var(--green-glow);">
+                                <span style="font-size:16px;">🌾</span>
+                                <div style="flex:1;">
+                                    <div style="font-size:13px;font-weight:600;color:var(--green);">Session · @s.StartedAt.ToString("d MMM")</div>
+                                    <div style="font-size:11px;color:var(--text-dim);">Started @s.StartedAt.ToString("HH:mm")</div>
+                                </div>
+                                <span class="ch cs">● Live</span>
+                            </div>
+                            <div class="sess-stats">
+                                <div class="sess-stat">
+                                    <div style="font-size:16px;font-weight:600;">@s.ObservationCount</div>
+                                    <div style="font-size:10px;color:var(--text-dim);">Observations</div>
+                                </div>
+                                <div class="sess-stat">
+                                    <div style="font-size:16px;font-weight:600;">@(s.WeatherConditions ?? "—")</div>
+                                    <div style="font-size:10px;color:var(--text-dim);">Weather</div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+
+                <!-- Pending sessions -->
+                @if (pending.Count > 0)
+                {
+                    <div class="sl">Pending sync</div>
+                    @foreach (var s in pending.Where(s => !active.Contains(s)))
+                    {
+                        <div class="sess-card" @onclick="() => ViewSession(s)">
+                            <div class="sess-head">
+                                <span style="font-size:16px;">🗂</span>
+                                <div style="flex:1;">
+                                    <div style="font-size:13px;font-weight:600;">Session · @s.StartedAt.ToString("d MMM")</div>
+                                    <div style="font-size:11px;color:var(--text-dim);">@s.ObservationCount obs</div>
+                                </div>
+                                <span class="ch cw">Queued</span>
+                            </div>
+                            <div class="sess-stats">
+                                <div class="sess-stat">
+                                    <div style="font-size:16px;font-weight:600;">@s.ObservationCount</div>
+                                    <div style="font-size:10px;color:var(--text-dim);">Observations</div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+            }
+
+            @if (filter is "all" or "synced")
+            {
+                <!-- Synced sessions -->
+                @if (synced.Count > 0)
+                {
+                    <div class="sl">Synced</div>
+                    @foreach (var s in synced)
+                    {
+                        <div class="rw" style="cursor:pointer;" @onclick="() => ViewSession(s)">
+                            <span style="font-size:15px;">🌻</span>
+                            <div style="flex:1;">
+                                <div style="font-size:13px;font-weight:600;">Session · @s.StartedAt.ToString("d MMM")</div>
+                                <div style="font-size:11px;color:var(--text-dim);">@s.StartedAt.ToString("d MMM") · @s.ObservationCount obs@(s.WeatherConditions != null ? $" · {s.WeatherConditions}" : "")</div>
+                            </div>
+                            <span class="ch cs">✓</span>
+                        </div>
+                    }
+                }
+            }
+
+            @if (Filtered.Count == 0)
+            {
+                <div style="text-align:center;padding:40px 20px;color:var(--text-dim);">
+                    <div style="font-size:28px;margin-bottom:8px;">📋</div>
+                    <div style="font-size:14px;">No sessions found</div>
+                </div>
+            }
+        }
+    </div>
+
+    <TabBar ActiveTab="sessions" />
+</div>
+
+@code {
+    private bool loading = true;
+    private string filter = "all";
+    private List<SessionResponse> allSessions = new();
+    private List<SessionResponse> active = new();
+    private List<SessionResponse> pending = new();
+    private List<SessionResponse> synced = new();
+    private List<FarmResponse> farms = new();
+
+    private List<SessionResponse> Filtered => filter switch
+    {
+        "pending" => pending,
+        "synced" => synced,
+        _ => allSessions
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Api.IsLoggedIn) { Nav.NavigateTo("/"); return; }
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        loading = true;
+        StateHasChanged();
+
+        var res = await Api.GetSessionsAsync();
+        if (res.Success && res.Data is not null)
+        {
+            allSessions = res.Data;
+            active = allSessions.Where(s => !s.IsCompleted).Take(1).ToList();
+            pending = allSessions.Where(s => !s.IsCompleted).ToList();
+            synced = allSessions.Where(s => s.IsCompleted).ToList();
+        }
+
+        var farmsRes = await Api.GetFarmsAsync();
+        if (farmsRes.Success && farmsRes.Data is not null)
+            farms = farmsRes.Data.Where(f => f.IsActive).ToList();
+
+        loading = false;
+    }
+
+    private void OpenSession(SessionResponse s)
+    {
+        var farmId = farms.FirstOrDefault()?.Id ?? Guid.Empty;
+        var farmName = farms.FirstOrDefault()?.Name ?? "Session";
+        Nav.NavigateTo($"/points-list/{s.Id}/{farmId}/{Uri.EscapeDataString(farmName)}");
+    }
+
+    private void ViewSession(SessionResponse s)
+    {
+        Nav.NavigateTo($"/session-detail/{s.Id}");
+    }
+
+    private async Task StartNew()
+    {
+        Nav.NavigateTo("/new-session");
+    }
+}

@@ -1,0 +1,456 @@
+<style>
+.pw{display:flex;flex-direction:column;align-items:center;padding:0 0 8px;}
+.pt-tabs{display:flex;gap:5px;margin-bottom:14px;flex-wrap:wrap;justify-content:center;}
+.pt-tab{padding:5px 12px;border-radius:6px;border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-secondary);font-size:11px;cursor:pointer;font-family:inherit;transition:all 0.15s;}
+.pt-tab.on{background:var(--color-background-success);color:var(--color-text-success);border-color:var(--color-border-success);}
+.pf{width:300px;border-radius:38px;border:9px solid #2C2C2A;overflow:hidden;}
+.pn{background:#2C2C2A;height:14px;display:flex;justify-content:center;align-items:center;}
+.pn-p{width:80px;height:7px;background:#1a1a18;border-radius:3px;}
+.pv{height:576px;overflow:hidden;}
+.pscr{display:flex;height:100%;transition:transform 0.3s cubic-bezier(.4,0,.2,1);}
+.psc{width:300px;flex-shrink:0;background:var(--color-background-primary);display:flex;flex-direction:column;height:100%;}
+.phb{background:#2C2C2A;height:10px;display:flex;justify-content:center;align-items:center;}
+.phb-p{width:90px;height:4px;background:#1a1a18;border-radius:2px;}
+.st{height:26px;background:var(--color-background-secondary);display:flex;align-items:center;justify-content:space-between;padding:0 14px;font-size:10px;color:var(--color-text-secondary);border-bottom:0.5px solid var(--color-border-tertiary);flex-shrink:0;}
+.ab{height:50px;display:flex;align-items:center;padding:0 10px;border-bottom:0.5px solid var(--color-border-tertiary);gap:6px;flex-shrink:0;}
+.atl{font-size:15px;font-weight:500;flex:1;text-align:center;}
+.bd{flex:1;overflow-y:auto;}
+.bt{flex-shrink:0;}
+.sl{font-size:10px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.06em;padding:10px 12px 4px;}
+.rw{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:0.5px solid var(--color-border-tertiary);}
+.cd{margin:6px 10px;background:var(--color-background-secondary);border-radius:10px;border:0.5px solid var(--color-border-tertiary);padding:11px 12px;}
+.ch{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:10px;font-size:10px;white-space:nowrap;}
+.cs{background:var(--color-background-success);color:var(--color-text-success);}
+.ci{background:var(--color-background-info);color:var(--color-text-info);}
+.cw{background:var(--color-background-warning);color:var(--color-text-warning);}
+.ce{background:var(--color-background-danger);color:var(--color-text-danger);}
+.cn{background:var(--color-background-secondary);color:var(--color-text-secondary);border:0.5px solid var(--color-border-tertiary);}
+.bp{width:calc(100% - 20px);margin:6px 10px;padding:13px;background:var(--color-background-success);color:var(--color-text-success);border:0.5px solid var(--color-border-success);border-radius:10px;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;display:block;}
+.bo{flex:1;padding:11px;background:transparent;border:0.5px solid var(--color-border-secondary);border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit;color:var(--color-text-secondary);}
+.tab-b{height:54px;display:flex;align-items:center;justify-content:space-around;border-top:0.5px solid var(--color-border-tertiary);background:var(--color-background-secondary);}
+.ti{display:flex;flex-direction:column;align-items:center;gap:1px;font-size:9px;color:var(--color-text-tertiary);padding:4px 10px;cursor:pointer;}
+.ti.on{color:var(--color-text-success);}
+.ib{width:32px;height:32px;border-radius:8px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;}
+.cv{display:flex;align-items:center;}
+.cb{width:28px;height:28px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:6px;font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.cv-n{width:34px;text-align:center;font-size:13px;font-weight:500;}
+.pk{margin:3px 10px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:10px;padding:11px 13px;display:flex;justify-content:space-between;align-items:center;font-size:13px;}
+.pb{background:var(--color-border-tertiary);border-radius:3px;height:5px;overflow:hidden;margin-top:5px;}
+.pf2{height:100%;border-radius:3px;background:var(--color-text-success);}
+.pt-rw{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:0.5px solid var(--color-border-tertiary);cursor:pointer;}
+.bn{padding:8px 12px;display:flex;align-items:center;gap:6px;border-bottom:0.5px solid var(--color-border-warning);background:var(--color-background-warning);flex-shrink:0;}
+.inp{width:100%;background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--color-text-primary);font-family:inherit;box-sizing:border-box;outline:none;}
+.dr{display:flex;gap:5px;margin:0 10px 6px;}
+.dot-rw{display:flex;gap:5px;margin-top:12px;justify-content:center;flex-wrap:wrap;}
+.dt{width:7px;height:7px;border-radius:50%;background:var(--color-text-secondary);cursor:pointer;opacity:.3;transition:opacity .2s;}
+.dt.on{opacity:1;}
+.obs-item{display:flex;align-items:center;gap:7px;padding:8px 11px;border-bottom:0.5px solid var(--color-border-tertiary);}
+.obs-item:last-child{border-bottom:none;}
+.seg{display:flex;border-radius:8px;overflow:hidden;border:0.5px solid var(--color-border-secondary);margin:3px 10px;}
+.seg-btn{flex:1;padding:9px 4px;background:transparent;border:none;font-size:11px;cursor:pointer;font-family:inherit;color:var(--color-text-secondary);border-right:0.5px solid var(--color-border-secondary);}
+.seg-btn:last-child{border-right:none;}
+.seg-btn.on{background:var(--color-background-success);color:var(--color-text-success);}
+.sync-row{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:0.5px solid var(--color-border-warning);background:var(--color-background-warning);}
+.sess-card{margin:6px 10px;background:var(--color-background-secondary);border-radius:10px;border:0.5px solid var(--color-border-tertiary);overflow:hidden;cursor:pointer;}
+.sess-head{padding:10px 12px;display:flex;align-items:center;gap:8px;border-bottom:0.5px solid var(--color-border-tertiary);}
+.sess-stats{display:flex;}
+.sess-stat{flex:1;padding:8px 10px;text-align:center;border-right:0.5px solid var(--color-border-tertiary);}
+.sess-stat:last-child{border-right:none;}
+.pest-card{margin:5px 10px;background:var(--color-background-secondary);border-radius:10px;border:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;}
+.prof-row{display:flex;align-items:center;justify-content:space-between;padding:11px 16px;border-bottom:0.5px solid var(--color-border-tertiary);}
+.prof-val{font-size:12px;color:var(--color-text-secondary);}
+.toggle-wrap{width:38px;height:22px;background:var(--color-background-success);border-radius:11px;position:relative;cursor:pointer;}
+.toggle-knob{position:absolute;top:3px;right:3px;width:16px;height:16px;background:white;border-radius:50%;}
+.avatar{width:56px;height:56px;border-radius:50%;background:var(--color-background-info);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:500;color:var(--color-text-info);}
+.srch{display:flex;align-items:center;gap:8px;margin:6px 10px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:8px;padding:8px 11px;font-size:12px;color:var(--color-text-tertiary);}
+</style>
+
+<div class="pw">
+<div class="pt-tabs">
+  <button class="pt-tab on" id="t0" onclick="go(0)">Login</button>
+  <button class="pt-tab" id="t1" onclick="go(1)">Home</button>
+  <button class="pt-tab" id="t2" onclick="go(2)">Sessions</button>
+  <button class="pt-tab" id="t3" onclick="go(3)">Session detail</button>
+  <button class="pt-tab" id="t4" onclick="go(4)">Point detail</button>
+  <button class="pt-tab" id="t5" onclick="go(5)">Add obs</button>
+  <button class="pt-tab" id="t6" onclick="go(6)">Pests</button>
+  <button class="pt-tab" id="t7" onclick="go(7)">Profile</button>
+</div>
+<div class="pf">
+  <div class="pn"><div class="pn-p"></div></div>
+  <div class="pv">
+    <div class="pscr" id="scr" style="width:2400px;">
+
+      <!-- ══ 0 LOGIN ══ -->
+      <div class="psc">
+        <div class="st"><span>9:41</span><span style="letter-spacing:1px;">▲ ■ ■ ■</span></div>
+        <div class="bd" style="display:flex;flex-direction:column;justify-content:center;padding:24px 20px 16px;">
+          <div style="text-align:center;margin-bottom:32px;">
+            <div style="font-size:36px;margin-bottom:8px;">🐛</div>
+            <div style="font-size:22px;font-weight:500;letter-spacing:-.02em;">Pestlook</div>
+            <div style="font-size:11px;color:var(--color-text-secondary);margin-top:3px;">Field Intelligence Platform</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px;">
+            <div><div style="font-size:10px;color:var(--color-text-secondary);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em;">Email</div><input class="inp" type="email" value="thabo@agri-wc.co.za" readonly/></div>
+            <div><div style="font-size:10px;color:var(--color-text-secondary);margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em;">Password</div><input class="inp" type="password" value="••••••••" readonly/></div>
+          </div>
+          <button class="bp" style="margin:0 0 10px;" onclick="go(1)">Sign in</button>
+          <button style="background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:10px;padding:12px;font-size:13px;cursor:pointer;font-family:inherit;color:var(--color-text-secondary);display:flex;align-items:center;justify-content:center;gap:6px;" onclick="go(1)">☻ Sign in with Face ID</button>
+          <div style="text-align:center;margin-top:20px;font-size:11px;color:var(--color-text-tertiary);">Forgot password?</div>
+        </div>
+        <div class="phb"><div class="phb-p"></div></div>
+      </div>
+
+      <!-- ══ 1 HOME ══ -->
+      <div class="psc">
+        <div class="st"><span>9:41</span><span style="letter-spacing:1px;">▲ ■ ■ ■</span></div>
+        <div class="ab">
+          <div class="ib" style="font-size:15px;">≡</div>
+          <span class="atl">Pestlook</span>
+          <div class="ib" style="font-size:14px;" title="sync">↻</div>
+          <div class="ib">🔔</div>
+        </div>
+        <div class="sync-row">
+          <span style="font-size:12px;">📤</span>
+          <div style="flex:1;"><div style="font-size:11px;font-weight:500;color:var(--color-text-warning);">3 sessions pending upload</div><div style="font-size:10px;color:var(--color-text-secondary);">Last synced: 28 Mar, 08:54</div></div>
+          <button style="background:var(--color-background-warning);border:0.5px solid var(--color-border-warning);border-radius:7px;padding:5px 10px;font-size:11px;font-weight:500;cursor:pointer;font-family:inherit;color:var(--color-text-warning);">Sync now</button>
+        </div>
+        <div class="bd">
+          <div style="padding:14px 12px 4px;"><div style="font-size:17px;font-weight:500;">Morning, Thabo</div><div style="font-size:11px;color:var(--color-text-secondary);margin-top:2px;">Sunday, 29 March 2026</div></div>
+          <div class="cd" style="padding:0;overflow:hidden;">
+            <div style="padding:9px 12px;font-size:11px;font-weight:500;border-bottom:0.5px solid var(--color-border-tertiary);display:flex;justify-content:space-between;align-items:center;"><span>Sync queue</span><span class="ch cw">3 pending</span></div>
+            <div class="obs-item"><span style="font-size:14px;">🗂</span><div style="flex:1;"><div style="font-size:11px;font-weight:500;">Sunrise Farm · SS-089</div><div style="font-size:10px;color:var(--color-text-secondary);">38 obs · 9 points</div></div><span class="ch cw">Queued</span></div>
+            <div class="obs-item"><span style="font-size:14px;">🗂</span><div style="flex:1;"><div style="font-size:11px;font-weight:500;">Valley View · SS-087</div><div style="font-size:10px;color:var(--color-text-secondary);">21 obs · 7 points</div></div><span class="ch cw">Queued</span></div>
+            <div class="obs-item" style="border-bottom:none;"><span style="font-size:14px;">🗂</span><div style="flex:1;"><div style="font-size:11px;font-weight:500;">Greenfield East · SS-088</div><div style="font-size:10px;color:var(--color-text-secondary);">8 obs · 4 points</div></div><span class="ch cs">Uploading…</span></div>
+          </div>
+          <button class="bp" onclick="go(3)">Start new session →</button>
+          <div class="sl">Recent sessions</div>
+          <div class="rw"><div style="flex:1;"><div style="font-size:12px;font-weight:500;">Riverside Plots</div><div style="font-size:10px;color:var(--color-text-secondary);">27 Mar · 5 obs</div></div><span class="ch cs">Synced</span></div>
+          <div class="rw" style="border-bottom:none;"><div style="flex:1;"><div style="font-size:12px;font-weight:500;">Sunrise Farm</div><div style="font-size:10px;color:var(--color-text-secondary);">26 Mar · 47 obs · 3 alerts</div></div><span class="ch cs">Synced</span></div>
+        </div>
+        <div class="bt">
+          <div class="tab-b">
+            <div class="ti on" onclick="go(1)"><div style="font-size:15px;">🏠</div>Home</div>
+            <div class="ti" onclick="go(2)"><div style="font-size:15px;">📋</div>Sessions</div>
+            <div class="ti" onclick="go(6)"><div style="font-size:15px;">🦗</div>Pests</div>
+            <div class="ti" onclick="go(7)"><div style="font-size:15px;">👤</div>Profile</div>
+          </div>
+          <div class="phb"><div class="phb-p"></div></div>
+        </div>
+      </div>
+
+      <!-- ══ 2 SESSIONS TAB ══ -->
+      <div class="psc">
+        <div class="st"><span>9:41</span><span style="letter-spacing:1px;">▲ ■ ■ ■</span></div>
+        <div class="ab">
+          <div style="width:32px;"></div>
+          <span class="atl">Sessions</span>
+          <button onclick="go(3)" style="background:var(--color-background-success);color:var(--color-text-success);border:0.5px solid var(--color-border-success);border-radius:7px;padding:5px 10px;font-size:11px;font-weight:500;cursor:pointer;font-family:inherit;">+ New</button>
+        </div>
+        <!-- Filter tabs -->
+        <div style="display:flex;gap:0;border-bottom:0.5px solid var(--color-border-tertiary);flex-shrink:0;">
+          <button style="flex:1;padding:9px 4px;font-size:11px;background:transparent;border:none;border-bottom:2px solid var(--color-text-success);color:var(--color-text-success);cursor:pointer;font-family:inherit;font-weight:500;">All (12)</button>
+          <button style="flex:1;padding:9px 4px;font-size:11px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--color-text-secondary);cursor:pointer;font-family:inherit;">Pending (3)</button>
+          <button style="flex:1;padding:9px 4px;font-size:11px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--color-text-secondary);cursor:pointer;font-family:inherit;">Synced (9)</button>
+        </div>
+        <div class="bd">
+          <!-- Active session -->
+          <div class="sl">Active</div>
+          <div class="sess-card" style="border-color:var(--color-border-success);" onclick="go(3)">
+            <div class="sess-head" style="background:var(--color-background-success);">
+              <span style="font-size:16px;">🌾</span>
+              <div style="flex:1;"><div style="font-size:12px;font-weight:500;color:var(--color-text-success);">Sunrise Farm</div><div style="font-size:10px;color:var(--color-text-secondary);">Started 09:10 · SS-2026-089</div></div>
+              <span class="ch cs">● Live</span>
+            </div>
+            <div class="sess-stats">
+              <div class="sess-stat"><div style="font-size:15px;font-weight:500;">3</div><div style="font-size:9px;color:var(--color-text-secondary);">Points done</div></div>
+              <div class="sess-stat"><div style="font-size:15px;font-weight:500;">17</div><div style="font-size:9px;color:var(--color-text-secondary);">Observations</div></div>
+              <div class="sess-stat"><div style="font-size:15px;font-weight:500;color:var(--color-text-danger);">1</div><div style="font-size:9px;color:var(--color-text-secondary);">Alerts</div></div>
+            </div>
+          </div>
+          <!-- Pending sessions -->
+          <div class="sl">Pending sync</div>
+          <div class="sess-card">
+            <div class="sess-head">
+              <span style="font-size:16px;">🍇</span>
+              <div style="flex:1;"><div style="font-size:12px;font-weight:500;">Valley View</div><div style="font-size:10px;color:var(--color-text-secondary);">28 Mar · SS-2026-087</div></div>
+              <span class="ch cw">Queued</span>
+            </div>
+            <div class="sess-stats">
+              <div class="sess-stat"><div style="font-size:15px;font-weight:500;">7</div><div style="font-size:9px;color:var(--color-text-secondary);">Points</div></div>
+              <div class="sess-stat"><div style="font-size:15px;font-weight:500;">21</div><div style="font-size:9px;color:var(--color-text-secondary);">Observations</div></div>
+              <div class="sess-stat"><div style="font-size:15px;font-weight:500;">0</div><div style="font-size:9px;color:var(--color-text-secondary);">Alerts</div></div>
+            </div>
+          </div>
+          <!-- Synced sessions -->
+          <div class="sl">Synced</div>
+          <div class="rw"><span style="font-size:14px;">🌻</span><div style="flex:1;"><div style="font-size:12px;font-weight:500;">Riverside Plots</div><div style="font-size:10px;color:var(--color-text-secondary);">27 Mar · 5 obs · 6 pts · ☀ 26°C</div></div><span class="ch cs">✓</span></div>
+          <div class="rw"><span style="font-size:14px;">🌾</span><div style="flex:1;"><div style="font-size:12px;font-weight:500;">Sunrise Farm</div><div style="font-size:10px;color:var(--color-text-secondary);">26 Mar · 47 obs · 9 pts · 🌧 Rain</div></div><span class="ch ce">3 alerts</span></div>
+          <div class="rw"><span style="font-size:14px;">🌿</span><div style="flex:1;"><div style="font-size:12px;font-weight:500;">Greenfield East</div><div style="font-size:10px;color:var(--color-text-secondary);">25 Mar · 8 obs · 4 pts · ⛅ 19°C</div></div><span class="ch cs">✓</span></div>
+          <div class="rw" style="border-bottom:none;"><span style="font-size:14px;">🍇</span><div style="flex:1;"><div style="font-size:12px;font-weight:500;">Valley View</div><div style="font-size:10px;color:var(--color-text-secondary);">24 Mar · 12 obs · 5 pts</div></div><span class="ch cs">✓</span></div>
+        </div>
+        <div class="bt">
+          <div class="tab-b">
+            <div class="ti" onclick="go(1)"><div style="font-size:15px;">🏠</div>Home</div>
+            <div class="ti on" onclick="go(2)"><div style="font-size:15px;">📋</div>Sessions</div>
+            <div class="ti" onclick="go(6)"><div style="font-size:15px;">🦗</div>Pests</div>
+            <div class="ti" onclick="go(7)"><div style="font-size:15px;">👤</div>Profile</div>
+          </div>
+          <div class="phb"><div class="phb-p"></div></div>
+        </div>
+      </div>
+
+      <!-- ══ 3 SESSION DETAIL / POINTS LIST ══ -->
+      <div class="psc">
+        <div class="st"><span>9:41</span><span style="color:var(--color-text-warning);letter-spacing:1px;">⊗ ■ ■ ■</span></div>
+        <div class="ab">
+          <button onclick="go(2)" style="background:none;border:none;cursor:pointer;color:var(--color-text-info);font-size:12px;font-family:inherit;padding:0;">✕ End</button>
+          <span class="atl">Sunrise Farm</span>
+          <div class="ib" style="font-size:11px;">⊕ Point</div>
+        </div>
+        <div style="padding:8px 12px 6px;border-bottom:0.5px solid var(--color-border-tertiary);flex-shrink:0;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span style="font-size:12px;font-weight:500;">3 of 9 points done</span><span style="font-size:11px;color:var(--color-text-secondary);">09:10 · going</span></div>
+          <div class="pb"><div class="pf2" style="width:33%;"></div></div>
+        </div>
+        <div class="bn"><span style="font-size:11px;color:var(--color-text-warning);font-weight:500;">⊗ Offline · 2 obs queued locally</span></div>
+        <div class="bd">
+          <div class="pt-rw" style="opacity:.55;"><span style="font-size:13px;">✓</span><div style="flex:1;"><div style="font-size:12px;font-weight:500;">MP-01 · North Block A</div><div style="font-size:10px;color:var(--color-text-secondary);">🪤 Pheromone · 2 obs</div></div><span class="ch cn">Done</span></div>
+          <div class="pt-rw" style="opacity:.55;"><span style="font-size:13px;">✓</span><div style="flex:1;"><div style="font-size:12px;font-weight:500;">MP-02 · South Block A</div><div style="font-size:10px;color:var(--color-text-secondary);">👁 Visual · 3 obs</div></div><span class="ch cn">Done</span></div>
+          <div class="pt-rw" style="background:var(--color-background-success);" onclick="go(4)"><span style="font-size:13px;color:var(--color-text-success);">▶</span><div style="flex:1;"><div style="font-size:12px;font-weight:500;color:var(--color-text-success);">MP-07 · East Block</div><div style="font-size:10px;color:var(--color-text-secondary);">🪤 Pheromone + 👁 Visual · Here</div></div><span class="ch ce">⚠ Alert</span></div>
+          <div class="pt-rw"><span style="font-size:13px;color:var(--color-text-tertiary);">○</span><div style="flex:1;"><div style="font-size:12px;">MP-11 · Irrigation Border</div><div style="font-size:10px;color:var(--color-text-secondary);">👁 Visual · 340m</div></div><span class="ch cn">340m</span></div>
+          <div class="pt-rw"><span style="font-size:13px;color:var(--color-text-tertiary);">○</span><div style="flex:1;"><div style="font-size:12px;">MP-14 · River Block</div><div style="font-size:10px;color:var(--color-text-secondary);">🪤 Light trap · 520m</div></div><span class="ch cn">520m</span></div>
+          <div class="pt-rw" style="border-bottom:none;"><span style="font-size:13px;color:var(--color-text-tertiary);">○</span><div style="flex:1;"><div style="font-size:12px;">MP-19 · North Edge</div><div style="font-size:10px;color:var(--color-text-secondary);">🪤 Sticky + 👁 Visual · 670m</div></div><span class="ch cn">670m</span></div>
+        </div>
+        <div class="bt" style="padding:7px 10px;border-top:0.5px solid var(--color-border-tertiary);display:flex;gap:6px;">
+          <button class="bo" style="color:var(--color-text-danger);border-color:var(--color-border-danger);">End session</button>
+          <button class="bo" style="flex:2;color:var(--color-text-success);border-color:var(--color-border-success);" onclick="go(4)">Open current →</button>
+        </div>
+        <div class="phb"><div class="phb-p"></div></div>
+      </div>
+
+      <!-- ══ 4 POINT DETAIL ══ -->
+      <div class="psc">
+        <div class="st"><span>9:41</span><span style="color:var(--color-text-warning);letter-spacing:1px;">⊗ ■ ■ ■</span></div>
+        <div class="ab">
+          <button onclick="go(3)" style="background:none;border:none;cursor:pointer;color:var(--color-text-info);font-size:12px;font-family:inherit;padding:0;">← Back</button>
+          <span class="atl">MP-07 · East Block</span>
+          <span style="font-size:12px;color:var(--color-text-info);cursor:pointer;">Map</span>
+        </div>
+        <div style="padding:6px 10px;display:flex;gap:6px;flex-wrap:wrap;border-bottom:0.5px solid var(--color-border-tertiary);flex-shrink:0;">
+          <span class="ch cs">📍 −26.1180, 28.5600 · ±4m</span>
+          <span class="ch cn">🪤 Pheromone + 👁 Visual</span>
+        </div>
+        <div class="bd">
+          <div class="sl">Trap count</div>
+          <div class="cd" style="padding:0;overflow:hidden;">
+            <div style="padding:9px 12px;display:flex;align-items:center;gap:8px;border-bottom:0.5px solid var(--color-border-tertiary);">
+              <div style="flex:1;"><div style="font-size:12px;font-weight:500;">🪤 Pheromone trap total</div><div style="font-size:10px;color:var(--color-text-secondary);">Cumulative since last reset</div></div>
+              <div class="cv"><button class="cb">−</button><span class="cv-n" style="color:var(--color-text-danger);">47</span><button class="cb">+</button></div>
+            </div>
+            <div style="padding:6px 12px;display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:10px;color:var(--color-text-secondary);">Last reset: 27 Mar</span>
+              <button style="background:none;border:none;color:var(--color-text-info);font-size:10px;cursor:pointer;font-family:inherit;">Reset trap ↺</button>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px 3px;">
+            <span class="sl" style="padding:0;">Observations</span>
+            <button onclick="go(5)" style="background:var(--color-background-success);color:var(--color-text-success);border:0.5px solid var(--color-border-success);border-radius:7px;padding:4px 10px;font-size:11px;font-weight:500;cursor:pointer;font-family:inherit;">+ Add obs</button>
+          </div>
+          <div class="cd" style="padding:0;overflow:hidden;">
+            <div class="obs-item"><span style="font-size:16px;">🦟</span><div style="flex:1;"><div style="font-size:12px;font-weight:500;">Fall Armyworm</div><div style="font-size:10px;color:var(--color-text-secondary);font-style:italic;">Spodoptera frugiperda</div></div><span style="font-size:15px;font-weight:500;color:var(--color-text-danger);min-width:24px;text-align:right;">47</span><button style="background:none;border:none;color:var(--color-text-secondary);cursor:pointer;font-size:13px;margin-left:4px;">✏</button></div>
+            <div class="obs-item"><span style="font-size:16px;">🐜</span><div style="flex:1;"><div style="font-size:12px;font-weight:500;">Aphid</div><div style="font-size:10px;color:var(--color-text-secondary);font-style:italic;">Aphididae spp.</div></div><span style="font-size:15px;font-weight:500;min-width:24px;text-align:right;">12</span><button style="background:none;border:none;color:var(--color-text-secondary);cursor:pointer;font-size:13px;margin-left:4px;">✏</button></div>
+            <div class="obs-item" style="background:var(--color-background-warning);border-bottom:none;"><span style="font-size:16px;">❓</span><div style="flex:1;"><div style="font-size:12px;font-weight:500;color:var(--color-text-warning);">Unknown pest</div><div style="font-size:10px;color:var(--color-text-secondary);">"Small brown larvae, ~5mm"</div></div><span class="ch cw" style="font-size:9px;">ID needed</span></div>
+          </div>
+          <div class="dr" style="margin-top:4px;">
+            <div class="cd" style="flex:1;text-align:center;margin:0;cursor:pointer;padding:9px;"><div style="font-size:17px;margin-bottom:2px;">📷</div><div style="font-size:10px;color:var(--color-text-secondary);">2 photos</div></div>
+            <div class="cd" style="flex:1;text-align:center;margin:0;cursor:pointer;padding:9px;"><div style="font-size:17px;margin-bottom:2px;">📝</div><div style="font-size:10px;color:var(--color-text-secondary);">Add note</div></div>
+          </div>
+        </div>
+        <div class="bt" style="padding:7px 10px;border-top:0.5px solid var(--color-border-tertiary);">
+          <button class="bp" style="margin:0;width:100%;" onclick="go(3)">Save point &amp; next →</button>
+        </div>
+        <div class="phb"><div class="phb-p"></div></div>
+      </div>
+
+      <!-- ══ 5 ADD OBSERVATION ══ -->
+      <div class="psc">
+        <div class="st"><span>9:41</span><span style="color:var(--color-text-warning);letter-spacing:1px;">⊗ ■ ■ ■</span></div>
+        <div class="ab">
+          <button onclick="go(4)" style="background:none;border:none;cursor:pointer;color:var(--color-text-info);font-size:12px;font-family:inherit;padding:0;">✕ Cancel</button>
+          <span class="atl">Add observation</span>
+          <div style="width:52px;"></div>
+        </div>
+        <div class="bd" style="padding-bottom:8px;">
+          <div class="sl">Pest</div>
+          <div class="pk">Fall Armyworm <span style="color:var(--color-text-secondary);">▾</span></div>
+          <div class="sl">Capture type</div>
+          <div class="seg">
+            <button class="seg-btn on">Trap count</button>
+            <button class="seg-btn">Present / absent</button>
+            <button class="seg-btn">Unknown</button>
+          </div>
+          <div class="sl">Count</div>
+          <div style="display:flex;align-items:center;gap:12px;padding:3px 12px;">
+            <button class="cb" style="width:36px;height:36px;font-size:18px;">−</button>
+            <span style="font-size:28px;font-weight:500;min-width:48px;text-align:center;color:var(--color-text-danger);">47</span>
+            <button class="cb" style="width:36px;height:36px;font-size:18px;">+</button>
+            <div style="flex:1;"><div style="font-size:9px;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Alert threshold</div><div style="font-size:11px;font-weight:500;color:var(--color-text-danger);">⚠ Exceeds limit (20)</div></div>
+          </div>
+          <div class="sl">GPS</div>
+          <div class="cd" style="display:flex;align-items:center;gap:8px;padding:9px 12px;">
+            <span style="font-size:14px;">📍</span>
+            <div style="flex:1;"><div style="font-size:11px;font-weight:500;">−26.1180, 28.5600</div><div style="font-size:10px;color:var(--color-text-secondary);">Auto-captured · ±4m</div></div>
+            <span class="ch cs">Good</span>
+          </div>
+          <div class="sl">Photos</div>
+          <div style="display:flex;gap:6px;padding:3px 10px;">
+            <div style="width:62px;height:62px;border-radius:8px;background:var(--color-background-secondary);border:0.5px dashed var(--color-border-secondary);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:16px;color:var(--color-text-tertiary);cursor:pointer;font-size:10px;gap:3px;">📷<span>Add</span></div>
+            <div style="width:62px;height:62px;border-radius:8px;background:var(--color-background-info);border:0.5px solid var(--color-border-info);display:flex;align-items:center;justify-content:center;font-size:20px;">🖼</div>
+            <div style="width:62px;height:62px;border-radius:8px;background:var(--color-background-info);border:0.5px solid var(--color-border-info);display:flex;align-items:center;justify-content:center;font-size:20px;">🖼</div>
+          </div>
+          <div class="sl">Notes</div>
+          <div class="cd" style="min-height:44px;font-size:12px;color:var(--color-text-tertiary);padding:9px 12px;">Larvae clustered near row edges…</div>
+        </div>
+        <div class="bt" style="padding:7px 10px;border-top:0.5px solid var(--color-border-tertiary);">
+          <button class="bp" style="margin:0;width:100%;" onclick="go(4)">Save observation</button>
+        </div>
+        <div class="phb"><div class="phb-p"></div></div>
+      </div>
+
+      <!-- ══ 6 PESTS TAB ══ -->
+      <div class="psc">
+        <div class="st"><span>9:41</span><span style="letter-spacing:1px;">▲ ■ ■ ■</span></div>
+        <div class="ab">
+          <div style="width:32px;"></div>
+          <span class="atl">Pest catalogue</span>
+          <div class="ib" style="font-size:12px;">⊕</div>
+        </div>
+        <div class="srch">🔍 Search pests…</div>
+        <!-- Filter chips -->
+        <div style="display:flex;gap:5px;padding:4px 10px 6px;border-bottom:0.5px solid var(--color-border-tertiary);overflow-x:auto;flex-shrink:0;">
+          <span class="ch cs" style="cursor:pointer;">All</span>
+          <span class="ch cn" style="cursor:pointer;">Lepidoptera</span>
+          <span class="ch cn" style="cursor:pointer;">Hemiptera</span>
+          <span class="ch cn" style="cursor:pointer;">Orthoptera</span>
+          <span class="ch cn" style="cursor:pointer;">Custom</span>
+        </div>
+        <div class="bd">
+          <div class="sl">Common pests — Sunrise Farm</div>
+          <div class="pest-card" style="border-color:var(--color-border-danger);">
+            <div style="width:38px;height:38px;border-radius:9px;background:var(--color-background-danger);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🦟</div>
+            <div style="flex:1;"><div style="font-size:12px;font-weight:500;">Fall Armyworm</div><div style="font-size:10px;color:var(--color-text-secondary);font-style:italic;">Spodoptera frugiperda</div><div style="display:flex;gap:4px;margin-top:4px;"><span class="ch ce" style="font-size:9px;">High pressure</span><span class="ch cn" style="font-size:9px;">Trap</span></div></div>
+            <div style="text-align:right;"><div style="font-size:16px;font-weight:500;color:var(--color-text-danger);">342</div><div style="font-size:9px;color:var(--color-text-secondary);">this week</div></div>
+          </div>
+          <div class="pest-card">
+            <div style="width:38px;height:38px;border-radius:9px;background:var(--color-background-warning);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🐜</div>
+            <div style="flex:1;"><div style="font-size:12px;font-weight:500;">Aphid</div><div style="font-size:10px;color:var(--color-text-secondary);font-style:italic;">Aphididae spp.</div><div style="display:flex;gap:4px;margin-top:4px;"><span class="ch cw" style="font-size:9px;">Medium</span><span class="ch cn" style="font-size:9px;">Visual</span></div></div>
+            <div style="text-align:right;"><div style="font-size:16px;font-weight:500;color:var(--color-text-warning);">218</div><div style="font-size:9px;color:var(--color-text-secondary);">this week</div></div>
+          </div>
+          <div class="pest-card">
+            <div style="width:38px;height:38px;border-radius:9px;background:var(--color-background-secondary);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🐛</div>
+            <div style="flex:1;"><div style="font-size:12px;font-weight:500;">Cotton Bollworm</div><div style="font-size:10px;color:var(--color-text-secondary);font-style:italic;">Helicoverpa armigera</div><div style="display:flex;gap:4px;margin-top:4px;"><span class="ch cn" style="font-size:9px;">Low</span><span class="ch cn" style="font-size:9px;">Trap</span></div></div>
+            <div style="text-align:right;"><div style="font-size:16px;font-weight:500;">97</div><div style="font-size:9px;color:var(--color-text-secondary);">this week</div></div>
+          </div>
+          <div class="sl">All catalogue</div>
+          <div class="pest-card">
+            <div style="width:38px;height:38px;border-radius:9px;background:var(--color-background-info);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🦗</div>
+            <div style="flex:1;"><div style="font-size:12px;font-weight:500;">Locust</div><div style="font-size:10px;color:var(--color-text-secondary);font-style:italic;">Schistocerca gregaria</div><div style="display:flex;gap:4px;margin-top:4px;"><span class="ch ci" style="font-size:9px;">Seasonal</span><span class="ch cn" style="font-size:9px;">Visual</span></div></div>
+            <span style="font-size:14px;color:var(--color-text-tertiary);">›</span>
+          </div>
+          <div class="pest-card">
+            <div style="width:38px;height:38px;border-radius:9px;background:var(--color-background-secondary);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🐞</div>
+            <div style="flex:1;"><div style="font-size:12px;font-weight:500;">Whitefly</div><div style="font-size:10px;color:var(--color-text-secondary);font-style:italic;">Bemisia tabaci</div><div style="display:flex;gap:4px;margin-top:4px;"><span class="ch cn" style="font-size:9px;">System</span><span class="ch cn" style="font-size:9px;">Sticky card</span></div></div>
+            <span style="font-size:14px;color:var(--color-text-tertiary);">›</span>
+          </div>
+          <div class="pest-card" style="margin-bottom:6px;">
+            <div style="width:38px;height:38px;border-radius:9px;background:var(--color-background-success);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🍇</div>
+            <div style="flex:1;"><div style="font-size:12px;font-weight:500;">Grape Mealybug</div><div style="font-size:10px;color:var(--color-text-secondary);font-style:italic;">Planococcus ficus</div><div style="display:flex;gap:4px;margin-top:4px;"><span class="ch cs" style="font-size:9px;">Custom</span><span class="ch cn" style="font-size:9px;">Visual</span></div></div>
+            <span style="font-size:14px;color:var(--color-text-tertiary);">›</span>
+          </div>
+        </div>
+        <div class="bt">
+          <div class="tab-b">
+            <div class="ti" onclick="go(1)"><div style="font-size:15px;">🏠</div>Home</div>
+            <div class="ti" onclick="go(2)"><div style="font-size:15px;">📋</div>Sessions</div>
+            <div class="ti on" onclick="go(6)"><div style="font-size:15px;">🦗</div>Pests</div>
+            <div class="ti" onclick="go(7)"><div style="font-size:15px;">👤</div>Profile</div>
+          </div>
+          <div class="phb"><div class="phb-p"></div></div>
+        </div>
+      </div>
+
+      <!-- ══ 7 PROFILE TAB ══ -->
+      <div class="psc">
+        <div class="st"><span>9:41</span><span style="letter-spacing:1px;">▲ ■ ■ ■</span></div>
+        <div class="ab">
+          <div style="width:32px;"></div>
+          <span class="atl">Profile</span>
+          <button style="background:none;border:none;color:var(--color-text-info);font-size:12px;cursor:pointer;font-family:inherit;">Edit</button>
+        </div>
+        <div class="bd">
+          <!-- Identity block -->
+          <div style="display:flex;flex-direction:column;align-items:center;padding:18px 12px 14px;border-bottom:0.5px solid var(--color-border-tertiary);">
+            <div class="avatar" style="margin-bottom:10px;">TM</div>
+            <div style="font-size:16px;font-weight:500;">Thabo Mokoena</div>
+            <div style="font-size:11px;color:var(--color-text-secondary);margin-top:2px;">thabo@agri-wc.co.za</div>
+            <div style="display:flex;gap:6px;margin-top:8px;"><span class="ch cs">Field Scout</span><span class="ch ci">Agri Solutions WC</span></div>
+          </div>
+          <!-- Stats strip -->
+          <div style="display:flex;border-bottom:0.5px solid var(--color-border-tertiary);">
+            <div style="flex:1;padding:10px 6px;text-align:center;border-right:0.5px solid var(--color-border-tertiary);"><div style="font-size:16px;font-weight:500;">89</div><div style="font-size:9px;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.04em;">Sessions</div></div>
+            <div style="flex:1;padding:10px 6px;text-align:center;border-right:0.5px solid var(--color-border-tertiary);"><div style="font-size:16px;font-weight:500;">1 204</div><div style="font-size:9px;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.04em;">Observations</div></div>
+            <div style="flex:1;padding:10px 6px;text-align:center;"><div style="font-size:16px;font-weight:500;">4</div><div style="font-size:9px;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.04em;">Farms</div></div>
+          </div>
+          <!-- Settings sections -->
+          <div class="sl">App settings</div>
+          <div class="prof-row"><span style="font-size:13px;">GPS accuracy mode</span><span class="prof-val">High (≤10m)</span></div>
+          <div class="prof-row"><span style="font-size:13px;">Auto-capture GPS</span><div class="toggle-wrap"><div class="toggle-knob"></div></div></div>
+          <div class="prof-row"><span style="font-size:13px;">Offline photo quality</span><span class="prof-val">Medium</span></div>
+          <div class="prof-row" style="border-bottom:none;"><span style="font-size:13px;">Alert sound</span><div class="toggle-wrap"><div class="toggle-knob"></div></div></div>
+
+          <div class="sl">Sync &amp; data</div>
+          <div class="prof-row"><span style="font-size:13px;">Sync on Wi-Fi only</span><div class="toggle-wrap" style="background:var(--color-border-secondary);"><div class="toggle-knob" style="right:auto;left:3px;"></div></div></div>
+          <div class="prof-row"><span style="font-size:13px;">Local storage used</span><span class="prof-val">124 MB</span></div>
+          <div class="prof-row" style="border-bottom:none;cursor:pointer;"><span style="font-size:13px;color:var(--color-text-danger);">Clear offline cache</span><span style="font-size:14px;color:var(--color-text-tertiary);">›</span></div>
+
+          <div class="sl">Account</div>
+          <div class="prof-row" style="cursor:pointer;"><span style="font-size:13px;">Change password</span><span style="font-size:14px;color:var(--color-text-tertiary);">›</span></div>
+          <div class="prof-row" style="cursor:pointer;"><span style="font-size:13px;">App version</span><span class="prof-val">1.4.2 (build 88)</span></div>
+          <div class="prof-row" style="border-bottom:none;cursor:pointer;">
+            <button style="background:none;border:none;color:var(--color-text-danger);font-size:13px;cursor:pointer;font-family:inherit;padding:0;" onclick="go(0)">Sign out</button>
+          </div>
+        </div>
+        <div class="bt">
+          <div class="tab-b">
+            <div class="ti" onclick="go(1)"><div style="font-size:15px;">🏠</div>Home</div>
+            <div class="ti" onclick="go(2)"><div style="font-size:15px;">📋</div>Sessions</div>
+            <div class="ti" onclick="go(6)"><div style="font-size:15px;">🦗</div>Pests</div>
+            <div class="ti on" onclick="go(7)"><div style="font-size:15px;">👤</div>Profile</div>
+          </div>
+          <div class="phb"><div class="phb-p"></div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<div class="dot-rw">
+  <div class="dt on" id="d0" onclick="go(0)"></div>
+  <div class="dt" id="d1" onclick="go(1)"></div>
+  <div class="dt" id="d2" onclick="go(2)"></div>
+  <div class="dt" id="d3" onclick="go(3)"></div>
+  <div class="dt" id="d4" onclick="go(4)"></div>
+  <div class="dt" id="d5" onclick="go(5)"></div>
+  <div class="dt" id="d6" onclick="go(6)"></div>
+  <div class="dt" id="d7" onclick="go(7)"></div>
+</div>
+</div>
+<script>
+function go(n){
+  document.getElementById('scr').style.transform='translateX('+(-(n*300))+'px)';
+  for(var i=0;i<8;i++){
+    document.getElementById('t'+i).className='pt-tab'+(i===n?' on':'');
+    document.getElementById('d'+i).className='dt'+(i===n?' on':'');
+  }
+}
+</script>

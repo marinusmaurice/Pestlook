@@ -1,0 +1,261 @@
+@page "/add-observation/{SessionId}/{PointId}"
+@inject LocalDatabase Db
+@inject NavigationManager Nav
+
+<div class="app-shell">
+    <!-- App bar -->
+    <div class="ab">
+        <button class="ab-btn" @onclick="Cancel">✕ Cancel</button>
+        <span class="ab-title">Add observation</span>
+        <div style="width:52px;"></div>
+    </div>
+
+    <div class="app-body">
+        @if (!string.IsNullOrEmpty(error))
+        {
+            <div class="error-box">@error</div>
+        }
+
+        <!-- Pest / Unknown description -->
+        @if (captureMode != 2)
+        {
+            <div class="sl">Pest</div>
+            @if (pestsLoading)
+            {
+                <div class="loading-center"><span class="spinner-sm"></span></div>
+            }
+            else
+            {
+                <div style="margin:4px 10px;">
+                    <select class="pk-select" @bind="selectedPestId" @bind:after="OnPestChanged">
+                        <option value="">Select a pest...</option>
+                        @foreach (var p in pests)
+                        {
+                            <option value="@p.Id">@PestEmoji(p.Category) @p.CommonName</option>
+                        }
+                    </select>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="sl">Unknown pest</div>
+            <div style="margin:4px 10px;">
+                <input class="inp" placeholder="e.g. Small brown larvae, ~5mm" @bind="unknownDescription" />
+            </div>
+        }
+
+        <!-- Capture type -->
+        <div class="sl">Capture type</div>
+        <div class="seg">
+            <button class="seg-btn @(captureMode == 0 ? "on" : "")" @onclick="() => captureMode = 0">Count</button>
+            <button class="seg-btn @(captureMode == 1 ? "on" : "")" @onclick="() => captureMode = 1">Present / absent</button>
+            <button class="seg-btn @(captureMode == 2 ? "on" : "")" @onclick="() => SetUnknown()">Unknown pest</button>
+        </div>
+
+        @if (captureMode == 0 || captureMode == 2)
+        {
+            <!-- Count -->
+            <div class="sl">Count</div>
+            <div style="display:flex;align-items:center;gap:14px;padding:6px 12px;">
+                <button class="cb" style="width:40px;height:40px;font-size:20px;" @onclick="() => { if (count > 0) count--; }">−</button>
+                <span style="font-size:30px;font-weight:600;min-width:52px;text-align:center;color:@(threshold > 0 && count > threshold ? "var(--red)" : "var(--text)");">@count</span>
+                <button class="cb" style="width:40px;height:40px;font-size:20px;" @onclick="() => count++">+</button>
+                @if (threshold > 0)
+                {
+                    <div style="flex:1;">
+                        <div style="font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Alert threshold</div>
+                        @if (count > threshold)
+                        {
+                            <div style="font-size:12px;font-weight:600;color:var(--red);">⚠ Exceeds limit (@threshold)</div>
+                        }
+                        else
+                        {
+                            <div style="font-size:12px;color:var(--text-dim);">Limit: @threshold</div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+        else if (captureMode == 1)
+        {
+            <!-- Present / absent toggle -->
+            <div class="sl">Status</div>
+            <div class="seg" style="margin:4px 10px;">
+                <button class="seg-btn @(present ? "on" : "")" @onclick="() => present = true">Present</button>
+                <button class="seg-btn @(!present ? "on" : "")" @onclick="() => present = false">Absent</button>
+            </div>
+        }
+
+        <!-- GPS -->
+        <div class="sl">GPS location</div>
+        <div class="cd" style="display:flex;align-items:center;gap:8px;padding:10px 12px;">
+            <span style="font-size:15px;">📍</span>
+            <div style="flex:1;">
+                <div style="font-size:12px;font-weight:600;">@(point?.Latitude.ToString("F4") ?? "—"), @(point?.Longitude.ToString("F4") ?? "—")</div>
+                <div style="font-size:11px;color:var(--text-dim);">From monitoring point</div>
+            </div>
+            <span class="ch cs">OK</span>
+        </div>
+
+        <!-- Photos -->
+        <div class="sl">Photos</div>
+        <div style="display:flex;gap:6px;padding:4px 10px;flex-wrap:wrap;">
+            @foreach (var photo in photos)
+            {
+                <div class="photo-box" style="position:relative;">
+                    🖼
+                    <button style="position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;border:none;border-radius:50%;width:16px;height:16px;font-size:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;"
+                            @onclick="() => RemovePhoto(photo)">✕</button>
+                </div>
+            }
+            <div class="photo-box" style="border-style:dashed;flex-direction:column;gap:3px;cursor:pointer;" @onclick="CapturePhoto">📷 <span style="font-size:10px;">Add</span></div>
+        </div>
+
+        <!-- Notes -->
+        <div class="sl">Notes <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></div>
+        <div style="margin:4px 10px;">
+            <input class="inp" placeholder="Field observations..." @bind="notes" />
+        </div>
+    </div>
+
+    <!-- Bottom -->
+    <div style="padding:8px 10px;border-top:.5px solid var(--border);flex-shrink:0;">
+        <button class="bp" style="margin:0;width:100%;" @onclick="Save" disabled="@saving">
+            @if (saving) { <span class="spinner-sm"></span> } Save observation
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string SessionId { get; set; } = "";
+    [Parameter] public string PointId { get; set; } = "";
+
+    private List<CachedPest> pests = new();
+    private bool pestsLoading = true;
+    private LocalMonitoringPoint? point;
+    private string selectedPestId = "";
+    private int captureMode; // 0=Count, 1=PresentAbsent, 2=Unknown
+    private int count;
+    private int threshold;
+    private bool present = true;
+    private string unknownDescription = "";
+    private string notes = "";
+    private string? error;
+    private bool saving;
+    private List<string> photos = new(); // local file paths
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Db.InitAsync();
+
+        point = await Db.GetPointAsync(PointId);
+        pests = await Db.GetCachedPestsAsync();
+        pestsLoading = false;
+    }
+
+    private void SetUnknown()
+    {
+        captureMode = 2;
+        selectedPestId = "";
+        threshold = 0;
+    }
+
+    private void OnPestChanged()
+    {
+        var sel = pests.FirstOrDefault(p => p.Id == selectedPestId);
+        threshold = sel?.AlertThreshold ?? 0;
+    }
+
+    private async Task CapturePhoto()
+    {
+        try
+        {
+            var result = await MediaPicker.CapturePhotoAsync();
+            if (result is not null)
+            {
+                var destPath = Path.Combine(FileSystem.AppDataDirectory, $"photo_{Guid.NewGuid()}{Path.GetExtension(result.FileName)}");
+                using var stream = await result.OpenReadAsync();
+                using var dest = File.Create(destPath);
+                await stream.CopyToAsync(dest);
+                photos.Add(destPath);
+                StateHasChanged();
+            }
+        }
+        catch { /* camera not available */ }
+    }
+
+    private void RemovePhoto(string path)
+    {
+        photos.Remove(path);
+        if (File.Exists(path)) File.Delete(path);
+    }
+
+    private async Task Save()
+    {
+        error = null;
+
+        string? pestId = null;
+        string? pestName = null;
+        if (captureMode != 2)
+        {
+            if (string.IsNullOrEmpty(selectedPestId))
+            {
+                error = "Please select a pest.";
+                return;
+            }
+            pestId = selectedPestId;
+            pestName = pests.FirstOrDefault(p => p.Id == selectedPestId)?.CommonName;
+        }
+        else if (string.IsNullOrWhiteSpace(unknownDescription))
+        {
+            error = "Please describe the unknown pest.";
+            return;
+        }
+
+        saving = true;
+        StateHasChanged();
+
+        var obs = new LocalObservation
+        {
+            MonitoringPointId = PointId,
+            SessionId = SessionId,
+            PestId = pestId,
+            PestName = pestName,
+            IsUnknownPest = captureMode == 2,
+            UnknownPestDescription = captureMode == 2 ? unknownDescription : null,
+            CaptureMode = captureMode == 2 ? 0 : captureMode,
+            Count = (captureMode == 0 || captureMode == 2) ? count : null,
+            IsPresent = captureMode == 1 ? present : null,
+            CapturedLat = point?.Latitude,
+            CapturedLng = point?.Longitude,
+            Notes = string.IsNullOrWhiteSpace(notes) ? null : notes
+        };
+
+        await Db.SaveObservationAsync(obs);
+
+        // Save photos
+        foreach (var photoPath in photos)
+        {
+            await Db.SavePhotoAsync(new LocalObservationPhoto
+            {
+                ObservationId = obs.Id,
+                LocalFilePath = photoPath
+            });
+        }
+
+        saving = false;
+        Nav.NavigateTo($"/point-detail/{SessionId}/{PointId}");
+    }
+
+    private void Cancel()
+    {
+        // Clean up unsaved photos
+        foreach (var p in photos)
+            if (File.Exists(p)) File.Delete(p);
+
+        Nav.NavigateTo($"/point-detail/{SessionId}/{PointId}");
+    }
+
+    private static string PestEmoji(int cat) => cat switch { 0 => "🦟", 1 => "🦠", 2 => "🌿", 3 => "🐀", _ => "❓" };
+}

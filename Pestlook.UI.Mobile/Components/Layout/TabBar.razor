@@ -1,0 +1,14 @@
+@inject NavigationManager Nav
+
+<div class="tab-bar">
+    <a class="tab-item @ActiveClass("home")" href="/home"><span>🏠</span>Home</a>
+    <a class="tab-item @ActiveClass("sessions")" href="/sessions"><span>📋</span>Sessions</a>
+    <a class="tab-item @ActiveClass("pests")" href="/pests"><span>🦗</span>Pests</a>
+    <a class="tab-item @ActiveClass("profile")" href="/profile"><span>👤</span>Profile</a>
+</div>
+
+@code {
+    [Parameter] public string ActiveTab { get; set; } = "home";
+
+    private string ActiveClass(string tab) => ActiveTab == tab ? "active" : "";
+}

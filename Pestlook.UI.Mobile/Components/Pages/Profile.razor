@@ -1,0 +1,232 @@
+@page "/profile"
+@inject ApiClient Api
+@inject LocalDatabase Db
+@inject NavigationManager Nav
+
+<div class="app-shell">
+    <div class="ab">
+        <div style="width:32px;"></div>
+        <span class="ab-title">Profile</span>
+        <button class="ab-btn">Edit</button>
+    </div>
+
+    <div class="app-body">
+        <!-- Identity block -->
+        <div style="display:flex;flex-direction:column;align-items:center;padding:18px 12px 14px;border-bottom:.5px solid var(--border);">
+            <div class="avatar" style="margin-bottom:10px;">@initials</div>
+            <div style="font-size:17px;font-weight:600;color:#fff;">@fullName</div>
+            <div style="font-size:12px;color:var(--text-dim);margin-top:2px;">@email</div>
+            <div style="display:flex;gap:6px;margin-top:8px;">
+                @foreach (var role in roles)
+                {
+                    <span class="ch cs">@role</span>
+                }
+                @if (!string.IsNullOrEmpty(tenantSlug))
+                {
+                    <span class="ch ci">@tenantSlug</span>
+                }
+            </div>
+        </div>
+
+        <!-- Stats strip -->
+        <div style="display:flex;border-bottom:.5px solid var(--border);">
+            <div style="flex:1;padding:10px 6px;text-align:center;border-right:.5px solid var(--border);">
+                <div style="font-size:17px;font-weight:600;">@sessionCount</div>
+                <div style="font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.04em;">Sessions</div>
+            </div>
+            <div style="flex:1;padding:10px 6px;text-align:center;border-right:.5px solid var(--border);">
+                <div style="font-size:17px;font-weight:600;">@obsCount</div>
+                <div style="font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.04em;">Observations</div>
+            </div>
+            <div style="flex:1;padding:10px 6px;text-align:center;">
+                <div style="font-size:17px;font-weight:600;">@farmCount</div>
+                <div style="font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.04em;">Farms</div>
+            </div>
+        </div>
+
+        <!-- App settings -->
+        <div class="sl">App settings</div>
+        <div class="prof-row">
+            <span style="font-size:14px;">GPS accuracy mode</span>
+            <select style="background:var(--surface);color:var(--text);border:.5px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px;"
+                    @onchange="OnGpsAccuracyChanged" value="@gpsAccuracy">
+                <option value="high">High (≤10m)</option>
+                <option value="medium">Medium (≤50m)</option>
+                <option value="low">Low (≤100m)</option>
+            </select>
+        </div>
+        <div class="prof-row">
+            <span style="font-size:14px;">Auto-capture GPS</span>
+            <div class="toggle-wrap @(autoGps ? "on" : "off")" @onclick="ToggleAutoGps">
+                <div class="toggle-knob"></div>
+            </div>
+        </div>
+        <div class="prof-row">
+            <span style="font-size:14px;">Offline photo quality</span>
+            <select style="background:var(--surface);color:var(--text);border:.5px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px;"
+                    @onchange="OnPhotoQualityChanged" value="@photoQuality">
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+            </select>
+        </div>
+        <div class="prof-row" style="border-bottom:none;">
+            <span style="font-size:14px;">Alert sound</span>
+            <div class="toggle-wrap @(alertSound ? "on" : "off")" @onclick="ToggleAlertSound">
+                <div class="toggle-knob"></div>
+            </div>
+        </div>
+
+        <!-- Sync & data -->
+        <div class="sl">Sync &amp; data</div>
+        <div class="prof-row">
+            <span style="font-size:14px;">Sync on Wi-Fi only</span>
+            <div class="toggle-wrap @(wifiOnly ? "on" : "off")" @onclick="ToggleWifiOnly">
+                <div class="toggle-knob"></div>
+            </div>
+        </div>
+        <div class="prof-row">
+            <span style="font-size:14px;">Local storage used</span>
+            <span class="prof-val">@storageSizeLabel</span>
+        </div>
+        <div class="prof-row" style="border-bottom:none;cursor:pointer;" @onclick="ClearCache">
+            <span style="font-size:14px;color:var(--red);">Clear offline cache</span>
+            @if (clearing)
+            {
+                <span class="spinner-sm" style="width:12px;height:12px;"></span>
+            }
+            else
+            {
+                <span style="font-size:14px;color:var(--text-dim);">›</span>
+            }
+        </div>
+
+        <!-- Account -->
+        <div class="sl">Account</div>
+        <div class="prof-row" style="cursor:pointer;">
+            <span style="font-size:14px;">Change password</span>
+            <span style="font-size:14px;color:var(--text-dim);">›</span>
+        </div>
+        <div class="prof-row" style="cursor:pointer;">
+            <span style="font-size:14px;">App version</span>
+            <span class="prof-val">1.0.0</span>
+        </div>
+        <div class="prof-row" style="border-bottom:none;cursor:pointer;">
+            <button style="background:none;border:none;color:var(--red);font-size:14px;cursor:pointer;font-family:inherit;padding:0;"
+                    @onclick="SignOut">Sign out</button>
+        </div>
+    </div>
+
+    <TabBar ActiveTab="profile" />
+</div>
+
+@code {
+    private string fullName = "";
+    private string email = "";
+    private string initials = "";
+    private string tenantSlug = "";
+    private IList<string> roles = [];
+    private int sessionCount;
+    private int obsCount;
+    private int farmCount;
+    private string storageSizeLabel = "—";
+    private bool clearing;
+
+    private bool autoGps = true;
+    private bool alertSound = true;
+    private bool wifiOnly;
+    private string gpsAccuracy = "high";
+    private string photoQuality = "medium";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Api.IsLoggedIn) { Nav.NavigateTo("/"); return; }
+
+        var user = Api.CurrentUser;
+        if (user is not null)
+        {
+            fullName = $"{user.FirstName} {user.LastName}".Trim();
+            email = user.Email;
+            initials = $"{FirstChar(user.FirstName)}{FirstChar(user.LastName)}";
+            tenantSlug = user.TenantSlug;
+            roles = user.Roles;
+        }
+
+        // Load stats from local DB
+        sessionCount = await Db.CountSessionsAsync();
+        obsCount = await Db.CountObservationsAsync();
+        var farms = await Db.GetCachedFarmsAsync();
+        farmCount = farms.Count;
+
+        // Load persisted settings
+        autoGps = (await Db.GetSettingAsync("autoGps")) != "false";
+        alertSound = (await Db.GetSettingAsync("alertSound")) != "false";
+        wifiOnly = (await Db.GetSettingAsync("wifiOnly")) == "true";
+        gpsAccuracy = (await Db.GetSettingAsync("gpsAccuracy")) ?? "high";
+        photoQuality = (await Db.GetSettingAsync("photoQuality")) ?? "medium";
+
+        // Storage size
+        await RefreshStorageSize();
+    }
+
+    private async Task RefreshStorageSize()
+    {
+        var bytes = await Db.GetDatabaseSizeAsync();
+        storageSizeLabel = FormatBytes(bytes);
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} KB";
+        return $"{bytes / (1024.0 * 1024.0):F1} MB";
+    }
+
+    private async Task ToggleAutoGps()
+    {
+        autoGps = !autoGps;
+        await Db.SetSettingAsync("autoGps", autoGps.ToString().ToLowerInvariant());
+    }
+
+    private async Task ToggleAlertSound()
+    {
+        alertSound = !alertSound;
+        await Db.SetSettingAsync("alertSound", alertSound.ToString().ToLowerInvariant());
+    }
+
+    private async Task ToggleWifiOnly()
+    {
+        wifiOnly = !wifiOnly;
+        await Db.SetSettingAsync("wifiOnly", wifiOnly.ToString().ToLowerInvariant());
+    }
+
+    private async Task OnGpsAccuracyChanged(ChangeEventArgs e)
+    {
+        gpsAccuracy = e.Value?.ToString() ?? "high";
+        await Db.SetSettingAsync("gpsAccuracy", gpsAccuracy);
+    }
+
+    private async Task OnPhotoQualityChanged(ChangeEventArgs e)
+    {
+        photoQuality = e.Value?.ToString() ?? "medium";
+        await Db.SetSettingAsync("photoQuality", photoQuality);
+    }
+
+    private async Task ClearCache()
+    {
+        clearing = true;
+        StateHasChanged();
+        await Db.ClearCacheAsync();
+        await RefreshStorageSize();
+        clearing = false;
+    }
+
+    private void SignOut()
+    {
+        Api.Logout();
+        Nav.NavigateTo("/");
+    }
+
+    private static string FirstChar(string? s) =>
+        string.IsNullOrEmpty(s) ? "" : s[..1].ToUpperInvariant();
+}

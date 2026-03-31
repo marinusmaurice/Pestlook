@@ -1,0 +1,80 @@
+﻿@page "/"
+@inject ApiClient Api
+@inject NavigationManager Nav
+
+<div class="app-shell">
+    <div class="app-body" style="display:flex;flex-direction:column;justify-content:center;padding:24px 20px 16px;">
+
+        <!-- Logo -->
+        <div style="text-align:center;margin-bottom:36px;">
+            <div style="font-size:40px;margin-bottom:8px;">🐛</div>
+            <div style="font-size:24px;font-weight:600;color:#fff;letter-spacing:-.02em;">Pestlook</div>
+            <div style="font-size:12px;color:var(--text-dim);margin-top:4px;">Field Intelligence Platform</div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(error))
+        {
+            <div class="error-box">@error</div>
+        }
+
+        <!-- Email -->
+        <div style="margin-bottom:14px;">
+            <div class="sl" style="padding:0 0 6px;">Email</div>
+            <input class="inp" type="email" placeholder="thabo@agri-wc.co.za" @bind="email" />
+        </div>
+
+        <!-- Password -->
+        <div style="margin-bottom:22px;">
+            <div class="sl" style="padding:0 0 6px;">Password</div>
+            <input class="inp" type="password" placeholder="••••••••" @bind="password" />
+        </div>
+
+        <!-- Sign in -->
+        <button class="bp" style="width:100%;margin:0 0 12px;" @onclick="SignIn" disabled="@busy">
+            @if (busy) { <span class="spinner-sm"></span> } Sign in
+        </button>
+
+        <!-- Biometric -->
+        <div style="text-align:center;padding:12px;border:.5px solid var(--border);border-radius:10px;color:var(--text-dim);font-size:14px;margin-bottom:24px;">
+            ☻ Sign in with Biometrics
+        </div>
+
+        <div style="text-align:center;font-size:12px;color:var(--text-dim);">Forgot password?</div>
+    </div>
+</div>
+
+@code {
+    private string email = "";
+    private string password = "";
+    private string? error;
+    private bool busy;
+
+    protected override void OnInitialized()
+    {
+        if (Api.IsLoggedIn) Nav.NavigateTo("/home");
+    }
+
+    private async Task SignIn()
+    {
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+        {
+            error = "Please enter your email and password.";
+            return;
+        }
+        error = null;
+        busy = true;
+        try
+        {
+            var result = await Api.LoginAsync(email, password);
+            if (result.Success)
+                Nav.NavigateTo("/home");
+            else
+                error = result.Message ?? "Login failed. Check your credentials.";
+        }
+        catch (Exception ex)
+        {
+            error = $"Connection error: {ex.Message}";
+        }
+        finally { busy = false; }
+    }
+}

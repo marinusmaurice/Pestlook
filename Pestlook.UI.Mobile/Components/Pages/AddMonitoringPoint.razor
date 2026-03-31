@@ -1,0 +1,185 @@
+@page "/add-point/{SessionId}"
+@inject LocalDatabase Db
+@inject GpsService Gps
+@inject NavigationManager Nav
+
+<div class="app-shell">
+    <div class="ab">
+        <button class="ab-btn" @onclick="Cancel">✕ Cancel</button>
+        <span class="ab-title">Add point</span>
+        <div style="width:52px;"></div>
+    </div>
+
+    <div class="app-body">
+        @if (!string.IsNullOrEmpty(error))
+        {
+            <div class="error-box">@error</div>
+        }
+
+        <!-- GPS (auto-captured) -->
+        <div class="sl">GPS coordinates</div>
+        <div class="cd" style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:15px;">📍</span>
+            <div style="flex:1;">
+                @if (Gps.HasFix)
+                {
+                    <div style="font-size:12px;font-weight:600;">@Gps.Latitude?.ToString("F4"), @Gps.Longitude?.ToString("F4")</div>
+                    <div style="font-size:11px;color:var(--text-dim);">Accuracy: @(Gps.AccuracyMetres?.ToString("F1") ?? "—")m</div>
+                }
+                else
+                {
+                    <div style="font-size:12px;color:var(--text-dim);">Acquiring GPS fix…</div>
+                }
+            </div>
+            @if (Gps.IsAccuracyPoor)
+            {
+                <span class="ch cw">⚠ >20m</span>
+            }
+            else if (Gps.HasFix)
+            {
+                <span class="ch cs">OK</span>
+            }
+            else
+            {
+                <span class="spinner-sm" style="width:14px;height:14px;"></span>
+            }
+        </div>
+        @if (Gps.IsAccuracyPoor)
+        {
+            <div style="padding:4px 12px;font-size:11px;color:var(--amber);">⚠ GPS accuracy is poor (>20m). You can still proceed.</div>
+        }
+
+        <!-- Name (optional, defaults to "Point N") -->
+        <div class="sl">Point name <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></div>
+        <div style="margin:4px 10px;">
+            <input class="inp" placeholder="e.g. MP-01 · North Block A (auto-named if blank)" @bind="name" />
+        </div>
+
+        <!-- Point type -->
+        <div class="sl">Point type</div>
+        <div class="seg">
+            <button class="seg-btn @(pointType == 0 ? "on" : "")" @onclick="() => pointType = 0">🪤 Trap</button>
+            <button class="seg-btn @(pointType == 1 ? "on" : "")" @onclick="() => pointType = 1">👁 Random observation</button>
+        </div>
+
+        <!-- Trap type selector (only if Trap) -->
+        @if (pointType == 0)
+        {
+            <div class="sl">Trap type</div>
+            @if (trapTypes.Count > 0)
+            {
+                <div style="margin:4px 10px;">
+                    <select class="pk-select" @bind="selectedTrapTypeId">
+                        <option value="">Select trap type…</option>
+                        @foreach (var t in trapTypes)
+                        {
+                            <option value="@t.Id">@t.Name</option>
+                        }
+                    </select>
+                </div>
+            }
+            else
+            {
+                <div style="padding:8px 12px;font-size:12px;color:var(--text-dim);">No trap types available</div>
+            }
+
+            <!-- Trap count -->
+            <div class="sl">Trap count</div>
+            <div style="display:flex;align-items:center;gap:14px;padding:6px 12px;">
+                <button class="cb" style="width:40px;height:40px;font-size:20px;" @onclick="() => { if (trapCount > 0) trapCount--; }">−</button>
+                <span style="font-size:28px;font-weight:600;min-width:44px;text-align:center;">@trapCount</span>
+                <button class="cb" style="width:40px;height:40px;font-size:20px;" @onclick="() => trapCount++">+</button>
+            </div>
+
+            <!-- Reset trap -->
+            <div style="margin:4px 10px;">
+                <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-dim);cursor:pointer;">
+                    <input type="checkbox" @bind="resetTrap" style="accent-color:var(--green);" />
+                    Reset trap (cleared on this date)
+                </label>
+            </div>
+        }
+
+        <!-- Notes -->
+        <div class="sl">Notes <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></div>
+        <div style="margin:4px 10px;">
+            <input class="inp" placeholder="Field notes..." @bind="notes" />
+        </div>
+    </div>
+
+    <!-- Bottom -->
+    <div style="padding:8px 10px;border-top:.5px solid var(--border);flex-shrink:0;">
+        <button class="bp" style="margin:0;width:100%;" @onclick="Save" disabled="@saving">
+            @if (saving) { <span class="spinner-sm"></span> } Save point
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string SessionId { get; set; } = "";
+
+    private string name = "";
+    private int pointType;
+    private string selectedTrapTypeId = "";
+    private int trapCount;
+    private bool resetTrap;
+    private string notes = "";
+    private string? error;
+    private bool saving;
+    private List<CachedTrapType> trapTypes = new();
+    private int existingPointCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Db.InitAsync();
+
+        // Auto-capture GPS
+        _ = Gps.StartListeningAsync().ContinueWith(_ => InvokeAsync(StateHasChanged));
+
+        // Load trap types from cache
+        trapTypes = await Db.GetCachedTrapTypesAsync();
+
+        // Count existing points for auto-naming
+        var pts = await Db.GetPointsForSessionAsync(SessionId);
+        existingPointCount = pts.Count;
+    }
+
+    private async Task Save()
+    {
+        error = null;
+
+        // Default name to "Point N" if blank
+        var pointName = string.IsNullOrWhiteSpace(name)
+            ? $"Point {existingPointCount + 1}"
+            : name.Trim();
+
+        saving = true;
+        StateHasChanged();
+
+        var trapType = trapTypes.FirstOrDefault(t => t.Id == selectedTrapTypeId);
+
+        var point = new LocalMonitoringPoint
+        {
+            SessionId = SessionId,
+            Name = pointName,
+            PointType = pointType,
+            TrapTypeId = pointType == 0 && !string.IsNullOrEmpty(selectedTrapTypeId) ? selectedTrapTypeId : null,
+            TrapTypeName = pointType == 0 ? trapType?.Name : null,
+            TrapCount = pointType == 0 ? trapCount : null,
+            TrapResetAt = pointType == 0 && resetTrap ? DateTime.UtcNow : null,
+            Latitude = Gps.Latitude ?? 0,
+            Longitude = Gps.Longitude ?? 0,
+            GpsAccuracy = Gps.AccuracyMetres
+        };
+
+        await Db.SavePointAsync(point);
+        saving = false;
+
+        Nav.NavigateTo($"/points-list/{SessionId}");
+    }
+
+    private void Cancel()
+    {
+        Nav.NavigateTo($"/points-list/{SessionId}");
+    }
+}

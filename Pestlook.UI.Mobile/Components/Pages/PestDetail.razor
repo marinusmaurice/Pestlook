@@ -1,0 +1,211 @@
+@page "/pest-detail/{PestId}"
+@inject LocalDatabase Db
+@inject NavigationManager Nav
+
+<div class="app-shell">
+    <div class="ab">
+        <button class="ab-btn" @onclick="GoBack">← Back</button>
+        <span class="ab-title">Pest detail</span>
+        <div style="width:48px;"></div>
+    </div>
+
+    <div class="app-body">
+        @if (loading)
+        {
+            <div class="loading-center"><span class="spinner-sm"></span> Loading...</div>
+        }
+        else if (pest is null)
+        {
+            <div style="text-align:center;padding:40px 20px;color:var(--text-dim);font-size:13px;">Pest not found</div>
+        }
+        else
+        {
+            <!-- Pest identity -->
+            <div class="cd" style="display:flex;align-items:center;gap:12px;">
+                <div style="width:52px;height:52px;border-radius:12px;background:@IconBg(pest.Category);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;">
+                    @PestEmoji(pest.Category)
+                </div>
+                <div style="flex:1;">
+                    <div style="font-size:17px;font-weight:600;">@pest.CommonName</div>
+                    @if (!string.IsNullOrEmpty(pest.ScientificName))
+                    {
+                        <div style="font-size:12px;color:var(--text-dim);font-style:italic;margin-top:2px;">@pest.ScientificName</div>
+                    }
+                    <div style="display:flex;gap:4px;margin-top:6px;">
+                        <span class="ch cn" style="font-size:9px;">@CategoryLabel(pest.Category)</span>
+                        <span class="ch cn" style="font-size:9px;">@CaptureModeLabel(pest.DefaultCaptureMode)</span>
+                        @if (pest.IsSystemPest)
+                        {
+                            <span class="ch ci" style="font-size:9px;">System</span>
+                        }
+                        else
+                        {
+                            <span class="ch cw" style="font-size:9px;">Custom</span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Properties -->
+            <div class="sl">Properties</div>
+            <div class="cd" style="padding:0;overflow:hidden;">
+                <div style="display:flex;align-items:center;padding:10px 12px;border-bottom:.5px solid var(--border);">
+                    <span style="font-size:12px;color:var(--text-dim);min-width:110px;">Category</span>
+                    <span style="font-size:13px;font-weight:500;">@CategoryLabel(pest.Category)</span>
+                </div>
+                <div style="display:flex;align-items:center;padding:10px 12px;border-bottom:.5px solid var(--border);">
+                    <span style="font-size:12px;color:var(--text-dim);min-width:110px;">Capture mode</span>
+                    <span style="font-size:13px;font-weight:500;">@CaptureModeLabel(pest.DefaultCaptureMode)</span>
+                </div>
+                <div style="display:flex;align-items:center;padding:10px 12px;border-bottom:.5px solid var(--border);">
+                    <span style="font-size:12px;color:var(--text-dim);min-width:110px;">Alert threshold</span>
+                    @if (pest.AlertThreshold.HasValue)
+                    {
+                        <span style="font-size:13px;font-weight:600;color:var(--red);">@pest.AlertThreshold</span>
+                    }
+                    else
+                    {
+                        <span style="font-size:13px;color:var(--text-dim);">Not set</span>
+                    }
+                </div>
+                <div style="display:flex;align-items:center;padding:10px 12px;">
+                    <span style="font-size:12px;color:var(--text-dim);min-width:110px;">Source</span>
+                    <span style="font-size:13px;font-weight:500;">@(pest.IsSystemPest ? "System catalogue" : "Custom / tenant")</span>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="sl">Activity (past 7 days)</div>
+            <div class="cd" style="padding:0;overflow:hidden;">
+                <div style="display:flex;">
+                    <div style="flex:1;padding:12px 8px;text-align:center;border-right:.5px solid var(--border);">
+                        <div style="font-size:20px;font-weight:600;">@weekObsCount</div>
+                        <div style="font-size:10px;color:var(--text-dim);">Observations</div>
+                    </div>
+                    <div style="flex:1;padding:12px 8px;text-align:center;border-right:.5px solid var(--border);">
+                        <div style="font-size:20px;font-weight:600;">@totalObsCount</div>
+                        <div style="font-size:10px;color:var(--text-dim);">Total (all time)</div>
+                    </div>
+                    <div style="flex:1;padding:12px 8px;text-align:center;">
+                        <div style="font-size:20px;font-weight:600;@(weekAlerts > 0 ? "color:var(--red);" : "")">@weekAlerts</div>
+                        <div style="font-size:10px;color:var(--text-dim);">Alerts</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent observations -->
+            <div class="sl">Recent observations</div>
+            @if (recentObs.Count == 0)
+            {
+                <div style="text-align:center;padding:20px;color:var(--text-dim);font-size:12px;">No observations yet for this pest</div>
+            }
+            else
+            {
+                <div class="cd" style="padding:0;overflow:hidden;">
+                    @foreach (var obs in recentObs.Take(10))
+                    {
+                        <div class="obs-item" style="cursor:pointer;" @onclick="() => ViewObservation(obs)">
+                            <span style="font-size:14px;">🦟</span>
+                            <div style="flex:1;">
+                                <div style="font-size:12px;font-weight:500;">@obs.CreatedAt.ToLocalTime().ToString("d MMM, HH:mm")</div>
+                                <div style="font-size:10px;color:var(--text-dim);">@ObsSummary(obs)</div>
+                            </div>
+                            @if (obs.Count.HasValue)
+                            {
+                                <span style="font-family:monospace;font-size:14px;font-weight:600;@(pest.AlertThreshold.HasValue && obs.Count.Value >= pest.AlertThreshold.Value ? "color:var(--red);" : "")">@obs.Count</span>
+                            }
+                            else if (obs.IsPresent.HasValue)
+                            {
+                                <span class="ch @(obs.IsPresent.Value ? "cw" : "cn")" style="font-size:9px;">@(obs.IsPresent.Value ? "Yes" : "No")</span>
+                            }
+                            <span style="color:var(--text-dim);font-size:13px;">›</span>
+                        </div>
+                    }
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string PestId { get; set; } = "";
+
+    private bool loading = true;
+    private CachedPest? pest;
+    private List<LocalObservation> recentObs = new();
+    private int weekObsCount;
+    private int totalObsCount;
+    private int weekAlerts;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        loading = true;
+        StateHasChanged();
+
+        var pests = await Db.GetCachedPestsAsync();
+        pest = pests.FirstOrDefault(p => p.Id == PestId);
+
+        // Gather all observations for this pest across all sessions
+        var allObs = new List<LocalObservation>();
+        var sessions = await Db.GetSessionsAsync();
+        foreach (var s in sessions)
+        {
+            var obs = await Db.GetObservationsForSessionAsync(s.Id);
+            allObs.AddRange(obs.Where(o => o.PestId == PestId));
+        }
+
+        totalObsCount = allObs.Count;
+        recentObs = allObs.OrderByDescending(o => o.CreatedAt).ToList();
+
+        var weekAgo = DateTime.UtcNow.AddDays(-7);
+        var weekObs = allObs.Where(o => o.CreatedAt >= weekAgo).ToList();
+        weekObsCount = weekObs.Count;
+
+        // Count alerts in the week
+        if (pest?.AlertThreshold is not null)
+        {
+            weekAlerts = weekObs.Count(o => o.Count.HasValue && o.Count.Value >= pest.AlertThreshold.Value);
+        }
+
+        loading = false;
+    }
+
+    private static string ObsSummary(LocalObservation obs) => obs.CaptureMode switch
+    {
+        0 => $"Count: {obs.Count ?? 0}",
+        1 => obs.IsPresent == true ? "Present" : "Absent",
+        _ => "—"
+    };
+
+    private void ViewObservation(LocalObservation obs)
+    {
+        if (!string.IsNullOrEmpty(obs.SessionId))
+            Nav.NavigateTo($"/obs-detail/{obs.Id}/{obs.SessionId}");
+    }
+
+    private void GoBack() => Nav.NavigateTo("/pests");
+
+    private static string CategoryLabel(int cat) => cat switch
+    {
+        0 => "Insect", 1 => "Disease", 2 => "Weed", 3 => "Vertebrate", _ => "Other"
+    };
+
+    private static string CaptureModeLabel(int mode) => mode switch
+    {
+        0 => "Trap count", 1 => "Present / absent", _ => "Other"
+    };
+
+    private static string PestEmoji(int cat) => cat switch
+    {
+        0 => "🦟", 1 => "🦠", 2 => "🌿", 3 => "🐀", _ => "❓"
+    };
+
+    private static string IconBg(int cat) => cat switch
+    {
+        0 => "rgba(224,96,96,.12)",
+        1 => "rgba(240,168,64,.12)",
+        2 => "rgba(109,222,132,.12)",
+        3 => "rgba(96,168,224,.12)",
+        _ => "rgba(255,255,255,.06)"
+    };
+}

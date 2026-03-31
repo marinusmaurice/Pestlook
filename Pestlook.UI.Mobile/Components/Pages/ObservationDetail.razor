@@ -1,0 +1,203 @@
+@page "/obs-detail/{ObsId}/{SessionId}"
+@inject LocalDatabase Db
+@inject NavigationManager Nav
+
+<div class="app-shell">
+    <!-- App bar -->
+    <div class="ab">
+        <button class="ab-btn" @onclick="GoBack">← Back</button>
+        <span class="ab-title">Observation</span>
+        <div style="width:48px;"></div>
+    </div>
+
+    <div class="app-body">
+        @if (loading)
+        {
+            <div class="loading-center"><span class="spinner-sm"></span> Loading...</div>
+        }
+        else if (obs is null)
+        {
+            <div style="text-align:center;padding:40px 20px;color:var(--text-dim);font-size:13px;">Observation not found</div>
+        }
+        else
+        {
+            <!-- Pest card -->
+            <div class="cd" style="display:flex;align-items:center;gap:10px;">
+                <div style="width:44px;height:44px;border-radius:10px;background:@(obs.IsUnknownPest ? "rgba(240,168,64,.12)" : "rgba(109,222,132,.12)");display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">
+                    @(obs.IsUnknownPest ? "❓" : "🦟")
+                </div>
+                <div style="flex:1;">
+                    <div style="font-size:15px;font-weight:600;@(obs.IsUnknownPest ? "color:var(--amber);" : "")">@DisplayName</div>
+                    @if (obs.IsUnknownPest && !string.IsNullOrEmpty(obs.UnknownPestDescription))
+                    {
+                        <div style="font-size:12px;color:var(--text-dim);margin-top:2px;font-style:italic;">"@obs.UnknownPestDescription"</div>
+                    }
+                    else if (!string.IsNullOrEmpty(obs.PestName))
+                    {
+                        <div style="font-size:11px;color:var(--text-dim);margin-top:1px;">Pest observation</div>
+                    }
+                </div>
+                @if (obs.IsUnknownPest)
+                {
+                    <span class="ch cw">ID needed</span>
+                }
+            </div>
+
+            <!-- Alert threshold -->
+            @if (alertThreshold.HasValue && obs.Count.HasValue && obs.Count.Value >= alertThreshold.Value)
+            {
+                <div style="margin:4px 10px;padding:8px 10px;border-radius:8px;background:rgba(224,96,96,.1);border:.5px solid rgba(224,96,96,.25);display:flex;align-items:center;gap:6px;">
+                    <span style="font-size:14px;">⚠️</span>
+                    <span style="font-size:12px;color:var(--red);font-weight:500;">Count (@obs.Count) meets or exceeds alert threshold (@alertThreshold)</span>
+                </div>
+            }
+
+            <!-- Capture details -->
+            <div class="sl">Capture details</div>
+            <div class="cd" style="padding:0;overflow:hidden;">
+                <div style="display:flex;align-items:center;padding:10px 12px;border-bottom:.5px solid var(--border);">
+                    <span style="font-size:12px;color:var(--text-dim);min-width:80px;">Type</span>
+                    <span style="font-size:13px;font-weight:500;">@(obs.CaptureMode == 0 ? "Trap count" : "Present / absent")</span>
+                </div>
+                @if (obs.CaptureMode == 0 && obs.Count.HasValue)
+                {
+                    <div style="display:flex;align-items:center;padding:10px 12px;border-bottom:.5px solid var(--border);">
+                        <span style="font-size:12px;color:var(--text-dim);min-width:80px;">Count</span>
+                        <span style="font-size:22px;font-weight:600;">@obs.Count</span>
+                    </div>
+                }
+                @if (obs.CaptureMode == 1 && obs.IsPresent.HasValue)
+                {
+                    <div style="display:flex;align-items:center;padding:10px 12px;border-bottom:.5px solid var(--border);">
+                        <span style="font-size:12px;color:var(--text-dim);min-width:80px;">Status</span>
+                        <span class="ch @(obs.IsPresent.Value ? "cw" : "cn")">@(obs.IsPresent.Value ? "Present" : "Absent")</span>
+                    </div>
+                }
+            </div>
+
+            <!-- GPS -->
+            @if (obs.CapturedLat.HasValue && obs.CapturedLng.HasValue)
+            {
+                <div class="sl">GPS location</div>
+                <div class="cd" style="display:flex;align-items:center;gap:8px;">
+                    <span style="font-size:14px;">📍</span>
+                    <div style="flex:1;">
+                        <div style="font-size:12px;font-weight:500;">@obs.CapturedLat.Value.ToString("F4"), @obs.CapturedLng.Value.ToString("F4")</div>
+                        <div style="font-size:11px;color:var(--text-dim);">Captured at observation</div>
+                    </div>
+                    <span class="ch cs">OK</span>
+                </div>
+            }
+
+            <!-- Photos -->
+            <div class="sl">Photos (@photos.Count)</div>
+            @if (photos.Count > 0)
+            {
+                <div style="display:flex;gap:6px;padding:4px 10px;flex-wrap:wrap;">
+                    @foreach (var photo in photos)
+                    {
+                        <div class="photo-box" title="@Path.GetFileName(photo.LocalFilePath)">🖼</div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div style="padding:4px 12px 8px;font-size:12px;color:var(--text-dim);">No photos attached</div>
+            }
+
+            <!-- Notes -->
+            <div class="sl">Notes</div>
+            <div class="cd">
+                <div style="font-size:13px;color:@(!string.IsNullOrEmpty(obs.Notes) ? "var(--text)" : "var(--text-dim)");">
+                    @(!string.IsNullOrEmpty(obs.Notes) ? obs.Notes : "No notes")
+                </div>
+            </div>
+
+            <!-- Timestamp -->
+            <div class="sl">Recorded</div>
+            <div class="cd" style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:14px;">🕒</span>
+                <div style="flex:1;">
+                    <div style="font-size:13px;font-weight:500;">@obs.CreatedAt.ToLocalTime().ToString("d MMM yyyy, HH:mm")</div>
+                    <div style="font-size:11px;color:var(--text-dim);">@TimeAgo(obs.CreatedAt)</div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Bottom -->
+    @if (obs is not null && sessionStatus == 0)
+    {
+        <div style="padding:8px 10px;border-top:.5px solid var(--border);display:flex;gap:6px;flex-shrink:0;">
+            <button class="bo" style="color:var(--red);border-color:rgba(224,96,96,.25);" @onclick="Delete" disabled="@deleting">
+                @if (deleting) { <span class="spinner-sm" style="width:12px;height:12px;margin-right:4px;"></span> } 🗑 Delete
+            </button>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string ObsId { get; set; } = "";
+    [Parameter] public string SessionId { get; set; } = "";
+
+    private bool loading = true;
+    private bool deleting;
+    private LocalObservation? obs;
+    private List<LocalObservationPhoto> photos = new();
+    private int? alertThreshold;
+    private int sessionStatus;
+
+    private string DisplayName => obs is null ? "—" : obs.IsUnknownPest ? "Unknown pest" : (obs.PestName ?? "—");
+
+    protected override async Task OnParametersSetAsync() => await LoadData();
+
+    private async Task LoadData()
+    {
+        loading = true;
+        StateHasChanged();
+
+        obs = await Db.GetObservationAsync(ObsId);
+        photos = obs is not null ? await Db.GetPhotosForObservationAsync(ObsId) : new();
+
+        // Get session status to control delete visibility
+        var session = await Db.GetSessionAsync(SessionId);
+        sessionStatus = session?.Status ?? 1;
+
+        // Check alert threshold
+        if (obs?.PestId is not null)
+        {
+            var pests = await Db.GetCachedPestsAsync();
+            alertThreshold = pests.FirstOrDefault(p => p.Id == obs.PestId)?.AlertThreshold;
+        }
+
+        loading = false;
+    }
+
+    private static string TimeAgo(DateTime dt)
+    {
+        var span = DateTime.UtcNow - dt;
+        if (span.TotalMinutes < 1) return "Just now";
+        if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes}m ago";
+        if (span.TotalHours < 24) return $"{(int)span.TotalHours}h ago";
+        return $"{(int)span.TotalDays}d ago";
+    }
+
+    private async Task Delete()
+    {
+        deleting = true;
+        StateHasChanged();
+
+        // Delete photos first
+        foreach (var p in photos)
+        {
+            try { if (File.Exists(p.LocalFilePath)) File.Delete(p.LocalFilePath); } catch { }
+            await Db.DeletePhotoAsync(p.Id);
+        }
+        await Db.DeleteObservationAsync(ObsId);
+
+        deleting = false;
+        GoBack();
+    }
+
+    private void GoBack() => Nav.NavigateTo($"/session-detail/{SessionId}");
+}
