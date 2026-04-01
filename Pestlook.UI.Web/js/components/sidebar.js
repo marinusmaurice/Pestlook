@@ -8,8 +8,8 @@ const navItems = [
   ]},
   { section: 'Field Management', items: [
     { id: 'farms', icon: '🌾', label: 'Farms & Fields', path: '/farms' },
+    { id: 'traps', icon: '🕸️', label: 'Traps', path: '/traps' },
     { id: 'monitoring', icon: '📍', label: 'Monitoring Points', path: '/monitoring-points', badgeId: 'mp-badge' },
-    { id: 'traps', icon: '🪤', label: 'Traps', path: '/traps' },
   ]},
   { section: 'Operations', items: [
     { id: 'sessions', icon: '🥾', label: 'Scouting Sessions', path: '/sessions' },
@@ -64,7 +64,7 @@ export function renderSidebar(container) {
           <div class="user-name">${firstName} ${lastName}</div>
           <div class="user-role">${role}</div>
         </div>
-        <button class="logout-btn" id="logoutBtn" title="Sign out">⏻</button>
+        <button class="logout-btn" id="logoutBtn" title="Sign out"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
       </div>
     </div>
   `;

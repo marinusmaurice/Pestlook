@@ -124,7 +124,7 @@ function renderMap(traps) {
   const enabledIcon = L.divIcon({
     className: '',
     html: `<div style="width:28px;height:28px;border-radius:50% 50% 50% 0;background:#22c55e;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;">
-             <span style="transform:rotate(45deg);font-size:12px;">🪤</span>
+             <span style="transform:rotate(45deg);font-size:12px;">🕸️</span>
            </div>`,
     iconSize: [28, 28],
     iconAnchor: [14, 28],
@@ -134,7 +134,7 @@ function renderMap(traps) {
   const disabledIcon = L.divIcon({
     className: '',
     html: `<div style="width:28px;height:28px;border-radius:50% 50% 50% 0;background:#ef4444;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;">
-             <span style="transform:rotate(45deg);font-size:12px;">🪤</span>
+             <span style="transform:rotate(45deg);font-size:12px;">🕸️</span>
            </div>`,
     iconSize: [28, 28],
     iconAnchor: [14, 28],
@@ -210,7 +210,7 @@ function renderTable(traps, filter) {
   const el = document.getElementById('trapTable');
 
   if (traps.length === 0) {
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">🪤</div><h3>No traps</h3><p>Add a trap to start tracking locations and barcodes</p></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">🕸️</div><h3>No traps</h3><p>Add a trap to start tracking locations and barcodes</p></div>`;
     return;
   }
 
