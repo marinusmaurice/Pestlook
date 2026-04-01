@@ -419,6 +419,7 @@ body {
   gap: 6px;
 }
 .btn-outline:hover { border-color: var(--border2); color: var(--text); background: var(--surface2); }
+.btn-outline.active { border-color: var(--green2); color: var(--green); background: rgba(109,222,132,0.08); }
 .btn-outline.full-width { width: 100%; justify-content: center; }
 
 .btn-danger {

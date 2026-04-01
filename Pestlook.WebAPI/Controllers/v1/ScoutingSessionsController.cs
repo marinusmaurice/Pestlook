@@ -60,6 +60,7 @@ public sealed class ScoutingSessionsController(
             TenantId = tenantContext.TenantId.Value,
             ScouterId = currentUserService.UserId!,
             WeatherConditions = request.WeatherConditions,
+            TemperatureCelsius = request.TemperatureCelsius,
             Notes = request.Notes
         };
         db.ScoutingSessions.Add(session);
@@ -90,6 +91,7 @@ public sealed class ScoutingSessionsController(
 
         session.CompletedAt = DateTime.UtcNow;
         if (request.WeatherConditions is not null) session.WeatherConditions = request.WeatherConditions;
+        if (request.TemperatureCelsius is not null) session.TemperatureCelsius = request.TemperatureCelsius;
         if (request.Notes is not null) session.Notes = request.Notes;
         await db.SaveChangesAsync(ct);
 

@@ -10,6 +10,10 @@ public sealed class ScoutingSession : IHasTenant
     public DateTime StartedAt { get; set; } = DateTime.UtcNow;
     public DateTime? CompletedAt { get; set; }
     public string? WeatherConditions { get; set; }
+
+    /// <summary>Temperature recorded during the session, always stored in Celsius.</summary>
+    public double? TemperatureCelsius { get; set; }
+
     public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? DeletedAt { get; set; }

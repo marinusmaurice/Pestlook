@@ -1,4 +1,5 @@
 @page "/session-detail/{SessionId}"
+@inject ApiClient Api
 @inject LocalDatabase Db
 @inject NavigationManager Nav
 
@@ -56,11 +57,11 @@
                         <span style="font-size:12px;font-weight:500;">@session.CompletedAt.Value.ToLocalTime().ToString("d MMM, HH:mm")</span>
                     </div>
                 }
-                @if (!string.IsNullOrEmpty(session.WeatherCondition))
+                @if (!string.IsNullOrEmpty(session.WeatherCondition) || session.Temperature != 0)
                 {
                     <div class="sess-info-row">
                         <span style="color:var(--text-dim);font-size:12px;">Weather</span>
-                        <span style="font-size:12px;font-weight:500;">@session.WeatherCondition @(session.Temperature != 0 ? $"· {session.Temperature}°C" : "")</span>
+                        <span style="font-size:12px;font-weight:500;">@FormatWeather()</span>
                     </div>
                 }
                 @if (!string.IsNullOrEmpty(session.Notes))
@@ -160,6 +161,22 @@
     private string StatusIcon => session?.Status switch { 2 => "☁️", 1 => "✅", _ => "🌾" };
     private string StatusLabel => session?.Status switch { 2 => "☁ Synced", 1 => "✓ Completed", _ => "● Active" };
     private string StatusChipClass => session?.Status switch { 2 => "ci", 1 => "cs", _ => "ce" };
+    private string TempUnit => Api.CurrentUser?.TemperatureUnit ?? "C";
+
+    private string FormatWeather()
+    {
+        var parts = new List<string>();
+        if (!string.IsNullOrEmpty(session?.WeatherCondition))
+            parts.Add(session.WeatherCondition);
+        if (session?.Temperature is not 0)
+        {
+            if (TempUnit == "F")
+                parts.Add($"{(int)(session!.Temperature * 9.0 / 5.0 + 32)}°F");
+            else
+                parts.Add($"{session!.Temperature}°C");
+        }
+        return parts.Count > 0 ? string.Join(" · ", parts) : "—";
+    }
 
     private string Duration
     {

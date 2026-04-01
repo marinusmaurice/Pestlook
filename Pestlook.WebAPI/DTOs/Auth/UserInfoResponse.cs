@@ -8,4 +8,5 @@ public sealed record UserInfoResponse(
     bool IsActive,
     Guid TenantId,
     string TenantSlug,
+    string TemperatureUnit,
     IList<string> Roles);

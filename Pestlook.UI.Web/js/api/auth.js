@@ -1,4 +1,4 @@
-import { post, get } from './client.js';
+import { post, get, patch } from './client.js';
 
 export function signUp(request) {
   return post('/auth/sign-up', request, false);
@@ -22,4 +22,8 @@ export function getMe() {
 
 export function registerUser(request) {
   return post('/auth/register', request);
+}
+
+export function updatePreferences(request) {
+  return patch('/auth/me/preferences', request);
 }

@@ -32,9 +32,9 @@ public sealed class ScoutingSessionsControllerTests(TestWebApplicationFactory fa
     {
         var req = new HttpRequestMessage(new HttpMethod(method), url);
         if (method is "POST")
-            req.Content = JsonContent.Create(new StartScoutingSessionRequest(null, null));
+            req.Content = JsonContent.Create(new StartScoutingSessionRequest(null, null, null));
         if (method is "PATCH")
-            req.Content = JsonContent.Create(new CompleteScoutingSessionRequest(null, null));
+            req.Content = JsonContent.Create(new CompleteScoutingSessionRequest(null, null, null));
         var resp = await _anon.SendAsync(req);
         resp.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
@@ -96,7 +96,7 @@ public sealed class ScoutingSessionsControllerTests(TestWebApplicationFactory fa
     public async Task Start_WithAllFields_ShouldReturn201WithData()
     {
         var resp = await _admin.PostAsJsonAsync("/api/v1/scouting-sessions",
-            new StartScoutingSessionRequest("Overcast, 18°C", "Morning round"));
+            new StartScoutingSessionRequest("Overcast, 18°C", 18.0, "Morning round"));
         resp.StatusCode.Should().Be(HttpStatusCode.Created);
         var body = await resp.Content.ReadFromJsonAsync<ApiResponse<ScoutingSessionResponse>>();
         body!.Data!.WeatherConditions.Should().Be("Overcast, 18°C");
@@ -109,7 +109,7 @@ public sealed class ScoutingSessionsControllerTests(TestWebApplicationFactory fa
     public async Task Start_WithNoFields_ShouldReturn201()
     {
         var resp = await _admin.PostAsJsonAsync("/api/v1/scouting-sessions",
-            new StartScoutingSessionRequest(null, null));
+            new StartScoutingSessionRequest(null, null, null));
         resp.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
@@ -117,7 +117,7 @@ public sealed class ScoutingSessionsControllerTests(TestWebApplicationFactory fa
     public async Task Start_ShouldSetScouterIdToCurrentUser()
     {
         var resp = await _admin.PostAsJsonAsync("/api/v1/scouting-sessions",
-            new StartScoutingSessionRequest(null, null));
+            new StartScoutingSessionRequest(null, null, null));
         var body = await resp.Content.ReadFromJsonAsync<ApiResponse<ScoutingSessionResponse>>();
         body!.Data!.ScouterId.Should().Be(TestWebApplicationFactory.DefaultAdminId);
     }
@@ -146,7 +146,7 @@ public sealed class ScoutingSessionsControllerTests(TestWebApplicationFactory fa
     {
         var id = await StartSessionAsync("Clear", "Pre-complete notes");
         var resp = await _admin.PatchAsJsonAsync($"/api/v1/scouting-sessions/{id}/complete",
-            new CompleteScoutingSessionRequest("Windy", "Post-complete notes"));
+            new CompleteScoutingSessionRequest("Windy", null, "Post-complete notes"));
         resp.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await resp.Content.ReadFromJsonAsync<ApiResponse<ScoutingSessionResponse>>();
         body!.Data!.CompletedAt.Should().NotBeNull();
@@ -159,10 +159,10 @@ public sealed class ScoutingSessionsControllerTests(TestWebApplicationFactory fa
     {
         var id = await StartSessionAsync(null, null);
         await _admin.PatchAsJsonAsync($"/api/v1/scouting-sessions/{id}/complete",
-            new CompleteScoutingSessionRequest(null, null));
+            new CompleteScoutingSessionRequest(null, null, null));
         // Second complete should fail
         var resp = await _admin.PatchAsJsonAsync($"/api/v1/scouting-sessions/{id}/complete",
-            new CompleteScoutingSessionRequest(null, null));
+            new CompleteScoutingSessionRequest(null, null, null));
         resp.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
@@ -170,7 +170,7 @@ public sealed class ScoutingSessionsControllerTests(TestWebApplicationFactory fa
     public async Task Complete_WhenNotFound_ShouldReturn404()
     {
         var resp = await _admin.PatchAsJsonAsync($"/api/v1/scouting-sessions/{Guid.NewGuid()}/complete",
-            new CompleteScoutingSessionRequest(null, null));
+            new CompleteScoutingSessionRequest(null, null, null));
         resp.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
@@ -179,7 +179,7 @@ public sealed class ScoutingSessionsControllerTests(TestWebApplicationFactory fa
     {
         var id = await StartSessionAsync("Original Weather", "Original Notes");
         var resp = await _admin.PatchAsJsonAsync($"/api/v1/scouting-sessions/{id}/complete",
-            new CompleteScoutingSessionRequest(null, null));
+            new CompleteScoutingSessionRequest(null, null, null));
         var body = await resp.Content.ReadFromJsonAsync<ApiResponse<ScoutingSessionResponse>>();
         body!.Data!.WeatherConditions.Should().Be("Original Weather");
         body.Data.Notes.Should().Be("Original Notes");
@@ -191,7 +191,7 @@ public sealed class ScoutingSessionsControllerTests(TestWebApplicationFactory fa
         var before = DateTime.UtcNow.AddSeconds(-5);
         var id = await StartSessionAsync(null, null);
         await _admin.PatchAsJsonAsync($"/api/v1/scouting-sessions/{id}/complete",
-            new CompleteScoutingSessionRequest(null, null));
+            new CompleteScoutingSessionRequest(null, null, null));
         var after = DateTime.UtcNow.AddSeconds(5);
 
         var resp = await _admin.GetAsync($"/api/v1/scouting-sessions/{id}");
@@ -245,10 +245,10 @@ public sealed class ScoutingSessionsControllerTests(TestWebApplicationFactory fa
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private async Task<Guid> StartSessionAsync(string? weather, string? notes)
+    private async Task<Guid> StartSessionAsync(string? weather, string? notes, double? temperatureCelsius = null)
     {
         var resp = await _admin.PostAsJsonAsync("/api/v1/scouting-sessions",
-            new StartScoutingSessionRequest(weather, notes));
+            new StartScoutingSessionRequest(weather, temperatureCelsius, notes));
         return (await resp.Content.ReadFromJsonAsync<ApiResponse<ScoutingSessionResponse>>())!.Data!.Id;
     }
 

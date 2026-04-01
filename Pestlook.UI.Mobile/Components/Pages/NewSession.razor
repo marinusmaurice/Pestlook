@@ -86,13 +86,13 @@
         </div>
 
         <!-- Temperature -->
-        <div class="sl">Temperature (°C)</div>
+        <div class="sl">Temperature (@TempUnitLabel)</div>
         <div style="display:flex;align-items:center;gap:14px;padding:8px 12px;">
-            <button class="cb" style="width:44px;height:44px;font-size:22px;" @onclick="() => { if (temperature > -10) temperature--; }">−</button>
+            <button class="cb" style="width:44px;height:44px;font-size:22px;" @onclick="() => { if (temperature > TempMin) temperature--; }">−</button>
             <div style="text-align:center;min-width:60px;">
                 <span style="font-size:32px;font-weight:600;color:@TempColor;">@temperature°</span>
             </div>
-            <button class="cb" style="width:44px;height:44px;font-size:22px;" @onclick="() => { if (temperature < 50) temperature++; }">+</button>
+            <button class="cb" style="width:44px;height:44px;font-size:22px;" @onclick="() => { if (temperature < TempMax) temperature++; }">+</button>
         </div>
 
         <!-- Notes (optional) -->
@@ -128,7 +128,7 @@
                 }
                 <div class="sess-info-row">
                     <span style="font-size:12px;color:var(--text-dim);">Weather</span>
-                    <span style="font-size:12px;font-weight:600;">@(weather ?? "—"), @temperature°C</span>
+                    <span style="font-size:12px;font-weight:600;">@(weather ?? "—"), @temperature@TempUnitLabel</span>
                 </div>
             </div>
         }
@@ -155,19 +155,35 @@
     private string? error;
     private bool saving;
 
+    private string TempUnit => Api.CurrentUser?.TemperatureUnit ?? "C";
+    private string TempUnitLabel => TempUnit == "F" ? "°F" : "°C";
+    private int TempMin => TempUnit == "F" ? 14 : -10;
+    private int TempMax => TempUnit == "F" ? 122 : 50;
+    private int DefaultTemp => TempUnit == "F" ? 72 : 22;
+    private double ToCelsius(int value) => TempUnit == "F" ? (value - 32) * 5.0 / 9.0 : value;
+
     private string SelectedFarmName => farms.FirstOrDefault(f => f.Id == selectedFarmId)?.Name ?? "—";
     private string SelectedFieldName => fields.FirstOrDefault(f => f.Id == selectedFieldId)?.Name ?? "—";
-    private string TempColor => temperature switch
-    {
-        <= 5 => "var(--blue)",
-        <= 15 => "var(--text)",
-        <= 30 => "var(--amber)",
-        _ => "var(--red)"
-    };
+    private string TempColor => TempUnit == "F"
+        ? temperature switch
+        {
+            <= 41 => "var(--blue)",
+            <= 59 => "var(--text)",
+            <= 86 => "var(--amber)",
+            _ => "var(--red)"
+        }
+        : temperature switch
+        {
+            <= 5 => "var(--blue)",
+            <= 15 => "var(--text)",
+            <= 30 => "var(--amber)",
+            _ => "var(--red)"
+        };
 
     protected override async Task OnInitializedAsync()
     {
         if (!Api.IsLoggedIn) { Nav.NavigateTo("/"); return; }
+        temperature = DefaultTemp;
 
         await Db.InitAsync();
 
@@ -239,7 +255,8 @@
         saving = true;
         StateHasChanged();
 
-        // Create session locally in SQLite
+        // Create session locally in SQLite (temperature always stored as Celsius)
+        var tempCelsius = (int)Math.Round(ToCelsius(temperature));
         var session = new LocalSession
         {
             FarmId = selectedFarmId,
@@ -251,7 +268,7 @@
             StartedAt = DateTime.UtcNow,
             Status = 0, // Active
             WeatherCondition = weather,
-            Temperature = temperature,
+            Temperature = tempCelsius,
             Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim()
         };
 
@@ -260,9 +277,7 @@
         // Also create on server if online (best-effort, session is local-first)
         if (Conn.IsOnline)
         {
-            var weatherStr = weather ?? "—";
-            if (temperature != 0) weatherStr += $", {temperature}°C";
-            var res = await Api.StartSessionAsync(weatherStr, session.Notes);
+            var res = await Api.StartSessionAsync(weather, session.Notes, tempCelsius);
             if (res.Success && res.Data is not null)
             {
                 session.RemoteId = res.Data.Id.ToString();

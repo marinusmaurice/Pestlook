@@ -122,8 +122,8 @@ public class SyncService
                 var session = sessions[si];
                 OnProgress?.Invoke($"Uploading session {si + 1} of {sessions.Count}...");
 
-                // 1. Create session on server
-                var sessRes = await _api.StartSessionAsync(session.WeatherCondition, session.Notes);
+                // 1. Create session on server (temperature stored locally is always Celsius)
+                var sessRes = await _api.StartSessionAsync(session.WeatherCondition, session.Notes, session.Temperature != 0 ? session.Temperature : null);
                 if (!sessRes.Success || sessRes.Data is null) { OnError?.Invoke($"Failed to sync session: {sessRes.Message}"); continue; }
                 var remoteSessionId = sessRes.Data.Id;
 

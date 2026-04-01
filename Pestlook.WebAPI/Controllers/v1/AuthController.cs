@@ -90,4 +90,24 @@ public sealed class AuthController(
         var dto = mapper.Map<UserInfoResponse>(user) with { Roles = roles };
         return Ok(ApiResponse<UserInfoResponse>.Ok(dto));
     }
+
+    [HttpPatch("me/preferences")]
+    [Authorize]
+    [ProducesResponseType(typeof(ApiResponse<UserInfoResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UpdatePreferences([FromBody] UpdatePreferencesRequest request)
+    {
+        var user = await userManager.Users
+            .Include(u => u.Tenant)
+            .FirstOrDefaultAsync(u => u.Id == currentUserService.UserId);
+        if (user is null) return Unauthorized();
+
+        user.TemperatureUnit = request.TemperatureUnit;
+        await userManager.UpdateAsync(user);
+
+        var roles = await userManager.GetRolesAsync(user);
+        var dto = mapper.Map<UserInfoResponse>(user) with { Roles = roles };
+        return Ok(ApiResponse<UserInfoResponse>.Ok(dto, "Preferences updated."));
+    }
 }

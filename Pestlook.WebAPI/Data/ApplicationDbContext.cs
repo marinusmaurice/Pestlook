@@ -53,6 +53,7 @@ public sealed class ApplicationDbContext(
              .OnDelete(DeleteBehavior.Restrict);
             e.Property(u => u.FirstName).HasMaxLength(100);
             e.Property(u => u.LastName).HasMaxLength(100);
+            e.Property(u => u.TemperatureUnit).HasMaxLength(1).HasDefaultValue("C");
             e.HasQueryFilter(u => tenantContext.TenantId == null || u.TenantId == tenantContext.TenantId);
         });
 

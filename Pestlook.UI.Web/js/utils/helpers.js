@@ -110,3 +110,56 @@ export function el(tag, attrs = {}, ...children) {
   }
   return elem;
 }
+
+// ── Temperature helpers ───────────────────────────────────────────────────────
+// Values are always stored as Celsius. These helpers convert for display/input.
+
+/** Convert Celsius to Fahrenheit. */
+export function celsiusToFahrenheit(c) {
+  return (c * 9) / 5 + 32;
+}
+
+/** Convert Fahrenheit to Celsius. */
+export function fahrenheitToCelsius(f) {
+  return ((f - 32) * 5) / 9;
+}
+
+/**
+ * Format a Celsius value for display in the user's preferred unit.
+ * @param {number|null|undefined} celsius - stored value in °C
+ * @param {string} unit - "C" or "F"
+ * @returns {string} e.g. "23.5 °C" or "74.3 °F"
+ */
+export function formatTemperature(celsius, unit) {
+  if (celsius == null) return '—';
+  if (unit === 'F') return `${celsiusToFahrenheit(celsius).toFixed(1)} °F`;
+  return `${Number(celsius).toFixed(1)} °C`;
+}
+
+/**
+ * Convert a user-entered value in their preferred unit to Celsius for storage.
+ * @param {number} value - the number the user typed
+ * @param {string} unit - "C" or "F"
+ * @returns {number} value in Celsius
+ */
+export function toCelsiusForStorage(value, unit) {
+  if (unit === 'F') return fahrenheitToCelsius(value);
+  return value;
+}
+
+/**
+ * Convert a stored Celsius value to the user's preferred unit for input fields.
+ * @param {number|null|undefined} celsius
+ * @param {string} unit - "C" or "F"
+ * @returns {string} numeric string or ''
+ */
+export function celsiusToDisplayValue(celsius, unit) {
+  if (celsius == null) return '';
+  if (unit === 'F') return celsiusToFahrenheit(celsius).toFixed(1);
+  return Number(celsius).toFixed(1);
+}
+
+/** Returns the unit label: "°C" or "°F". */
+export function temperatureUnitLabel(unit) {
+  return unit === 'F' ? '°F' : '°C';
+}

@@ -3,7 +3,8 @@ import { setPageTitle, setTopbarCta } from '../components/topbar.js';
 import { openModal, closeModal } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
 import { tag } from '../components/tag.js';
-import { escapeHtml, formatDateTime, formatTime } from '../utils/helpers.js';
+import { escapeHtml, formatDateTime, formatTime, formatTemperature, toCelsiusForStorage, temperatureUnitLabel } from '../utils/helpers.js';
+import { getUser } from '../utils/storage.js';
 
 export async function renderSessions(container) {
   setPageTitle('Scouting Sessions');
@@ -30,6 +31,7 @@ export async function renderSessions(container) {
 
 function renderTable(sessions, container) {
   const el = document.getElementById('sessionsTable');
+  const unit = getUser()?.temperatureUnit || 'C';
 
   if (sessions.length === 0) {
     el.innerHTML = `<div class="empty-state"><div class="empty-icon">🥾</div><h3>No sessions yet</h3><p>Start a scouting session to begin recording observations</p></div>`;
@@ -42,13 +44,19 @@ function renderTable(sessions, container) {
     const statusTag = isActive ? tag('● Active', 'green') : tag('✓ Complete', 'blue');
     const obsColor = s.observationCount > 20 ? 'var(--red)' : 'var(--amber)';
 
+    const weatherParts = [
+      s.weatherConditions ? escapeHtml(s.weatherConditions) : null,
+      s.temperatureCelsius != null ? formatTemperature(s.temperatureCelsius, unit) : null,
+    ].filter(Boolean);
+    const weatherDisplay = weatherParts.length ? weatherParts.join(', ') : '—';
+
     rows += `
       <tr>
         <td style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text-dim);">${s.id.substring(0, 8)}</td>
         <td><div style="font-weight:500;color:var(--text);">${escapeHtml(s.scouterName || s.scouterId)}</div></td>
         <td style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--text-dim);">${formatDateTime(s.startedAt)}</td>
         <td style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--text-dim);">${s.completedAt ? formatDateTime(s.completedAt) : '—'}</td>
-        <td>${escapeHtml(s.weatherConditions || '—')}</td>
+        <td>${weatherDisplay}</td>
         <td style="font-family:'Fraunces',serif;font-weight:700;font-size:1.1rem;color:${obsColor};">${s.observationCount}</td>
         <td>${statusTag}</td>
         <td>
@@ -84,12 +92,18 @@ function renderTable(sessions, container) {
 }
 
 function showStartSessionModal(listContainer) {
+  const unit = getUser()?.temperatureUnit || 'C';
+  const unitLabel = temperatureUnitLabel(unit);
   const form = document.createElement('div');
   form.innerHTML = `
     <div style="display:flex;flex-direction:column;gap:14px;">
       <div>
         <label class="input-label">Weather Conditions</label>
-        <input class="input-field" type="text" id="sessionWeather" placeholder="e.g. Clear, 24°C, light breeze">
+        <input class="input-field" type="text" id="sessionWeather" placeholder="e.g. Clear, light breeze">
+      </div>
+      <div>
+        <label class="input-label">Temperature (${unitLabel})</label>
+        <input class="input-field" type="number" step="0.1" id="sessionTemp" placeholder="e.g. ${unit === 'F' ? '75' : '24'}">
       </div>
       <div>
         <label class="input-label">Notes (optional)</label>
@@ -110,8 +124,11 @@ function showStartSessionModal(listContainer) {
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>';
     try {
+      const tempRaw = document.getElementById('sessionTemp').value.trim();
+      const temperatureCelsius = tempRaw ? toCelsiusForStorage(parseFloat(tempRaw), unit) : null;
       await startSession({
         weatherConditions: document.getElementById('sessionWeather').value.trim() || null,
+        temperatureCelsius,
         notes: document.getElementById('sessionNotes').value.trim() || null,
       });
       closeModal();

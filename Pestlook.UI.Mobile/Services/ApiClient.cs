@@ -90,8 +90,8 @@ public class ApiClient
     public Task<ApiResult<List<SessionResponse>>> GetSessionsAsync()
         => GetAsync<List<SessionResponse>>("scouting-sessions");
 
-    public Task<ApiResult<SessionResponse>> StartSessionAsync(string? weather = null, string? notes = null)
-        => PostAsync<SessionResponse>("scouting-sessions", new { weatherConditions = weather, notes });
+    public Task<ApiResult<SessionResponse>> StartSessionAsync(string? weather = null, string? notes = null, double? temperatureCelsius = null)
+        => PostAsync<SessionResponse>("scouting-sessions", new { weatherConditions = weather, temperatureCelsius, notes });
 
     public Task<ApiResult<SessionResponse>> GetSessionAsync(Guid id)
         => GetAsync<SessionResponse>($"scouting-sessions/{id}");
@@ -269,6 +269,7 @@ public class UserInfo
     [JsonPropertyName("firstName")] public string FirstName { get; set; } = "";
     [JsonPropertyName("lastName")] public string LastName { get; set; } = "";
     [JsonPropertyName("tenantSlug")] public string TenantSlug { get; set; } = "";
+    [JsonPropertyName("temperatureUnit")] public string TemperatureUnit { get; set; } = "C";
     [JsonPropertyName("roles")] public IList<string> Roles { get; set; } = [];
 }
 
@@ -296,6 +297,7 @@ public class SessionResponse
     [JsonPropertyName("startedAt")] public DateTime StartedAt { get; set; }
     [JsonPropertyName("completedAt")] public DateTime? CompletedAt { get; set; }
     [JsonPropertyName("weatherConditions")] public string? WeatherConditions { get; set; }
+    [JsonPropertyName("temperatureCelsius")] public double? TemperatureCelsius { get; set; }
     [JsonPropertyName("notes")] public string? Notes { get; set; }
     [JsonPropertyName("observationCount")] public int ObservationCount { get; set; }
     public bool IsCompleted => CompletedAt.HasValue;

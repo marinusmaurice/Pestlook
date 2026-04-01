@@ -27,6 +27,7 @@ public sealed class MappingProfile : Profile
                 src.IsActive,
                 src.TenantId,
                 src.Tenant != null ? src.Tenant.Slug : string.Empty,
+                src.TemperatureUnit,
                 []));
 
         CreateMap<Farm, FarmResponse>()

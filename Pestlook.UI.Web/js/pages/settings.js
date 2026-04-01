@@ -1,7 +1,7 @@
 import { getTrapTypes, createTrapType, updateTrapType, deleteTrapType } from '../api/trap-types.js';
 import { getUsers, updateUser } from '../api/roles.js';
-import { registerUser } from '../api/auth.js';
-import { getUser } from '../utils/storage.js';
+import { registerUser, updatePreferences } from '../api/auth.js';
+import { getUser, saveUser } from '../utils/storage.js';
 import { setPageTitle, setTopbarCta } from '../components/topbar.js';
 import { openModal, closeModal } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
@@ -20,6 +20,7 @@ export async function renderSettings(container) {
     <div class="two-col">
       <div>
         <div class="card card-p" style="margin-bottom:16px;" id="settings-org"></div>
+        <div class="card card-p" style="margin-bottom:16px;" id="settings-prefs"></div>
         <div class="card card-p" id="settings-traps">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
             <div class="section-title">Trap Types</div>
@@ -47,6 +48,7 @@ export async function renderSettings(container) {
   `;
 
   renderOrgInfo(container);
+  renderPreferences(container);
   loadTrapTypes(container);
   loadTeamMembers(container);
 
@@ -74,6 +76,57 @@ function renderOrgInfo(container) {
       </div>
     </div>
   `;
+}
+
+function renderPreferences(container) {
+  const user = getUser();
+  const currentUnit = user?.temperatureUnit || 'C';
+  const prefsBox = container.querySelector('#settings-prefs');
+
+  prefsBox.innerHTML = `
+    <div class="section-title" style="margin-bottom:16px;">Preferences</div>
+    <div>
+      <div class="input-label">Temperature Unit</div>
+      <div style="display:flex;gap:8px;margin-top:8px;" id="temp-unit-toggle">
+        <button class="btn-outline temp-unit-btn ${currentUnit === 'C' ? 'active' : ''}" data-unit="C" style="flex:1;justify-content:center;padding:10px;font-size:0.85rem;">
+          🌡️ Celsius (°C)
+        </button>
+        <button class="btn-outline temp-unit-btn ${currentUnit === 'F' ? 'active' : ''}" data-unit="F" style="flex:1;justify-content:center;padding:10px;font-size:0.85rem;">
+          🌡️ Fahrenheit (°F)
+        </button>
+      </div>
+      <div style="font-size:0.7rem;color:var(--text-dim);margin-top:8px;">
+        Temperatures are always stored in Celsius. This setting only affects how values are displayed.
+      </div>
+    </div>
+  `;
+
+  prefsBox.querySelectorAll('.temp-unit-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const unit = btn.dataset.unit;
+      if (unit === currentUnit) return;
+
+      prefsBox.querySelectorAll('.temp-unit-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      btn.disabled = true;
+
+      try {
+        const res = await updatePreferences({ temperatureUnit: unit });
+        // Update the locally cached user
+        const updatedUser = { ...getUser(), temperatureUnit: res.data.temperatureUnit };
+        saveUser(updatedUser);
+        showToast(`Temperature unit set to ${unit === 'F' ? 'Fahrenheit' : 'Celsius'}`);
+        renderPreferences(container);
+      } catch (err) {
+        showToast(err.message || 'Failed to update preference', 'error');
+        // Revert visual state
+        prefsBox.querySelectorAll('.temp-unit-btn').forEach(b => b.classList.remove('active'));
+        prefsBox.querySelector(`[data-unit="${currentUnit}"]`)?.classList.add('active');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
 }
 
 async function loadTrapTypes(container) {

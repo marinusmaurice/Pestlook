@@ -2,10 +2,12 @@ namespace Pestlook.WebAPI.DTOs.ScoutingSessions;
 
 public sealed record StartScoutingSessionRequest(
     string? WeatherConditions,
+    double? TemperatureCelsius,
     string? Notes);
 
 public sealed record CompleteScoutingSessionRequest(
     string? WeatherConditions,
+    double? TemperatureCelsius,
     string? Notes);
 
 public sealed record ScoutingSessionResponse(
@@ -16,9 +18,10 @@ public sealed record ScoutingSessionResponse(
     DateTime StartedAt,
     DateTime? CompletedAt,
     string? WeatherConditions,
+    double? TemperatureCelsius,
     string? Notes,
     DateTime CreatedAt,
     int ObservationCount)
 {
-    public ScoutingSessionResponse() : this(default, default, string.Empty, default, default, default, default, default, default, default) { }
+    public ScoutingSessionResponse() : this(default, default, string.Empty, default, default, default, default, default, default, default, default) { }
 }

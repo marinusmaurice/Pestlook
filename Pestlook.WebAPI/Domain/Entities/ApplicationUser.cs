@@ -12,5 +12,8 @@ public sealed class ApplicationUser : IdentityUser, IHasTenant
     public int FailedLoginAttempts { get; set; }
     public DateTime? LockedUntil { get; set; }
 
+    /// <summary>Display unit for temperatures: "C" (Celsius) or "F" (Fahrenheit). Values are always stored in Celsius.</summary>
+    public string TemperatureUnit { get; set; } = "C";
+
     public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
 }
