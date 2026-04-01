@@ -50,6 +50,11 @@ let currentShell = null; // 'app' | 'auth' | 'landing'
 
 function ensureShell(type) {
   if (currentShell === type) return;
+  if (currentShell === 'landing') {
+    document.getElementById('landing-styles')?.remove();
+    document.getElementById('landing-fa')?.remove();
+    document.getElementById('landing-gfonts')?.remove();
+  }
   currentShell = type;
   if (type === 'app') renderShell();
   else if (type === 'auth') renderAuthShell();

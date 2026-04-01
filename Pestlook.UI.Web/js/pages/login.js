@@ -33,6 +33,9 @@ export function renderLogin(container) {
         <div class="form-footer">
           Don't have an account? <a href="#/signup">Sign up</a>
         </div>
+        <div class="form-footer">
+          <a href="#/">← Back to home</a>
+        </div>
       </div>
   `;
 
