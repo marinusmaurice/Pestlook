@@ -86,6 +86,9 @@ function renderMap(traps) {
   const mapWrap = document.getElementById('trapMapWrap');
   if (!mapWrap) return;
 
+  // Preserve current visibility — only the tab buttons should show/hide the map
+  const wasVisible = mapWrap.style.display === 'block';
+
   // Clean up any previous Leaflet instance
   if (leafletMap) {
     leafletMap.remove();
@@ -96,7 +99,7 @@ function renderMap(traps) {
   const locatedTraps = traps.filter(t => t.latitude && t.longitude);
   if (locatedTraps.length === 0) {
     mapWrap.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-dim);font-size:0.85rem;">No traps with GPS coordinates to display</div>`;
-    mapWrap.style.display = 'block';
+    if (wasVisible) mapWrap.style.display = 'block';
     return;
   }
 
@@ -109,7 +112,7 @@ function renderMap(traps) {
       <span style="margin-left:auto;">📍 ${locatedTraps.length} trap(s) on map · Click a pin to highlight its row</span>
     </div>
   `;
-  mapWrap.style.display = 'block';
+  if (wasVisible) mapWrap.style.display = 'block';
 
   // Initialize Leaflet map
   leafletMap = L.map('trapLeafletMap', { zoomControl: true });

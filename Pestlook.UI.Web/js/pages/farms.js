@@ -97,17 +97,7 @@ function renderFarmGrid(farms, fields, points) {
       </div>`;
   });
 
-  html += `
-    <div class="card add-card" id="addFarmCard">
-      <div style="text-align:center;">
-        <div style="font-size:2rem;margin-bottom:8px;">＋</div>
-        <div style="font-size:0.85rem;color:var(--text-dim);">Add New Farm</div>
-      </div>
-    </div>`;
-
   grid.innerHTML = html;
-
-  document.getElementById('addFarmCard')?.addEventListener('click', () => showCreateFarmModal());
 
   grid.querySelectorAll('[data-manage-farm]').forEach(link => {
     link.addEventListener('click', async (e) => {
