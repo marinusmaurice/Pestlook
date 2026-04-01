@@ -13,8 +13,10 @@ let cachedTraps = [];
 let leafletMap = null;
 let mapMarkers = {};    // trapId → L.marker
 let selectedTrapId = null;
+let currentContainer = null;
 
 export async function renderTraps(container) {
+  currentContainer = container;
   setPageTitle('Traps');
   setTopbarCta('＋ Add Trap', () => showCreateTrapModal(container));
 
@@ -116,6 +118,14 @@ function renderMap(traps) {
 
   // Initialize Leaflet map
   leafletMap = L.map('trapLeafletMap', { zoomControl: true });
+
+  // Right-click on map to quick-add a trap at that location
+  leafletMap.on('contextmenu', (e) => {
+    const latitude = Number(e.latlng.lat.toFixed(6));
+    const longitude = Number(e.latlng.lng.toFixed(6));
+    if (!confirm(`Add a trap at this location?\n\nLat: ${latitude}\nLng: ${longitude}`)) return;
+    showCreateTrapModal(currentContainer, { latitude, longitude });
+  });
 
   // Google-style road tiles (via OpenStreetMap — no API key required)
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -332,7 +342,7 @@ function buildTrapForm(trap) {
         <div><label class="input-label">Latitude</label><input class="input-field" type="number" step="any" id="trapLat" value="${trap?.latitude || ''}"></div>
         <div><label class="input-label">Longitude</label><input class="input-field" type="number" step="any" id="trapLng" value="${trap?.longitude || ''}"></div>
       </div>
-      ${trap ? `<div>
+      ${trap?.id ? `<div>
         <label class="input-label">Status</label>
         <select class="input-field" id="trapEnabled">
           <option value="true" ${trap.isEnabled ? 'selected' : ''}>Enabled</option>
@@ -378,9 +388,13 @@ function getFormValues(isEdit) {
   return data;
 }
 
-function showCreateTrapModal(listContainer) {
-  const form = buildTrapForm(null);
-  openModal({ title: 'Add Trap', subtitle: 'Register a new physical trap with optional barcode and GPS', content: form });
+function showCreateTrapModal(listContainer, presetCoords = null) {
+  const trapPreset = presetCoords ? { latitude: presetCoords.latitude, longitude: presetCoords.longitude } : null;
+  const form = buildTrapForm(trapPreset);
+  const subtitle = presetCoords
+    ? `Register a new trap at ${presetCoords.latitude}, ${presetCoords.longitude}`
+    : 'Register a new physical trap with optional barcode and GPS';
+  openModal({ title: 'Add Trap', subtitle, content: form });
 
   document.getElementById('cancelTrap').addEventListener('click', closeModal);
   document.getElementById('saveTrap').addEventListener('click', async () => {

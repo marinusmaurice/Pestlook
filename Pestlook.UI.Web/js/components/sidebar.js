@@ -9,10 +9,10 @@ const navItems = [
   { section: 'Field Management', items: [
     { id: 'farms', icon: '🌾', label: 'Farms & Fields', path: '/farms' },
     { id: 'traps', icon: '🕸️', label: 'Traps', path: '/traps' },
-    { id: 'monitoring', icon: '📍', label: 'Monitoring Points', path: '/monitoring-points', badgeId: 'mp-badge' },
   ]},
   { section: 'Operations', items: [
     { id: 'sessions', icon: '🥾', label: 'Scouting Sessions', path: '/sessions' },
+    { id: 'monitoring', icon: '📍', label: 'Monitoring Points', path: '/monitoring-points', badgeId: 'mp-badge' },
     { id: 'observations', icon: '🔬', label: 'Observations', path: '/observations', badgeId: 'obs-badge' },
   ]},
   { section: 'Reference', items: [
