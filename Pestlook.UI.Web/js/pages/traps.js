@@ -183,7 +183,10 @@ function renderMap(traps) {
     marker._defaultIcon = icon;
     marker._selectedIcon = selectedIcon;
 
-    marker.on('click', () => selectTrap(t.id));
+    marker.on('click', () => {
+      selectTrap(t.id);
+      leafletMap.flyTo(marker.getLatLng(), 17, { animate: true, duration: 1 });
+    });
 
     mapMarkers[t.id] = marker;
     bounds.extend([t.latitude, t.longitude]);
@@ -294,14 +297,14 @@ function renderTable(traps, filter) {
     });
   });
 
-  // Row click → highlight pin on map
+  // Row click → highlight pin and fly-to on map (only when Map View tab is active)
   el.querySelectorAll('tr[data-trap-id]').forEach(row => {
     row.addEventListener('click', () => {
       const trapId = row.dataset.trapId;
+      const isMapTab = document.querySelector('.tab-btn[data-filter="map"]')?.classList.contains('active');
       selectTrap(trapId);
-      // Pan the map to the selected marker
-      if (leafletMap && mapMarkers[trapId]) {
-        leafletMap.panTo(mapMarkers[trapId].getLatLng(), { animate: true });
+      if (isMapTab && leafletMap && mapMarkers[trapId]) {
+        leafletMap.flyTo(mapMarkers[trapId].getLatLng(), 17, { animate: true, duration: 1 });
       }
     });
   });
