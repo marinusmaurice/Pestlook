@@ -17,5 +17,4 @@ public sealed class Farm : IHasTenant
     public DateTime? DeletedAt { get; set; }
 
     public ICollection<Field> Fields { get; set; } = [];
-    public ICollection<MonitoringPoint> MonitoringPoints { get; set; } = [];
 }

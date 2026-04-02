@@ -1,11 +1,9 @@
 import { getFarms } from '../api/farms.js';
-import { getMonitoringPoints } from '../api/monitoring-points.js';
+import { getTraps } from '../api/traps.js';
 import { getSessions } from '../api/sessions.js';
-import { getObservations } from '../api/observations.js';
 import { getUser } from '../utils/storage.js';
 import { greeting, todayFormatted, formatTime, escapeHtml } from '../utils/helpers.js';
 import { setPageTitle, setTopbarCta } from '../components/topbar.js';
-import { updateQuota, updateBadge } from '../components/sidebar.js';
 import { showToast } from '../components/toast.js';
 import { tag } from '../components/tag.js';
 
@@ -37,37 +35,31 @@ export async function renderDashboard(container) {
   `;
 
   try {
-    const [farmsRes, pointsRes, sessionsRes, obsRes] = await Promise.all([
+    const [farmsRes, trapsRes, sessionsRes] = await Promise.all([
       getFarms(),
-      getMonitoringPoints(),
+      getTraps(),
       getSessions(),
-      getObservations(),
     ]);
 
     const farms = farmsRes.data || [];
-    const points = pointsRes.data || [];
+    const traps = trapsRes.data || [];
     const sessions = sessionsRes.data || [];
-    const observations = obsRes.data || [];
 
-    const activePoints = points.filter(p => p.isActive);
-    const inactivePoints = points.filter(p => !p.isActive);
+    const enabledTraps = traps.filter(t => t.isEnabled);
     const activeSessions = sessions.filter(s => !s.completedAt);
-    const todayObs = observations; // API already returns recent
+    const allObservations = sessions.flatMap(s => s.observations || []);
 
-    updateQuota(activePoints.length, points.length);
-    updateBadge('mp-badge', points.length || '');
-
-    renderStats(farms.length, points.length, activePoints.length, inactivePoints.length, sessions.length, todayObs.length);
+    renderStats(farms.length, traps.length, enabledTraps.length, sessions.length, allObservations.length);
     renderActiveSessions(activeSessions, sessions);
-    renderActivityFeed(observations);
-    renderMap(points);
-    renderTopPests(observations);
+    renderActivityFeed(allObservations);
+    renderMap(traps);
+    renderTopPests(allObservations);
   } catch (err) {
     showToast('Failed to load dashboard: ' + err.message, 'error');
   }
 }
 
-function renderStats(farmCount, pointCount, activePointCount, inactivePointCount, sessionCount, obsCount) {
+function renderStats(farmCount, trapCount, enabledTrapCount, sessionCount, obsCount) {
   document.getElementById('dashStats').innerHTML = `
     <div class="stat-card" style="--accent-color:rgba(109,222,132,0.08);">
       <div class="stat-label">Active Farms</div>
@@ -75,9 +67,9 @@ function renderStats(farmCount, pointCount, activePointCount, inactivePointCount
       <div class="stat-delta">Across your tenant</div>
     </div>
     <div class="stat-card" style="--accent-color:rgba(96,168,224,0.08);">
-      <div class="stat-label">Monitoring Points</div>
-      <div class="stat-value" style="color:var(--blue);">${pointCount}</div>
-      <div class="stat-delta">${activePointCount} active · ${inactivePointCount} inactive</div>
+      <div class="stat-label">Traps</div>
+      <div class="stat-value" style="color:var(--blue);">${trapCount}</div>
+      <div class="stat-delta">${enabledTrapCount} enabled</div>
     </div>
     <div class="stat-card" style="--accent-color:rgba(240,168,64,0.08);">
       <div class="stat-label">Total Sessions</div>
@@ -145,8 +137,7 @@ function renderActivityFeed(observations) {
         <div class="activity-dot" style="background:${dotColor};"></div>
         <div>
           <div style="font-size:0.83rem;color:var(--text);font-weight:500;">${escapeHtml(name)}${obs.count ? ` — <span style="color:var(--amber);">${obs.count} counted</span>` : ''}</div>
-          <div style="font-size:0.72rem;color:var(--text-dim);">${isUnknown ? escapeHtml(obs.unknownPestDescription || '') : ''}</div>
-          <div style="font-size:0.68rem;color:var(--text-dim);margin-top:2px;font-family:'JetBrains Mono',monospace;">${formatTime(obs.observedAt)}</div>
+          <div style="font-size:0.68rem;color:var(--text-dim);margin-top:2px;font-family:'JetBrains Mono',monospace;">${formatTime(obs.createdAt)}</div>
         </div>
       </div>
     `;
@@ -167,29 +158,29 @@ function renderActivityFeed(observations) {
   `;
 }
 
-function renderMap(points) {
+function renderMap(traps) {
   const el = document.getElementById('dashMap');
   let pins = '';
 
-  for (const p of points.slice(0, 12)) {
+  for (const t of traps.slice(0, 12)) {
     const top = 15 + Math.random() * 65;
     const left = 10 + Math.random() * 75;
-    const color = p.isActive ? '#3aad54' : '#708060';
-    const borderColor = p.isActive ? '#6dde84' : '#a0b898';
-    pins += `<div class="map-pin" style="background:${color};border-color:${borderColor};top:${top}%;left:${left}%;" title="${escapeHtml(p.name || 'Point')}"></div>`;
+    const color = t.isEnabled ? '#3aad54' : '#708060';
+    const borderColor = t.isEnabled ? '#6dde84' : '#a0b898';
+    pins += `<div class="map-pin" style="background:${color};border-color:${borderColor};top:${top}%;left:${left}%;" title="${escapeHtml(t.name)}"></div>`;
   }
 
   el.innerHTML = `
     <div class="section-head">
-      <div class="section-title">Field Map</div>
+      <div class="section-title">Trap Map</div>
       ${tag('Live', 'gray')}
     </div>
     <div class="map-area" style="height:240px;">
       <div class="map-grid"></div>
       ${pins}
       <div style="position:absolute;bottom:12px;left:14px;display:flex;gap:12px;font-size:0.65rem;color:var(--text-dim);">
-        <span><span style="color:var(--green);">●</span> Active</span>
-        <span><span style="color:var(--text-dim);">●</span> Inactive</span>
+        <span><span style="color:var(--green);">●</span> Enabled</span>
+        <span><span style="color:var(--text-dim);">●</span> Disabled</span>
       </div>
     </div>
   `;

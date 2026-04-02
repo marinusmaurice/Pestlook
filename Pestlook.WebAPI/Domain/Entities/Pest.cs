@@ -19,5 +19,4 @@ public sealed class Pest : IHasTenant
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? DeletedAt { get; set; }
 
-    public ICollection<MonitoringPointPest> MonitoringPointPests { get; set; } = [];
-}
+    }

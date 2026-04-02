@@ -42,7 +42,8 @@ public sealed record SessionObservationItem(
     double? Longitude,
     bool IsUnknownPest,
     string? Notes,
-    LifeStage? LifeStage);
+    LifeStage? LifeStage,
+    List<string>? PhotoUrls);
 
 // ── Responses ─────────────────────────────────────────────────────────────────
 
@@ -81,7 +82,8 @@ public sealed record SessionObservationResponse(
     bool IsUnknownPest,
     string? Notes,
     LifeStage? LifeStage,
-    int SortOrder)
+    int SortOrder,
+    List<string> PhotoUrls)
 {
-    public SessionObservationResponse() : this(default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default) { }
+    public SessionObservationResponse() : this(default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, []) { }
 }

@@ -3,6 +3,7 @@ using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using Pestlook.WebAPI.Data;
 using Pestlook.WebAPI.Domain.Entities;
 using Pestlook.WebAPI.Domain.Enums;
@@ -26,7 +27,6 @@ public sealed class ScoutingSessionsController(
     private IQueryable<ScoutingSession> FullQuery() =>
         db.ScoutingSessions
           .Include(ss => ss.Scouter)
-          .Include(ss => ss.PestObservations)
           .Include(ss => ss.SessionObservations).ThenInclude(so => so.Trap)
           .Include(ss => ss.SessionObservations).ThenInclude(so => so.Pest);
 
@@ -119,6 +119,7 @@ public sealed class ScoutingSessionsController(
                     IsUnknownPest = item.IsUnknownPest,
                     Notes = item.Notes,
                     LifeStage = item.LifeStage,
+                    PhotoUrlsJson = item.PhotoUrls is { Count: > 0 } ? JsonSerializer.Serialize(item.PhotoUrls) : null,
                     SortOrder = i
                 });
             }
@@ -179,6 +180,7 @@ public sealed class ScoutingSessionsController(
                     IsUnknownPest = item.IsUnknownPest,
                     Notes = item.Notes,
                     LifeStage = item.LifeStage,
+                    PhotoUrlsJson = item.PhotoUrls is { Count: > 0 } ? JsonSerializer.Serialize(item.PhotoUrls) : null,
                     SortOrder = i
                 });
             }
@@ -263,6 +265,7 @@ public sealed class ScoutingSessionsController(
             IsUnknownPest = request.IsUnknownPest,
             Notes = request.Notes,
             LifeStage = request.LifeStage,
+            PhotoUrlsJson = request.PhotoUrls is { Count: > 0 } ? JsonSerializer.Serialize(request.PhotoUrls) : null,
             SortOrder = nextSort + 1
         };
 
@@ -309,6 +312,7 @@ public sealed class ScoutingSessionsController(
         obs.IsUnknownPest = request.IsUnknownPest;
         obs.Notes = request.Notes;
         obs.LifeStage = request.LifeStage;
+        obs.PhotoUrlsJson = request.PhotoUrls is { Count: > 0 } ? JsonSerializer.Serialize(request.PhotoUrls) : null;
 
         await db.SaveChangesAsync(ct);
 

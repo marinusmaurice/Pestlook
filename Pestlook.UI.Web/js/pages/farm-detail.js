@@ -1,6 +1,5 @@
 import { getFarm, updateFarm } from '../api/farms.js';
 import { getFields, createField, updateField, deleteField } from '../api/fields.js';
-import { getMonitoringPoints } from '../api/monitoring-points.js';
 import { setPageTitle, setTopbarCta } from '../components/topbar.js';
 import { openModal, closeModal } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
@@ -20,24 +19,22 @@ export async function renderFarmDetail(container, params) {
   `;
 
   try {
-    const [farmRes, fieldsRes, pointsRes] = await Promise.all([
+    const [farmRes, fieldsRes] = await Promise.all([
       getFarm(farmId),
       getFields(farmId),
-      getMonitoringPoints(farmId),
     ]);
 
     const farm = farmRes.data;
     const fields = fieldsRes.data || [];
-    const points = pointsRes.data || [];
 
     setPageTitle(farm.name);
-    renderDetail(farm, fields, points, container, params);
+    renderDetail(farm, fields, container, params);
   } catch (err) {
     showToast('Failed to load farm: ' + err.message, 'error');
   }
 }
 
-function renderDetail(farm, fields, points, container, params) {
+function renderDetail(farm, fields, container, params) {
   const el = document.getElementById('farmDetail');
 
   const totalHa = fields.reduce((s, f) => s + (parseFloat(f.areaHectares) || 0), 0);
@@ -62,7 +59,6 @@ function renderDetail(farm, fields, points, container, params) {
       </thead>
       <tbody>`;
     for (const f of fields) {
-      const fieldPoints = points.filter(p => p.fieldId === f.id);
       fieldsHtml += `
         <tr>
           <td><div style="font-weight:600;color:#fff;">${escapeHtml(f.name)}</div></td>
@@ -82,8 +78,7 @@ function renderDetail(farm, fields, points, container, params) {
           <td style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--text-dim);">${formatDate(f.createdAt)}</td>
           <td style="text-align:right;">
             <div style="display:flex;gap:6px;justify-content:flex-end;align-items:center;">
-              ${tag(fieldPoints.length + ' pts', 'blue')}
-              <button data-edit-field="${f.id}" style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:5px 11px;color:var(--text-mid);font-size:0.75rem;cursor:pointer;font-family:inherit;">✏ Edit</button>
+              <button data-edit-field="${f.id}"
               <button data-delete-field="${f.id}" style="background:rgba(224,96,96,0.08);border:1px solid rgba(224,96,96,0.2);border-radius:7px;padding:5px 11px;color:var(--red);font-size:0.75rem;cursor:pointer;font-family:inherit;">🗑 Delete</button>
             </div>
           </td>
@@ -109,7 +104,6 @@ function renderDetail(farm, fields, points, container, params) {
           <div style="font-size:0.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;">Total ha</div>
         </div>
         <div style="display:flex;gap:8px;">
-          ${tag(points.length + ' pts', 'blue')}
           <button class="btn-outline" id="editFarmBtn" style="padding:5px 12px;font-size:0.78rem;">✏️ Edit Farm</button>
         </div>
       </div>

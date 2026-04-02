@@ -26,7 +26,6 @@ public sealed class TrapsController(
     {
         var query = db.Traps
             .Include(t => t.TrapType)
-            .Include(t => t.MonitoringPoint)
             .AsQueryable();
 
         if (enabled.HasValue)
@@ -43,7 +42,6 @@ public sealed class TrapsController(
     {
         var trap = await db.Traps
             .Include(t => t.TrapType)
-            .Include(t => t.MonitoringPoint)
             .FirstOrDefaultAsync(t => t.Id == id, ct);
         if (trap is null) return NotFound(ApiResponse<object>.Fail("Trap not found."));
         return Ok(ApiResponse<TrapResponse>.Ok(mapper.Map<TrapResponse>(trap)));
@@ -56,7 +54,6 @@ public sealed class TrapsController(
     {
         var trap = await db.Traps
             .Include(t => t.TrapType)
-            .Include(t => t.MonitoringPoint)
             .FirstOrDefaultAsync(t => t.Barcode == barcode, ct);
         if (trap is null) return NotFound(ApiResponse<object>.Fail("Trap not found."));
         return Ok(ApiResponse<TrapResponse>.Ok(mapper.Map<TrapResponse>(trap)));
@@ -82,7 +79,6 @@ public sealed class TrapsController(
             Name = request.Name,
             Barcode = request.Barcode,
             TrapTypeId = request.TrapTypeId,
-            MonitoringPointId = request.MonitoringPointId,
             Latitude = request.Latitude,
             Longitude = request.Longitude,
             Notes = request.Notes
@@ -93,7 +89,6 @@ public sealed class TrapsController(
 
         var created = await db.Traps
             .Include(t => t.TrapType)
-            .Include(t => t.MonitoringPoint)
             .FirstAsync(t => t.Id == trap.Id, ct);
 
         return CreatedAtAction(nameof(GetById), new { id = trap.Id },
@@ -107,7 +102,6 @@ public sealed class TrapsController(
     {
         var trap = await db.Traps
             .Include(t => t.TrapType)
-            .Include(t => t.MonitoringPoint)
             .FirstOrDefaultAsync(t => t.Id == id, ct);
         if (trap is null) return NotFound(ApiResponse<object>.Fail("Trap not found."));
 
@@ -120,7 +114,6 @@ public sealed class TrapsController(
         trap.Name = request.Name;
         trap.Barcode = request.Barcode;
         trap.TrapTypeId = request.TrapTypeId;
-        trap.MonitoringPointId = request.MonitoringPointId;
         trap.Latitude = request.Latitude;
         trap.Longitude = request.Longitude;
         trap.IsEnabled = request.IsEnabled;
@@ -138,7 +131,6 @@ public sealed class TrapsController(
     {
         var trap = await db.Traps
             .Include(t => t.TrapType)
-            .Include(t => t.MonitoringPoint)
             .FirstOrDefaultAsync(t => t.Id == id, ct);
         if (trap is null) return NotFound(ApiResponse<object>.Fail("Trap not found."));
 

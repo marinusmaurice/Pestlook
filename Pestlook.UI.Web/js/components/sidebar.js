@@ -12,8 +12,6 @@ const navItems = [
   ]},
   { section: 'Operations', items: [
     { id: 'sessions', icon: '🥾', label: 'Scouting Sessions', path: '/sessions' },
-    { id: 'monitoring', icon: '📍', label: 'Monitoring Points', path: '/monitoring-points', badgeId: 'mp-badge' },
-    { id: 'observations', icon: '🔬', label: 'Observations', path: '/observations', badgeId: 'obs-badge' },
   ]},
   { section: 'Reference', items: [
     { id: 'pests', icon: '🦗', label: 'Pest Catalogue', path: '/pests' },
@@ -53,11 +51,6 @@ export function renderSidebar(container) {
 
   html += `
     <div class="sidebar-bottom">
-      <div class="quota-box">
-        <div style="font-size:0.7rem;color:var(--text-dim);margin-bottom:4px;">Monitoring Points Used</div>
-        <div class="progress-bar" style="margin-bottom:4px;"><div class="progress-fill" id="quota-fill" style="width:0%"></div></div>
-        <div style="font-size:0.7rem;color:var(--green);font-family:'JetBrains Mono',monospace;" id="quota-text">— / —</div>
-      </div>
       <div class="user-chip" onclick="location.hash='#/settings'">
         <div class="user-avatar">${userInitials}</div>
         <div>

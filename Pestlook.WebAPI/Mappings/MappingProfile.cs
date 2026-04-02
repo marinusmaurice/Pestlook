@@ -5,8 +5,6 @@ using Pestlook.WebAPI.DTOs.Auth;
 using Pestlook.WebAPI.DTOs.BillingSnapshots;
 using Pestlook.WebAPI.DTOs.Farms;
 using Pestlook.WebAPI.DTOs.Fields;
-using Pestlook.WebAPI.DTOs.MonitoringPoints;
-using Pestlook.WebAPI.DTOs.PestObservations;
 using Pestlook.WebAPI.DTOs.Pests;
 using Pestlook.WebAPI.DTOs.ScoutingSessions;
 using Pestlook.WebAPI.DTOs.Traps;
@@ -39,33 +37,19 @@ public sealed class MappingProfile : Profile
         CreateMap<TrapType, TrapTypeResponse>()
             .ConstructUsing(_ => new TrapTypeResponse());
 
-        CreateMap<MonitoringPoint, MonitoringPointResponse>()
-            .ForMember(d => d.TrapTypeName, o => o.MapFrom(s => s.TrapType != null ? s.TrapType.Name : null))
-            .ForMember(d => d.AssignedPests, o => o.MapFrom(s => s.MonitoringPointPests));
-
-        CreateMap<MonitoringPointPest, AssignedPestSummary>()
-            .ConstructUsing(_ => new AssignedPestSummary())
-            .ForMember(d => d.MonitoringPointPestId, o => o.MapFrom(s => s.Id))
-            .ForMember(d => d.PestName, o => o.MapFrom(s => s.Pest != null ? s.Pest.CommonName : string.Empty));
-
         CreateMap<Pest, PestResponse>()
             .ConstructUsing(_ => new PestResponse());
 
         CreateMap<ScoutingSession, ScoutingSessionResponse>()
             .ConstructUsing(_ => new ScoutingSessionResponse())
-            .ForMember(d => d.ObservationCount, o => o.MapFrom(s => s.PestObservations.Count))
+            .ForMember(d => d.ObservationCount, o => o.MapFrom(s => s.SessionObservations.Count))
             .ForMember(d => d.ScouterName, o => o.MapFrom(s => s.Scouter != null ? s.Scouter.FirstName + " " + s.Scouter.LastName : null))
             .ForMember(d => d.Observations, o => o.MapFrom(s => s.SessionObservations));
 
         CreateMap<SessionObservation, SessionObservationResponse>()
             .ConstructUsing(_ => new SessionObservationResponse())
             .ForMember(d => d.TrapName, o => o.MapFrom(s => s.Trap != null ? s.Trap.Name : null))
-            .ForMember(d => d.PestName, o => o.MapFrom(s => s.Pest != null ? s.Pest.CommonName : null));
-
-        CreateMap<PestObservation, PestObservationResponse>()
-            .ConstructUsing(_ => new PestObservationResponse())
             .ForMember(d => d.PestName, o => o.MapFrom(s => s.Pest != null ? s.Pest.CommonName : null))
-            .ForMember(d => d.TrapName, o => o.MapFrom(s => s.Trap != null ? s.Trap.Name : null))
             .ForMember(d => d.PhotoUrls, o => o.MapFrom(s =>
                 s.PhotoUrlsJson != null
                     ? JsonSerializer.Deserialize<List<string>>(s.PhotoUrlsJson, (JsonSerializerOptions?)null) ?? new List<string>()
@@ -73,8 +57,7 @@ public sealed class MappingProfile : Profile
 
         CreateMap<Trap, TrapResponse>()
             .ConstructUsing(_ => new TrapResponse())
-            .ForMember(d => d.TrapTypeName, o => o.MapFrom(s => s.TrapType != null ? s.TrapType.Name : null))
-            .ForMember(d => d.MonitoringPointName, o => o.MapFrom(s => s.MonitoringPoint != null ? s.MonitoringPoint.Name : null));
+            .ForMember(d => d.TrapTypeName, o => o.MapFrom(s => s.TrapType != null ? s.TrapType.Name : null));
 
         CreateMap<BillingSnapshot, BillingSnapshotResponse>()
             .ConstructUsing(_ => new BillingSnapshotResponse());

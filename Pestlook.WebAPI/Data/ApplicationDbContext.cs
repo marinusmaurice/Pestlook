@@ -24,11 +24,8 @@ public sealed class ApplicationDbContext(
     public DbSet<Farm> Farms => Set<Farm>();
     public DbSet<Field> Fields => Set<Field>();
     public DbSet<TrapType> TrapTypes => Set<TrapType>();
-    public DbSet<MonitoringPoint> MonitoringPoints => Set<MonitoringPoint>();
     public DbSet<Pest> Pests => Set<Pest>();
-    public DbSet<MonitoringPointPest> MonitoringPointPests => Set<MonitoringPointPest>();
     public DbSet<ScoutingSession> ScoutingSessions => Set<ScoutingSession>();
-    public DbSet<PestObservation> PestObservations => Set<PestObservation>();
     public DbSet<Trap> Traps => Set<Trap>();
     public DbSet<SessionObservation> SessionObservations => Set<SessionObservation>();
     public DbSet<BillingSnapshot> BillingSnapshots => Set<BillingSnapshot>();
@@ -148,35 +145,6 @@ public sealed class ApplicationDbContext(
             );
         });
 
-        builder.Entity<MonitoringPoint>(e =>
-        {
-            e.HasKey(mp => mp.Id);
-            e.Property(mp => mp.Name).HasMaxLength(200);
-            e.Property(mp => mp.Notes).HasMaxLength(1000);
-            e.Property(mp => mp.PointType).HasConversion<string>().HasMaxLength(50).IsRequired();
-            // FarmId is nullable — scouts can create transient points without a farm.
-            // NoAction avoids multiple-cascade-path conflict with Farm→Field→MonitoringPoint.
-            // Farms use soft-delete so hard cascades rarely apply.
-            e.HasOne(mp => mp.Farm)
-             .WithMany(f => f.MonitoringPoints)
-             .HasForeignKey(mp => mp.FarmId)
-             .OnDelete(DeleteBehavior.NoAction);
-            e.HasOne(mp => mp.Field)
-             .WithMany(f => f.MonitoringPoints)
-             .HasForeignKey(mp => mp.FieldId)
-             .OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(mp => mp.TrapType)
-             .WithMany(tt => tt.MonitoringPoints)
-             .HasForeignKey(mp => mp.TrapTypeId)
-             .OnDelete(DeleteBehavior.SetNull);
-            e.HasOne(mp => mp.CreatedBy)
-             .WithMany()
-             .HasForeignKey(mp => mp.CreatedByUserId)
-             .OnDelete(DeleteBehavior.SetNull);
-            e.HasQueryFilter(mp => mp.DeletedAt == null &&
-                (tenantContext.TenantId == null || mp.TenantId == tenantContext.TenantId));
-        });
-
         builder.Entity<Pest>(e =>
         {
             e.HasKey(p => p.Id);
@@ -194,25 +162,6 @@ public sealed class ApplicationDbContext(
              .HasFilter("[DeletedAt] IS NULL");
             e.HasQueryFilter(p => p.DeletedAt == null &&
                 (tenantContext.TenantId == null || p.TenantId == tenantContext.TenantId));
-        });
-
-        builder.Entity<MonitoringPointPest>(e =>
-        {
-            e.HasKey(mpp => mpp.Id);
-            e.HasOne(mpp => mpp.MonitoringPoint)
-             .WithMany(mp => mp.MonitoringPointPests)
-             .HasForeignKey(mpp => mpp.MonitoringPointId)
-             .OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(mpp => mpp.Pest)
-             .WithMany(p => p.MonitoringPointPests)
-             .HasForeignKey(mpp => mpp.PestId)
-             .OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(mpp => mpp.AssignedBy)
-             .WithMany()
-             .HasForeignKey(mpp => mpp.AssignedByUserId)
-             .OnDelete(DeleteBehavior.SetNull);
-            e.HasIndex(mpp => new { mpp.MonitoringPointId, mpp.PestId }).IsUnique();
-            e.HasQueryFilter(mpp => mpp.DeletedAt == null);
         });
 
         builder.Entity<ScoutingSession>(e =>
@@ -240,6 +189,7 @@ public sealed class ApplicationDbContext(
             e.Property(so => so.CaptureMode).HasConversion<string>().HasMaxLength(50);
             e.Property(so => so.LifeStage).HasConversion<string>().HasMaxLength(50);
             e.Property(so => so.Notes).HasMaxLength(1000);
+            e.Property(so => so.PhotoUrlsJson).HasMaxLength(2000);
             e.HasOne(so => so.Session)
              .WithMany(ss => ss.SessionObservations)
              .HasForeignKey(so => so.SessionId)
@@ -255,34 +205,6 @@ public sealed class ApplicationDbContext(
             e.HasQueryFilter(so => tenantContext.TenantId == null || so.TenantId == tenantContext.TenantId);
         });
 
-        builder.Entity<PestObservation>(e =>
-        {
-            e.HasKey(o => o.Id);
-            e.Property(o => o.UnknownPestDescription).HasMaxLength(500);
-            e.Property(o => o.LifeStage).HasMaxLength(100);
-            e.Property(o => o.Notes).HasMaxLength(1000);
-            e.Property(o => o.CaptureMode).HasConversion<string>().HasMaxLength(50);
-            e.HasOne(o => o.Session)
-             .WithMany(ss => ss.PestObservations)
-             .HasForeignKey(o => o.SessionId)
-             .OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(o => o.MonitoringPoint)
-             .WithMany(mp => mp.PestObservations)
-             .HasForeignKey(o => o.MonitoringPointId)
-             .OnDelete(DeleteBehavior.Restrict);
-            e.HasOne(o => o.Pest)
-             .WithMany()
-             .HasForeignKey(o => o.PestId)
-             .OnDelete(DeleteBehavior.SetNull);
-            e.HasOne(o => o.Trap)
-             .WithMany()
-             .HasForeignKey(o => o.TrapId)
-             .OnDelete(DeleteBehavior.SetNull);
-            e.HasIndex(o => new { o.MonitoringPointId, o.ObservedAt });
-            e.HasQueryFilter(o => o.DeletedAt == null &&
-                (tenantContext.TenantId == null || o.TenantId == tenantContext.TenantId));
-        });
-
         builder.Entity<Trap>(e =>
         {
             e.HasKey(t => t.Id);
@@ -294,10 +216,6 @@ public sealed class ApplicationDbContext(
             e.HasOne(t => t.TrapType)
              .WithMany()
              .HasForeignKey(t => t.TrapTypeId)
-             .OnDelete(DeleteBehavior.SetNull);
-            e.HasOne(t => t.MonitoringPoint)
-             .WithMany()
-             .HasForeignKey(t => t.MonitoringPointId)
              .OnDelete(DeleteBehavior.SetNull);
             e.HasQueryFilter(t => t.DeletedAt == null &&
                 (tenantContext.TenantId == null || t.TenantId == tenantContext.TenantId));

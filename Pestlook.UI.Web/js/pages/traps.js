@@ -1,6 +1,5 @@
 import { getTraps, createTrap, updateTrap, toggleTrap, deleteTrap } from '../api/traps.js';
 import { getTrapTypes } from '../api/trap-types.js';
-import { getMonitoringPoints } from '../api/monitoring-points.js';
 import { setPageTitle, setTopbarCta } from '../components/topbar.js';
 import { openModal, closeModal } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
@@ -8,7 +7,6 @@ import { tag } from '../components/tag.js';
 import { escapeHtml, formatDateTime } from '../utils/helpers.js';
 
 let cachedTrapTypes = [];
-let cachedMonitoringPoints = [];
 let cachedTraps = [];
 let leafletMap = null;
 let mapMarkers = {};    // trapId → L.marker
@@ -33,15 +31,13 @@ export async function renderTraps(container) {
   `;
 
   try {
-    const [trapsRes, typesRes, mpRes] = await Promise.all([
+    const [trapsRes, typesRes] = await Promise.all([
       getTraps(),
       getTrapTypes(),
-      getMonitoringPoints(),
     ]);
 
     cachedTraps = trapsRes.data || [];
     cachedTrapTypes = typesRes.data || [];
-    cachedMonitoringPoints = mpRes.data || [];
 
     renderTabs(cachedTraps);
     renderTable(cachedTraps, 'all');
@@ -245,7 +241,6 @@ function renderTable(traps, filter) {
         </td>
         <td style="font-size:0.8rem;color:var(--text-mid);">${escapeHtml(t.trapTypeName || '—')}</td>
         <td style="font-size:0.78rem;color:var(--text-dim);font-family:'JetBrains Mono',monospace;">${coords}</td>
-        <td style="font-size:0.8rem;color:var(--text-mid);">${escapeHtml(t.monitoringPointName || '—')}</td>
         <td>${statusTag}</td>
         <td>
           <div style="display:flex;gap:6px;">
@@ -260,7 +255,7 @@ function renderTable(traps, filter) {
 
   el.innerHTML = `
     <table class="data-table">
-      <thead><tr><th>Trap</th><th>Type</th><th>Location</th><th>Monitoring Point</th><th>Status</th><th style="width:100px;"></th></tr></thead>
+      <thead><tr><th>Trap</th><th>Type</th><th>Location</th><th>Status</th><th style="width:100px;"></th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
   `;
@@ -320,7 +315,6 @@ async function reloadTraps(tableEl) {
 
 function buildTrapForm(trap) {
   const typeOptions = `<option value="">None</option>` + cachedTrapTypes.map(t => `<option value="${t.id}" ${trap && trap.trapTypeId === t.id ? 'selected' : ''}>${escapeHtml(t.name)}</option>`).join('');
-  const mpOptions = `<option value="">None</option>` + cachedMonitoringPoints.map(mp => `<option value="${mp.id}" ${trap && trap.monitoringPointId === mp.id ? 'selected' : ''}>${escapeHtml(mp.name || 'Unnamed')} (${mp.latitude.toFixed(2)}, ${mp.longitude.toFixed(2)})</option>`).join('');
 
   const form = document.createElement('div');
   form.innerHTML = `
@@ -336,10 +330,6 @@ function buildTrapForm(trap) {
       <div>
         <label class="input-label">Trap Type</label>
         <select class="input-field" id="trapType">${typeOptions}</select>
-      </div>
-      <div>
-        <label class="input-label">Monitoring Point</label>
-        <select class="input-field" id="trapMp">${mpOptions}</select>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div><label class="input-label">Latitude</label><input class="input-field" type="number" step="any" id="trapLat" value="${trap?.latitude || ''}"></div>
@@ -369,7 +359,6 @@ function getFormValues(isEdit) {
   const name = document.getElementById('trapName').value.trim();
   const barcode = document.getElementById('trapBarcode').value.trim() || null;
   const trapTypeId = document.getElementById('trapType').value || null;
-  const monitoringPointId = document.getElementById('trapMp').value || null;
   const lat = document.getElementById('trapLat').value;
   const lng = document.getElementById('trapLng').value;
   const notes = document.getElementById('trapNotes').value.trim() || null;
@@ -378,7 +367,6 @@ function getFormValues(isEdit) {
     name,
     barcode,
     trapTypeId,
-    monitoringPointId,
     latitude: lat ? parseFloat(lat) : null,
     longitude: lng ? parseFloat(lng) : null,
     notes,

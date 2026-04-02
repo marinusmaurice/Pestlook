@@ -27,6 +27,5 @@ public sealed class ScoutingSession : IHasTenant
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? DeletedAt { get; set; }
 
-    public ICollection<PestObservation> PestObservations { get; set; } = [];
     public ICollection<SessionObservation> SessionObservations { get; set; } = [];
 }

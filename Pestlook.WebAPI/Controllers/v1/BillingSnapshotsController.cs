@@ -65,8 +65,8 @@ public sealed class BillingSnapshotsController(
         if (alreadyExists)
             return Conflict(ApiResponse<object>.Fail($"A snapshot for {year}-{month:D2} already exists."));
 
-        var activePointCount = await db.MonitoringPoints
-            .CountAsync(mp => mp.IsActive, ct);
+        var activePointCount = await db.Traps
+            .CountAsync(t => t.IsEnabled, ct);
 
         var snapshot = new BillingSnapshot
         {

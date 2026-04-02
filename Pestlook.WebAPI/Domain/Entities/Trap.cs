@@ -14,10 +14,6 @@ public sealed class Trap : IHasTenant
     public Guid? TrapTypeId { get; set; }
     public TrapType? TrapType { get; set; }
 
-    /// <summary>Optional link to a monitoring point where the trap is deployed.</summary>
-    public Guid? MonitoringPointId { get; set; }
-    public MonitoringPoint? MonitoringPoint { get; set; }
-
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
 

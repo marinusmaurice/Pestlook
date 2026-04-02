@@ -16,5 +16,4 @@ public sealed class Field : IHasTenant
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? DeletedAt { get; set; }
 
-    public ICollection<MonitoringPoint> MonitoringPoints { get; set; } = [];
-}
+    }

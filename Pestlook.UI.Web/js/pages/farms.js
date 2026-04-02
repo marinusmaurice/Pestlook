@@ -1,6 +1,5 @@
 import { getFarms, createFarm, updateFarm, deleteFarm } from '../api/farms.js';
 import { getFields, createField, updateField, deleteField } from '../api/fields.js';
-import { getMonitoringPoints } from '../api/monitoring-points.js';
 import { setPageTitle, setTopbarCta } from '../components/topbar.js';
 import { openModal, closeModal } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
@@ -35,26 +34,24 @@ let _container = null;
 
 async function loadAndRenderGrid() {
   try {
-    const [farmsRes, fieldsRes, pointsRes] = await Promise.all([
+    const [farmsRes, fieldsRes] = await Promise.all([
       getFarms(),
       getFields(),
-      getMonitoringPoints(),
     ]);
-    renderFarmGrid(farmsRes.data || [], fieldsRes.data || [], pointsRes.data || []);
+    renderFarmGrid(farmsRes.data || [], fieldsRes.data || []);
   } catch (err) {
     showToast('Failed to load farms: ' + err.message, 'error');
   }
 }
 
 // ── Farm grid ─────────────────────────────────────────────────
-function renderFarmGrid(farms, fields, points) {
+function renderFarmGrid(farms, fields) {
   const grid = document.getElementById('farmsGrid');
   if (!grid) return;
 
   let html = '';
   farms.forEach((farm, i) => {
     const farmFields = fields.filter(f => f.farmId === farm.id);
-    const farmPoints = points.filter(p => p.farmId === farm.id);
     const c     = farmColors[i % farmColors.length];
     const emoji = farmEmojis[i % farmEmojis.length];
     const totalHa = farmFields.reduce((s, f) => s + (parseFloat(f.areaHectares) || 0), 0);
@@ -75,14 +72,10 @@ function renderFarmGrid(farms, fields, points) {
             ${farm.isActive !== false ? tag('Active', 'green') : tag('Inactive', 'red')}
           </div>
           <div style="font-size:0.78rem;color:var(--text-dim);margin-bottom:12px;">📍 ${escapeHtml(farm.address || 'No address')}</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div style="display:grid;grid-template-columns:1fr;gap:8px;">
             <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;">
               <div style="font-size:0.65rem;color:var(--text-dim);margin-bottom:2px;text-transform:uppercase;letter-spacing:0.06em;">Fields</div>
               <div style="font-family:'Fraunces',serif;font-weight:700;color:var(--green);font-size:1.2rem;">${farmFields.length}</div>
-            </div>
-            <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;">
-              <div style="font-size:0.65rem;color:var(--text-dim);margin-bottom:2px;text-transform:uppercase;letter-spacing:0.06em;">Mon. Points</div>
-              <div style="font-family:'Fraunces',serif;font-weight:700;color:var(--blue);font-size:1.2rem;">${farmPoints.length}</div>
             </div>
           </div>
           <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
@@ -146,11 +139,10 @@ async function openFarmFields(farm, farmIdx) {
   fieldsPanel.innerHTML = `<div class="skeleton skeleton-card" style="height:300px;margin-bottom:16px;"></div>`;
 
   try {
-    const [fieldsRes, pointsRes] = await Promise.all([
+    const [fieldsRes] = await Promise.all([
       getFields(farm.id),
-      getMonitoringPoints(farm.id),
     ]);
-    renderFieldsPanel(farm, farmIdx, fieldsRes.data || [], pointsRes.data || []);
+    renderFieldsPanel(farm, farmIdx, fieldsRes.data || []);
   } catch (err) {
     showToast('Failed to load fields: ' + err.message, 'error');
   }
@@ -164,7 +156,7 @@ function closeFarmFields() {
   loadAndRenderGrid();
 }
 
-function renderFieldsPanel(farm, farmIdx, fields, points) {
+function renderFieldsPanel(farm, farmIdx, fields) {
   const emoji     = farmEmojis[farmIdx % farmEmojis.length];
   const totalHa   = fields.reduce((s, f) => s + (parseFloat(f.areaHectares) || 0), 0);
   const haDisplay = totalHa % 1 === 0 ? totalHa : totalHa.toFixed(1);
@@ -188,7 +180,6 @@ function renderFieldsPanel(farm, farmIdx, fields, points) {
       </thead>
       <tbody>`;
     for (const f of fields) {
-      const pts = points.filter(p => p.fieldId === f.id);
       fieldsHtml += `
         <tr>
           <td><div style="font-weight:600;color:#fff;">${escapeHtml(f.name)}</div></td>
@@ -209,8 +200,7 @@ function renderFieldsPanel(farm, farmIdx, fields, points) {
           <td style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--text-dim);">${formatDate(f.createdAt)}</td>
           <td style="text-align:right;">
             <div style="display:flex;gap:6px;justify-content:flex-end;align-items:center;">
-              ${tag(pts.length + ' pts', 'blue')}
-              <button data-edit-field="${f.id}" style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:5px 11px;color:var(--text-mid);font-size:0.75rem;cursor:pointer;font-family:inherit;">✏ Edit</button>
+              <button data-edit-field="${f.id}"
               <button data-delete-field="${f.id}" style="background:rgba(224,96,96,0.08);border:1px solid rgba(224,96,96,0.2);border-radius:7px;padding:5px 11px;color:var(--red);font-size:0.75rem;cursor:pointer;font-family:inherit;">🗑 Delete</button>
             </div>
           </td>
@@ -244,7 +234,6 @@ function renderFieldsPanel(farm, farmIdx, fields, points) {
           <div style="font-size:0.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;">Total ha</div>
         </div>
         <div style="display:flex;gap:8px;">
-          ${tag(points.length + ' pts', 'blue')}
           <button id="editFarmBannerBtn" class="btn-outline" style="padding:5px 12px;font-size:0.78rem;">✏️ Edit Farm</button>
         </div>
       </div>
