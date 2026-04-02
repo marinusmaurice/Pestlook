@@ -6,7 +6,7 @@ import { setPageTitle, setTopbarCta } from '../components/topbar.js';
 import { openModal, closeModal } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
 import { tag } from '../components/tag.js';
-import { escapeHtml, formatDateTime, formatTemperature, LifeStageValues } from '../utils/helpers.js';
+import { escapeHtml, formatDateTime, formatTemperature } from '../utils/helpers.js';
 import { getUser } from '../utils/storage.js';
 import { navigate } from '../utils/router.js';
 
@@ -173,13 +173,6 @@ function showPlannedSessionModal(listContainer, existing = null) {
         trapId: o.trapId || '',
         pestId: o.pestId || '',
         captureMode: o.captureMode ?? '',
-        count: o.count ?? '',
-        isPresent: o.isPresent ?? '',
-        latitude: o.latitude ?? '',
-        longitude: o.longitude ?? '',
-        isUnknownPest: o.isUnknownPest || false,
-        notes: o.notes || '',
-        lifeStage: o.lifeStage ?? '',
       }))
     : [];
 
@@ -231,39 +224,27 @@ function showPlannedSessionModal(listContainer, existing = null) {
     items.forEach((item, idx) => {
       const isTrap = item.observationType === 'Trap';
       const row = document.createElement('div');
-      row.style.cssText = 'display:flex;gap:8px;align-items:center;padding:8px 10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);';
+      row.style.cssText = 'display:flex;gap:8px;align-items:flex-start;padding:8px 10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);';
       row.innerHTML = `
-        <div style="display:flex;gap:8px;align-items:center;">
-          <span style="font-size:0.7rem;font-weight:600;color:${isTrap ? 'var(--green)' : 'var(--amber)'};min-width:40px;">${isTrap ? '🪤 Trap' : '👁 Obs'}</span>
+        <span style="font-size:0.7rem;font-weight:600;color:${isTrap ? 'var(--green)' : 'var(--amber)'};min-width:40px;padding-top:6px;">${isTrap ? '🪤 Trap' : '👁 Obs'}</span>
+        <div style="display:flex;flex-direction:column;gap:6px;flex:1;">
           ${isTrap ? `
-            <select class="input-field" style="flex:2;font-size:0.78rem;padding:4px 8px;" data-field="trapId" data-idx="${idx}">
+            <select class="input-field" style="font-size:0.78rem;" data-field="trapId" data-idx="${idx}">
               <option value="">— Select trap —</option>
               ${cachedTraps.map(t => `<option value="${t.id}" ${item.trapId === t.id ? 'selected' : ''}>${escapeHtml(t.name)}${t.barcode ? ' (' + escapeHtml(t.barcode) + ')' : ''}</option>`).join('')}
             </select>
           ` : ''}
-          <select class="input-field" style="flex:2;font-size:0.78rem;padding:4px 8px;" data-field="pestId" data-idx="${idx}">
+          <select class="input-field" style="font-size:0.78rem;" data-field="pestId" data-idx="${idx}">
             <option value="">— Any pest —</option>
             ${cachedPests.map(p => `<option value="${p.id}" ${item.pestId === p.id ? 'selected' : ''}>${escapeHtml(p.commonName)}</option>`).join('')}
           </select>
-          <select class="input-field" style="flex:1;font-size:0.78rem;padding:4px 8px;" data-field="captureMode" data-idx="${idx}">
-            <option value="">—</option>
+          <select class="input-field" style="font-size:0.78rem;" data-field="captureMode" data-idx="${idx}">
+            <option value="">— Capture mode —</option>
             <option value="Count" ${item.captureMode === 'Count' || item.captureMode === 0 ? 'selected' : ''}>Count</option>
             <option value="Presence" ${item.captureMode === 'Presence' || item.captureMode === 1 ? 'selected' : ''}>Presence</option>
           </select>
-          <button style="background:none;border:none;color:var(--red);cursor:pointer;font-size:1rem;padding:4px;" data-remove="${idx}" title="Remove">×</button>
         </div>
-        <div style="display:flex;gap:8px;align-items:center;margin-top:6px;padding-left:48px;flex-wrap:wrap;">
-          <input class="input-field" style="width:70px;font-size:0.75rem;padding:4px 6px;" type="number" placeholder="Count" data-field="count" data-idx="${idx}" value="${item.count}">
-          <label style="font-size:0.72rem;color:var(--text-dim);display:flex;align-items:center;gap:4px;"><input type="checkbox" data-field="isPresent" data-idx="${idx}" ${item.isPresent === true ? 'checked' : ''}> Present</label>
-          <select class="input-field" style="width:90px;font-size:0.75rem;padding:4px 6px;" data-field="lifeStage" data-idx="${idx}">
-            <option value="">Stage…</option>
-            ${Object.keys(LifeStageValues).map(ls => `<option value="${ls}" ${item.lifeStage === ls ? 'selected' : ''}>${ls}</option>`).join('')}
-          </select>
-          <input class="input-field" style="width:80px;font-size:0.75rem;padding:4px 6px;" type="number" step="any" placeholder="Lat" data-field="latitude" data-idx="${idx}" value="${item.latitude}">
-          <input class="input-field" style="width:80px;font-size:0.75rem;padding:4px 6px;" type="number" step="any" placeholder="Lng" data-field="longitude" data-idx="${idx}" value="${item.longitude}">
-          <label style="font-size:0.72rem;color:var(--text-dim);display:flex;align-items:center;gap:4px;"><input type="checkbox" data-field="isUnknownPest" data-idx="${idx}" ${item.isUnknownPest ? 'checked' : ''}> Unknown pest</label>
-          <input class="input-field" style="flex:1;min-width:100px;font-size:0.75rem;padding:4px 6px;" type="text" placeholder="Notes" data-field="notes" data-idx="${idx}" value="${escapeHtml(item.notes)}">
-        </div>
+        <button style="background:none;border:none;color:var(--red);cursor:pointer;font-size:1rem;padding:4px;align-self:flex-start;" data-remove="${idx}" title="Remove">×</button>
       `;
       listEl.appendChild(row);
     });
@@ -294,11 +275,11 @@ function showPlannedSessionModal(listContainer, existing = null) {
   renderItems();
 
   document.getElementById('addTrapItem').addEventListener('click', () => {
-    items.push({ observationType: 'Trap', trapId: '', pestId: '', captureMode: '', count: '', isPresent: '', latitude: '', longitude: '', isUnknownPest: false, notes: '', lifeStage: '' });
+    items.push({ observationType: 'Trap', trapId: '', pestId: '', captureMode: '' });
     renderItems();
   });
   document.getElementById('addAdHocItem').addEventListener('click', () => {
-    items.push({ observationType: 'AdHoc', trapId: '', pestId: '', captureMode: '', count: '', isPresent: '', latitude: '', longitude: '', isUnknownPest: false, notes: '', lifeStage: '' });
+    items.push({ observationType: 'AdHoc', trapId: '', pestId: '', captureMode: '' });
     renderItems();
   });
 
@@ -316,13 +297,6 @@ function showPlannedSessionModal(listContainer, existing = null) {
         trapId: i.trapId || null,
         pestId: i.pestId || null,
         captureMode: i.captureMode || null,
-        count: i.count !== '' && i.count !== null ? Number(i.count) : null,
-        isPresent: typeof i.isPresent === 'boolean' ? i.isPresent : null,
-        latitude: i.latitude !== '' && i.latitude !== null ? Number(i.latitude) : null,
-        longitude: i.longitude !== '' && i.longitude !== null ? Number(i.longitude) : null,
-        isUnknownPest: !!i.isUnknownPest,
-        notes: i.notes || null,
-        lifeStage: i.lifeStage || null,
       }));
 
       const payload = {

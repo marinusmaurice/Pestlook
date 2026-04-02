@@ -5,6 +5,7 @@ using Microsoft.Extensions.FileProviders;
 using Pestlook.WebAPI.Extensions;
 using Pestlook.WebAPI.Options;
 using Serilog;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,7 +29,9 @@ builder.Services.AddValidationConfiguration();
 builder.Services.AddMappingConfiguration();
 
 // ── Controllers + Validation ──────────────────────────────────────────────────
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(opt =>
+        opt.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddFluentValidationAutoValidation();
 
 // ── OpenAPI ───────────────────────────────────────────────────────────────────
