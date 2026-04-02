@@ -254,10 +254,12 @@ function renderTable(traps, filter) {
   }
 
   el.innerHTML = `
-    <table class="data-table">
-      <thead><tr><th>Trap</th><th>Type</th><th>Location</th><th>Status</th><th style="width:100px;"></th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
+    <div style="overflow-x:auto;">
+      <table class="data-table">
+        <thead><tr><th>Trap</th><th>Type</th><th>Location</th><th>Status</th><th style="width:100px;"></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
   `;
 
   // Wire action buttons

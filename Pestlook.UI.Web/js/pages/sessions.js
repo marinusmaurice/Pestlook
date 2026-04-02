@@ -6,7 +6,7 @@ import { setPageTitle, setTopbarCta } from '../components/topbar.js';
 import { openModal, closeModal } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
 import { tag } from '../components/tag.js';
-import { escapeHtml, formatDateTime, formatTemperature, toCelsiusForStorage, temperatureUnitLabel, LifeStageValues } from '../utils/helpers.js';
+import { escapeHtml, formatDateTime, formatTemperature, LifeStageValues } from '../utils/helpers.js';
 import { getUser } from '../utils/storage.js';
 import { navigate } from '../utils/router.js';
 
@@ -105,10 +105,12 @@ function renderTable(sessions, container) {
   }
 
   el.innerHTML = `
-    <table class="data-table">
-      <thead><tr><th>Session</th><th>Scout</th><th>Date</th><th>Weather</th><th>Items</th><th>Results</th><th>Status</th><th></th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
+    <div style="overflow-x:auto;">
+      <table class="data-table">
+        <thead><tr><th>Session</th><th>Scout</th><th>Date</th><th>Weather</th><th>Items</th><th>Results</th><th>Status</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
   `;
 
   el.querySelectorAll('[data-complete]').forEach(btn => {
@@ -163,8 +165,6 @@ function renderTable(sessions, container) {
 
 function showPlannedSessionModal(listContainer, existing = null) {
   const isEdit = !!existing;
-  const unit = getUser()?.temperatureUnit || 'C';
-  const unitLabel = temperatureUnitLabel(unit);
 
   // Pre-populate observation items from existing session
   const items = existing?.observations?.length
@@ -196,18 +196,6 @@ function showPlannedSessionModal(listContainer, existing = null) {
       <div>
         <label class="input-label">Scheduled Date (optional)</label>
         <input class="input-field" type="date" id="sessionDate" value="${existing?.scheduledDate ? existing.scheduledDate.substring(0, 10) : ''}">
-      </div>
-      <div>
-        <label class="input-label">Weather Conditions</label>
-        <input class="input-field" type="text" id="sessionWeather" placeholder="e.g. Clear, light breeze" value="${escapeHtml(existing?.weatherConditions || '')}">
-      </div>
-      <div>
-        <label class="input-label">Temperature (${unitLabel})</label>
-        <input class="input-field" type="number" step="0.1" id="sessionTemp" placeholder="e.g. ${unit === 'F' ? '75' : '24'}" value="${existing?.temperatureCelsius != null ? (unit === 'F' ? ((existing.temperatureCelsius * 9 / 5) + 32).toFixed(1) : existing.temperatureCelsius) : ''}">
-      </div>
-      <div>
-        <label class="input-label">Notes (optional)</label>
-        <textarea class="input-field" rows="2" id="sessionNotes" placeholder="Any notes…">${escapeHtml(existing?.notes || '')}</textarea>
       </div>
 
       <hr style="border-color:var(--border);margin:4px 0;">
@@ -320,8 +308,6 @@ function showPlannedSessionModal(listContainer, existing = null) {
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>';
     try {
-      const tempRaw = document.getElementById('sessionTemp').value.trim();
-      const temperatureCelsius = tempRaw ? toCelsiusForStorage(parseFloat(tempRaw), unit) : null;
       const scouterId = document.getElementById('sessionScout').value || null;
       const scheduledDate = document.getElementById('sessionDate').value || null;
 
@@ -342,9 +328,6 @@ function showPlannedSessionModal(listContainer, existing = null) {
       const payload = {
         scouterId,
         scheduledDate,
-        weatherConditions: document.getElementById('sessionWeather').value.trim() || null,
-        temperatureCelsius,
-        notes: document.getElementById('sessionNotes').value.trim() || null,
         observations,
       };
 

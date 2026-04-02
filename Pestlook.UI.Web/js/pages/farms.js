@@ -249,7 +249,7 @@ function renderFieldsPanel(farm, farmIdx, fields) {
           <button class="btn-primary" id="addFieldPanelBtn">＋ Add Field</button>
         </div>
       </div>
-      ${fieldsHtml}
+      <div style="overflow-x:auto;">${fieldsHtml}</div>
     </div>
   `;
 

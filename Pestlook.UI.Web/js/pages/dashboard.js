@@ -116,10 +116,12 @@ function renderActiveSessions(active, allSessions) {
         <a href="#/sessions" class="btn-outline">View all</a>
       </div>
     </div>
-    <table class="data-table">
-      <thead><tr><th>Scout</th><th>Started</th><th>Obs</th><th>Status</th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
+    <div style="overflow-x:auto;">
+      <table class="data-table">
+        <thead><tr><th>Scout</th><th>Started</th><th>Obs</th><th>Status</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
   `;
 }
 

@@ -119,7 +119,7 @@ function renderDetail(farm, fields, container, params) {
           <button class="btn-primary" id="addFieldBtn" style="padding:6px 14px;">＋ Add Field</button>
         </div>
       </div>
-      ${fieldsHtml}
+      <div style="overflow-x:auto;">${fieldsHtml}</div>
     </div>
   `;
 
