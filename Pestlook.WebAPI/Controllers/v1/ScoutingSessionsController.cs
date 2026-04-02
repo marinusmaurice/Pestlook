@@ -22,7 +22,8 @@ public sealed class ScoutingSessionsController(
     ApplicationDbContext db,
     ITenantContext tenantContext,
     ICurrentUserService currentUserService,
-    IMapper mapper) : ControllerBase
+    IMapper mapper,
+    ILogger<ScoutingSessionsController> logger) : ControllerBase
 {
     private IQueryable<ScoutingSession> FullQuery() =>
         db.ScoutingSessions
@@ -140,6 +141,9 @@ public sealed class ScoutingSessionsController(
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdatePlanned(Guid id, [FromBody] UpdatePlannedSessionRequest request, CancellationToken ct)
     {
+        logger.LogDebug("[UpdatePlanned] START — sessionId={SessionId}, incomingObsCount={Count}",
+            id, request.Observations?.Count ?? 0);
+
         if (tenantContext.TenantId is null)
             return BadRequest(ApiResponse<object>.Fail("Tenant context is required."));
 
@@ -156,17 +160,51 @@ public sealed class ScoutingSessionsController(
         if (request.TemperatureCelsius is not null) session.TemperatureCelsius = request.TemperatureCelsius;
         if (request.Notes is not null) session.Notes = request.Notes;
 
-        // Replace observations — remove old planned ones, add new
+
+        logger.LogDebug("[UpdatePlanned] PRE-SAVE observation IDs for session {SessionId}: [{Ids}]",
+                id, string.Join(", ", session.SessionObservations.Select(o => o.Id)));
+
+
         if (request.Observations is not null)
         {
             var existingPlanned = session.SessionObservations.Where(o => o.IsPlanned).ToList();
-            db.SessionObservations.RemoveRange(existingPlanned);
+            var incomingIds = request.Observations
+                .Where(o => o.Id.HasValue)
+                .Select(o => o.Id!.Value)
+                .ToHashSet();
+
+            db.SessionObservations.RemoveRange(existingPlanned.Where(o => !incomingIds.Contains(o.Id)).ToList());
 
             for (var i = 0; i < request.Observations.Count; i++)
             {
                 var item = request.Observations[i];
-                session.SessionObservations.Add(new SessionObservation
+                var photoJson = item.PhotoUrls is { Count: > 0 } ? JsonSerializer.Serialize(item.PhotoUrls) : null;
+
+                if (item.Id.HasValue)
                 {
+                    var existing = existingPlanned.FirstOrDefault(o => o.Id == item.Id.Value);
+                    if (existing is not null)
+                    {
+                        existing.ObservationType = item.ObservationType;
+                        existing.TrapId = item.TrapId;
+                        existing.PestId = item.PestId;
+                        existing.CaptureMode = item.CaptureMode;
+                        existing.Count = item.Count;
+                        existing.IsPresent = item.IsPresent;
+                        existing.Latitude = item.Latitude;
+                        existing.Longitude = item.Longitude;
+                        existing.IsUnknownPest = item.IsUnknownPest;
+                        existing.Notes = item.Notes;
+                        existing.LifeStage = item.LifeStage;
+                        existing.PhotoUrlsJson = photoJson;
+                        existing.SortOrder = i;
+                        continue;
+                    }
+                }
+
+                db.SessionObservations.Add(new SessionObservation
+                {
+                    SessionId = id,
                     TenantId = tenantId,
                     ObservationType = item.ObservationType,
                     IsPlanned = true,
@@ -180,13 +218,40 @@ public sealed class ScoutingSessionsController(
                     IsUnknownPest = item.IsUnknownPest,
                     Notes = item.Notes,
                     LifeStage = item.LifeStage,
-                    PhotoUrlsJson = item.PhotoUrls is { Count: > 0 } ? JsonSerializer.Serialize(item.PhotoUrls) : null,
+                    PhotoUrlsJson = photoJson,
                     SortOrder = i
                 });
             }
         }
 
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            
+            await db.SaveChangesAsync(ct);
+
+            logger.LogDebug("[UpdatePlanned] POST-SAVE observation IDs for session {SessionId}: [{Ids}]",
+                id, string.Join(", ", session.SessionObservations.Select(o => o.Id)));
+
+            logger.LogDebug("[UpdatePlanned] SaveChangesAsync succeeded for session {SessionId}", id);
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)
+        {
+            logger.LogError(ex,
+                "[UpdatePlanned] DbUpdateException for session {SessionId} — inner: {Inner}",
+                id, ex.InnerException?.Message);
+            foreach (var entry in ex.Entries)
+                logger.LogError("[UpdatePlanned]   Failed entry: EntityType={Type} State={State} Keys={Keys}",
+                    entry.Metadata.ClrType.Name,
+                    entry.State,
+                    string.Join(", ", entry.Metadata.FindPrimaryKey()!.Properties
+                        .Select(p => $"{p.Name}={entry.Property(p.Name).CurrentValue}")));
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[UpdatePlanned] Unexpected error for session {SessionId}", id);
+            throw;
+        }
 
         var updated = await FullQuery().FirstAsync(ss => ss.Id == session.Id, ct);
         return Ok(ApiResponse<ScoutingSessionResponse>.Ok(mapper.Map<ScoutingSessionResponse>(updated), "Session updated."));

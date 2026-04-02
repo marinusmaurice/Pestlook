@@ -32,6 +32,7 @@ public sealed record UpdatePlannedSessionRequest(
 
 /// <summary>A single observation item (trap inspection or ad-hoc) to add to a session.</summary>
 public sealed record SessionObservationItem(
+    Guid? Id,
     ObservationType ObservationType,
     Guid? TrapId,
     Guid? PestId,

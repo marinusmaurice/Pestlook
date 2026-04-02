@@ -169,6 +169,7 @@ function showPlannedSessionModal(listContainer, existing = null) {
   // Pre-populate observation items from existing session
   const items = existing?.observations?.length
     ? existing.observations.map(o => ({
+        id: o.id || null,
         observationType: typeof o.observationType === 'number' ? (o.observationType === 0 ? 'Trap' : 'AdHoc') : o.observationType,
         trapId: o.trapId || '',
         pestId: o.pestId || '',
@@ -293,6 +294,7 @@ function showPlannedSessionModal(listContainer, existing = null) {
       const scheduledDate = document.getElementById('sessionDate').value || null;
 
       const observations = items.map(i => ({
+        id: i.id || null,
         observationType: i.observationType,
         trapId: i.trapId || null,
         pestId: i.pestId || null,
