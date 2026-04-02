@@ -190,7 +190,7 @@ async function showPlannedSessionModal(listContainer, existing = null) {
         <label class="input-label">Scout (optional)</label>
         <select class="input-field" id="sessionScout">
           <option value="">— Assign later —</option>
-          ${freshUsers.map(u => `<option value="${u.id}" ${existing?.scouterId === u.id ? 'selected' : ''}>${escapeHtml(u.firstName + ' ' + u.lastName)} (${escapeHtml(u.email)})</option>`).join('')}
+          ${freshUsers.filter(u => u.isActive).map(u => `<option value="${u.id}" ${existing?.scouterId === u.id ? 'selected' : ''}>${escapeHtml(u.firstName + ' ' + u.lastName)} (${escapeHtml(u.email)})</option>`).join('')}
         </select>
       </div>
       <div>
