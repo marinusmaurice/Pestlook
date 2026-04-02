@@ -315,8 +315,8 @@ async function reloadTraps(tableEl) {
   renderMap(cachedTraps);
 }
 
-function buildTrapForm(trap) {
-  const typeOptions = `<option value="">None</option>` + cachedTrapTypes.map(t => `<option value="${t.id}" ${trap && trap.trapTypeId === t.id ? 'selected' : ''}>${escapeHtml(t.name)}</option>`).join('');
+function buildTrapForm(trap, freshTrapTypes) {
+  const typeOptions = `<option value="">None</option>` + freshTrapTypes.map(t => `<option value="${t.id}" ${trap && trap.trapTypeId === t.id ? 'selected' : ''}>${escapeHtml(t.name)}</option>`).join('');
 
   const form = document.createElement('div');
   form.innerHTML = `
@@ -381,9 +381,10 @@ function getFormValues(isEdit) {
   return data;
 }
 
-function showCreateTrapModal(listContainer, presetCoords = null) {
+async function showCreateTrapModal(listContainer, presetCoords = null) {
+  const freshTrapTypes = await getTrapTypes().then(r => r.data || []).catch(() => cachedTrapTypes);
   const trapPreset = presetCoords ? { latitude: presetCoords.latitude, longitude: presetCoords.longitude } : null;
-  const form = buildTrapForm(trapPreset);
+  const form = buildTrapForm(trapPreset, freshTrapTypes);
   const subtitle = presetCoords
     ? `Register a new trap at ${presetCoords.latitude}, ${presetCoords.longitude}`
     : 'Register a new physical trap with optional barcode and GPS';
@@ -410,8 +411,9 @@ function showCreateTrapModal(listContainer, presetCoords = null) {
   });
 }
 
-function showEditTrapModal(trap, tableEl) {
-  const form = buildTrapForm(trap);
+async function showEditTrapModal(trap, tableEl) {
+  const freshTrapTypes = await getTrapTypes().then(r => r.data || []).catch(() => cachedTrapTypes);
+  const form = buildTrapForm(trap, freshTrapTypes);
   openModal({ title: 'Edit Trap', subtitle: trap.name, content: form });
 
   document.getElementById('cancelTrap').addEventListener('click', closeModal);

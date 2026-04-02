@@ -219,10 +219,15 @@ function renderObsTable(observations, session, container, params, canEdit) {
 
 /* ── Add / Edit single observation modal ────────────────────────────────────── */
 
-function showObservationModal(sessionId, type, existing, container, params) {
+async function showObservationModal(sessionId, type, existing, container, params) {
   const isEdit = !!existing;
   const isTrap = type === 'Trap';
   const unit = getUser()?.temperatureUnit || 'C';
+
+  const [freshPests, freshTraps] = await Promise.all([
+    getPests().then(r => r.data || []).catch(() => cachedPests),
+    getTraps().then(r => r.data || []).catch(() => cachedTraps),
+  ]);
 
   const form = document.createElement('div');
   form.innerHTML = `
@@ -232,7 +237,7 @@ function showObservationModal(sessionId, type, existing, container, params) {
           <label class="input-label">Trap</label>
           <select class="input-field" id="obsTrap">
             <option value="">— Select trap —</option>
-            ${cachedTraps.map(t => `<option value="${t.id}" ${existing?.trapId === t.id ? 'selected' : ''}>${escapeHtml(t.name)}${t.barcode ? ' (' + escapeHtml(t.barcode) + ')' : ''}</option>`).join('')}
+            ${freshTraps.map(t => `<option value="${t.id}" ${existing?.trapId === t.id ? 'selected' : ''}>${escapeHtml(t.name)}${t.barcode ? ' (' + escapeHtml(t.barcode) + ')' : ''}</option>`).join('')}
           </select>
         </div>
       ` : ''}
@@ -240,7 +245,7 @@ function showObservationModal(sessionId, type, existing, container, params) {
         <label class="input-label">Pest (optional)</label>
         <select class="input-field" id="obsPest">
           <option value="">— Any pest —</option>
-          ${cachedPests.map(p => `<option value="${p.id}" ${existing?.pestId === p.id ? 'selected' : ''}>${escapeHtml(p.commonName)}</option>`).join('')}
+          ${freshPests.map(p => `<option value="${p.id}" ${existing?.pestId === p.id ? 'selected' : ''}>${escapeHtml(p.commonName)}</option>`).join('')}
         </select>
       </div>
       <div style="display:flex;gap:10px;">

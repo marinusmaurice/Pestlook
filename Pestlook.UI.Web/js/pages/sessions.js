@@ -163,8 +163,14 @@ function renderTable(sessions, container) {
 
 /* ── Planned Session Modal ──────────────────────────────────────────────────── */
 
-function showPlannedSessionModal(listContainer, existing = null) {
+async function showPlannedSessionModal(listContainer, existing = null) {
   const isEdit = !!existing;
+
+  const [freshPests, freshTraps, freshUsers] = await Promise.all([
+    getPests().then(r => r.data || []).catch(() => cachedPests),
+    getTraps().then(r => r.data || []).catch(() => cachedTraps),
+    getUsers().then(r => r.data || []).catch(() => cachedUsers),
+  ]);
 
   // Pre-populate observation items from existing session
   const items = existing?.observations?.length
@@ -184,7 +190,7 @@ function showPlannedSessionModal(listContainer, existing = null) {
         <label class="input-label">Scout (optional)</label>
         <select class="input-field" id="sessionScout">
           <option value="">— Assign later —</option>
-          ${cachedUsers.map(u => `<option value="${u.id}" ${existing?.scouterId === u.id ? 'selected' : ''}>${escapeHtml(u.firstName + ' ' + u.lastName)} (${escapeHtml(u.email)})</option>`).join('')}
+          ${freshUsers.map(u => `<option value="${u.id}" ${existing?.scouterId === u.id ? 'selected' : ''}>${escapeHtml(u.firstName + ' ' + u.lastName)} (${escapeHtml(u.email)})</option>`).join('')}
         </select>
       </div>
       <div>
@@ -232,12 +238,12 @@ function showPlannedSessionModal(listContainer, existing = null) {
           ${isTrap ? `
             <select class="input-field" style="font-size:0.78rem;" data-field="trapId" data-idx="${idx}">
               <option value="">— Select trap —</option>
-              ${cachedTraps.map(t => `<option value="${t.id}" ${item.trapId === t.id ? 'selected' : ''}>${escapeHtml(t.name)}${t.barcode ? ' (' + escapeHtml(t.barcode) + ')' : ''}</option>`).join('')}
+              ${freshTraps.map(t => `<option value="${t.id}" ${item.trapId === t.id ? 'selected' : ''}>${escapeHtml(t.name)}${t.barcode ? ' (' + escapeHtml(t.barcode) + ')' : ''}</option>`).join('')}
             </select>
           ` : ''}
           <select class="input-field" style="font-size:0.78rem;" data-field="pestId" data-idx="${idx}">
             <option value="">— Any pest —</option>
-            ${cachedPests.map(p => `<option value="${p.id}" ${item.pestId === p.id ? 'selected' : ''}>${escapeHtml(p.commonName)}</option>`).join('')}
+            ${freshPests.map(p => `<option value="${p.id}" ${item.pestId === p.id ? 'selected' : ''}>${escapeHtml(p.commonName)}</option>`).join('')}
           </select>
           <select class="input-field" style="font-size:0.78rem;" data-field="captureMode" data-idx="${idx}">
             <option value="">— Capture mode —</option>
