@@ -30,6 +30,7 @@ public sealed class ApplicationDbContext(
     public DbSet<ScoutingSession> ScoutingSessions => Set<ScoutingSession>();
     public DbSet<PestObservation> PestObservations => Set<PestObservation>();
     public DbSet<Trap> Traps => Set<Trap>();
+    public DbSet<SessionObservation> SessionObservations => Set<SessionObservation>();
     public DbSet<BillingSnapshot> BillingSnapshots => Set<BillingSnapshot>();
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -226,9 +227,32 @@ public sealed class ApplicationDbContext(
             e.HasOne(ss => ss.Scouter)
              .WithMany()
              .HasForeignKey(ss => ss.ScouterId)
+             .IsRequired(false)
              .OnDelete(DeleteBehavior.Restrict);
             e.HasQueryFilter(ss => ss.DeletedAt == null &&
                 (tenantContext.TenantId == null || ss.TenantId == tenantContext.TenantId));
+        });
+
+        builder.Entity<SessionObservation>(e =>
+        {
+            e.HasKey(so => so.Id);
+            e.Property(so => so.ObservationType).HasConversion<string>().HasMaxLength(50);
+            e.Property(so => so.CaptureMode).HasConversion<string>().HasMaxLength(50);
+            e.Property(so => so.LifeStage).HasConversion<string>().HasMaxLength(50);
+            e.Property(so => so.Notes).HasMaxLength(1000);
+            e.HasOne(so => so.Session)
+             .WithMany(ss => ss.SessionObservations)
+             .HasForeignKey(so => so.SessionId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(so => so.Trap)
+             .WithMany()
+             .HasForeignKey(so => so.TrapId)
+             .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(so => so.Pest)
+             .WithMany()
+             .HasForeignKey(so => so.PestId)
+             .OnDelete(DeleteBehavior.SetNull);
+            e.HasQueryFilter(so => tenantContext.TenantId == null || so.TenantId == tenantContext.TenantId);
         });
 
         builder.Entity<PestObservation>(e =>

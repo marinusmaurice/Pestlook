@@ -13,6 +13,7 @@ import { renderFarms } from './pages/farms.js';
 import { renderFarmDetail } from './pages/farm-detail.js';
 import { renderMonitoringPoints } from './pages/monitoring-points.js';
 import { renderSessions } from './pages/sessions.js';
+import { renderSessionDetail } from './pages/session-detail.js';
 import { renderObservations } from './pages/observations.js';
 import { renderPests } from './pages/pests.js';
 import { renderTraps } from './pages/traps.js';
@@ -124,6 +125,10 @@ registerRoute('/monitoring-points', authedRoute(async (content) => {
 
 registerRoute('/sessions', authedRoute(async (content) => {
   await renderSessions(content);
+}));
+
+registerRoute('/sessions/:id', authedRoute(async (content, params) => {
+  await renderSessionDetail(content, params);
 }));
 
 registerRoute('/observations', authedRoute(async (content) => {

@@ -7,6 +7,12 @@ export const PestCategoryValues = { Insect: 0, Disease: 1, Weed: 2, Rodent: 3, O
 export const CaptureMode = { 0: 'Count', 1: 'Presence' };
 export const CaptureModeValues = { Count: 0, Presence: 1 };
 
+export const ObservationType = { 0: 'Trap', 1: 'AdHoc' };
+export const ObservationTypeValues = { Trap: 0, AdHoc: 1 };
+
+export const LifeStage = { 0: 'Egg', 1: 'Larva', 2: 'Nymph', 3: 'Pupa', 4: 'Adult', 5: 'Unknown' };
+export const LifeStageValues = { Egg: 0, Larva: 1, Nymph: 2, Pupa: 3, Adult: 4, Unknown: 5 };
+
 export const MonitoringPointType = { 0: 'FixedTrap', 1: 'FixedScouting', 2: 'ScoutingVisit' };
 export const MonitoringPointTypeValues = { FixedTrap: 0, FixedScouting: 1, ScoutingVisit: 2 };
 
