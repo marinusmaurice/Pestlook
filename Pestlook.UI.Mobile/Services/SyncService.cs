@@ -65,8 +65,8 @@ public class SyncService
                     Id = p.Id.ToString(),
                     CommonName = p.CommonName,
                     ScientificName = p.ScientificName,
-                    Category = p.Category,
-                    DefaultCaptureMode = p.DefaultCaptureMode,
+                    Category = p.Category switch { "Insect" => 0, "Disease" => 1, "Weed" => 2, "Rodent" => 3, _ => 4 },
+                    DefaultCaptureMode = p.DefaultCaptureMode switch { "Count" => 0, "Presence" => 1, _ => 0 },
                     AlertThreshold = p.ThresholdCount,
                     IsSystemPest = false
                 }).ToList());

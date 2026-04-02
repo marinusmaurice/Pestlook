@@ -331,10 +331,10 @@ public class PestResponse
     [JsonPropertyName("id")] public Guid Id { get; set; }
     [JsonPropertyName("commonName")] public string CommonName { get; set; } = "";
     [JsonPropertyName("scientificName")] public string? ScientificName { get; set; }
-    [JsonPropertyName("category")] public int Category { get; set; }
-    [JsonPropertyName("defaultCaptureMode")] public int DefaultCaptureMode { get; set; }
+    [JsonPropertyName("category")] public string Category { get; set; } = "";
+    [JsonPropertyName("defaultCaptureMode")] public string DefaultCaptureMode { get; set; } = "";
     [JsonPropertyName("thresholdCount")] public int? ThresholdCount { get; set; }
-    public string Emoji => Category switch { 0 => "🦟", 1 => "🦠", 2 => "🌿", 3 => "🐀", _ => "❓" };
+    public string Emoji => Category switch { "Insect" => "🦟", "Disease" => "🦠", "Weed" => "🌿", "Rodent" => "🐀", _ => "❓" };
 }
 
 public class ObservationResponse

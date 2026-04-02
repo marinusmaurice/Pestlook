@@ -1,4 +1,4 @@
-import { getPests, createPest, deletePest } from '../api/pests.js';
+import { getPests, createPest, updatePest, deletePest } from '../api/pests.js';
 import { setPageTitle, setTopbarCta } from '../components/topbar.js';
 import { openModal, closeModal } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
@@ -58,18 +58,39 @@ async function loadPests(container) {
     }
 
     grid.innerHTML = pests.map(p => pestCard(p)).join('');
+
+    grid.querySelectorAll('[data-edit-pest]').forEach(btn => {
+      const pest = pests.find(p => p.id === btn.dataset.editPest);
+      if (pest) btn.addEventListener('click', e => { e.stopPropagation(); openEditPestModal(pest, container); });
+    });
+
+    grid.querySelectorAll('[data-delete-pest]').forEach(btn => {
+      btn.addEventListener('click', async e => {
+        e.stopPropagation();
+        if (!confirm('Delete this pest?')) return;
+        try {
+          await deletePest(btn.dataset.deletePest);
+          showToast('Pest deleted.');
+          await loadPests(container);
+        } catch (err) {
+          showToast(err.message || 'Failed to delete pest', 'error');
+        }
+      });
+    });
   } catch (err) {
     grid.innerHTML = `<div style="grid-column:1/-1;color:var(--red);padding:20px;">Failed to load pests: ${escapeHtml(err.message)}</div>`;
   }
 }
 
 function pestCard(p) {
-  const catColor = categoryColors[p.category] || 'gray';
-  const emoji = categoryEmojis[p.category] || '❓';
-  const catName = PestCategory[p.category] || 'Unknown';
-  const capName = CaptureMode[p.defaultCaptureMode] || 'Count';
-  const capColor = captureModeColors[p.defaultCaptureMode] || 'gray';
-  const isSystem = p.isSystem;
+  const catVal = typeof p.category === 'string' ? (PestCategoryValues[p.category] ?? p.category) : p.category;
+  const capVal = typeof p.defaultCaptureMode === 'string' ? (CaptureModeValues[p.defaultCaptureMode] ?? p.defaultCaptureMode) : p.defaultCaptureMode;
+  const catColor = categoryColors[catVal] || 'gray';
+  const emoji = categoryEmojis[catVal] || '❓';
+  const catName = PestCategory[catVal] || p.category || 'Unknown';
+  const capName = CaptureMode[capVal] || p.defaultCaptureMode || 'Count';
+  const capColor = captureModeColors[capVal] || 'gray';
+  const isSystem = p.isSystemPest;
 
   return `
     <div class="pest-card" data-pest-id="${p.id}">
@@ -77,7 +98,7 @@ function pestCard(p) {
         ${emoji}
       </div>
       <div style="flex:1;">
-        <div style="font-weight:600;color:#fff;margin-bottom:2px;">${escapeHtml(p.commonName)}</div>
+        <div style="font-weight:600;color:var(--text);margin-bottom:2px;">${escapeHtml(p.commonName)}</div>
         <div style="font-size:0.72rem;color:var(--text-dim);font-style:italic;margin-bottom:8px;">${escapeHtml(p.scientificName || '')}</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
           ${tag(catName, catColor)}
@@ -85,6 +106,11 @@ function pestCard(p) {
           ${tag(isSystem ? 'System' : 'Custom', isSystem ? 'gray' : 'amber')}
         </div>
         ${p.thresholdCount != null ? `<div style="font-size:0.68rem;color:var(--text-dim);margin-top:6px;">Threshold: ${p.thresholdCount}</div>` : ''}
+        ${!isSystem ? `
+        <div style="display:flex;gap:6px;margin-top:10px;">
+          <button class="btn-outline" style="padding:3px 10px;font-size:0.72rem;" data-edit-pest="${p.id}">Edit</button>
+          <button class="btn-outline" style="padding:3px 10px;font-size:0.72rem;color:var(--red);border-color:var(--red);" data-delete-pest="${p.id}">Delete</button>
+        </div>` : ''}
       </div>
     </div>
   `;
@@ -172,6 +198,92 @@ function openCreatePestModal(container) {
       showToast(err.message || 'Failed to add pest', 'error');
       btn.disabled = false;
       btn.textContent = '🦗 Add Pest';
+    }
+  });
+}
+
+function openEditPestModal(pest, container) {
+  const categoryOptions = Object.entries(PestCategoryValues)
+    .map(([name, val]) => `<option value="${val}" ${name === pest.category || val === pest.category ? 'selected' : ''}>${name}</option>`)
+    .join('');
+
+  const captureModeOptions = Object.entries(CaptureModeValues)
+    .map(([name, val]) => `<option value="${val}" ${name === pest.defaultCaptureMode || val === pest.defaultCaptureMode ? 'selected' : ''}>${name}</option>`)
+    .join('');
+
+  const body = openModal({
+    title: 'Edit Pest Species',
+    subtitle: 'Update pest details',
+    content: `
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div>
+          <div class="input-label">Common Name *</div>
+          <input class="input-field" id="edit-pest-common" placeholder="e.g. Fall Armyworm" type="text" value="${escapeHtml(pest.commonName)}">
+        </div>
+        <div>
+          <div class="input-label">Scientific Name</div>
+          <input class="input-field" id="edit-pest-scientific" placeholder="e.g. Spodoptera frugiperda" type="text" value="${escapeHtml(pest.scientificName || '')}">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <div class="input-label">Category *</div>
+            <select class="input-field" id="edit-pest-category" style="cursor:pointer;">
+              ${categoryOptions}
+            </select>
+          </div>
+          <div>
+            <div class="input-label">Capture Mode *</div>
+            <select class="input-field" id="edit-pest-capture" style="cursor:pointer;">
+              ${captureModeOptions}
+            </select>
+          </div>
+        </div>
+        <div>
+          <div class="input-label">Threshold Count</div>
+          <input class="input-field" id="edit-pest-threshold" placeholder="e.g. 20" type="number" min="0" value="${pest.thresholdCount != null ? pest.thresholdCount : ''}">
+        </div>
+        <div>
+          <div class="input-label">Description</div>
+          <textarea class="input-field" id="edit-pest-desc" rows="2" placeholder="Brief description…" style="resize:none;">${escapeHtml(pest.description || '')}</textarea>
+        </div>
+        <div>
+          <div class="input-label">Image URL</div>
+          <input class="input-field" id="edit-pest-image" placeholder="https://..." type="url" value="${escapeHtml(pest.imageUrl || '')}">
+        </div>
+        <div style="display:flex;gap:10px;margin-top:6px;">
+          <button class="btn-outline" id="edit-pest-cancel" style="flex:1;">Cancel</button>
+          <button class="btn-primary" id="edit-pest-submit" style="flex:2;justify-content:center;">💾 Save Changes</button>
+        </div>
+      </div>
+    `,
+  });
+
+  body.querySelector('#edit-pest-cancel').addEventListener('click', closeModal);
+  body.querySelector('#edit-pest-submit').addEventListener('click', async () => {
+    const commonName = body.querySelector('#edit-pest-common').value.trim();
+    if (!commonName) { showToast('Common name is required', 'error'); return; }
+
+    const btn = body.querySelector('#edit-pest-submit');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+
+    try {
+      await updatePest(pest.id, {
+        commonName,
+        scientificName: body.querySelector('#edit-pest-scientific').value.trim() || null,
+        category: parseInt(body.querySelector('#edit-pest-category').value),
+        defaultCaptureMode: parseInt(body.querySelector('#edit-pest-capture').value),
+        thresholdCount: body.querySelector('#edit-pest-threshold').value ? parseInt(body.querySelector('#edit-pest-threshold').value) : null,
+        description: body.querySelector('#edit-pest-desc').value.trim() || null,
+        imageUrl: body.querySelector('#edit-pest-image').value.trim() || null,
+      });
+      closeModal();
+      showToast('Pest updated successfully');
+      await loadPests(container);
+    } catch (err) {
+      showToast(err.message || 'Failed to update pest', 'error');
+      btn.disabled = false;
+      btn.textContent = '💾 Save Changes';
     }
   });
 }
