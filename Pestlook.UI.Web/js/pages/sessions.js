@@ -2,6 +2,8 @@ import { getSessions, createPlannedSession, updatePlannedSession, completeSessio
 import { getTraps } from '../api/traps.js';
 import { getPests } from '../api/pests.js';
 import { getUsers } from '../api/roles.js';
+import { getFarms } from '../api/farms.js';
+import { getFields } from '../api/fields.js';
 import { setPageTitle, setTopbarCta } from '../components/topbar.js';
 import { openModal, closeModal } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
@@ -13,6 +15,8 @@ import { navigate } from '../utils/router.js';
 let cachedTraps = [];
 let cachedPests = [];
 let cachedUsers = [];
+let cachedFarms = [];
+let cachedFields = [];
 
 export async function renderSessions(container) {
   setPageTitle('Scouting Sessions');
@@ -29,15 +33,19 @@ export async function renderSessions(container) {
   `;
 
   try {
-    const [sessionsRes, trapsRes, pestsRes, usersRes] = await Promise.all([
+    const [sessionsRes, trapsRes, pestsRes, usersRes, farmsRes, fieldsRes] = await Promise.all([
       getSessions(),
       getTraps(),
       getPests(),
       getUsers(),
+      getFarms(),
+      getFields(),
     ]);
     cachedTraps = trapsRes.data || [];
     cachedPests = pestsRes.data || [];
     cachedUsers = usersRes.data || [];
+    cachedFarms = farmsRes.data || [];
+    cachedFields = fieldsRes.data || [];
     const sessions = sessionsRes.data || [];
     renderTable(sessions, container);
   } catch (err) {
@@ -90,10 +98,15 @@ function renderTable(sessions, container) {
       actions += `<button class="btn-outline" style="padding:4px 10px;font-size:0.75rem;" data-complete="${s.id}">Complete</button>`;
     }
 
+    const farmDisplay  = s.farmName  ? escapeHtml(s.farmName)  : '<span style="color:var(--text-dim);">—</span>';
+    const fieldDisplay = s.fieldName ? escapeHtml(s.fieldName) : '<span style="color:var(--text-dim);">—</span>';
+
     rows += `
       <tr>
         <td style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text-dim);">${s.id.substring(0, 8)}</td>
         <td><div style="font-weight:500;color:var(--text);">${escapeHtml(s.scouterName || '—')}</div></td>
+        <td style="font-size:0.85rem;">${farmDisplay}</td>
+        <td style="font-size:0.85rem;">${fieldDisplay}</td>
         <td style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--text-dim);">${dateDisplay}</td>
         <td>${weatherDisplay}</td>
         <td style="font-size:0.85rem;">${itemsSummary}</td>
@@ -107,7 +120,7 @@ function renderTable(sessions, container) {
   el.innerHTML = `
     <div style="overflow-x:auto;">
       <table class="data-table">
-        <thead><tr><th>Session</th><th>Scout</th><th>Date</th><th>Weather</th><th>Items</th><th>Results</th><th>Status</th><th></th></tr></thead>
+        <thead><tr><th>Session</th><th>Scout</th><th>Farm</th><th>Field</th><th>Date</th><th>Weather</th><th>Items</th><th>Results</th><th>Status</th><th></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
@@ -166,10 +179,12 @@ function renderTable(sessions, container) {
 async function showPlannedSessionModal(listContainer, existing = null) {
   const isEdit = !!existing;
 
-  const [freshPests, freshTraps, freshUsers] = await Promise.all([
+  const [freshPests, freshTraps, freshUsers, freshFarms, allFields] = await Promise.all([
     getPests().then(r => r.data || []).catch(() => cachedPests),
     getTraps().then(r => r.data || []).catch(() => cachedTraps),
     getUsers().then(r => r.data || []).catch(() => cachedUsers),
+    getFarms().then(r => r.data || []).catch(() => cachedFarms),
+    getFields().then(r => r.data || []).catch(() => cachedFields),
   ]);
 
   // Group existing planned observations by their observationGroupId so the modal
@@ -213,9 +228,25 @@ async function showPlannedSessionModal(listContainer, existing = null) {
       })()
     : [];
 
+  const selectedFieldId = existing?.fieldId ?? '';
+  const selectedFarmId = allFields.find(f => f.id === selectedFieldId)?.farmId ?? '';
+
   const form = document.createElement('div');
   form.innerHTML = `
     <div style="display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <label class="input-label">Farm (optional)</label>
+        <select class="input-field" id="sessionFarm">
+          <option value="">— Select farm —</option>
+          ${freshFarms.map(f => `<option value="${f.id}" ${selectedFarmId === f.id ? 'selected' : ''}>${escapeHtml(f.name)}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <label class="input-label">Field (optional)</label>
+        <select class="input-field" id="sessionField">
+          <option value="">— Select field —</option>
+        </select>
+      </div>
       <div>
         <label class="input-label">Scout (optional)</label>
         <select class="input-field" id="sessionScout">
@@ -249,6 +280,15 @@ async function showPlannedSessionModal(listContainer, existing = null) {
   `;
 
   openModal({ title: isEdit ? 'Edit Planned Session' : 'Plan a Scouting Session', subtitle: isEdit ? 'Update the session details and items' : 'Set up traps and observations for a scout', content: form });
+
+  function populateFieldSelect(farmId, selectedId = '') {
+    const fieldSel = document.getElementById('sessionField');
+    const filtered = allFields.filter(f => f.farmId === farmId);
+    fieldSel.innerHTML = '<option value="">— Select field —</option>' +
+      filtered.map(f => `<option value="${f.id}" ${f.id === selectedId ? 'selected' : ''}>${escapeHtml(f.name)}</option>`).join('');
+  }
+  populateFieldSelect(selectedFarmId, selectedFieldId);
+  document.getElementById('sessionFarm').addEventListener('change', e => populateFieldSelect(e.target.value, ''));
 
   const listEl = document.getElementById('obsItemsList');
 
@@ -355,6 +395,7 @@ async function showPlannedSessionModal(listContainer, existing = null) {
     try {
       const scouterId = document.getElementById('sessionScout').value || null;
       const scheduledDate = document.getElementById('sessionDate').value || null;
+      const fieldId = document.getElementById('sessionField').value || null;
 
       syncItemsFromDom();
       const observations = items.map(i => ({
@@ -369,6 +410,7 @@ async function showPlannedSessionModal(listContainer, existing = null) {
       const payload = {
         scouterId,
         scheduledDate,
+        fieldId,
         observations,
       };
 

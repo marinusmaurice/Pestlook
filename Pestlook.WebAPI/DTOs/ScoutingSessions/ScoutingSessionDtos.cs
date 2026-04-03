@@ -5,6 +5,7 @@ namespace Pestlook.WebAPI.DTOs.ScoutingSessions;
 // ── Requests ──────────────────────────────────────────────────────────────────
 
 public sealed record StartScoutingSessionRequest(
+    Guid? FieldId,
     string? WeatherConditions,
     double? TemperatureCelsius,
     string? Notes);
@@ -16,6 +17,7 @@ public sealed record CompleteScoutingSessionRequest(
 
 public sealed record CreatePlannedSessionRequest(
     string? ScouterId,
+    Guid? FieldId,
     DateTime? ScheduledDate,
     string? WeatherConditions,
     double? TemperatureCelsius,
@@ -24,6 +26,7 @@ public sealed record CreatePlannedSessionRequest(
 
 public sealed record UpdatePlannedSessionRequest(
     string? ScouterId,
+    Guid? FieldId,
     DateTime? ScheduledDate,
     string? WeatherConditions,
     double? TemperatureCelsius,
@@ -63,10 +66,13 @@ public sealed record ScoutingSessionResponse(
     double? TemperatureCelsius,
     string? Notes,
     DateTime CreatedAt,
+    Guid? FieldId,
+    string? FieldName,
+    string? FarmName,
     int ObservationCount,
     List<SessionObservationResponse> Observations)
 {
-    public ScoutingSessionResponse() : this(default, default, default, default, default, default, default, default, default, default, default, default, default, []) { }
+    public ScoutingSessionResponse() : this(default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, []) { }
 }
 
 public sealed record SessionObservationResponse(

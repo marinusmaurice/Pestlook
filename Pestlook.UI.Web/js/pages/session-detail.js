@@ -67,14 +67,16 @@ function renderDetail(session, container, params) {
           <div style="font-family:'Fraunces',serif;font-size:1.3rem;font-weight:700;color:#fff;margin-bottom:8px;">
             Session ${session.id.substring(0, 8)} ${statusTag}
           </div>
-          <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 16px;font-size:0.85rem;color:var(--text-dim);">
+          <div style="display:grid;grid-template-columns:auto 1fr auto 1fr;gap:4px 16px;font-size:0.85rem;color:var(--text-dim);">
             <span>Scout</span><span style="color:var(--text);">${escapeHtml(session.scouterName || '—')}</span>
+            ${session.farmName ? `<span>Farm</span><span style="color:var(--text);">${escapeHtml(session.farmName)}</span>` : '<span></span><span></span>'}
             <span>Type</span><span style="color:var(--text);">${session.isPlanned ? 'Planned' : 'Unplanned'}</span>
-            ${session.scheduledDate ? `<span>Scheduled</span><span style="color:var(--text);">${formatDateTime(session.scheduledDate)}</span>` : ''}
-            ${session.startedAt ? `<span>Started</span><span style="color:var(--text);">${formatDateTime(session.startedAt)}</span>` : ''}
-            ${session.completedAt ? `<span>Completed</span><span style="color:var(--text);">${formatDateTime(session.completedAt)}</span>` : ''}
-            <span>Weather</span><span style="color:var(--text);">${weatherDisplay}</span>
-            ${session.notes ? `<span>Notes</span><span style="color:var(--text);">${escapeHtml(session.notes)}</span>` : ''}
+            ${session.fieldName ? `<span>Field</span><span style="color:var(--text);">${escapeHtml(session.fieldName)}</span>` : '<span></span><span></span>'}
+            ${session.scheduledDate ? `<span>Scheduled</span><span style="color:var(--text);grid-column:span 3;">${formatDateTime(session.scheduledDate)}</span>` : ''}
+            ${session.startedAt ? `<span>Started</span><span style="color:var(--text);grid-column:span 3;">${formatDateTime(session.startedAt)}</span>` : ''}
+            ${session.completedAt ? `<span>Completed</span><span style="color:var(--text);grid-column:span 3;">${formatDateTime(session.completedAt)}</span>` : ''}
+            <span>Weather</span><span style="color:var(--text);grid-column:span 3;">${weatherDisplay}</span>
+            ${session.notes ? `<span>Notes</span><span style="color:var(--text);grid-column:span 3;">${escapeHtml(session.notes)}</span>` : ''}
           </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
@@ -144,7 +146,7 @@ function renderObsTable(observations, session, container, params, canEdit) {
   let rows = '';
   for (const o of observations) {
     const isTrap = o.observationType === 'Trap' || o.observationType === 0;
-    const typeTag = isTrap ? tag('🪤 Trap', 'green') : tag('👁 AdHoc', 'amber');
+    const typeTag = isTrap ? tag('🕸️ Trap', 'green') : tag('👁 AdHoc', 'amber');
     const plannedTag = o.isPlanned ? tag('Planned', 'blue') : '';
     const trapName = o.trapName ? escapeHtml(o.trapName) : '—';
     const pestName = o.pestName ? escapeHtml(o.pestName) : (o.isUnknownPest ? '<em>Unknown pest</em>' : '—');

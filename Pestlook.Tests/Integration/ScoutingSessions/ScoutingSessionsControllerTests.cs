@@ -32,7 +32,7 @@ public sealed class ScoutingSessionsControllerTests(TestWebApplicationFactory fa
     {
         var req = new HttpRequestMessage(new HttpMethod(method), url);
         if (method is "POST")
-            req.Content = JsonContent.Create(new StartScoutingSessionRequest(null, null, null));
+            req.Content = JsonContent.Create(new StartScoutingSessionRequest(null, null, null, null));
         if (method is "PATCH")
             req.Content = JsonContent.Create(new CompleteScoutingSessionRequest(null, null, null));
         var resp = await _anon.SendAsync(req);
@@ -96,7 +96,7 @@ public sealed class ScoutingSessionsControllerTests(TestWebApplicationFactory fa
     public async Task Start_WithAllFields_ShouldReturn201WithData()
     {
         var resp = await _admin.PostAsJsonAsync("/api/v1/scouting-sessions",
-            new StartScoutingSessionRequest("Overcast, 18°C", 18.0, "Morning round"));
+            new StartScoutingSessionRequest(null, "Overcast, 18°C", 18.0, "Morning round"));
         resp.StatusCode.Should().Be(HttpStatusCode.Created);
         var body = await resp.Content.ReadFromJsonAsync<ApiResponse<ScoutingSessionResponse>>();
         body!.Data!.WeatherConditions.Should().Be("Overcast, 18°C");
@@ -109,7 +109,7 @@ public sealed class ScoutingSessionsControllerTests(TestWebApplicationFactory fa
     public async Task Start_WithNoFields_ShouldReturn201()
     {
         var resp = await _admin.PostAsJsonAsync("/api/v1/scouting-sessions",
-            new StartScoutingSessionRequest(null, null, null));
+            new StartScoutingSessionRequest(null, null, null, null));
         resp.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
@@ -117,7 +117,7 @@ public sealed class ScoutingSessionsControllerTests(TestWebApplicationFactory fa
     public async Task Start_ShouldSetScouterIdToCurrentUser()
     {
         var resp = await _admin.PostAsJsonAsync("/api/v1/scouting-sessions",
-            new StartScoutingSessionRequest(null, null, null));
+            new StartScoutingSessionRequest(null, null, null, null));
         var body = await resp.Content.ReadFromJsonAsync<ApiResponse<ScoutingSessionResponse>>();
         body!.Data!.ScouterId.Should().Be(TestWebApplicationFactory.DefaultAdminId);
     }
@@ -248,7 +248,7 @@ public sealed class ScoutingSessionsControllerTests(TestWebApplicationFactory fa
     private async Task<Guid> StartSessionAsync(string? weather, string? notes, double? temperatureCelsius = null)
     {
         var resp = await _admin.PostAsJsonAsync("/api/v1/scouting-sessions",
-            new StartScoutingSessionRequest(weather, temperatureCelsius, notes));
+            new StartScoutingSessionRequest(null, weather, temperatureCelsius, notes));
         return (await resp.Content.ReadFromJsonAsync<ApiResponse<ScoutingSessionResponse>>())!.Data!.Id;
     }
 

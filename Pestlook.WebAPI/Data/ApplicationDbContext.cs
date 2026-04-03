@@ -178,6 +178,11 @@ public sealed class ApplicationDbContext(
              .HasForeignKey(ss => ss.ScouterId)
              .IsRequired(false)
              .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(ss => ss.Field)
+             .WithMany()
+             .HasForeignKey(ss => ss.FieldId)
+             .IsRequired(false)
+             .OnDelete(DeleteBehavior.SetNull);
             e.HasQueryFilter(ss => ss.DeletedAt == null &&
                 (tenantContext.TenantId == null || ss.TenantId == tenantContext.TenantId));
         });

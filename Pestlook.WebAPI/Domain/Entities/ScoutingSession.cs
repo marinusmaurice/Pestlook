@@ -10,6 +10,9 @@ public sealed class ScoutingSession : IHasTenant
     public string? ScouterId { get; set; }
     public ApplicationUser? Scouter { get; set; }
 
+    public Guid? FieldId { get; set; }
+    public Field? Field { get; set; }
+
     /// <summary>True when the session was pre-planned from the web UI; false for ad-hoc sessions started by a scout.</summary>
     public bool IsPlanned { get; set; }
 
