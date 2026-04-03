@@ -200,7 +200,7 @@ function renderFieldsPanel(farm, farmIdx, fields) {
           <td style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--text-dim);">${formatDate(f.createdAt)}</td>
           <td style="text-align:right;">
             <div style="display:flex;gap:6px;justify-content:flex-end;align-items:center;">
-              <button data-edit-field="${f.id}"
+              <button data-edit-field="${f.id}" style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:5px 11px;color:var(--text-mid);font-size:0.75rem;cursor:pointer;font-family:inherit;">✏ Edit</button>
               <button data-delete-field="${f.id}" style="background:rgba(224,96,96,0.08);border:1px solid rgba(224,96,96,0.2);border-radius:7px;padding:5px 11px;color:var(--red);font-size:0.75rem;cursor:pointer;font-family:inherit;">🗑 Delete</button>
             </div>
           </td>

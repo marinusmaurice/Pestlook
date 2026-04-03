@@ -252,6 +252,20 @@ async function showPlannedSessionModal(listContainer, existing = null) {
 
   const listEl = document.getElementById('obsItemsList');
 
+  // Reads every visible [data-field] input/select from the DOM into the items
+  // array so that re-renders and the save handler always see current values,
+  // regardless of whether change events fired correctly.
+  function syncItemsFromDom() {
+    listEl.querySelectorAll('[data-field]').forEach(el => {
+      const idx = parseInt(el.dataset.idx);
+      if (idx >= 0 && idx < items.length) {
+        items[idx][el.dataset.field] = el.type === 'number'
+          ? (el.value !== '' ? Number(el.value) : '')
+          : (el.value || '');
+      }
+    });
+  }
+
   function renderItems() {
     listEl.innerHTML = '';
     if (items.length === 0) {
@@ -296,7 +310,6 @@ async function showPlannedSessionModal(listContainer, existing = null) {
       `;
       listEl.appendChild(row);
     });
-
     // Bind change handlers
     listEl.querySelectorAll('[data-field]').forEach(el => {
       const evtName = el.type === 'checkbox' ? 'change' : (el.tagName === 'SELECT' ? 'change' : 'input');
@@ -314,6 +327,7 @@ async function showPlannedSessionModal(listContainer, existing = null) {
     });
     listEl.querySelectorAll('[data-remove]').forEach(btn => {
       btn.addEventListener('click', () => {
+        syncItemsFromDom();
         items.splice(parseInt(btn.dataset.remove), 1);
         renderItems();
       });
@@ -323,10 +337,12 @@ async function showPlannedSessionModal(listContainer, existing = null) {
   renderItems();
 
   document.getElementById('addTrapItem').addEventListener('click', () => {
+    syncItemsFromDom();
     items.push({ observationGroupId: null, observationType: 'Trap', trapId: '', pestId: '', captureMode: '', repeatCount: 1 });
     renderItems();
   });
   document.getElementById('addAdHocItem').addEventListener('click', () => {
+    syncItemsFromDom();
     items.push({ observationGroupId: null, observationType: 'AdHoc', trapId: '', pestId: '', captureMode: '', repeatCount: 1 });
     renderItems();
   });
@@ -340,6 +356,7 @@ async function showPlannedSessionModal(listContainer, existing = null) {
       const scouterId = document.getElementById('sessionScout').value || null;
       const scheduledDate = document.getElementById('sessionDate').value || null;
 
+      syncItemsFromDom();
       const observations = items.map(i => ({
         observationGroupId: i.observationGroupId || null,
         observationType: i.observationType,
