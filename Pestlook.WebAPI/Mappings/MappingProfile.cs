@@ -62,8 +62,12 @@ public sealed class MappingProfile : Profile
                     : new List<string>()));
 
         CreateMap<Trap, TrapResponse>()
-            .ConstructUsing(_ => new TrapResponse())
-            .ForMember(d => d.TrapTypeName, o => o.MapFrom(s => s.TrapType != null ? s.TrapType.Name : null));
+            .ConstructUsing((src, _) => new TrapResponse(
+                src.Id, src.TenantId, src.Name, src.Barcode,
+                src.TrapTypeId, src.TrapType != null ? src.TrapType.Name : null,
+                src.FieldId, src.Field != null ? src.Field.Name : null,
+                src.Latitude, src.Longitude, src.IsEnabled, src.Notes,
+                src.CreatedAt, src.UpdatedAt));
 
         CreateMap<BillingSnapshot, BillingSnapshotResponse>()
             .ConstructUsing(_ => new BillingSnapshotResponse());

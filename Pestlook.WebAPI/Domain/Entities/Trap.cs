@@ -14,6 +14,9 @@ public sealed class Trap : IHasTenant
     public Guid? TrapTypeId { get; set; }
     public TrapType? TrapType { get; set; }
 
+    public Guid? FieldId { get; set; }
+    public Field? Field { get; set; }
+
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
 

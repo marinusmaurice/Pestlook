@@ -26,6 +26,7 @@ public sealed class TrapsController(
     {
         var query = db.Traps
             .Include(t => t.TrapType)
+            .Include(t => t.Field)
             .AsQueryable();
 
         if (enabled.HasValue)
@@ -42,6 +43,7 @@ public sealed class TrapsController(
     {
         var trap = await db.Traps
             .Include(t => t.TrapType)
+            .Include(t => t.Field)
             .FirstOrDefaultAsync(t => t.Id == id, ct);
         if (trap is null) return NotFound(ApiResponse<object>.Fail("Trap not found."));
         return Ok(ApiResponse<TrapResponse>.Ok(mapper.Map<TrapResponse>(trap)));
@@ -54,6 +56,7 @@ public sealed class TrapsController(
     {
         var trap = await db.Traps
             .Include(t => t.TrapType)
+            .Include(t => t.Field)
             .FirstOrDefaultAsync(t => t.Barcode == barcode, ct);
         if (trap is null) return NotFound(ApiResponse<object>.Fail("Trap not found."));
         return Ok(ApiResponse<TrapResponse>.Ok(mapper.Map<TrapResponse>(trap)));
@@ -79,6 +82,7 @@ public sealed class TrapsController(
             Name = request.Name,
             Barcode = request.Barcode,
             TrapTypeId = request.TrapTypeId,
+            FieldId = request.FieldId,
             Latitude = request.Latitude,
             Longitude = request.Longitude,
             Notes = request.Notes
@@ -89,6 +93,7 @@ public sealed class TrapsController(
 
         var created = await db.Traps
             .Include(t => t.TrapType)
+            .Include(t => t.Field)
             .FirstAsync(t => t.Id == trap.Id, ct);
 
         return CreatedAtAction(nameof(GetById), new { id = trap.Id },
@@ -114,6 +119,7 @@ public sealed class TrapsController(
         trap.Name = request.Name;
         trap.Barcode = request.Barcode;
         trap.TrapTypeId = request.TrapTypeId;
+        trap.FieldId = request.FieldId;
         trap.Latitude = request.Latitude;
         trap.Longitude = request.Longitude;
         trap.IsEnabled = request.IsEnabled;
@@ -121,7 +127,11 @@ public sealed class TrapsController(
         trap.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
 
-        return Ok(ApiResponse<TrapResponse>.Ok(mapper.Map<TrapResponse>(trap)));
+        var updated = await db.Traps
+            .Include(t => t.TrapType)
+            .Include(t => t.Field)
+            .FirstAsync(t => t.Id == id, ct);
+        return Ok(ApiResponse<TrapResponse>.Ok(mapper.Map<TrapResponse>(updated)));
     }
 
     [HttpPatch("{id:guid}/toggle")]

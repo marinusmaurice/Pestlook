@@ -217,6 +217,10 @@ public sealed class ApplicationDbContext(
              .WithMany()
              .HasForeignKey(t => t.TrapTypeId)
              .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(t => t.Field)
+             .WithMany()
+             .HasForeignKey(t => t.FieldId)
+             .OnDelete(DeleteBehavior.SetNull);
             e.HasQueryFilter(t => t.DeletedAt == null &&
                 (tenantContext.TenantId == null || t.TenantId == tenantContext.TenantId));
         });

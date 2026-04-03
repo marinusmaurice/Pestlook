@@ -1,5 +1,7 @@
 import { getTraps, createTrap, updateTrap, toggleTrap, deleteTrap } from '../api/traps.js';
 import { getTrapTypes } from '../api/trap-types.js';
+import { getFarms } from '../api/farms.js';
+import { getFields } from '../api/fields.js';
 import { setPageTitle, setTopbarCta } from '../components/topbar.js';
 import { openModal, closeModal } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
@@ -232,6 +234,7 @@ function renderTable(traps, filter) {
     const coords = (t.latitude && t.longitude)
       ? `${t.latitude.toFixed(4)}, ${t.longitude.toFixed(4)}`
       : '—';
+    const fieldName = t.fieldName ? escapeHtml(t.fieldName) : '<span style="color:var(--text-dim);">—</span>';
 
     rows += `
       <tr data-trap-id="${t.id}" style="cursor:pointer;">
@@ -239,6 +242,7 @@ function renderTable(traps, filter) {
           <div style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;font-weight:500;color:var(--text);">${escapeHtml(t.name)}</div>
           ${t.barcode ? `<div style="font-size:0.7rem;color:var(--text-dim);">🏷 ${escapeHtml(t.barcode)}</div>` : ''}
         </td>
+        <td style="font-size:0.8rem;color:var(--text-mid);">${fieldName}</td>
         <td style="font-size:0.8rem;color:var(--text-mid);">${escapeHtml(t.trapTypeName || '—')}</td>
         <td style="font-size:0.78rem;color:var(--text-dim);font-family:'JetBrains Mono',monospace;">${coords}</td>
         <td>${statusTag}</td>
@@ -256,7 +260,7 @@ function renderTable(traps, filter) {
   el.innerHTML = `
     <div style="overflow-x:auto;">
       <table class="data-table">
-        <thead><tr><th>Trap</th><th>Type</th><th>Location</th><th>Status</th><th style="width:100px;"></th></tr></thead>
+        <thead><tr><th>Trap</th><th>Field</th><th>Type</th><th>Location</th><th>Status</th><th style="width:100px;"></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
@@ -315,12 +319,30 @@ async function reloadTraps(tableEl) {
   renderMap(cachedTraps);
 }
 
-function buildTrapForm(trap, freshTrapTypes) {
+function buildTrapForm(trap, freshTrapTypes, farms, allFields) {
   const typeOptions = `<option value="">None</option>` + freshTrapTypes.map(t => `<option value="${t.id}" ${trap && trap.trapTypeId === t.id ? 'selected' : ''}>${escapeHtml(t.name)}</option>`).join('');
+
+  // When editing, find which farm the current field belongs to
+  const selectedFarmId = allFields.find(f => f.id === trap?.fieldId)?.farmId ?? '';
+
+  const farmOptions = `<option value="">— Select Farm —</option>` +
+    farms.map(f => `<option value="${f.id}" ${f.id === selectedFarmId ? 'selected' : ''}>${escapeHtml(f.name)}</option>`).join('');
+
+  const farmFields = selectedFarmId ? allFields.filter(f => f.farmId === selectedFarmId) : [];
+  const fieldOptions = `<option value="">— Select Field —</option>` +
+    farmFields.map(f => `<option value="${f.id}" ${f.id === trap?.fieldId ? 'selected' : ''}>${escapeHtml(f.name)}</option>`).join('');
 
   const form = document.createElement('div');
   form.innerHTML = `
     <div style="display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <label class="input-label">Farm <span style="color:var(--red);">*</span></label>
+        <select class="input-field" id="trapFarm">${farmOptions}</select>
+      </div>
+      <div>
+        <label class="input-label">Field <span style="color:var(--red);">*</span></label>
+        <select class="input-field" id="trapField">${fieldOptions}</select>
+      </div>
       <div>
         <label class="input-label">Name *</label>
         <input class="input-field" type="text" id="trapName" value="${escapeHtml(trap?.name || '')}" placeholder="e.g. Trap-01 North Block">
@@ -350,10 +372,25 @@ function buildTrapForm(trap, freshTrapTypes) {
       </div>
       <div style="display:flex;gap:10px;margin-top:6px;">
         <button class="btn-outline" style="flex:1;" id="cancelTrap">Cancel</button>
-        <button class="btn-primary" style="flex:2;justify-content:center;" id="saveTrap">🪤 ${trap ? 'Update' : 'Create'} Trap</button>
+        <button class="btn-primary" style="flex:2;justify-content:center;" id="saveTrap">💾 ${trap ? 'Update' : 'Create'} Trap</button>
       </div>
     </div>
   `;
+
+  // Wire cascading farm → field
+  setTimeout(() => {
+    const farmSel  = document.getElementById('trapFarm');
+    const fieldSel = document.getElementById('trapField');
+    if (farmSel && fieldSel) {
+      farmSel.addEventListener('change', () => {
+        const fid = farmSel.value;
+        const filtered = fid ? allFields.filter(f => f.farmId === fid) : [];
+        fieldSel.innerHTML = `<option value="">— Select Field —</option>` +
+          filtered.map(f => `<option value="${f.id}">${escapeHtml(f.name)}</option>`).join('');
+      });
+    }
+  }, 0);
+
   return form;
 }
 
@@ -361,6 +398,7 @@ function getFormValues(isEdit) {
   const name = document.getElementById('trapName').value.trim();
   const barcode = document.getElementById('trapBarcode').value.trim() || null;
   const trapTypeId = document.getElementById('trapType').value || null;
+  const fieldId = document.getElementById('trapField').value || null;
   const lat = document.getElementById('trapLat').value;
   const lng = document.getElementById('trapLng').value;
   const notes = document.getElementById('trapNotes').value.trim() || null;
@@ -369,6 +407,7 @@ function getFormValues(isEdit) {
     name,
     barcode,
     trapTypeId,
+    fieldId,
     latitude: lat ? parseFloat(lat) : null,
     longitude: lng ? parseFloat(lng) : null,
     notes,
@@ -382,9 +421,13 @@ function getFormValues(isEdit) {
 }
 
 async function showCreateTrapModal(listContainer, presetCoords = null) {
-  const freshTrapTypes = await getTrapTypes().then(r => r.data || []).catch(() => cachedTrapTypes);
+  const [freshTrapTypes, farmsRes, fieldsRes] = await Promise.all([
+    getTrapTypes().then(r => r.data || []).catch(() => cachedTrapTypes),
+    getFarms().then(r => r.data || []).catch(() => []),
+    getFields().then(r => r.data || []).catch(() => []),
+  ]);
   const trapPreset = presetCoords ? { latitude: presetCoords.latitude, longitude: presetCoords.longitude } : null;
-  const form = buildTrapForm(trapPreset, freshTrapTypes);
+  const form = buildTrapForm(trapPreset, freshTrapTypes, farmsRes, fieldsRes);
   const subtitle = presetCoords
     ? `Register a new trap at ${presetCoords.latitude}, ${presetCoords.longitude}`
     : 'Register a new physical trap with optional barcode and GPS';
@@ -395,6 +438,7 @@ async function showCreateTrapModal(listContainer, presetCoords = null) {
     const btn = document.getElementById('saveTrap');
     const data = getFormValues(false);
     if (!data.name) { showToast('Name is required', 'error'); return; }
+    if (!data.fieldId) { showToast('Field is required', 'error'); return; }
 
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>';
@@ -406,14 +450,18 @@ async function showCreateTrapModal(listContainer, presetCoords = null) {
     } catch (err) {
       showToast(err.message, 'error');
       btn.disabled = false;
-      btn.textContent = '🪤 Create Trap';
+      btn.textContent = '💾 Create Trap';
     }
   });
 }
 
 async function showEditTrapModal(trap, tableEl) {
-  const freshTrapTypes = await getTrapTypes().then(r => r.data || []).catch(() => cachedTrapTypes);
-  const form = buildTrapForm(trap, freshTrapTypes);
+  const [freshTrapTypes, farmsRes, fieldsRes] = await Promise.all([
+    getTrapTypes().then(r => r.data || []).catch(() => cachedTrapTypes),
+    getFarms().then(r => r.data || []).catch(() => []),
+    getFields().then(r => r.data || []).catch(() => []),
+  ]);
+  const form = buildTrapForm(trap, freshTrapTypes, farmsRes, fieldsRes);
   openModal({ title: 'Edit Trap', subtitle: trap.name, content: form });
 
   document.getElementById('cancelTrap').addEventListener('click', closeModal);
@@ -421,6 +469,7 @@ async function showEditTrapModal(trap, tableEl) {
     const btn = document.getElementById('saveTrap');
     const data = getFormValues(true);
     if (!data.name) { showToast('Name is required', 'error'); return; }
+    if (!data.fieldId) { showToast('Field is required', 'error'); return; }
 
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>';
@@ -432,7 +481,7 @@ async function showEditTrapModal(trap, tableEl) {
     } catch (err) {
       showToast(err.message, 'error');
       btn.disabled = false;
-      btn.textContent = '🪤 Update Trap';
+      btn.textContent = '💾 Update Trap';
     }
   });
 }
