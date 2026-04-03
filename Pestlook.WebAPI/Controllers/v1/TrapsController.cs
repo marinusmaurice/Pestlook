@@ -26,7 +26,7 @@ public sealed class TrapsController(
     {
         var query = db.Traps
             .Include(t => t.TrapType)
-            .Include(t => t.Field)
+            .Include(t => t.Field).ThenInclude(f => f!.Farm)
             .AsQueryable();
 
         if (enabled.HasValue)
@@ -43,7 +43,7 @@ public sealed class TrapsController(
     {
         var trap = await db.Traps
             .Include(t => t.TrapType)
-            .Include(t => t.Field)
+            .Include(t => t.Field).ThenInclude(f => f!.Farm)
             .FirstOrDefaultAsync(t => t.Id == id, ct);
         if (trap is null) return NotFound(ApiResponse<object>.Fail("Trap not found."));
         return Ok(ApiResponse<TrapResponse>.Ok(mapper.Map<TrapResponse>(trap)));
@@ -56,7 +56,7 @@ public sealed class TrapsController(
     {
         var trap = await db.Traps
             .Include(t => t.TrapType)
-            .Include(t => t.Field)
+            .Include(t => t.Field).ThenInclude(f => f!.Farm)
             .FirstOrDefaultAsync(t => t.Barcode == barcode, ct);
         if (trap is null) return NotFound(ApiResponse<object>.Fail("Trap not found."));
         return Ok(ApiResponse<TrapResponse>.Ok(mapper.Map<TrapResponse>(trap)));
@@ -93,7 +93,7 @@ public sealed class TrapsController(
 
         var created = await db.Traps
             .Include(t => t.TrapType)
-            .Include(t => t.Field)
+            .Include(t => t.Field).ThenInclude(f => f!.Farm)
             .FirstAsync(t => t.Id == trap.Id, ct);
 
         return CreatedAtAction(nameof(GetById), new { id = trap.Id },
@@ -129,7 +129,7 @@ public sealed class TrapsController(
 
         var updated = await db.Traps
             .Include(t => t.TrapType)
-            .Include(t => t.Field)
+            .Include(t => t.Field).ThenInclude(f => f!.Farm)
             .FirstAsync(t => t.Id == id, ct);
         return Ok(ApiResponse<TrapResponse>.Ok(mapper.Map<TrapResponse>(updated)));
     }

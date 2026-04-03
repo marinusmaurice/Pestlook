@@ -66,6 +66,7 @@ public sealed class MappingProfile : Profile
                 src.Id, src.TenantId, src.Name, src.Barcode,
                 src.TrapTypeId, src.TrapType != null ? src.TrapType.Name : null,
                 src.FieldId, src.Field != null ? src.Field.Name : null,
+                src.Field != null ? src.Field.Farm?.Name : null,
                 src.Latitude, src.Longitude, src.IsEnabled, src.Notes,
                 src.CreatedAt, src.UpdatedAt));
 

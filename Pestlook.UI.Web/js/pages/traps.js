@@ -234,6 +234,7 @@ function renderTable(traps, filter) {
     const coords = (t.latitude && t.longitude)
       ? `${t.latitude.toFixed(4)}, ${t.longitude.toFixed(4)}`
       : '—';
+    const farmName  = t.farmName  ? escapeHtml(t.farmName)  : '<span style="color:var(--text-dim);">—</span>';
     const fieldName = t.fieldName ? escapeHtml(t.fieldName) : '<span style="color:var(--text-dim);">—</span>';
 
     rows += `
@@ -242,6 +243,7 @@ function renderTable(traps, filter) {
           <div style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;font-weight:500;color:var(--text);">${escapeHtml(t.name)}</div>
           ${t.barcode ? `<div style="font-size:0.7rem;color:var(--text-dim);">🏷 ${escapeHtml(t.barcode)}</div>` : ''}
         </td>
+        <td style="font-size:0.8rem;color:var(--text-mid);">${farmName}</td>
         <td style="font-size:0.8rem;color:var(--text-mid);">${fieldName}</td>
         <td style="font-size:0.8rem;color:var(--text-mid);">${escapeHtml(t.trapTypeName || '—')}</td>
         <td style="font-size:0.78rem;color:var(--text-dim);font-family:'JetBrains Mono',monospace;">${coords}</td>
@@ -260,7 +262,7 @@ function renderTable(traps, filter) {
   el.innerHTML = `
     <div style="overflow-x:auto;">
       <table class="data-table">
-        <thead><tr><th>Trap</th><th>Field</th><th>Type</th><th>Location</th><th>Status</th><th style="width:100px;"></th></tr></thead>
+        <thead><tr><th>Trap</th><th>Farm</th><th>Field</th><th>Type</th><th>Location</th><th>Status</th><th style="width:100px;"></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>

@@ -28,6 +28,7 @@ public sealed record TrapResponse(
     string? TrapTypeName,
     Guid? FieldId,
     string? FieldName,
+    string? FarmName,
     double? Latitude,
     double? Longitude,
     bool IsEnabled,
@@ -35,5 +36,5 @@ public sealed record TrapResponse(
     DateTime CreatedAt,
     DateTime UpdatedAt)
 {
-    public TrapResponse() : this(default, default, string.Empty, default, default, default, default, default, default, default, default, default, default, default) { }
+    public TrapResponse() : this(default, default, string.Empty, default, default, default, default, default, default, default, default, default, default, default, default) { }
 }
