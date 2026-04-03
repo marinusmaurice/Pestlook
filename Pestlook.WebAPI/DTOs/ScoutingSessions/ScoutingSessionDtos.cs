@@ -44,7 +44,9 @@ public sealed record SessionObservationItem(
     bool IsUnknownPest,
     string? Notes,
     LifeStage? LifeStage,
-    List<string>? PhotoUrls);
+    List<string>? PhotoUrls,
+    Guid? ObservationGroupId = null,
+    int RepeatCount = 1);
 
 // ── Responses ─────────────────────────────────────────────────────────────────
 
@@ -84,7 +86,8 @@ public sealed record SessionObservationResponse(
     string? Notes,
     LifeStage? LifeStage,
     int SortOrder,
-    List<string> PhotoUrls)
+    List<string> PhotoUrls,
+    Guid? ObservationGroupId)
 {
-    public SessionObservationResponse() : this(default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, []) { }
+    public SessionObservationResponse() : this(default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, [], default) { }
 }

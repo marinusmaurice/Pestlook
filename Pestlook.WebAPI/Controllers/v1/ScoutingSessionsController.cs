@@ -102,27 +102,37 @@ public sealed class ScoutingSessionsController(
 
         if (request.Observations is { Count: > 0 })
         {
+            var sortOffset = 0;
             for (var i = 0; i < request.Observations.Count; i++)
             {
                 var item = request.Observations[i];
-                session.SessionObservations.Add(new SessionObservation
+                var groupId = Guid.NewGuid();
+                var repeatCount = Math.Max(1, item.RepeatCount);
+                var photoJson = item.PhotoUrls is { Count: > 0 } ? JsonSerializer.Serialize(item.PhotoUrls) : null;
+
+                for (var r = 0; r < repeatCount; r++)
                 {
-                    TenantId = tenantId,
-                    ObservationType = item.ObservationType,
-                    IsPlanned = true,
-                    TrapId = item.TrapId,
-                    PestId = item.PestId,
-                    CaptureMode = item.CaptureMode,
-                    Count = item.Count,
-                    IsPresent = item.IsPresent,
-                    Latitude = item.Latitude,
-                    Longitude = item.Longitude,
-                    IsUnknownPest = item.IsUnknownPest,
-                    Notes = item.Notes,
-                    LifeStage = item.LifeStage,
-                    PhotoUrlsJson = item.PhotoUrls is { Count: > 0 } ? JsonSerializer.Serialize(item.PhotoUrls) : null,
-                    SortOrder = i
-                });
+                    session.SessionObservations.Add(new SessionObservation
+                    {
+                        TenantId = tenantId,
+                        ObservationType = item.ObservationType,
+                        IsPlanned = true,
+                        TrapId = item.TrapId,
+                        PestId = item.PestId,
+                        CaptureMode = item.CaptureMode,
+                        Count = item.Count,
+                        IsPresent = item.IsPresent,
+                        Latitude = item.Latitude,
+                        Longitude = item.Longitude,
+                        IsUnknownPest = item.IsUnknownPest,
+                        Notes = item.Notes,
+                        LifeStage = item.LifeStage,
+                        PhotoUrlsJson = photoJson,
+                        SortOrder = sortOffset + r,
+                        ObservationGroupId = groupId
+                    });
+                }
+                sortOffset += repeatCount;
             }
         }
 
@@ -168,59 +178,122 @@ public sealed class ScoutingSessionsController(
         if (request.Observations is not null)
         {
             var existingPlanned = session.SessionObservations.Where(o => o.IsPlanned).ToList();
-            var incomingIds = request.Observations
-                .Where(o => o.Id.HasValue)
-                .Select(o => o.Id!.Value)
+
+            // Group existing planned observations by their ObservationGroupId
+            var existingByGroup = existingPlanned
+                .Where(o => o.ObservationGroupId.HasValue)
+                .GroupBy(o => o.ObservationGroupId!.Value)
+                .ToDictionary(g => g.Key, g => g.OrderBy(o => o.SortOrder).ToList());
+
+            // Hard-delete any legacy ungrouped observations — they'll be recreated as groups
+            var ungrouped = existingPlanned.Where(o => !o.ObservationGroupId.HasValue).ToList();
+            db.SessionObservations.RemoveRange(ungrouped);
+
+            // Hard-delete groups that are no longer present in the incoming payload
+            var incomingGroupIds = request.Observations
+                .Where(o => o.ObservationGroupId.HasValue)
+                .Select(o => o.ObservationGroupId!.Value)
                 .ToHashSet();
+            foreach (var (groupId, groupRecords) in existingByGroup)
+            {
+                if (!incomingGroupIds.Contains(groupId))
+                    db.SessionObservations.RemoveRange(groupRecords);
+            }
 
-            db.SessionObservations.RemoveRange(existingPlanned.Where(o => !incomingIds.Contains(o.Id)).ToList());
-
+            var sortOffset = 0;
             for (var i = 0; i < request.Observations.Count; i++)
             {
                 var item = request.Observations[i];
+                var desired = Math.Max(1, item.RepeatCount);
                 var photoJson = item.PhotoUrls is { Count: > 0 } ? JsonSerializer.Serialize(item.PhotoUrls) : null;
 
-                if (item.Id.HasValue)
+                if (item.ObservationGroupId.HasValue &&
+                    existingByGroup.TryGetValue(item.ObservationGroupId.Value, out var existingGroup))
                 {
-                    var existing = existingPlanned.FirstOrDefault(o => o.Id == item.Id.Value);
-                    if (existing is not null)
+                    // Trim excess records from the tail of the group
+                    if (existingGroup.Count > desired)
                     {
-                        existing.ObservationType = item.ObservationType;
-                        existing.TrapId = item.TrapId;
-                        existing.PestId = item.PestId;
-                        existing.CaptureMode = item.CaptureMode;
-                        existing.Count = item.Count;
-                        existing.IsPresent = item.IsPresent;
-                        existing.Latitude = item.Latitude;
-                        existing.Longitude = item.Longitude;
-                        existing.IsUnknownPest = item.IsUnknownPest;
-                        existing.Notes = item.Notes;
-                        existing.LifeStage = item.LifeStage;
-                        existing.PhotoUrlsJson = photoJson;
-                        existing.SortOrder = i;
-                        continue;
+                        db.SessionObservations.RemoveRange(existingGroup.Skip(desired).ToList());
+                        existingGroup = existingGroup.Take(desired).ToList();
+                    }
+
+                    // Append new records when the desired count grew
+                    if (existingGroup.Count < desired)
+                    {
+                        var toAdd = desired - existingGroup.Count;
+                        for (var r = 0; r < toAdd; r++)
+                        {
+                            db.SessionObservations.Add(new SessionObservation
+                            {
+                                SessionId = id,
+                                TenantId = tenantId,
+                                ObservationType = item.ObservationType,
+                                IsPlanned = true,
+                                TrapId = item.TrapId,
+                                PestId = item.PestId,
+                                CaptureMode = item.CaptureMode,
+                                Count = item.Count,
+                                IsPresent = item.IsPresent,
+                                Latitude = item.Latitude,
+                                Longitude = item.Longitude,
+                                IsUnknownPest = item.IsUnknownPest,
+                                Notes = item.Notes,
+                                LifeStage = item.LifeStage,
+                                PhotoUrlsJson = photoJson,
+                                ObservationGroupId = item.ObservationGroupId,
+                                SortOrder = sortOffset + existingGroup.Count + r
+                            });
+                        }
+                    }
+
+                    // Update metadata on all surviving records
+                    for (var r = 0; r < existingGroup.Count; r++)
+                    {
+                        var obs = existingGroup[r];
+                        obs.ObservationType = item.ObservationType;
+                        obs.TrapId = item.TrapId;
+                        obs.PestId = item.PestId;
+                        obs.CaptureMode = item.CaptureMode;
+                        obs.Count = item.Count;
+                        obs.IsPresent = item.IsPresent;
+                        obs.Latitude = item.Latitude;
+                        obs.Longitude = item.Longitude;
+                        obs.IsUnknownPest = item.IsUnknownPest;
+                        obs.Notes = item.Notes;
+                        obs.LifeStage = item.LifeStage;
+                        obs.PhotoUrlsJson = photoJson;
+                        obs.SortOrder = sortOffset + r;
                     }
                 }
-
-                db.SessionObservations.Add(new SessionObservation
+                else
                 {
-                    SessionId = id,
-                    TenantId = tenantId,
-                    ObservationType = item.ObservationType,
-                    IsPlanned = true,
-                    TrapId = item.TrapId,
-                    PestId = item.PestId,
-                    CaptureMode = item.CaptureMode,
-                    Count = item.Count,
-                    IsPresent = item.IsPresent,
-                    Latitude = item.Latitude,
-                    Longitude = item.Longitude,
-                    IsUnknownPest = item.IsUnknownPest,
-                    Notes = item.Notes,
-                    LifeStage = item.LifeStage,
-                    PhotoUrlsJson = photoJson,
-                    SortOrder = i
-                });
+                    // New group — create desired number of records sharing a fresh GroupId
+                    var groupId = Guid.NewGuid();
+                    for (var r = 0; r < desired; r++)
+                    {
+                        db.SessionObservations.Add(new SessionObservation
+                        {
+                            SessionId = id,
+                            TenantId = tenantId,
+                            ObservationType = item.ObservationType,
+                            IsPlanned = true,
+                            TrapId = item.TrapId,
+                            PestId = item.PestId,
+                            CaptureMode = item.CaptureMode,
+                            Count = item.Count,
+                            IsPresent = item.IsPresent,
+                            Latitude = item.Latitude,
+                            Longitude = item.Longitude,
+                            IsUnknownPest = item.IsUnknownPest,
+                            Notes = item.Notes,
+                            LifeStage = item.LifeStage,
+                            PhotoUrlsJson = photoJson,
+                            ObservationGroupId = groupId,
+                            SortOrder = sortOffset + r
+                        });
+                    }
+                }
+                sortOffset += desired;
             }
         }
 

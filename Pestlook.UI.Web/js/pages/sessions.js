@@ -172,15 +172,45 @@ async function showPlannedSessionModal(listContainer, existing = null) {
     getUsers().then(r => r.data || []).catch(() => cachedUsers),
   ]);
 
-  // Pre-populate observation items from existing session
+  // Group existing planned observations by their observationGroupId so the modal
+  // shows one row per group with its repeat count instead of N individual rows.
   const items = existing?.observations?.length
-    ? existing.observations.map(o => ({
-        id: o.id || null,
-        observationType: typeof o.observationType === 'number' ? (o.observationType === 0 ? 'Trap' : 'AdHoc') : o.observationType,
-        trapId: o.trapId || '',
-        pestId: o.pestId || '',
-        captureMode: o.captureMode ?? '',
-      }))
+    ? (() => {
+        const groups = {};
+        const result = [];
+        for (const o of (existing.observations || [])) {
+          if (o.isPlanned === false) continue;
+          const gid = o.observationGroupId;
+          const obsType = typeof o.observationType === 'number'
+            ? (o.observationType === 0 ? 'Trap' : 'AdHoc')
+            : o.observationType;
+          if (gid) {
+            if (!groups[gid]) groups[gid] = { obs: o, count: 0, observationType: obsType };
+            groups[gid].count++;
+          } else {
+            // Legacy ungrouped observation — show as individual row with count 1
+            result.push({
+              observationGroupId: null,
+              observationType: obsType,
+              trapId: o.trapId || '',
+              pestId: o.pestId || '',
+              captureMode: o.captureMode ?? '',
+              repeatCount: 1,
+            });
+          }
+        }
+        for (const [gid, { obs, count, observationType }] of Object.entries(groups)) {
+          result.push({
+            observationGroupId: gid,
+            observationType,
+            trapId: obs.trapId || '',
+            pestId: obs.pestId || '',
+            captureMode: obs.captureMode ?? '',
+            repeatCount: count,
+          });
+        }
+        return result;
+      })()
     : [];
 
   const form = document.createElement('div');
@@ -230,17 +260,27 @@ async function showPlannedSessionModal(listContainer, existing = null) {
     }
     items.forEach((item, idx) => {
       const isTrap = item.observationType === 'Trap';
+      const typeLabel = isTrap ? '🕸️ Trap' : '👁 Obs';
+      const typeColor = isTrap ? 'var(--green)' : 'var(--amber)';
+      const trapSelectHtml = isTrap
+        ? `<select class="input-field" style="font-size:0.78rem;" data-field="trapId" data-idx="${idx}">
+              <option value="">— Select trap —</option>
+              ${freshTraps.map(t => `<option value="${t.id}" ${item.trapId === t.id ? 'selected' : ''}>${escapeHtml(t.name)}${t.barcode ? ' (' + escapeHtml(t.barcode) + ')' : ''}</option>`).join('')}
+            </select>`
+        : '';
+      const repeatCountHtml = !isTrap
+        ? `<div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:0.72rem;color:var(--text-dim);white-space:nowrap;">Number of obs:</span>
+              <input class="input-field" type="number" min="1" style="font-size:0.78rem;width:80px;" data-field="repeatCount" data-idx="${idx}" value="${item.repeatCount || 1}" title="Number of observation records to create">
+            </div>`
+        : '';
+
       const row = document.createElement('div');
       row.style.cssText = 'display:flex;gap:8px;align-items:flex-start;padding:8px 10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);';
       row.innerHTML = `
-        <span style="font-size:0.7rem;font-weight:600;color:${isTrap ? 'var(--green)' : 'var(--amber)'};min-width:40px;padding-top:6px;">${isTrap ? '🪤 Trap' : '👁 Obs'}</span>
+        <span style="font-size:0.7rem;font-weight:600;color:${typeColor};min-width:40px;padding-top:6px;">${typeLabel}</span>
         <div style="display:flex;flex-direction:column;gap:6px;flex:1;">
-          ${isTrap ? `
-            <select class="input-field" style="font-size:0.78rem;" data-field="trapId" data-idx="${idx}">
-              <option value="">— Select trap —</option>
-              ${freshTraps.map(t => `<option value="${t.id}" ${item.trapId === t.id ? 'selected' : ''}>${escapeHtml(t.name)}${t.barcode ? ' (' + escapeHtml(t.barcode) + ')' : ''}</option>`).join('')}
-            </select>
-          ` : ''}
+          ${trapSelectHtml}
           <select class="input-field" style="font-size:0.78rem;" data-field="pestId" data-idx="${idx}">
             <option value="">— Any pest —</option>
             ${freshPests.map(p => `<option value="${p.id}" ${item.pestId === p.id ? 'selected' : ''}>${escapeHtml(p.commonName)}</option>`).join('')}
@@ -250,6 +290,7 @@ async function showPlannedSessionModal(listContainer, existing = null) {
             <option value="Count" ${item.captureMode === 'Count' || item.captureMode === 0 ? 'selected' : ''}>Count</option>
             <option value="Presence" ${item.captureMode === 'Presence' || item.captureMode === 1 ? 'selected' : ''}>Presence</option>
           </select>
+          ${repeatCountHtml}
         </div>
         <button style="background:none;border:none;color:var(--red);cursor:pointer;font-size:1rem;padding:4px;align-self:flex-start;" data-remove="${idx}" title="Remove">×</button>
       `;
@@ -282,11 +323,11 @@ async function showPlannedSessionModal(listContainer, existing = null) {
   renderItems();
 
   document.getElementById('addTrapItem').addEventListener('click', () => {
-    items.push({ observationType: 'Trap', trapId: '', pestId: '', captureMode: '' });
+    items.push({ observationGroupId: null, observationType: 'Trap', trapId: '', pestId: '', captureMode: '', repeatCount: 1 });
     renderItems();
   });
   document.getElementById('addAdHocItem').addEventListener('click', () => {
-    items.push({ observationType: 'AdHoc', trapId: '', pestId: '', captureMode: '' });
+    items.push({ observationGroupId: null, observationType: 'AdHoc', trapId: '', pestId: '', captureMode: '', repeatCount: 1 });
     renderItems();
   });
 
@@ -300,11 +341,12 @@ async function showPlannedSessionModal(listContainer, existing = null) {
       const scheduledDate = document.getElementById('sessionDate').value || null;
 
       const observations = items.map(i => ({
-        id: i.id || null,
+        observationGroupId: i.observationGroupId || null,
         observationType: i.observationType,
         trapId: i.trapId || null,
         pestId: i.pestId || null,
         captureMode: i.captureMode || null,
+        repeatCount: parseInt(i.repeatCount) || 1,
       }));
 
       const payload = {

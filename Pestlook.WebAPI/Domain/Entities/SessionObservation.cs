@@ -47,4 +47,10 @@ public sealed class SessionObservation : IHasTenant
 
     /// <summary>JSON array of photo URLs captured during this observation.</summary>
     public string? PhotoUrlsJson { get; set; }
+
+    /// <summary>
+    /// Groups observations created together from a single planned item with a repeat count.
+    /// All records sharing the same ObservationGroupId were created as one logical entry.
+    /// </summary>
+    public Guid? ObservationGroupId { get; set; }
 }
