@@ -173,6 +173,18 @@ function openCreatePestModal(container) {
   });
 
   body.querySelector('#pest-cancel').addEventListener('click', closeModal);
+
+  const captureEl = body.querySelector('#pest-capture');
+  const thresholdEl = body.querySelector('#pest-threshold');
+  function syncThreshold() {
+    const isCount = parseInt(captureEl.value) === CaptureModeValues.Count;
+    thresholdEl.closest('div').style.display = isCount ? '' : 'none';
+    if (!isCount) { thresholdEl.value = '0'; }
+    else if (!thresholdEl.value || thresholdEl.value === '0') { thresholdEl.value = '1'; }
+  }
+  captureEl.addEventListener('change', syncThreshold);
+  syncThreshold();
+
   body.querySelector('#pest-submit').addEventListener('click', async () => {
     const commonName = body.querySelector('#pest-common').value.trim();
     if (!commonName) { showToast('Common name is required', 'error'); return; }
@@ -259,6 +271,18 @@ function openEditPestModal(pest, container) {
   });
 
   body.querySelector('#edit-pest-cancel').addEventListener('click', closeModal);
+
+  const editCaptureEl = body.querySelector('#edit-pest-capture');
+  const editThresholdEl = body.querySelector('#edit-pest-threshold');
+  function syncEditThreshold() {
+    const isCount = parseInt(editCaptureEl.value) === CaptureModeValues.Count;
+    editThresholdEl.closest('div').style.display = isCount ? '' : 'none';
+    if (!isCount) { editThresholdEl.value = '0'; }
+    else if (!editThresholdEl.value || editThresholdEl.value === '0') { editThresholdEl.value = '1'; }
+  }
+  editCaptureEl.addEventListener('change', syncEditThreshold);
+  syncEditThreshold();
+
   body.querySelector('#edit-pest-submit').addEventListener('click', async () => {
     const commonName = body.querySelector('#edit-pest-common').value.trim();
     if (!commonName) { showToast('Common name is required', 'error'); return; }
