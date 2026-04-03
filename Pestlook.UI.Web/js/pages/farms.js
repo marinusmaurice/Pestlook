@@ -182,7 +182,7 @@ function renderFieldsPanel(farm, farmIdx, fields) {
     for (const f of fields) {
       fieldsHtml += `
         <tr>
-          <td><div style="font-weight:600;color:#fff;">${escapeHtml(f.name)}</div></td>
+          <td><div style="font-weight:600;color:var(--text);">${escapeHtml(f.name)}</div></td>
           <td>${f.isActive !== false ? tag('Active', 'green') : tag('Inactive', 'red')}</td>
           <td>${f.cropType
             ? `<span class="tag tag-green" style="font-size:0.72rem;">${escapeHtml(f.cropType)}</span>`

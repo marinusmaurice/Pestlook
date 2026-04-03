@@ -29,10 +29,16 @@ public sealed class MappingProfile : Profile
                 []));
 
         CreateMap<Farm, FarmResponse>()
-            .ConstructUsing(_ => new FarmResponse());
+            .ConstructUsing((src, _) => new FarmResponse(
+                src.Id, src.TenantId, src.Name, src.Address,
+                src.Latitude, src.Longitude, src.BoundaryGeoJson,
+                src.IsActive, src.CreatedAt, src.UpdatedAt));
 
         CreateMap<Field, FieldResponse>()
-            .ConstructUsing(_ => new FieldResponse());
+            .ConstructUsing((src, _) => new FieldResponse(
+                src.Id, src.FarmId, src.TenantId, src.Name, src.GeoBoundary,
+                src.AreaHectares, src.CropType, src.Season, src.IsActive,
+                src.CreatedAt, src.UpdatedAt));
 
         CreateMap<TrapType, TrapTypeResponse>()
             .ConstructUsing(_ => new TrapTypeResponse());
