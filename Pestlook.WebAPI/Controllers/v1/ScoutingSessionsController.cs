@@ -221,18 +221,13 @@ public sealed class ScoutingSessionsController(
                 if (item.ObservationGroupId.HasValue &&
                     existingByGroup.TryGetValue(item.ObservationGroupId.Value, out var existingGroup))
                 {
-                    // Trim excess records from the tail of the group
-                    if (existingGroup.Count > desired)
+                    // If capture mode changed, wipe the whole group and recreate from scratch
+                    var existingCaptureMode = existingGroup.First().CaptureMode;
+                    if (existingCaptureMode != item.CaptureMode)
                     {
-                        db.SessionObservations.RemoveRange(existingGroup.Skip(desired).ToList());
-                        existingGroup = existingGroup.Take(desired).ToList();
-                    }
-
-                    // Append new records when the desired count grew
-                    if (existingGroup.Count < desired)
-                    {
-                        var toAdd = desired - existingGroup.Count;
-                        for (var r = 0; r < toAdd; r++)
+                        db.SessionObservations.RemoveRange(existingGroup);
+                        var replacedGroupId = item.ObservationGroupId.Value;
+                        for (var r = 0; r < desired; r++)
                         {
                             db.SessionObservations.Add(new SessionObservation
                             {
@@ -251,29 +246,67 @@ public sealed class ScoutingSessionsController(
                                 Notes = item.Notes,
                                 LifeStage = item.LifeStage,
                                 PhotoUrlsJson = photoJson,
-                                ObservationGroupId = item.ObservationGroupId,
-                                SortOrder = sortOffset + existingGroup.Count + r
+                                ObservationGroupId = replacedGroupId,
+                                SortOrder = sortOffset + r
                             });
                         }
                     }
-
-                    // Update metadata on all surviving records
-                    for (var r = 0; r < existingGroup.Count; r++)
+                    else
                     {
-                        var obs = existingGroup[r];
-                        obs.ObservationType = item.ObservationType;
-                        obs.TrapId = item.TrapId;
-                        obs.PestId = item.PestId;
-                        obs.CaptureMode = item.CaptureMode;
-                        obs.Count = item.Count;
-                        obs.IsPresent = item.IsPresent;
-                        obs.Latitude = item.Latitude;
-                        obs.Longitude = item.Longitude;
-                        obs.IsUnknownPest = item.IsUnknownPest;
-                        obs.Notes = item.Notes;
-                        obs.LifeStage = item.LifeStage;
-                        obs.PhotoUrlsJson = photoJson;
-                        obs.SortOrder = sortOffset + r;
+                        // Trim excess records from the tail of the group
+                        if (existingGroup.Count > desired)
+                        {
+                            db.SessionObservations.RemoveRange(existingGroup.Skip(desired).ToList());
+                            existingGroup = existingGroup.Take(desired).ToList();
+                        }
+
+                        // Append new records when the desired count grew
+                        if (existingGroup.Count < desired)
+                        {
+                            var toAdd = desired - existingGroup.Count;
+                            for (var r = 0; r < toAdd; r++)
+                            {
+                                db.SessionObservations.Add(new SessionObservation
+                                {
+                                    SessionId = id,
+                                    TenantId = tenantId,
+                                    ObservationType = item.ObservationType,
+                                    IsPlanned = true,
+                                    TrapId = item.TrapId,
+                                    PestId = item.PestId,
+                                    CaptureMode = item.CaptureMode,
+                                    Count = item.Count,
+                                    IsPresent = item.IsPresent,
+                                    Latitude = item.Latitude,
+                                    Longitude = item.Longitude,
+                                    IsUnknownPest = item.IsUnknownPest,
+                                    Notes = item.Notes,
+                                    LifeStage = item.LifeStage,
+                                    PhotoUrlsJson = photoJson,
+                                    ObservationGroupId = item.ObservationGroupId,
+                                    SortOrder = sortOffset + existingGroup.Count + r
+                                });
+                            }
+                        }
+
+                        // Update metadata on all surviving records
+                        for (var r = 0; r < existingGroup.Count; r++)
+                        {
+                            var obs = existingGroup[r];
+                            obs.ObservationType = item.ObservationType;
+                            obs.TrapId = item.TrapId;
+                            obs.PestId = item.PestId;
+                            obs.CaptureMode = item.CaptureMode;
+                            obs.Count = item.Count;
+                            obs.IsPresent = item.IsPresent;
+                            obs.Latitude = item.Latitude;
+                            obs.Longitude = item.Longitude;
+                            obs.IsUnknownPest = item.IsUnknownPest;
+                            obs.Notes = item.Notes;
+                            obs.LifeStage = item.LifeStage;
+                            obs.PhotoUrlsJson = photoJson;
+                            obs.SortOrder = sortOffset + r;
+                        }
                     }
                 }
                 else

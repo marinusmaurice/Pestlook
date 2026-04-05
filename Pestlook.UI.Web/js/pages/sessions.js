@@ -397,7 +397,13 @@ async function showPlannedSessionModal(listContainer, existing = null) {
         }
         if (field === 'captureMode') {
           const repeatCountWrap = listEl.querySelector(`[data-repeatcount="${idx}"]`);
-          if (repeatCountWrap) repeatCountWrap.style.display = el.value === 'Presence' ? 'none' : 'flex';
+          const isPresence = el.value === 'Presence';
+          if (repeatCountWrap) repeatCountWrap.style.display = isPresence ? 'none' : 'flex';
+          if (isPresence) {
+            items[idx].repeatCount = 1;
+            const repeatEl = listEl.querySelector(`[data-field="repeatCount"][data-idx="${idx}"]`);
+            if (repeatEl) repeatEl.value = 1;
+          }
         }
         if (field === 'pestId' && el.value) {
           const pest = freshPests.find(p => p.id === el.value);
@@ -410,6 +416,11 @@ async function showPlannedSessionModal(listContainer, existing = null) {
             if (captureModeEl) captureModeEl.value = capMode;
             const repeatCountWrap = listEl.querySelector(`[data-repeatcount="${idx}"]`);
             if (repeatCountWrap) repeatCountWrap.style.display = capMode === 'Presence' ? 'none' : 'flex';
+            if (capMode === 'Presence') {
+              items[idx].repeatCount = 1;
+              const repeatEl = listEl.querySelector(`[data-field="repeatCount"][data-idx="${idx}"]`);
+              if (repeatEl) repeatEl.value = 1;
+            }
           }
         }
       });
