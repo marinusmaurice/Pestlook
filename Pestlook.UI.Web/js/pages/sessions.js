@@ -258,6 +258,10 @@ async function showPlannedSessionModal(listContainer, existing = null) {
         <label class="input-label">Scheduled Date (optional)</label>
         <input class="input-field" type="date" id="sessionDate" value="${existing?.scheduledDate ? existing.scheduledDate.substring(0, 10) : ''}">
       </div>
+      <div>
+        <label class="input-label">Notes (optional)</label>
+        <textarea class="input-field" rows="2" id="sessionNotes" placeholder="Session notes…">${escapeHtml(existing?.notes || '')}</textarea>
+      </div>
 
       <hr style="border-color:var(--border);margin:4px 0;">
 
@@ -396,6 +400,7 @@ async function showPlannedSessionModal(listContainer, existing = null) {
       const scouterId = document.getElementById('sessionScout').value || null;
       const scheduledDate = document.getElementById('sessionDate').value || null;
       const fieldId = document.getElementById('sessionField').value || null;
+      const notes = document.getElementById('sessionNotes').value.trim() || null;
 
       syncItemsFromDom();
       const observations = items.map(i => ({
@@ -411,6 +416,7 @@ async function showPlannedSessionModal(listContainer, existing = null) {
         scouterId,
         scheduledDate,
         fieldId,
+        notes,
         observations,
       };
 
