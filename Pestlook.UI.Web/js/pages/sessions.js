@@ -394,6 +394,17 @@ async function showPlannedSessionModal(listContainer, existing = null) {
         } else {
           items[idx][field] = el.value || '';
         }
+        if (field === 'pestId' && el.value) {
+          const pest = freshPests.find(p => p.id === el.value);
+          if (pest && pest.defaultCaptureMode != null) {
+            const capMode = typeof pest.defaultCaptureMode === 'string'
+              ? pest.defaultCaptureMode
+              : (pest.defaultCaptureMode === 0 ? 'Count' : 'Presence');
+            items[idx].captureMode = capMode;
+            const captureModeEl = listEl.querySelector(`[data-field="captureMode"][data-idx="${idx}"]`);
+            if (captureModeEl) captureModeEl.value = capMode;
+          }
+        }
       });
     });
     listEl.querySelectorAll('[data-remove]').forEach(btn => {

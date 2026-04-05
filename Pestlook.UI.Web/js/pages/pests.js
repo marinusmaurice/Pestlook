@@ -105,7 +105,7 @@ function pestCard(p) {
           ${tag(capName, capColor)}
           ${tag(isSystem ? 'System' : 'Custom', isSystem ? 'gray' : 'amber')}
         </div>
-        ${p.thresholdCount != null ? `<div style="font-size:0.68rem;color:var(--text-dim);margin-top:6px;">Threshold: ${p.thresholdCount}</div>` : ''}
+        ${p.thresholdCount != null && capVal !== CaptureModeValues.Presence ? `<div style="font-size:0.68rem;color:var(--text-dim);margin-top:6px;">Threshold: ${p.thresholdCount}</div>` : ''}
         ${!isSystem ? `
         <div style="display:flex;gap:6px;margin-top:10px;">
           <button class="btn-outline" style="padding:3px 10px;font-size:0.72rem;" data-edit-pest="${p.id}">Edit</button>
