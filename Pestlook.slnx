@@ -1,4 +1,7 @@
 <Solution>
+  <Properties>
+    <Property Name="StartupProject" Value="Pestlook.WebAPI/Pestlook.WebAPI.csproj" />
+  </Properties>
   <Folder Name="/Pestlook.UI.Web/">
     <Project Path="Pestlook.UI.Web/" Type="Website" DisplayName="Pestlook.UI.Web">
       <Properties Name="WebsiteProperties">

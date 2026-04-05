@@ -291,8 +291,35 @@ async function showPlannedSessionModal(listContainer, existing = null) {
     fieldSel.innerHTML = '<option value="">— Select field —</option>' +
       filtered.map(f => `<option value="${f.id}" ${f.id === selectedId ? 'selected' : ''}>${escapeHtml(f.name)}</option>`).join('');
   }
+
+  function getFilteredTraps() {
+    const fieldId = document.getElementById('sessionField')?.value || '';
+    const farmId  = document.getElementById('sessionFarm')?.value  || '';
+    if (fieldId) return freshTraps.filter(t => t.fieldId === fieldId);
+    if (farmId) {
+      const farmFieldIds = new Set(allFields.filter(f => f.farmId === farmId).map(f => f.id));
+      return freshTraps.filter(t => farmFieldIds.has(t.fieldId));
+    }
+    return freshTraps;
+  }
+
+  function clearInvalidTraps() {
+    syncItemsFromDom();
+    const validIds = new Set(getFilteredTraps().map(t => t.id));
+    for (const item of items) {
+      if (item.observationType === 'Trap' && item.trapId && !validIds.has(item.trapId)) {
+        item.trapId = '';
+      }
+    }
+    renderItems();
+  }
+
   populateFieldSelect(selectedFarmId, selectedFieldId);
-  document.getElementById('sessionFarm').addEventListener('change', e => populateFieldSelect(e.target.value, ''));
+  document.getElementById('sessionFarm').addEventListener('change', e => {
+    populateFieldSelect(e.target.value, '');
+    clearInvalidTraps();
+  });
+  document.getElementById('sessionField').addEventListener('change', () => clearInvalidTraps());
 
   const listEl = document.getElementById('obsItemsList');
 
@@ -323,7 +350,7 @@ async function showPlannedSessionModal(listContainer, existing = null) {
       const trapSelectHtml = isTrap
         ? `<select class="input-field" style="font-size:0.78rem;" data-field="trapId" data-idx="${idx}">
               <option value="">— Select trap —</option>
-              ${freshTraps.map(t => `<option value="${t.id}" ${item.trapId === t.id ? 'selected' : ''}>${escapeHtml(t.name)}${t.barcode ? ' (' + escapeHtml(t.barcode) + ')' : ''}</option>`).join('')}
+              ${getFilteredTraps().map(t => `<option value="${t.id}" ${item.trapId === t.id ? 'selected' : ''}>${escapeHtml(t.name)}${t.barcode ? ' (' + escapeHtml(t.barcode) + ')' : ''}</option>`).join('')}
             </select>`
         : '';
       const repeatCountHtml = !isTrap
