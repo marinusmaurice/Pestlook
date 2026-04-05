@@ -400,6 +400,7 @@ async function showPlannedSessionModal(listContainer, existing = null) {
       const scouterId = document.getElementById('sessionScout').value || null;
       const scheduledDate = document.getElementById('sessionDate').value || null;
       const fieldId = document.getElementById('sessionField').value || null;
+      const farmId = document.getElementById('sessionFarm').value || null;
       const notes = document.getElementById('sessionNotes').value.trim() || null;
 
       syncItemsFromDom();
@@ -416,6 +417,7 @@ async function showPlannedSessionModal(listContainer, existing = null) {
         scouterId,
         scheduledDate,
         fieldId,
+        farmId,
         notes,
         observations,
       };

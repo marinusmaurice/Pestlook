@@ -183,6 +183,11 @@ public sealed class ApplicationDbContext(
              .HasForeignKey(ss => ss.FieldId)
              .IsRequired(false)
              .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(ss => ss.Farm)
+             .WithMany()
+             .HasForeignKey(ss => ss.FarmId)
+             .IsRequired(false)
+             .OnDelete(DeleteBehavior.NoAction);
             e.HasOne(ss => ss.CreatedBy)
              .WithMany()
              .HasForeignKey(ss => ss.CreatedByUserId)

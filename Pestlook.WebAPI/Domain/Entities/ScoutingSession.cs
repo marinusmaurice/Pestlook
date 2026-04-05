@@ -13,6 +13,9 @@ public sealed class ScoutingSession : IHasTenant, IAuditableByUser
     public Guid? FieldId { get; set; }
     public Field? Field { get; set; }
 
+    public Guid? FarmId { get; set; }
+    public Farm? Farm { get; set; }
+
     /// <summary>True when the session was pre-planned from the web UI; false for ad-hoc sessions started by a scout.</summary>
     public bool IsPlanned { get; set; }
 

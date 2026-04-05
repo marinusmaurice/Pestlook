@@ -18,6 +18,7 @@ public sealed record CompleteScoutingSessionRequest(
 public sealed record CreatePlannedSessionRequest(
     string? ScouterId,
     Guid? FieldId,
+    Guid? FarmId,
     DateTime? ScheduledDate,
     string? WeatherConditions,
     double? TemperatureCelsius,
@@ -27,6 +28,7 @@ public sealed record CreatePlannedSessionRequest(
 public sealed record UpdatePlannedSessionRequest(
     string? ScouterId,
     Guid? FieldId,
+    Guid? FarmId,
     DateTime? ScheduledDate,
     string? WeatherConditions,
     double? TemperatureCelsius,
@@ -67,6 +69,7 @@ public sealed record ScoutingSessionResponse(
     string? Notes,
     DateTime CreatedAt,
     Guid? FieldId,
+    Guid? FarmId,
     string? FieldName,
     string? FarmName,
     int ObservationCount,
@@ -74,7 +77,7 @@ public sealed record ScoutingSessionResponse(
     string? CreatedByName,
     string? UpdatedByName)
 {
-    public ScoutingSessionResponse() : this(default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, [], default, default) { }
+    public ScoutingSessionResponse() : this(default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, [], default, default) { }
 }
 
 public sealed record SessionObservationResponse(

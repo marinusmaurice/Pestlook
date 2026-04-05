@@ -30,6 +30,7 @@ public sealed class ScoutingSessionsController(
           .Include(ss => ss.Scouter)
           .Include(ss => ss.CreatedBy)
           .Include(ss => ss.UpdatedBy)
+          .Include(ss => ss.Farm)
           .Include(ss => ss.Field).ThenInclude(f => f!.Farm)
           .Include(ss => ss.SessionObservations).ThenInclude(so => so.Trap)
           .Include(ss => ss.SessionObservations).ThenInclude(so => so.Pest)
@@ -102,6 +103,7 @@ public sealed class ScoutingSessionsController(
             IsPlanned = true,
             ScheduledDate = request.ScheduledDate,
             FieldId = request.FieldId,
+            FarmId = request.FarmId,
             WeatherConditions = request.WeatherConditions,
             TemperatureCelsius = request.TemperatureCelsius,
             Notes = request.Notes
@@ -174,6 +176,7 @@ public sealed class ScoutingSessionsController(
         session.ScouterId = request.ScouterId;
         session.ScheduledDate = request.ScheduledDate;
         session.FieldId = request.FieldId;
+        session.FarmId = request.FarmId;
         if (request.WeatherConditions is not null) session.WeatherConditions = request.WeatherConditions;
         if (request.TemperatureCelsius is not null) session.TemperatureCelsius = request.TemperatureCelsius;
         if (request.Notes is not null) session.Notes = request.Notes;
