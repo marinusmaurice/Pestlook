@@ -72,10 +72,12 @@ function renderDetail(session, container, params) {
             ${session.farmName ? `<span>Farm</span><span style="color:var(--text);">${escapeHtml(session.farmName)}</span>` : '<span></span><span></span>'}
             <span>Type</span><span style="color:var(--text);">${session.isPlanned ? 'Planned' : 'Unplanned'}</span>
             ${session.fieldName ? `<span>Field</span><span style="color:var(--text);">${escapeHtml(session.fieldName)}</span>` : '<span></span><span></span>'}
-            ${session.scheduledDate ? `<span>Scheduled</span><span style="color:var(--text);grid-column:span 3;">${formatDateTime(session.scheduledDate)}</span>` : ''}
+            ${session.scheduledDate
+              ? `<span>Scheduled</span><span style="color:var(--text);">${formatDateTime(session.scheduledDate)}</span><span>Created by</span><span style="color:var(--text);">${escapeHtml(session.createdByName || '—')}</span>`
+              : `<span>Created by</span><span style="color:var(--text);grid-column:span 3;">${escapeHtml(session.createdByName || '—')}</span>`}
             ${session.startedAt ? `<span>Started</span><span style="color:var(--text);grid-column:span 3;">${formatDateTime(session.startedAt)}</span>` : ''}
             ${session.completedAt ? `<span>Completed</span><span style="color:var(--text);grid-column:span 3;">${formatDateTime(session.completedAt)}</span>` : ''}
-            <span>Weather</span><span style="color:var(--text);grid-column:span 3;">${weatherDisplay}</span>
+            <span>Weather</span><span style="color:var(--text);">${weatherDisplay}</span><span>Updated by</span><span style="color:var(--text);">${escapeHtml(session.updatedByName || '—')}</span>
             ${session.notes ? `<span>Notes</span><span style="color:var(--text);grid-column:span 3;">${escapeHtml(session.notes)}</span>` : ''}
           </div>
         </div>
@@ -156,6 +158,8 @@ function renderObsTable(observations, session, container, params, canEdit) {
     const lifeStage = o.lifeStage || '—';
     const coords = (o.latitude != null && o.longitude != null) ? `${Number(o.latitude).toFixed(4)}, ${Number(o.longitude).toFixed(4)}` : '—';
     const notes = o.notes ? escapeHtml(o.notes) : '';
+    const createdBy = o.createdByName ? escapeHtml(o.createdByName) : '—';
+    const updatedBy = o.updatedByName ? escapeHtml(o.updatedByName) : '—';
 
     let actions = '';
     if (canEdit) {
@@ -174,6 +178,8 @@ function renderObsTable(observations, session, container, params, canEdit) {
         <td>${lifeStage}</td>
         <td style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text-dim);">${coords}</td>
         <td style="font-size:0.78rem;color:var(--text-dim);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${notes}">${notes || '—'}</td>
+        <td style="font-size:0.78rem;color:var(--text-dim);">${createdBy}</td>
+        <td style="font-size:0.78rem;color:var(--text-dim);">${updatedBy}</td>
         <td style="white-space:nowrap;">${actions}</td>
       </tr>
     `;
@@ -184,7 +190,7 @@ function renderObsTable(observations, session, container, params, canEdit) {
       <table class="data-table">
         <thead><tr>
           <th>Type</th><th>Trap</th><th>Pest</th><th>Mode</th>
-          <th>Count</th><th>Present</th><th>Stage</th><th>Coords</th><th>Notes</th><th></th>
+          <th>Count</th><th>Present</th><th>Stage</th><th>Coords</th><th>Notes</th><th>Created by</th><th>Updated by</th><th></th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>

@@ -1,7 +1,7 @@
 namespace Pestlook.WebAPI.Domain.Entities;
 
 /// <summary>A physical trap instance deployed in the field.</summary>
-public sealed class Trap : IHasTenant
+public sealed class Trap : IHasTenant, IAuditableByUser
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid TenantId { get; set; }
@@ -26,4 +26,8 @@ public sealed class Trap : IHasTenant
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? DeletedAt { get; set; }
+
+    public string? CreatedByUserId { get; set; }
+    public string? UpdatedByUserId { get; set; }
+    public string? DeletedByUserId { get; set; }
 }

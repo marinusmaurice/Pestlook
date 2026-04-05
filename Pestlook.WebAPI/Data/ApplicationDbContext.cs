@@ -183,6 +183,21 @@ public sealed class ApplicationDbContext(
              .HasForeignKey(ss => ss.FieldId)
              .IsRequired(false)
              .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(ss => ss.CreatedBy)
+             .WithMany()
+             .HasForeignKey(ss => ss.CreatedByUserId)
+             .IsRequired(false)
+             .OnDelete(DeleteBehavior.NoAction);
+            e.HasOne(ss => ss.UpdatedBy)
+             .WithMany()
+             .HasForeignKey(ss => ss.UpdatedByUserId)
+             .IsRequired(false)
+             .OnDelete(DeleteBehavior.NoAction);
+            e.HasOne<ApplicationUser>()
+             .WithMany()
+             .HasForeignKey(ss => ss.DeletedByUserId)
+             .IsRequired(false)
+             .OnDelete(DeleteBehavior.NoAction);
             e.HasQueryFilter(ss => ss.DeletedAt == null &&
                 (tenantContext.TenantId == null || ss.TenantId == tenantContext.TenantId));
         });
@@ -207,6 +222,21 @@ public sealed class ApplicationDbContext(
              .WithMany()
              .HasForeignKey(so => so.PestId)
              .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(so => so.CreatedBy)
+             .WithMany()
+             .HasForeignKey(so => so.CreatedByUserId)
+             .IsRequired(false)
+             .OnDelete(DeleteBehavior.NoAction);
+            e.HasOne(so => so.UpdatedBy)
+             .WithMany()
+             .HasForeignKey(so => so.UpdatedByUserId)
+             .IsRequired(false)
+             .OnDelete(DeleteBehavior.NoAction);
+            e.HasOne<ApplicationUser>()
+             .WithMany()
+             .HasForeignKey(so => so.DeletedByUserId)
+             .IsRequired(false)
+             .OnDelete(DeleteBehavior.NoAction);
             e.HasQueryFilter(so => tenantContext.TenantId == null || so.TenantId == tenantContext.TenantId);
         });
 
@@ -245,10 +275,18 @@ public sealed class ApplicationDbContext(
             e.HasIndex(b => new { b.TenantId, b.BillingMonth }).IsUnique();
             e.HasQueryFilter(b => tenantContext.TenantId == null || b.TenantId == tenantContext.TenantId);
         });
+
+        // ── User audit FK configuration ──────────────────────────────────────
+        ConfigureUserAudit<Farm>(builder);
+        ConfigureUserAudit<Field>(builder);
+        ConfigureUserAudit<Trap>(builder);
+        ConfigureUserAudit<TrapType>(builder);
+        ConfigureUserAudit<Pest>(builder);
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
+        SetUserAuditFields();
         var auditEntries = BuildAuditEntries();
         var result = await base.SaveChangesAsync(cancellationToken);
         await SaveAuditLogsAsync(auditEntries, cancellationToken);
@@ -319,6 +357,39 @@ public sealed class ApplicationDbContext(
             ct);
 
         await base.SaveChangesAsync(ct);
+    }
+
+    private void SetUserAuditFields()
+    {
+        var userId = currentUserService.UserId;
+        foreach (var entry in ChangeTracker.Entries<IAuditableByUser>())
+        {
+            if (entry.State == EntityState.Added)
+            {
+                entry.Entity.CreatedByUserId = userId;
+            }
+            else if (entry.State == EntityState.Modified)
+            {
+                entry.Entity.UpdatedByUserId = userId;
+                var deletedAtMeta = entry.Metadata.FindProperty("DeletedAt");
+                if (deletedAtMeta != null)
+                {
+                    var deletedAtProp = entry.Property(deletedAtMeta.Name);
+                    if (deletedAtProp.IsModified && deletedAtProp.OriginalValue is null && deletedAtProp.CurrentValue is not null)
+                        entry.Entity.DeletedByUserId = userId;
+                }
+            }
+        }
+    }
+
+    private static void ConfigureUserAudit<TEntity>(ModelBuilder builder) where TEntity : class, IAuditableByUser
+    {
+        builder.Entity<TEntity>(e =>
+        {
+            e.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.CreatedByUserId).IsRequired(false).OnDelete(DeleteBehavior.NoAction);
+            e.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.UpdatedByUserId).IsRequired(false).OnDelete(DeleteBehavior.NoAction);
+            e.HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.DeletedByUserId).IsRequired(false).OnDelete(DeleteBehavior.NoAction);
+        });
     }
 
     private sealed class PendingAuditEntry

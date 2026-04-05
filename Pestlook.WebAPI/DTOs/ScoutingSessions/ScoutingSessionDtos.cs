@@ -70,9 +70,11 @@ public sealed record ScoutingSessionResponse(
     string? FieldName,
     string? FarmName,
     int ObservationCount,
-    List<SessionObservationResponse> Observations)
+    List<SessionObservationResponse> Observations,
+    string? CreatedByName,
+    string? UpdatedByName)
 {
-    public ScoutingSessionResponse() : this(default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, []) { }
+    public ScoutingSessionResponse() : this(default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, [], default, default) { }
 }
 
 public sealed record SessionObservationResponse(
@@ -93,7 +95,9 @@ public sealed record SessionObservationResponse(
     LifeStage? LifeStage,
     int SortOrder,
     List<string> PhotoUrls,
-    Guid? ObservationGroupId)
+    Guid? ObservationGroupId,
+    string? CreatedByName,
+    string? UpdatedByName)
 {
-    public SessionObservationResponse() : this(default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, [], default) { }
+    public SessionObservationResponse() : this(default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, [], default, default, default) { }
 }

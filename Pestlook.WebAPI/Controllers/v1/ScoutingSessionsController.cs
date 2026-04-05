@@ -28,9 +28,13 @@ public sealed class ScoutingSessionsController(
     private IQueryable<ScoutingSession> FullQuery() =>
         db.ScoutingSessions
           .Include(ss => ss.Scouter)
+          .Include(ss => ss.CreatedBy)
+          .Include(ss => ss.UpdatedBy)
           .Include(ss => ss.Field).ThenInclude(f => f!.Farm)
           .Include(ss => ss.SessionObservations).ThenInclude(so => so.Trap)
-          .Include(ss => ss.SessionObservations).ThenInclude(so => so.Pest);
+          .Include(ss => ss.SessionObservations).ThenInclude(so => so.Pest)
+          .Include(ss => ss.SessionObservations).ThenInclude(so => so.CreatedBy)
+          .Include(ss => ss.SessionObservations).ThenInclude(so => so.UpdatedBy);
 
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<List<ScoutingSessionResponse>>), StatusCodes.Status200OK)]

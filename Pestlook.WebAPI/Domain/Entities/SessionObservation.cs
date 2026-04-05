@@ -7,7 +7,7 @@ namespace Pestlook.WebAPI.Domain.Entities;
 /// Covers both trap inspections (<see cref="ObservationType.Trap"/>)
 /// and free-form / ad-hoc observations (<see cref="ObservationType.AdHoc"/>).
 /// </summary>
-public sealed class SessionObservation : IHasTenant
+public sealed class SessionObservation : IHasTenant, IAuditableByUser
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid TenantId { get; set; }
@@ -53,4 +53,10 @@ public sealed class SessionObservation : IHasTenant
     /// All records sharing the same ObservationGroupId were created as one logical entry.
     /// </summary>
     public Guid? ObservationGroupId { get; set; }
+
+    public string? CreatedByUserId { get; set; }
+    public ApplicationUser? CreatedBy { get; set; }
+    public string? UpdatedByUserId { get; set; }
+    public ApplicationUser? UpdatedBy { get; set; }
+    public string? DeletedByUserId { get; set; }
 }

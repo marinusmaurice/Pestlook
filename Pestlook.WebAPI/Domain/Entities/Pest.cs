@@ -2,7 +2,7 @@ using Pestlook.WebAPI.Domain.Enums;
 
 namespace Pestlook.WebAPI.Domain.Entities;
 
-public sealed class Pest : IHasTenant
+public sealed class Pest : IHasTenant, IAuditableByUser
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid TenantId { get; set; }
@@ -19,4 +19,7 @@ public sealed class Pest : IHasTenant
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? DeletedAt { get; set; }
 
-    }
+    public string? CreatedByUserId { get; set; }
+    public string? UpdatedByUserId { get; set; }
+    public string? DeletedByUserId { get; set; }
+}

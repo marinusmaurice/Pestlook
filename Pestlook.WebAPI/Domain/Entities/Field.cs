@@ -1,6 +1,6 @@
 namespace Pestlook.WebAPI.Domain.Entities;
 
-public sealed class Field : IHasTenant
+public sealed class Field : IHasTenant, IAuditableByUser
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid FarmId { get; set; }
@@ -16,4 +16,7 @@ public sealed class Field : IHasTenant
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? DeletedAt { get; set; }
 
-    }
+    public string? CreatedByUserId { get; set; }
+    public string? UpdatedByUserId { get; set; }
+    public string? DeletedByUserId { get; set; }
+}

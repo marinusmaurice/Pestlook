@@ -52,7 +52,9 @@ public sealed class MappingProfile : Profile
             .ForMember(d => d.ScouterName, o => o.MapFrom(s => s.Scouter != null ? s.Scouter.FirstName + " " + s.Scouter.LastName : null))
             .ForMember(d => d.FieldName, o => o.MapFrom(s => s.Field != null ? s.Field.Name : null))
             .ForMember(d => d.FarmName, o => o.MapFrom(s => s.Field != null ? s.Field.Farm != null ? s.Field.Farm.Name : null : null))
-            .ForMember(d => d.Observations, o => o.MapFrom(s => s.SessionObservations));
+            .ForMember(d => d.Observations, o => o.MapFrom(s => s.SessionObservations))
+            .ForMember(d => d.CreatedByName, o => o.MapFrom(s => s.CreatedBy != null ? s.CreatedBy.FirstName + " " + s.CreatedBy.LastName : null))
+            .ForMember(d => d.UpdatedByName, o => o.MapFrom(s => s.UpdatedBy != null ? s.UpdatedBy.FirstName + " " + s.UpdatedBy.LastName : null));
 
         CreateMap<SessionObservation, SessionObservationResponse>()
             .ConstructUsing(_ => new SessionObservationResponse())
@@ -61,7 +63,9 @@ public sealed class MappingProfile : Profile
             .ForMember(d => d.PhotoUrls, o => o.MapFrom(s =>
                 s.PhotoUrlsJson != null
                     ? JsonSerializer.Deserialize<List<string>>(s.PhotoUrlsJson, (JsonSerializerOptions?)null) ?? new List<string>()
-                    : new List<string>()));
+                    : new List<string>()))
+            .ForMember(d => d.CreatedByName, o => o.MapFrom(s => s.CreatedBy != null ? s.CreatedBy.FirstName + " " + s.CreatedBy.LastName : null))
+            .ForMember(d => d.UpdatedByName, o => o.MapFrom(s => s.UpdatedBy != null ? s.UpdatedBy.FirstName + " " + s.UpdatedBy.LastName : null));
 
         CreateMap<Trap, TrapResponse>()
             .ConstructUsing((src, _) => new TrapResponse(

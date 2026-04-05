@@ -1,6 +1,6 @@
 namespace Pestlook.WebAPI.Domain.Entities;
 
-public sealed class ScoutingSession : IHasTenant
+public sealed class ScoutingSession : IHasTenant, IAuditableByUser
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid TenantId { get; set; }
@@ -29,6 +29,12 @@ public sealed class ScoutingSession : IHasTenant
     public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? DeletedAt { get; set; }
+
+    public string? CreatedByUserId { get; set; }
+    public ApplicationUser? CreatedBy { get; set; }
+    public string? UpdatedByUserId { get; set; }
+    public ApplicationUser? UpdatedBy { get; set; }
+    public string? DeletedByUserId { get; set; }
 
     public ICollection<SessionObservation> SessionObservations { get; set; } = [];
 }
