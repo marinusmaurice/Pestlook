@@ -436,7 +436,7 @@ public sealed class ScoutingSessionsController(
             TenantId = tenantId,
             SessionId = sessionId,
             ObservationType = request.ObservationType,
-            IsPlanned = false,
+            IsPlanned = request.IsPlanned,
             TrapId = request.TrapId,
             PestId = request.PestId,
             CaptureMode = request.CaptureMode,
@@ -448,7 +448,8 @@ public sealed class ScoutingSessionsController(
             Notes = request.Notes,
             LifeStage = request.LifeStage,
             PhotoUrlsJson = request.PhotoUrls is { Count: > 0 } ? JsonSerializer.Serialize(request.PhotoUrls) : null,
-            SortOrder = nextSort + 1
+            SortOrder = nextSort + 1,
+            ObservationGroupId = request.ObservationGroupId
         };
 
         db.SessionObservations.Add(obs);

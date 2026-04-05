@@ -51,7 +51,8 @@ public sealed record SessionObservationItem(
     LifeStage? LifeStage,
     List<string>? PhotoUrls,
     Guid? ObservationGroupId = null,
-    int RepeatCount = 1);
+    int RepeatCount = 1,
+    bool IsPlanned = false);
 
 // ── Responses ─────────────────────────────────────────────────────────────────
 

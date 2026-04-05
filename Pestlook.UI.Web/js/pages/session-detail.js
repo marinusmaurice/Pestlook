@@ -1,6 +1,7 @@
 import { getSession, completeSession, addObservation, updateObservation, deleteObservation } from '../api/sessions.js';
 import { getTraps } from '../api/traps.js';
 import { getPests } from '../api/pests.js';
+import { getFields } from '../api/fields.js';
 import { setPageTitle, setTopbarCta } from '../components/topbar.js';
 import { openModal, closeModal } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
@@ -11,6 +12,7 @@ import { navigate } from '../utils/router.js';
 
 let cachedTraps = [];
 let cachedPests = [];
+let cachedFields = [];
 
 export async function renderSessionDetail(container, params) {
   const sessionId = params.id;
@@ -24,13 +26,15 @@ export async function renderSessionDetail(container, params) {
   `;
 
   try {
-    const [sessionRes, trapsRes, pestsRes] = await Promise.all([
+    const [sessionRes, trapsRes, pestsRes, fieldsRes] = await Promise.all([
       getSession(sessionId),
       getTraps(),
       getPests(),
+      getFields(),
     ]);
     cachedTraps = trapsRes.data || [];
     cachedPests = pestsRes.data || [];
+    cachedFields = fieldsRes.data || [];
     const session = sessionRes.data;
     setPageTitle(`Session ${session.id.substring(0, 8)}`);
     renderDetail(session, container, params);
@@ -134,8 +138,8 @@ function renderDetail(session, container, params) {
   // Add observation buttons
   const addTrapBtn = document.getElementById('addTrapObs');
   const addAdHocBtn = document.getElementById('addAdHocObs');
-  if (addTrapBtn) addTrapBtn.addEventListener('click', () => showObservationModal(session.id, 'Trap', null, container, params));
-  if (addAdHocBtn) addAdHocBtn.addEventListener('click', () => showObservationModal(session.id, 'AdHoc', null, container, params));
+  if (addTrapBtn) addTrapBtn.addEventListener('click', () => showObservationModal(session, 'Trap', null, container, params));
+  if (addAdHocBtn) addAdHocBtn.addEventListener('click', () => showObservationModal(session, 'AdHoc', null, container, params));
 }
 
 function renderObsTable(observations, session, container, params, canEdit) {
@@ -202,7 +206,7 @@ function renderObsTable(observations, session, container, params, canEdit) {
       const obs = observations.find(o => o.id === btn.dataset.editObs);
       if (obs) {
         const type = (obs.observationType === 'Trap' || obs.observationType === 0) ? 'Trap' : 'AdHoc';
-        showObservationModal(session.id, type, obs, container, params);
+        showObservationModal(session, type, obs, container, params);
       }
     });
   });
@@ -227,86 +231,121 @@ function renderObsTable(observations, session, container, params, canEdit) {
 
 /* ── Add / Edit single observation modal ────────────────────────────────────── */
 
-async function showObservationModal(sessionId, type, existing, container, params) {
+async function showObservationModal(session, type, existing, container, params) {
   const isEdit = !!existing;
   const isTrap = type === 'Trap';
-  const unit = getUser()?.temperatureUnit || 'C';
 
-  const [freshPests, freshTraps] = await Promise.all([
+  const [freshPests, freshTraps, allFields] = await Promise.all([
     getPests().then(r => r.data || []).catch(() => cachedPests),
     getTraps().then(r => r.data || []).catch(() => cachedTraps),
+    getFields().then(r => r.data || []).catch(() => cachedFields),
   ]);
 
+  const filteredTraps = (() => {
+    if (session.fieldId) return freshTraps.filter(t => t.fieldId === session.fieldId);
+    if (session.farmId) {
+      const farmFieldIds = new Set(allFields.filter(f => f.farmId === session.farmId).map(f => f.id));
+      return freshTraps.filter(t => farmFieldIds.has(t.fieldId));
+    }
+    return freshTraps;
+  })();
+
+  const existingCaptureMode = existing?.captureMode;
+  const isPresence = existingCaptureMode === 'Presence' || existingCaptureMode === 1;
+
   const form = document.createElement('div');
-  form.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:14px;">
-      ${isTrap ? `
+
+  if (isTrap) {
+    form.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:14px;">
         <div>
           <label class="input-label">Trap</label>
           <select class="input-field" id="obsTrap">
             <option value="">— Select trap —</option>
-            ${freshTraps.map(t => `<option value="${t.id}" ${existing?.trapId === t.id ? 'selected' : ''}>${escapeHtml(t.name)}${t.barcode ? ' (' + escapeHtml(t.barcode) + ')' : ''}</option>`).join('')}
+            ${filteredTraps.map(t => `<option value="${t.id}" ${existing?.trapId === t.id ? 'selected' : ''}>${escapeHtml(t.name)}${t.barcode ? ' (' + escapeHtml(t.barcode) + ')' : ''}</option>`).join('')}
           </select>
         </div>
-      ` : ''}
-      <div>
-        <label class="input-label">Pest (optional)</label>
-        <select class="input-field" id="obsPest">
-          <option value="">— Any pest —</option>
-          ${freshPests.map(p => `<option value="${p.id}" ${existing?.pestId === p.id ? 'selected' : ''}>${escapeHtml(p.commonName)}</option>`).join('')}
-        </select>
-      </div>
-      <div style="display:flex;gap:10px;">
-        <div style="flex:1;">
+        <div>
+          <label class="input-label">Pest (optional)</label>
+          <select class="input-field" id="obsPest">
+            <option value="">— Any pest —</option>
+            ${freshPests.map(p => `<option value="${p.id}" ${existing?.pestId === p.id ? 'selected' : ''}>${escapeHtml(p.commonName)}</option>`).join('')}
+          </select>
+        </div>
+        <div>
           <label class="input-label">Capture Mode</label>
           <select class="input-field" id="obsMode">
             <option value="">—</option>
-            <option value="Count" ${existing?.captureMode === 'Count' || existing?.captureMode === 0 ? 'selected' : ''}>Count</option>
-            <option value="Presence" ${existing?.captureMode === 'Presence' || existing?.captureMode === 1 ? 'selected' : ''}>Presence</option>
+            <option value="Count" ${existingCaptureMode === 'Count' || existingCaptureMode === 0 ? 'selected' : ''}>Count</option>
+            <option value="Presence" ${existingCaptureMode === 'Presence' || existingCaptureMode === 1 ? 'selected' : ''}>Presence</option>
           </select>
         </div>
-        <div style="flex:1;">
+        <div style="display:flex;gap:10px;margin-top:6px;">
+          <button class="btn-outline" style="flex:1;" id="cancelObs">Cancel</button>
+          <button class="btn-primary" style="flex:2;justify-content:center;" id="saveObs">${isEdit ? '💾 Update' : '＋ Add Observation'}</button>
+        </div>
+      </div>
+    `;
+  } else {
+    form.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div>
+          <label class="input-label">Pest (optional)</label>
+          <select class="input-field" id="obsPest">
+            <option value="">— Any pest —</option>
+            ${freshPests.map(p => `<option value="${p.id}" ${existing?.pestId === p.id ? 'selected' : ''}>${escapeHtml(p.commonName)}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label class="input-label">Capture Mode</label>
+          <select class="input-field" id="obsMode">
+            <option value="">—</option>
+            <option value="Count" ${existingCaptureMode === 'Count' || existingCaptureMode === 0 ? 'selected' : ''}>Count</option>
+            <option value="Presence" ${existingCaptureMode === 'Presence' || existingCaptureMode === 1 ? 'selected' : ''}>Presence</option>
+          </select>
+        </div>
+        <div id="obsCountWrap"${isPresence ? ' style="display:none;"' : ''}>
           <label class="input-label">Count</label>
           <input class="input-field" type="number" id="obsCount" value="${existing?.count ?? ''}">
         </div>
-      </div>
-      <div style="display:flex;gap:10px;">
-        <div style="flex:1;">
-          <label class="input-label">Life Stage</label>
-          <select class="input-field" id="obsLifeStage">
-            <option value="">—</option>
-            ${Object.keys(LifeStageValues).map(ls => `<option value="${ls}" ${existing?.lifeStage === ls ? 'selected' : ''}>${ls}</option>`).join('')}
-          </select>
+        <div style="display:flex;gap:10px;">
+          <div style="flex:1;">
+            <label class="input-label">Life Stage</label>
+            <select class="input-field" id="obsLifeStage">
+              <option value="">—</option>
+              ${Object.keys(LifeStageValues).map(ls => `<option value="${ls}" ${existing?.lifeStage === ls ? 'selected' : ''}>${ls}</option>`).join('')}
+            </select>
+          </div>
+          <div style="flex:1;display:flex;align-items:center;gap:12px;padding-top:20px;">
+            <label style="font-size:0.82rem;color:var(--text-dim);display:flex;align-items:center;gap:4px;">
+              <input type="checkbox" id="obsPresent" ${existing?.isPresent === true ? 'checked' : ''}> Present
+            </label>
+            <label style="font-size:0.82rem;color:var(--text-dim);display:flex;align-items:center;gap:4px;">
+              <input type="checkbox" id="obsUnknownPest" ${existing?.isUnknownPest ? 'checked' : ''}> Unknown pest
+            </label>
+          </div>
         </div>
-        <div style="flex:1;display:flex;align-items:center;gap:12px;padding-top:20px;">
-          <label style="font-size:0.82rem;color:var(--text-dim);display:flex;align-items:center;gap:4px;">
-            <input type="checkbox" id="obsPresent" ${existing?.isPresent === true ? 'checked' : ''}> Present
-          </label>
-          <label style="font-size:0.82rem;color:var(--text-dim);display:flex;align-items:center;gap:4px;">
-            <input type="checkbox" id="obsUnknownPest" ${existing?.isUnknownPest ? 'checked' : ''}> Unknown pest
-          </label>
+        <div style="display:flex;gap:10px;">
+          <div style="flex:1;">
+            <label class="input-label">Latitude</label>
+            <input class="input-field" type="number" step="any" id="obsLat" value="${existing?.latitude ?? ''}" placeholder="e.g. -33.9">
+          </div>
+          <div style="flex:1;">
+            <label class="input-label">Longitude</label>
+            <input class="input-field" type="number" step="any" id="obsLng" value="${existing?.longitude ?? ''}" placeholder="e.g. 18.4">
+          </div>
+        </div>
+        <div>
+          <label class="input-label">Notes</label>
+          <textarea class="input-field" rows="2" id="obsNotes" placeholder="Observation notes…">${escapeHtml(existing?.notes || '')}</textarea>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:6px;">
+          <button class="btn-outline" style="flex:1;" id="cancelObs">Cancel</button>
+          <button class="btn-primary" style="flex:2;justify-content:center;" id="saveObs">${isEdit ? '💾 Update' : '＋ Add Observation'}</button>
         </div>
       </div>
-      <div style="display:flex;gap:10px;">
-        <div style="flex:1;">
-          <label class="input-label">Latitude</label>
-          <input class="input-field" type="number" step="any" id="obsLat" value="${existing?.latitude ?? ''}" placeholder="e.g. -33.9">
-        </div>
-        <div style="flex:1;">
-          <label class="input-label">Longitude</label>
-          <input class="input-field" type="number" step="any" id="obsLng" value="${existing?.longitude ?? ''}" placeholder="e.g. 18.4">
-        </div>
-      </div>
-      <div>
-        <label class="input-label">Notes</label>
-        <textarea class="input-field" rows="2" id="obsNotes" placeholder="Observation notes…">${escapeHtml(existing?.notes || '')}</textarea>
-      </div>
-      <div style="display:flex;gap:10px;margin-top:6px;">
-        <button class="btn-outline" style="flex:1;" id="cancelObs">Cancel</button>
-        <button class="btn-primary" style="flex:2;justify-content:center;" id="saveObs">${isEdit ? '💾 Update' : '＋ Add Observation'}</button>
-      </div>
-    </div>
-  `;
+    `;
+  }
 
   openModal({
     title: isEdit ? 'Edit Observation' : `Add ${isTrap ? 'Trap' : 'Ad-hoc'} Observation`,
@@ -314,35 +353,63 @@ async function showObservationModal(sessionId, type, existing, container, params
     content: form
   });
 
+  const modeEl = document.getElementById('obsMode');
+  const pestEl = document.getElementById('obsPest');
+
+  if (!isTrap) {
+    const countWrap = document.getElementById('obsCountWrap');
+    const syncCountVisibility = () => {
+      countWrap.style.display = modeEl.value === 'Presence' ? 'none' : '';
+    };
+    modeEl.addEventListener('change', syncCountVisibility);
+    pestEl.addEventListener('change', () => {
+      const pest = freshPests.find(p => p.id === pestEl.value);
+      if (pest?.defaultCaptureMode != null) {
+        const capMode = typeof pest.defaultCaptureMode === 'string'
+          ? pest.defaultCaptureMode
+          : (pest.defaultCaptureMode === 0 ? 'Count' : 'Presence');
+        modeEl.value = capMode;
+        syncCountVisibility();
+      }
+    });
+  } else {
+    pestEl.addEventListener('change', () => {
+      const pest = freshPests.find(p => p.id === pestEl.value);
+      if (pest?.defaultCaptureMode != null) {
+        modeEl.value = typeof pest.defaultCaptureMode === 'string'
+          ? pest.defaultCaptureMode
+          : (pest.defaultCaptureMode === 0 ? 'Count' : 'Presence');
+      }
+    });
+  }
+
   document.getElementById('cancelObs').addEventListener('click', closeModal);
   document.getElementById('saveObs').addEventListener('click', async () => {
     const btn = document.getElementById('saveObs');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>';
     try {
-      const countRaw = document.getElementById('obsCount').value.trim();
-      const latRaw = document.getElementById('obsLat').value.trim();
-      const lngRaw = document.getElementById('obsLng').value.trim();
-
       const payload = {
         observationType: type,
         trapId: isTrap ? (document.getElementById('obsTrap').value || null) : null,
-        pestId: document.getElementById('obsPest').value || null,
-        captureMode: document.getElementById('obsMode').value || null,
-        count: countRaw !== '' ? parseInt(countRaw) : null,
-        isPresent: document.getElementById('obsPresent').checked || null,
-        latitude: latRaw !== '' ? parseFloat(latRaw) : null,
-        longitude: lngRaw !== '' ? parseFloat(lngRaw) : null,
-        isUnknownPest: document.getElementById('obsUnknownPest').checked,
-        notes: document.getElementById('obsNotes').value.trim() || null,
-        lifeStage: document.getElementById('obsLifeStage').value || null,
+        pestId: pestEl.value || null,
+        captureMode: modeEl.value || null,
+        isPlanned: isTrap,
+        observationGroupId: isTrap ? (existing?.observationGroupId ?? crypto.randomUUID()) : null,
+        count: !isTrap ? (document.getElementById('obsCount').value.trim() !== '' ? parseInt(document.getElementById('obsCount').value.trim()) : null) : null,
+        isPresent: !isTrap ? (document.getElementById('obsPresent').checked || null) : null,
+        latitude: !isTrap ? (document.getElementById('obsLat').value.trim() !== '' ? parseFloat(document.getElementById('obsLat').value.trim()) : null) : null,
+        longitude: !isTrap ? (document.getElementById('obsLng').value.trim() !== '' ? parseFloat(document.getElementById('obsLng').value.trim()) : null) : null,
+        isUnknownPest: !isTrap ? document.getElementById('obsUnknownPest').checked : false,
+        notes: !isTrap ? (document.getElementById('obsNotes').value.trim() || null) : null,
+        lifeStage: !isTrap ? (document.getElementById('obsLifeStage').value || null) : null,
       };
 
       if (isEdit) {
-        await updateObservation(sessionId, existing.id, payload);
+        await updateObservation(session.id, existing.id, payload);
         showToast('Observation updated!', 'success');
       } else {
-        await addObservation(sessionId, payload);
+        await addObservation(session.id, payload);
         showToast('Observation added!', 'success');
       }
       closeModal();
