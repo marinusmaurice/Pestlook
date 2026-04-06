@@ -355,7 +355,7 @@ async function showPlannedSessionModal(listContainer, existing = null) {
         : '';
       const isPresence = item.captureMode === 'Presence' || item.captureMode === 1;
       const repeatCountHtml = !isTrap
-        ? `<div data-repeatcount="${idx}" style="display:${isPresence ? 'none' : 'flex'};align-items:center;gap:6px;">
+        ? `<div data-repeatcount="${idx}" style="display:flex;align-items:center;gap:6px;">
               <span style="font-size:0.72rem;color:var(--text-dim);white-space:nowrap;">Number of obs:</span>
               <input class="input-field" type="number" min="1" style="font-size:0.78rem;width:80px;" data-field="repeatCount" data-idx="${idx}" value="${item.repeatCount || 1}" title="Number of observation records to create">
             </div>`
@@ -395,16 +395,6 @@ async function showPlannedSessionModal(listContainer, existing = null) {
         } else {
           items[idx][field] = el.value || '';
         }
-        if (field === 'captureMode') {
-          const repeatCountWrap = listEl.querySelector(`[data-repeatcount="${idx}"]`);
-          const isPresence = el.value === 'Presence';
-          if (repeatCountWrap) repeatCountWrap.style.display = isPresence ? 'none' : 'flex';
-          if (isPresence) {
-            items[idx].repeatCount = 1;
-            const repeatEl = listEl.querySelector(`[data-field="repeatCount"][data-idx="${idx}"]`);
-            if (repeatEl) repeatEl.value = 1;
-          }
-        }
         if (field === 'pestId' && el.value) {
           const pest = freshPests.find(p => p.id === el.value);
           if (pest && pest.defaultCaptureMode != null) {
@@ -414,13 +404,6 @@ async function showPlannedSessionModal(listContainer, existing = null) {
             items[idx].captureMode = capMode;
             const captureModeEl = listEl.querySelector(`[data-field="captureMode"][data-idx="${idx}"]`);
             if (captureModeEl) captureModeEl.value = capMode;
-            const repeatCountWrap = listEl.querySelector(`[data-repeatcount="${idx}"]`);
-            if (repeatCountWrap) repeatCountWrap.style.display = capMode === 'Presence' ? 'none' : 'flex';
-            if (capMode === 'Presence') {
-              items[idx].repeatCount = 1;
-              const repeatEl = listEl.querySelector(`[data-field="repeatCount"][data-idx="${idx}"]`);
-              if (repeatEl) repeatEl.value = 1;
-            }
           }
         }
       });

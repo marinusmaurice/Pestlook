@@ -304,7 +304,7 @@ async function showObservationModal(session, type, existing, container, params) 
             <option value="Presence" ${existingCaptureMode === 'Presence' || existingCaptureMode === 1 ? 'selected' : ''}>Presence</option>
           </select>
         </div>
-        <div id="obsCountWrap"${isPresence ? ' style="display:none;"' : ''}>
+        <div id="obsCountWrap">
           <label class="input-label">Number of obs</label>
           <input class="input-field" type="number" id="obsCount" value="${existing?.count ?? ''}">
         </div>
@@ -326,19 +326,12 @@ async function showObservationModal(session, type, existing, container, params) 
   const pestEl = document.getElementById('obsPest');
 
   if (!isTrap) {
-    const countWrap = document.getElementById('obsCountWrap');
-    const syncCountVisibility = () => {
-      countWrap.style.display = modeEl.value === 'Presence' ? 'none' : '';
-    };
-    modeEl.addEventListener('change', syncCountVisibility);
     pestEl.addEventListener('change', () => {
       const pest = freshPests.find(p => p.id === pestEl.value);
       if (pest?.defaultCaptureMode != null) {
-        const capMode = typeof pest.defaultCaptureMode === 'string'
+        modeEl.value = typeof pest.defaultCaptureMode === 'string'
           ? pest.defaultCaptureMode
           : (pest.defaultCaptureMode === 0 ? 'Count' : 'Presence');
-        modeEl.value = capMode;
-        syncCountVisibility();
       }
     });
   } else {
