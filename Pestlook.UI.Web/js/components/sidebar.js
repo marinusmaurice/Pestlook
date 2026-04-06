@@ -13,6 +13,9 @@ const navItems = [
   { section: 'Operations', items: [
     { id: 'sessions', icon: '🥾', label: 'Scouting Sessions', path: '/sessions' },
   ]},
+  { section: 'Insights', items: [
+    { id: 'reports', icon: '📈', label: 'Reports', path: '/reports' },
+  ]},
   { section: 'Reference', items: [
     { id: 'pests', icon: '🦗', label: 'Pest Catalogue', path: '/pests' },
     { id: 'settings', icon: '⚙️', label: 'Settings', path: '/settings' },

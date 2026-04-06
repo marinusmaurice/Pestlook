@@ -16,6 +16,7 @@ import { renderSessionDetail } from './pages/session-detail.js';
 import { renderPests } from './pages/pests.js';
 import { renderTraps } from './pages/traps.js';
 import { renderSettings } from './pages/settings.js';
+import { renderReports } from './pages/reports.js';
 
 const appRoot = document.getElementById('app-root');
 
@@ -135,6 +136,10 @@ registerRoute('/traps', authedRoute(async (content) => {
 
 registerRoute('/settings', authedRoute(async (content) => {
   await renderSettings(content);
+}));
+
+registerRoute('/reports', authedRoute(async (content) => {
+  await renderReports(content);
 }));
 
 registerRoute('/logout', async () => {

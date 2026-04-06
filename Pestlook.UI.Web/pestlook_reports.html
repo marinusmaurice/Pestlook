@@ -1,0 +1,457 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans);font-size:14px;color:var(--color-text-primary);background:var(--color-background-tertiary)}
+.shell{display:flex;height:100vh;min-height:600px}
+.sidebar{width:200px;min-width:200px;background:var(--color-background-primary);border-right:0.5px solid var(--color-border-tertiary);display:flex;flex-direction:column;padding:16px 0}
+.logo{padding:0 16px 16px;border-bottom:0.5px solid var(--color-border-tertiary);margin-bottom:8px}
+.logo-title{font-size:15px;font-weight:500;color:var(--color-text-primary)}
+.logo-sub{font-size:11px;color:var(--color-text-secondary)}
+.nav-section{padding:8px 16px 4px;font-size:11px;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:.05em}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 16px;font-size:13px;cursor:pointer;color:var(--color-text-secondary);border-left:2px solid transparent;transition:all .15s}
+.nav-item:hover{background:var(--color-background-secondary);color:var(--color-text-primary)}
+.nav-item.active{color:#185FA5;background:var(--color-background-info);border-left-color:#185FA5;font-weight:500}
+.nav-dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+.main{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+.topbar{background:var(--color-background-primary);border-bottom:0.5px solid var(--color-border-tertiary);padding:12px 24px;display:flex;align-items:center;justify-content:space-between}
+.topbar-title{font-size:16px;font-weight:500}
+.topbar-filters{display:flex;gap:8px;align-items:center}
+.topbar-filters select{font-size:12px;padding:5px 8px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-secondary);color:var(--color-text-primary)}
+.badge{font-size:11px;padding:2px 8px;border-radius:var(--border-radius-md);font-weight:500}
+.badge-danger{background:#FCEBEB;color:#A32D2D}
+.badge-warning{background:#FAEEDA;color:#854F0B}
+.badge-success{background:#EAF3DE;color:#3B6D11}
+.badge-info{background:#E6F1FB;color:#185FA5}
+.content{padding:20px 24px;flex:1}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.kpi{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:14px 16px}
+.kpi-label{font-size:12px;color:var(--color-text-secondary);margin-bottom:6px}
+.kpi-value{font-size:24px;font-weight:500}
+.kpi-sub{font-size:11px;color:var(--color-text-tertiary);margin-top:4px}
+.kpi-danger .kpi-value{color:#A32D2D}
+.kpi-warning .kpi-value{color:#854F0B}
+.kpi-success .kpi-value{color:#3B6D11}
+.charts-row{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:20px}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:16px}
+.card-title{font-size:13px;font-weight:500;margin-bottom:14px;color:var(--color-text-secondary)}
+.chart-wrap{position:relative;width:100%;height:200px}
+.table-card{margin-bottom:16px}
+.data-table{width:100%;border-collapse:collapse;font-size:13px}
+.data-table th{text-align:left;padding:8px 12px;font-size:11px;font-weight:500;color:var(--color-text-secondary);border-bottom:0.5px solid var(--color-border-tertiary);text-transform:uppercase;letter-spacing:.04em}
+.data-table td{padding:10px 12px;border-bottom:0.5px solid var(--color-border-tertiary);color:var(--color-text-primary)}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:var(--color-background-secondary)}
+.section-title{font-size:14px;font-weight:500;margin-bottom:12px}
+.filter-bar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.filter-bar select,.filter-bar input{font-size:12px;padding:6px 10px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-primary);color:var(--color-text-primary)}
+.filter-bar label{font-size:12px;color:var(--color-text-secondary)}
+.page{display:none}
+.page.active{display:block}
+.alert-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--border-radius-md);margin-bottom:8px;border:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary)}
+.alert-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.alert-danger{background:#FCEBEB;border-color:#F7C1C1}
+.alert-icon-danger{background:#F7C1C1;color:#A32D2D}
+.alert-warning{background:#FAEEDA;border-color:#FAC775}
+.alert-icon-warning{background:#FAC775;color:#854F0B}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:13px}
+.stat-row:last-child{border-bottom:none}
+.progress-bar{height:6px;border-radius:3px;background:var(--color-background-secondary);overflow:hidden;margin-top:4px}
+.progress-fill{height:100%;border-radius:3px;background:#185FA5}
+.progress-fill-danger{background:#E24B4A}
+.mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+</style>
+
+<div class="shell">
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-title">PestLook</div>
+    <div class="logo-sub">Analytics</div>
+  </div>
+  <div class="nav-section">Overview</div>
+  <div class="nav-item active" onclick="nav(this,'dash')"><div class="nav-dot"></div>Dashboard</div>
+  <div class="nav-section">Reports</div>
+  <div class="nav-item" onclick="nav(this,'r1')"><div class="nav-dot"></div>Threshold Alerts</div>
+  <div class="nav-item" onclick="nav(this,'r2')"><div class="nav-dot"></div>Pest Pressure</div>
+  <div class="nav-item" onclick="nav(this,'r3')"><div class="nav-dot"></div>Scouting Sessions</div>
+  <div class="nav-item" onclick="nav(this,'r4')"><div class="nav-dot"></div>Top Pests</div>
+  <div class="nav-item" onclick="nav(this,'r5')"><div class="nav-dot"></div>Trap Performance</div>
+  <div class="nav-item" onclick="nav(this,'r6')"><div class="nav-dot"></div>Scout Productivity</div>
+  <div class="nav-item" onclick="nav(this,'r7')"><div class="nav-dot"></div>Seasonal Trends</div>
+  <div class="nav-item" onclick="nav(this,'r8')"><div class="nav-dot"></div>Unknown Pests</div>
+  <div class="nav-item" onclick="nav(this,'r9')"><div class="nav-dot"></div>Field Coverage</div>
+  <div class="nav-item" onclick="nav(this,'r10')"><div class="nav-dot"></div>Billing & Quota</div>
+</div>
+
+<div class="main">
+<div class="topbar">
+  <div class="topbar-title" id="page-title">Dashboard</div>
+  <div class="topbar-filters">
+    <select><option>All Farms</option><option>Green Valley Farm</option><option>Sunrise Agri</option><option>Hillcrest Estate</option></select>
+    <select><option>Last 30 days</option><option>Last 7 days</option><option>Last 90 days</option><option>This season</option></select>
+  </div>
+</div>
+
+<div class="content">
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dash">
+  <div class="kpi-grid">
+    <div class="kpi kpi-danger">
+      <div class="kpi-label">Threshold Breaches</div>
+      <div class="kpi-value">7</div>
+      <div class="kpi-sub">3 critical · 4 warning</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Active Traps</div>
+      <div class="kpi-value">142</div>
+      <div class="kpi-sub">6 offline · 14 fields</div>
+    </div>
+    <div class="kpi kpi-warning">
+      <div class="kpi-label">Sessions This Month</div>
+      <div class="kpi-value">38</div>
+      <div class="kpi-sub">12 planned remaining</div>
+    </div>
+    <div class="kpi kpi-success">
+      <div class="kpi-label">Total Observations</div>
+      <div class="kpi-value">1,284</div>
+      <div class="kpi-sub">↑ 18% vs last month</div>
+    </div>
+  </div>
+
+  <div class="charts-row">
+    <div class="card">
+      <div class="card-title">Pest observations over time (last 8 weeks)</div>
+      <div class="chart-wrap"><canvas id="c-trend"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Observations by type</div>
+      <div class="chart-wrap"><canvas id="c-donut"></canvas></div>
+    </div>
+  </div>
+
+  <div class="charts-row">
+    <div class="card">
+      <div class="card-title">Top 6 pests — observation count</div>
+      <div class="chart-wrap" style="height:180px"><canvas id="c-pests"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Session completion rate</div>
+      <div class="chart-wrap" style="height:180px"><canvas id="c-sessions"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card table-card">
+    <div class="card-title">Recent threshold breaches</div>
+    <table class="data-table">
+      <thead><tr><th>Pest</th><th>Field</th><th>Farm</th><th>Count</th><th>Threshold</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>Fall Armyworm</td><td>Block A North</td><td>Green Valley</td><td>47</td><td>20</td><td><span class="badge badge-danger">Critical</span></td></tr>
+        <tr><td>Aphid</td><td>Maize Field 3</td><td>Sunrise Agri</td><td>312</td><td>200</td><td><span class="badge badge-danger">Critical</span></td></tr>
+        <tr><td>Whitefly</td><td>Greenhouse B</td><td>Hillcrest Estate</td><td>88</td><td>50</td><td><span class="badge badge-warning">Warning</span></td></tr>
+        <tr><td>Stalk Borer</td><td>Block C West</td><td>Green Valley</td><td>14</td><td>10</td><td><span class="badge badge-warning">Warning</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- R1: THRESHOLD ALERTS -->
+<div class="page" id="page-r1">
+  <div class="filter-bar">
+    <label>Farm</label><select><option>All Farms</option><option>Green Valley</option><option>Sunrise Agri</option></select>
+    <label>Severity</label><select><option>All</option><option>Critical</option><option>Warning</option></select>
+    <label>Pest Category</label><select><option>All</option><option>Insect</option><option>Fungus</option><option>Nematode</option></select>
+  </div>
+  <div class="alert-row alert-danger">
+    <div class="alert-icon alert-icon-danger">!</div>
+    <div style="flex:1"><div style="font-weight:500;font-size:13px">Fall Armyworm — Block A North, Green Valley Farm</div><div style="font-size:12px;color:var(--color-text-secondary);margin-top:2px">Count: 47 · Threshold: 20 · Scouted: 2 Apr 2026 · Scout: James M.</div></div>
+    <span class="badge badge-danger">135% over</span>
+  </div>
+  <div class="alert-row alert-danger">
+    <div class="alert-icon alert-icon-danger">!</div>
+    <div style="flex:1"><div style="font-weight:500;font-size:13px">Aphid — Maize Field 3, Sunrise Agri</div><div style="font-size:12px;color:var(--color-text-secondary);margin-top:2px">Count: 312 · Threshold: 200 · Scouted: 1 Apr 2026 · Scout: Lerato K.</div></div>
+    <span class="badge badge-danger">56% over</span>
+  </div>
+  <div class="alert-row alert-warning">
+    <div class="alert-icon alert-icon-warning">~</div>
+    <div style="flex:1"><div style="font-weight:500;font-size:13px">Whitefly — Greenhouse B, Hillcrest Estate</div><div style="font-size:12px;color:var(--color-text-secondary);margin-top:2px">Count: 88 · Threshold: 50 · Scouted: 3 Apr 2026 · Scout: Sipho N.</div></div>
+    <span class="badge badge-warning">76% over</span>
+  </div>
+  <div class="alert-row alert-warning">
+    <div class="alert-icon alert-icon-warning">~</div>
+    <div style="flex:1"><div style="font-weight:500;font-size:13px">Stalk Borer — Block C West, Green Valley Farm</div><div style="font-size:12px;color:var(--color-text-secondary);margin-top:2px">Count: 14 · Threshold: 10 · Scouted: 31 Mar 2026 · Scout: James M.</div></div>
+    <span class="badge badge-warning">40% over</span>
+  </div>
+  <div class="alert-row alert-warning">
+    <div class="alert-icon alert-icon-warning">~</div>
+    <div style="flex:1"><div style="font-weight:500;font-size:13px">Red Spider Mite — Orchard East, Hillcrest Estate</div><div style="font-size:12px;color:var(--color-text-secondary);margin-top:2px">Count: 65 · Threshold: 50 · Scouted: 4 Apr 2026 · Scout: Sipho N.</div></div>
+    <span class="badge badge-warning">30% over</span>
+  </div>
+  <div style="margin-top:16px;font-size:12px;color:var(--color-text-tertiary)">SQL basis: SessionObservations.Count &gt; Pests.ThresholdCount, joined via PestId, ordered by severity ratio DESC</div>
+</div>
+
+<!-- R2: PEST PRESSURE -->
+<div class="page" id="page-r2">
+  <div class="filter-bar">
+    <label>Farm</label><select><option>All Farms</option><option>Green Valley</option></select>
+    <label>Date from</label><input type="date" value="2026-03-01">
+    <label>to</label><input type="date" value="2026-04-06">
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">Pest pressure by field — avg observations per session</div>
+    <div class="chart-wrap" style="height:220px"><canvas id="c-pressure"></canvas></div>
+  </div>
+  <div class="card table-card">
+    <table class="data-table">
+      <thead><tr><th>Field</th><th>Farm</th><th>Crop</th><th>Hectares</th><th>Sessions</th><th>Avg Obs/Session</th><th>Peak Pest</th></tr></thead>
+      <tbody>
+        <tr><td>Block A North</td><td>Green Valley</td><td>Maize</td><td>42</td><td>8</td><td>34.2</td><td>Fall Armyworm</td></tr>
+        <tr><td>Maize Field 3</td><td>Sunrise Agri</td><td>Maize</td><td>28</td><td>5</td><td>28.7</td><td>Aphid</td></tr>
+        <tr><td>Greenhouse B</td><td>Hillcrest</td><td>Tomato</td><td>2.5</td><td>12</td><td>22.1</td><td>Whitefly</td></tr>
+        <tr><td>Block C West</td><td>Green Valley</td><td>Sorghum</td><td>35</td><td>6</td><td>18.4</td><td>Stalk Borer</td></tr>
+        <tr><td>Orchard East</td><td>Hillcrest</td><td>Citrus</td><td>18</td><td>4</td><td>14.0</td><td>Red Mite</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- R3: SCOUTING SESSIONS -->
+<div class="page" id="page-r3">
+  <div class="filter-bar">
+    <label>Scout</label><select><option>All scouts</option><option>James M.</option><option>Lerato K.</option><option>Sipho N.</option></select>
+    <label>Status</label><select><option>All</option><option>Completed</option><option>Planned</option><option>Overdue</option></select>
+  </div>
+  <div class="mini-grid">
+    <div class="kpi"><div class="kpi-label">Completed this month</div><div class="kpi-value">26</div></div>
+    <div class="kpi kpi-warning"><div class="kpi-label">Planned / upcoming</div><div class="kpi-value">12</div></div>
+    <div class="kpi kpi-danger"><div class="kpi-label">Overdue</div><div class="kpi-value">4</div></div>
+    <div class="kpi"><div class="kpi-label">Avg duration (min)</div><div class="kpi-value">47</div></div>
+  </div>
+  <div class="card table-card">
+    <table class="data-table">
+      <thead><tr><th>Date</th><th>Field</th><th>Scout</th><th>Duration</th><th>Observations</th><th>Weather</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>4 Apr 2026</td><td>Orchard East</td><td>Sipho N.</td><td>52 min</td><td>14</td><td>Sunny 28°C</td><td><span class="badge badge-success">Complete</span></td></tr>
+        <tr><td>3 Apr 2026</td><td>Greenhouse B</td><td>Sipho N.</td><td>38 min</td><td>22</td><td>Indoor</td><td><span class="badge badge-success">Complete</span></td></tr>
+        <tr><td>2 Apr 2026</td><td>Block A North</td><td>James M.</td><td>71 min</td><td>41</td><td>Overcast 22°C</td><td><span class="badge badge-success">Complete</span></td></tr>
+        <tr><td>1 Apr 2026</td><td>Maize Field 3</td><td>Lerato K.</td><td>44 min</td><td>35</td><td>Sunny 31°C</td><td><span class="badge badge-success">Complete</span></td></tr>
+        <tr><td>6 Apr 2026</td><td>Block C West</td><td>James M.</td><td>—</td><td>—</td><td>—</td><td><span class="badge badge-info">Planned</span></td></tr>
+        <tr><td>30 Mar 2026</td><td>Sunflower Row 2</td><td>Lerato K.</td><td>—</td><td>—</td><td>—</td><td><span class="badge badge-danger">Overdue</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- R4: TOP PESTS -->
+<div class="page" id="page-r4">
+  <div class="filter-bar">
+    <label>Category</label><select><option>All</option><option>Insect</option><option>Fungus</option><option>Mite</option><option>Nematode</option></select>
+    <label>Farm</label><select><option>All Farms</option></select>
+    <label>Life stage</label><select><option>All stages</option><option>Adult</option><option>Larva</option><option>Egg</option></select>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">Top 8 pests by total observation count</div>
+    <div class="chart-wrap" style="height:240px"><canvas id="c-toppests"></canvas></div>
+  </div>
+  <div class="card table-card">
+    <table class="data-table">
+      <thead><tr><th>Pest</th><th>Category</th><th>Total Count</th><th>Fields Affected</th><th>Threshold</th><th>Avg Life Stage</th></tr></thead>
+      <tbody>
+        <tr><td>Aphid</td><td>Insect</td><td>1,842</td><td>6</td><td>200</td><td>Adult / Nymph</td></tr>
+        <tr><td>Whitefly</td><td>Insect</td><td>924</td><td>4</td><td>50</td><td>Adult</td></tr>
+        <tr><td>Fall Armyworm</td><td>Insect</td><td>312</td><td>3</td><td>20</td><td>Larva</td></tr>
+        <tr><td>Red Spider Mite</td><td>Mite</td><td>284</td><td>3</td><td>50</td><td>Adult</td></tr>
+        <tr><td>Stalk Borer</td><td>Insect</td><td>176</td><td>2</td><td>10</td><td>Larva</td></tr>
+        <tr><td>Thrips</td><td>Insect</td><td>143</td><td>5</td><td>100</td><td>Adult</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- R5: TRAP PERFORMANCE -->
+<div class="page" id="page-r5">
+  <div class="filter-bar">
+    <label>Trap type</label><select><option>All types</option><option>Pheromone</option><option>Sticky Yellow</option><option>Light Trap</option></select>
+    <label>Field</label><select><option>All fields</option></select>
+  </div>
+  <div class="card table-card">
+    <div class="card-title">Trap catch summary (last 30 days)</div>
+    <table class="data-table">
+      <thead><tr><th>Trap name</th><th>Type</th><th>Field</th><th>Total catches</th><th>Last checked</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>TRP-0042</td><td>Pheromone</td><td>Block A North</td><td>312</td><td>2 Apr 2026</td><td><span class="badge badge-success">Active</span></td></tr>
+        <tr><td>TRP-0017</td><td>Sticky Yellow</td><td>Greenhouse B</td><td>244</td><td>3 Apr 2026</td><td><span class="badge badge-success">Active</span></td></tr>
+        <tr><td>TRP-0089</td><td>Pheromone</td><td>Maize Field 3</td><td>197</td><td>1 Apr 2026</td><td><span class="badge badge-success">Active</span></td></tr>
+        <tr><td>TRP-0031</td><td>Light Trap</td><td>Orchard East</td><td>88</td><td>4 Apr 2026</td><td><span class="badge badge-success">Active</span></td></tr>
+        <tr><td>TRP-0055</td><td>Sticky Yellow</td><td>Block C West</td><td>14</td><td>28 Mar 2026</td><td><span class="badge badge-warning">Low</span></td></tr>
+        <tr><td>TRP-0103</td><td>Pheromone</td><td>Sunflower Row 2</td><td>0</td><td>12 Mar 2026</td><td><span class="badge badge-danger">Offline</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <div class="card-title">Catches by trap type</div>
+    <div class="chart-wrap" style="height:160px"><canvas id="c-traptypes"></canvas></div>
+  </div>
+</div>
+
+<!-- R6: SCOUT PRODUCTIVITY -->
+<div class="page" id="page-r6">
+  <div class="mini-grid">
+    <div class="kpi"><div class="kpi-label">Most active scout</div><div class="kpi-value" style="font-size:16px">Sipho N.</div><div class="kpi-sub">18 sessions</div></div>
+    <div class="kpi"><div class="kpi-label">Avg sessions / scout</div><div class="kpi-value">12.7</div></div>
+    <div class="kpi"><div class="kpi-label">Avg obs / session</div><div class="kpi-value">33.8</div></div>
+    <div class="kpi kpi-warning"><div class="kpi-label">Overdue sessions</div><div class="kpi-value">4</div></div>
+  </div>
+  <div class="card table-card">
+    <table class="data-table">
+      <thead><tr><th>Scout</th><th>Sessions</th><th>Avg duration</th><th>Total obs</th><th>Alerts raised</th><th>Overdue</th></tr></thead>
+      <tbody>
+        <tr><td>Sipho N.</td><td>18</td><td>44 min</td><td>612</td><td>3</td><td>1</td></tr>
+        <tr><td>Lerato K.</td><td>12</td><td>51 min</td><td>408</td><td>2</td><td>2</td></tr>
+        <tr><td>James M.</td><td>8</td><td>62 min</td><td>264</td><td>2</td><td>1</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="card">
+    <div class="card-title">Sessions per scout — last 8 weeks</div>
+    <div class="chart-wrap" style="height:180px"><canvas id="c-scouts"></canvas></div>
+  </div>
+</div>
+
+<!-- R7: SEASONAL TRENDS -->
+<div class="page" id="page-r7">
+  <div class="filter-bar">
+    <label>Pest</label><select><option>All pests</option><option>Aphid</option><option>Whitefly</option><option>Fall Armyworm</option></select>
+    <label>Granularity</label><select><option>Weekly</option><option>Monthly</option></select>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">Weekly pest counts vs temperature (°C)</div>
+    <div class="chart-wrap" style="height:220px"><canvas id="c-seasonal"></canvas></div>
+  </div>
+  <div style="font-size:12px;color:var(--color-text-tertiary)">SQL basis: GROUP BY DATEPART(week, ss.StartedAt), joining ScoutingSessions.TemperatureCelsius with SUM(so.Count)</div>
+</div>
+
+<!-- R8: UNKNOWN PESTS -->
+<div class="page" id="page-r8">
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">Unknown pest sightings requiring identification</div>
+    <table class="data-table">
+      <thead><tr><th>Date</th><th>Field</th><th>Scout</th><th>Count</th><th>Life stage</th><th>Has photo</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>4 Apr 2026</td><td>Orchard East</td><td>Sipho N.</td><td>7</td><td>Adult</td><td><span class="badge badge-success">Yes (2)</span></td><td>Small brown beetles on bark</td></tr>
+        <tr><td>2 Apr 2026</td><td>Block A North</td><td>James M.</td><td>3</td><td>Larva</td><td><span class="badge badge-success">Yes (1)</span></td><td>White grubs near roots</td></tr>
+        <tr><td>1 Apr 2026</td><td>Maize Field 3</td><td>Lerato K.</td><td>12</td><td>Egg</td><td><span class="badge badge-danger">No</span></td><td>Egg clusters on leaf underside</td></tr>
+        <tr><td>28 Mar 2026</td><td>Greenhouse B</td><td>Sipho N.</td><td>1</td><td>Adult</td><td><span class="badge badge-success">Yes (3)</span></td><td>Flying insect, striped wings</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="kpi-grid">
+    <div class="kpi kpi-warning"><div class="kpi-label">Unidentified sightings</div><div class="kpi-value">23</div></div>
+    <div class="kpi"><div class="kpi-label">With photos</div><div class="kpi-value">17</div></div>
+    <div class="kpi"><div class="kpi-label">Without photos</div><div class="kpi-value">6</div></div>
+    <div class="kpi"><div class="kpi-label">Fields affected</div><div class="kpi-value">8</div></div>
+  </div>
+</div>
+
+<!-- R9: FIELD COVERAGE -->
+<div class="page" id="page-r9">
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">Field scouting coverage this month</div>
+    <div id="coverage-list"></div>
+  </div>
+  <div class="kpi-grid">
+    <div class="kpi kpi-success"><div class="kpi-label">Fully covered fields</div><div class="kpi-value">9</div></div>
+    <div class="kpi kpi-warning"><div class="kpi-label">Partially covered</div><div class="kpi-value">3</div></div>
+    <div class="kpi kpi-danger"><div class="kpi-label">Not scouted</div><div class="kpi-value">2</div></div>
+    <div class="kpi"><div class="kpi-label">Total field area (ha)</div><div class="kpi-value">428</div></div>
+  </div>
+</div>
+
+<!-- R10: BILLING & QUOTA -->
+<div class="page" id="page-r10">
+  <div class="mini-grid">
+    <div class="kpi"><div class="kpi-label">Monitoring quota</div><div class="kpi-value">200</div><div class="kpi-sub">Active points allowed</div></div>
+    <div class="kpi kpi-warning"><div class="kpi-label">Active points used</div><div class="kpi-value">142</div><div class="kpi-sub">71% of quota</div></div>
+    <div class="kpi"><div class="kpi-label">This month (est.)</div><div class="kpi-value">R 4,260</div></div>
+    <div class="kpi kpi-success"><div class="kpi-label">Billing status</div><div class="kpi-value" style="font-size:15px">Paid</div><div class="kpi-sub">Mar 2026</div></div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">Monthly billing snapshots</div>
+    <div class="chart-wrap" style="height:180px"><canvas id="c-billing"></canvas></div>
+  </div>
+  <div class="card table-card">
+    <table class="data-table">
+      <thead><tr><th>Month</th><th>Active points</th><th>Amount</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>Apr 2026</td><td>142</td><td>R 4,260</td><td><span class="badge badge-info">Pending</span></td></tr>
+        <tr><td>Mar 2026</td><td>138</td><td>R 4,140</td><td><span class="badge badge-success">Paid</span></td></tr>
+        <tr><td>Feb 2026</td><td>130</td><td>R 3,900</td><td><span class="badge badge-success">Paid</span></td></tr>
+        <tr><td>Jan 2026</td><td>122</td><td>R 3,660</td><td><span class="badge badge-success">Paid</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</div><!-- content -->
+</div><!-- main -->
+</div><!-- shell -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const pages = {dash:'Dashboard','r1':'Threshold Alerts','r2':'Pest Pressure by Field','r3':'Scouting Sessions','r4':'Top Pests','r5':'Trap Performance','r6':'Scout Productivity','r7':'Seasonal Trends','r8':'Unknown Pests','r9':'Field Coverage','r10':'Billing & Quota'};
+function nav(el,id){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.getElementById('page-title').textContent=pages[id];
+  if(!window.chartsBuilt) buildCharts();
+}
+let chartsBuilt=false;
+function mk(id,type,data,opts){
+  const el=document.getElementById(id);
+  if(!el)return;
+  new Chart(el,{type,data,options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},...opts}});
+}
+function buildCharts(){
+  chartsBuilt=true;
+  const weeks=['W1','W2','W3','W4','W5','W6','W7','W8'];
+  mk('c-trend','line',{labels:weeks,datasets:[
+    {label:'Insects',data:[82,95,110,88,142,168,155,190],borderColor:'#185FA5',backgroundColor:'rgba(24,95,165,.08)',fill:true,tension:.3,pointRadius:3},
+    {label:'Mites',data:[20,18,25,32,28,45,40,55],borderColor:'#854F0B',backgroundColor:'rgba(133,79,11,.06)',fill:true,tension:.3,pointRadius:3}
+  ]},{plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,font:{size:11}}}}});
+
+  mk('c-donut','doughnut',{labels:['Trap catch','Visual scouting','Unknown'],datasets:[{data:[58,36,6],backgroundColor:['#185FA5','#1D9E75','#888780'],borderWidth:0}]},{plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:10,font:{size:11}}}}});
+
+  mk('c-pests','bar',{labels:['Aphid','Whitefly','Armyworm','Red Mite','Stalk Borer','Thrips'],datasets:[{data:[1842,924,312,284,176,143],backgroundColor:'#185FA5',borderRadius:4}]},{indexAxis:'y',scales:{x:{grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11}}},y:{ticks:{font:{size:11}}}}});
+
+  mk('c-sessions','doughnut',{labels:['Completed','Planned','Overdue'],datasets:[{data:[26,12,4],backgroundColor:['#1D9E75','#185FA5','#E24B4A'],borderWidth:0}]},{plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:10,font:{size:11}}}}});
+
+  mk('c-pressure','bar',{labels:['Block A North','Maize Field 3','Greenhouse B','Block C West','Orchard East'],datasets:[{label:'Avg obs/session',data:[34.2,28.7,22.1,18.4,14.0],backgroundColor:['#E24B4A','#EF9F27','#185FA5','#1D9E75','#888780'],borderRadius:4}]},{scales:{y:{beginAtZero:true,ticks:{font:{size:11}}},x:{ticks:{font:{size:11}}}}});
+
+  mk('c-toppests','bar',{labels:['Aphid','Whitefly','Armyworm','Red Mite','Stalk Borer','Thrips','Cutworm','Bollworm'],datasets:[{data:[1842,924,312,284,176,143,98,67],backgroundColor:'#378ADD',borderRadius:4}]},{scales:{x:{ticks:{font:{size:11}}},y:{ticks:{font:{size:11}}}}});
+
+  mk('c-traptypes','bar',{labels:['Pheromone','Sticky Yellow','Light Trap'],datasets:[{data:[509,258,88],backgroundColor:['#185FA5','#1D9E75','#854F0B'],borderRadius:4}]},{scales:{x:{ticks:{font:{size:11}}},y:{ticks:{font:{size:11}}}}});
+
+  mk('c-scouts','bar',{labels:weeks,datasets:[
+    {label:'Sipho',data:[2,3,2,3,2,2,2,2],backgroundColor:'#185FA5',borderRadius:3,stack:'s'},
+    {label:'Lerato',data:[1,2,1,2,1,2,1,2],backgroundColor:'#1D9E75',borderRadius:3,stack:'s'},
+    {label:'James',data:[1,1,1,1,1,1,1,1],backgroundColor:'#888780',borderRadius:3,stack:'s'}
+  ]},{scales:{x:{stacked:true,ticks:{font:{size:11}}},y:{stacked:true,ticks:{font:{size:11}}}},plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,font:{size:11}}}}});
+
+  mk('c-seasonal','line',{labels:['Jan','Feb','Mar','Apr (to date)'],datasets:[
+    {label:'Total pest count',data:[620,740,980,890],borderColor:'#E24B4A',tension:.3,yAxisID:'y',pointRadius:4},
+    {label:'Avg temp °C',data:[24,26,29,31],borderColor:'#EF9F27',tension:.3,yAxisID:'y1',borderDash:[4,3],pointRadius:3}
+  ]},{plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,font:{size:11}}}},scales:{y:{ticks:{font:{size:11}}},y1:{position:'right',grid:{drawOnChartArea:false},ticks:{font:{size:11}}}}});
+
+  mk('c-billing','bar',{labels:['Jan','Feb','Mar','Apr (est.)'],datasets:[{label:'Amount',data:[3660,3900,4140,4260],backgroundColor:['#1D9E75','#1D9E75','#1D9E75','#185FA5'],borderRadius:4}]},{scales:{y:{ticks:{callback:v=>'R '+v.toLocaleString(),font:{size:11}}},x:{ticks:{font:{size:11}}}}});
+
+  const fields=[
+    {name:'Block A North',pct:100},{name:'Greenhouse B',pct:100},{name:'Maize Field 3',pct:100},
+    {name:'Block C West',pct:75},{name:'Orchard East',pct:50},{name:'Sunflower Row 2',pct:60},
+    {name:'Wheat Paddock 1',pct:0},{name:'Block D South',pct:0}
+  ];
+  const cl=document.getElementById('coverage-list');
+  if(cl){cl.innerHTML=fields.map(f=>`<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px"><span>${f.name}</span><span style="color:var(--color-text-secondary)">${f.pct}%</span></div><div class="progress-bar"><div class="progress-fill${f.pct<30?' progress-fill-danger':''}" style="width:${f.pct}%"></div></div></div>`).join('');}
+}
+window.addEventListener('load',()=>{setTimeout(buildCharts,100);});
+</script>
