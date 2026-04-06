@@ -167,7 +167,7 @@ function renderObsTable(observations, session, container, params, canEdit) {
 
     let actions = '';
     if (canEdit) {
-      actions += `<button class="btn-outline" style="padding:3px 8px;font-size:0.72rem;" data-edit-obs="${o.id}">Edit</button> `;
+      if (isTrap) actions += `<button class="btn-outline" style="padding:3px 8px;font-size:0.72rem;" data-edit-obs="${o.id}">Edit</button> `;
       actions += `<button class="btn-outline" style="padding:3px 8px;font-size:0.72rem;color:var(--red);border-color:var(--red);" data-del-obs="${o.id}">Del</button>`;
     }
 
@@ -305,39 +305,8 @@ async function showObservationModal(session, type, existing, container, params) 
           </select>
         </div>
         <div id="obsCountWrap"${isPresence ? ' style="display:none;"' : ''}>
-          <label class="input-label">Count</label>
+          <label class="input-label">Number of obs</label>
           <input class="input-field" type="number" id="obsCount" value="${existing?.count ?? ''}">
-        </div>
-        <div style="display:flex;gap:10px;">
-          <div style="flex:1;">
-            <label class="input-label">Life Stage</label>
-            <select class="input-field" id="obsLifeStage">
-              <option value="">—</option>
-              ${Object.keys(LifeStageValues).map(ls => `<option value="${ls}" ${existing?.lifeStage === ls ? 'selected' : ''}>${ls}</option>`).join('')}
-            </select>
-          </div>
-          <div style="flex:1;display:flex;align-items:center;gap:12px;padding-top:20px;">
-            <label style="font-size:0.82rem;color:var(--text-dim);display:flex;align-items:center;gap:4px;">
-              <input type="checkbox" id="obsPresent" ${existing?.isPresent === true ? 'checked' : ''}> Present
-            </label>
-            <label style="font-size:0.82rem;color:var(--text-dim);display:flex;align-items:center;gap:4px;">
-              <input type="checkbox" id="obsUnknownPest" ${existing?.isUnknownPest ? 'checked' : ''}> Unknown pest
-            </label>
-          </div>
-        </div>
-        <div style="display:flex;gap:10px;">
-          <div style="flex:1;">
-            <label class="input-label">Latitude</label>
-            <input class="input-field" type="number" step="any" id="obsLat" value="${existing?.latitude ?? ''}" placeholder="e.g. -33.9">
-          </div>
-          <div style="flex:1;">
-            <label class="input-label">Longitude</label>
-            <input class="input-field" type="number" step="any" id="obsLng" value="${existing?.longitude ?? ''}" placeholder="e.g. 18.4">
-          </div>
-        </div>
-        <div>
-          <label class="input-label">Notes</label>
-          <textarea class="input-field" rows="2" id="obsNotes" placeholder="Observation notes…">${escapeHtml(existing?.notes || '')}</textarea>
         </div>
         <div style="display:flex;gap:10px;margin-top:6px;">
           <button class="btn-outline" style="flex:1;" id="cancelObs">Cancel</button>
@@ -394,15 +363,16 @@ async function showObservationModal(session, type, existing, container, params) 
         trapId: isTrap ? (document.getElementById('obsTrap').value || null) : null,
         pestId: pestEl.value || null,
         captureMode: modeEl.value || null,
-        isPlanned: isTrap,
-        observationGroupId: isTrap ? (existing?.observationGroupId ?? crypto.randomUUID()) : null,
-        count: !isTrap ? (document.getElementById('obsCount').value.trim() !== '' ? parseInt(document.getElementById('obsCount').value.trim()) : null) : null,
-        isPresent: !isTrap ? (document.getElementById('obsPresent').checked || null) : null,
-        latitude: !isTrap ? (document.getElementById('obsLat').value.trim() !== '' ? parseFloat(document.getElementById('obsLat').value.trim()) : null) : null,
-        longitude: !isTrap ? (document.getElementById('obsLng').value.trim() !== '' ? parseFloat(document.getElementById('obsLng').value.trim()) : null) : null,
-        isUnknownPest: !isTrap ? document.getElementById('obsUnknownPest').checked : false,
-        notes: !isTrap ? (document.getElementById('obsNotes').value.trim() || null) : null,
-        lifeStage: !isTrap ? (document.getElementById('obsLifeStage').value || null) : null,
+        isPlanned: true,
+        observationGroupId: existing?.observationGroupId ?? crypto.randomUUID(),
+        repeatCount: !isTrap ? (parseInt(document.getElementById('obsCount').value.trim()) || 1) : 1,
+        count: null,
+        isPresent: null,
+        latitude: null,
+        longitude: null,
+        isUnknownPest: false,
+        notes: null,
+        lifeStage: null,
       };
 
       if (isEdit) {

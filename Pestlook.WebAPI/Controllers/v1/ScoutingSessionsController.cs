@@ -431,34 +431,43 @@ public sealed class ScoutingSessionsController(
             .Where(so => so.SessionId == sessionId)
             .MaxAsync(so => (int?)so.SortOrder, ct) ?? -1;
 
-        var obs = new SessionObservation
-        {
-            TenantId = tenantId,
-            SessionId = sessionId,
-            ObservationType = request.ObservationType,
-            IsPlanned = request.IsPlanned,
-            TrapId = request.TrapId,
-            PestId = request.PestId,
-            CaptureMode = request.CaptureMode,
-            Count = request.Count,
-            IsPresent = request.IsPresent,
-            Latitude = request.Latitude,
-            Longitude = request.Longitude,
-            IsUnknownPest = request.IsUnknownPest,
-            Notes = request.Notes,
-            LifeStage = request.LifeStage,
-            PhotoUrlsJson = request.PhotoUrls is { Count: > 0 } ? JsonSerializer.Serialize(request.PhotoUrls) : null,
-            SortOrder = nextSort + 1,
-            ObservationGroupId = request.ObservationGroupId
-        };
+        var repeatCount = Math.Max(1, request.RepeatCount);
+        var groupId = request.ObservationGroupId ?? Guid.NewGuid();
+        var photoJson = request.PhotoUrls is { Count: > 0 } ? JsonSerializer.Serialize(request.PhotoUrls) : null;
+        var firstId = Guid.Empty;
 
-        db.SessionObservations.Add(obs);
+        for (var r = 0; r < repeatCount; r++)
+        {
+            var obs = new SessionObservation
+            {
+                TenantId = tenantId,
+                SessionId = sessionId,
+                ObservationType = request.ObservationType,
+                IsPlanned = request.IsPlanned,
+                TrapId = request.TrapId,
+                PestId = request.PestId,
+                CaptureMode = request.CaptureMode,
+                Count = request.Count,
+                IsPresent = request.IsPresent,
+                Latitude = request.Latitude,
+                Longitude = request.Longitude,
+                IsUnknownPest = request.IsUnknownPest,
+                Notes = request.Notes,
+                LifeStage = request.LifeStage,
+                PhotoUrlsJson = photoJson,
+                SortOrder = nextSort + 1 + r,
+                ObservationGroupId = groupId
+            };
+            db.SessionObservations.Add(obs);
+            if (r == 0) firstId = obs.Id;
+        }
+
         await db.SaveChangesAsync(ct);
 
         var created = await db.SessionObservations
             .Include(so => so.Trap)
             .Include(so => so.Pest)
-            .FirstAsync(so => so.Id == obs.Id, ct);
+            .FirstAsync(so => so.Id == firstId, ct);
 
         return CreatedAtAction(nameof(GetById), new { id = sessionId },
             ApiResponse<SessionObservationResponse>.Ok(mapper.Map<SessionObservationResponse>(created), "Observation added."));
