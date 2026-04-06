@@ -7,7 +7,6 @@ import {
 } from './utils.js';
 
 export function renderPestPressure(el, { sessions, pests }, rawData) {
-  const pestById = Object.fromEntries(pests.map(p => [p.id, p]));
 
   const fieldMap = {};
   for (const s of completedSessions(sessions)) {
@@ -23,8 +22,7 @@ export function renderPestPressure(el, { sessions, pests }, rawData) {
       if (!o.isUnknownPest && o.pestName) {
         fm.pestCounts[o.pestName] = (fm.pestCounts[o.pestName] || 0) + (o.count || 1);
       }
-      const pest = o.pestId ? pestById[o.pestId] : null;
-      if (pest?.thresholdCount && (o.count || 0) > pest.thresholdCount) fm.breaches++;
+      if (o.thresholdCount && (o.count || 0) > o.thresholdCount) fm.breaches++;
     }
   }
 

@@ -9,15 +9,15 @@ import {
 
 export function renderOverview(el, { sessions, traps, pests }, rawData) {
   const pestById = Object.fromEntries(pests.map(p => [p.id, p]));
-  const obs = allRealObs(sessions);
+  const obs      = allRealObs(sessions);
 
   const breaches = [];
   for (const s of sessions) {
     for (const o of realObs(s)) {
-      const pest = o.pestId ? pestById[o.pestId] : null;
-      if (!pest?.thresholdCount || (o.count || 0) <= pest.thresholdCount) continue;
-      const pct    = Math.round(((o.count - pest.thresholdCount) / pest.thresholdCount) * 100);
-      const isCrit = (o.count || 0) >= pest.thresholdCount * 2;
+      if (!o.thresholdCount || (o.count || 0) <= o.thresholdCount) continue;
+      const pct    = Math.round(((o.count - o.thresholdCount) / o.thresholdCount) * 100);
+      const isCrit = (o.count || 0) >= o.thresholdCount * 2;
+      const pest   = o.pestId ? pestById[o.pestId] : null;
       breaches.push({ o, s, pest, pct, isCrit });
     }
   }
@@ -54,7 +54,7 @@ export function renderOverview(el, { sessions, traps, pests }, rawData) {
     <td>${escapeHtml(s.fieldName || '—')}</td>
     <td>${escapeHtml(s.farmName  || '—')}</td>
     <td style="font-family:'JetBrains Mono',monospace;font-weight:600;color:${isCrit ? C.red : C.amber};">${o.count ?? '—'}</td>
-    <td style="font-family:'JetBrains Mono',monospace;">${pest.thresholdCount}</td>
+    <td style="font-family:'JetBrains Mono',monospace;">${o.thresholdCount ?? '—'}</td>
     <td style="font-family:'JetBrains Mono',monospace;">${pct}%</td>
     <td>${tag(isCrit ? 'Critical' : 'Warning', isCrit ? 'red' : 'amber')}</td>
   </tr>`).join('') ||

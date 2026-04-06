@@ -40,6 +40,8 @@ public sealed class SessionObservation : IHasTenant, IAuditableByUser
     public double? Longitude { get; set; }
     public bool IsUnknownPest { get; set; }
     public string? Notes { get; set; }
+    /// <summary>Snapshot of the pest's economic action threshold copied at the time the observation was created.</summary>
+    public int? ThresholdCount { get; set; }
     public LifeStage? LifeStage { get; set; }
 
     public int SortOrder { get; set; }

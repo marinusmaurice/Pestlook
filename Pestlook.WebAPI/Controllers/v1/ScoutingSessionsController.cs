@@ -111,6 +111,11 @@ public sealed class ScoutingSessionsController(
 
         if (request.Observations is { Count: > 0 })
         {
+            var pestIds = request.Observations.Where(o => o.PestId.HasValue).Select(o => o.PestId!.Value).Distinct().ToList();
+            var pestThresholds = pestIds.Count > 0
+                ? await db.Pests.Where(p => pestIds.Contains(p.Id)).ToDictionaryAsync(p => p.Id, p => p.ThresholdCount, ct)
+                : new Dictionary<Guid, int?>();
+
             var sortOffset = 0;
             for (var i = 0; i < request.Observations.Count; i++)
             {
@@ -118,6 +123,7 @@ public sealed class ScoutingSessionsController(
                 var groupId = Guid.NewGuid();
                 var repeatCount = Math.Max(1, item.RepeatCount);
                 var photoJson = item.PhotoUrls is { Count: > 0 } ? JsonSerializer.Serialize(item.PhotoUrls) : null;
+                var threshold = item.PestId.HasValue && pestThresholds.TryGetValue(item.PestId.Value, out var t) ? t : null;
 
                 for (var r = 0; r < repeatCount; r++)
                 {
@@ -135,6 +141,7 @@ public sealed class ScoutingSessionsController(
                         Longitude = item.Longitude,
                         IsUnknownPest = item.IsUnknownPest,
                         Notes = item.Notes,
+                        ThresholdCount = threshold,
                         LifeStage = item.LifeStage,
                         PhotoUrlsJson = photoJson,
                         SortOrder = sortOffset + r,
@@ -211,12 +218,18 @@ public sealed class ScoutingSessionsController(
                     db.SessionObservations.RemoveRange(groupRecords);
             }
 
+            var allPestIds = request.Observations.Where(o => o.PestId.HasValue).Select(o => o.PestId!.Value).Distinct().ToList();
+            var pestThresholds = allPestIds.Count > 0
+                ? await db.Pests.Where(p => allPestIds.Contains(p.Id)).ToDictionaryAsync(p => p.Id, p => p.ThresholdCount, ct)
+                : new Dictionary<Guid, int?>();
+
             var sortOffset = 0;
             for (var i = 0; i < request.Observations.Count; i++)
             {
                 var item = request.Observations[i];
                 var desired = Math.Max(1, item.RepeatCount);
                 var photoJson = item.PhotoUrls is { Count: > 0 } ? JsonSerializer.Serialize(item.PhotoUrls) : null;
+                var threshold = item.PestId.HasValue && pestThresholds.TryGetValue(item.PestId.Value, out var t) ? t : null;
 
                 if (item.ObservationGroupId.HasValue &&
                     existingByGroup.TryGetValue(item.ObservationGroupId.Value, out var existingGroup))
@@ -244,6 +257,7 @@ public sealed class ScoutingSessionsController(
                                 Longitude = item.Longitude,
                                 IsUnknownPest = item.IsUnknownPest,
                                 Notes = item.Notes,
+                                ThresholdCount = threshold,
                                 LifeStage = item.LifeStage,
                                 PhotoUrlsJson = photoJson,
                                 ObservationGroupId = replacedGroupId,
@@ -281,6 +295,7 @@ public sealed class ScoutingSessionsController(
                                     Longitude = item.Longitude,
                                     IsUnknownPest = item.IsUnknownPest,
                                     Notes = item.Notes,
+                                    ThresholdCount = threshold,
                                     LifeStage = item.LifeStage,
                                     PhotoUrlsJson = photoJson,
                                     ObservationGroupId = item.ObservationGroupId,
@@ -303,6 +318,7 @@ public sealed class ScoutingSessionsController(
                             obs.Longitude = item.Longitude;
                             obs.IsUnknownPest = item.IsUnknownPest;
                             obs.Notes = item.Notes;
+                            obs.ThresholdCount = threshold;
                             obs.LifeStage = item.LifeStage;
                             obs.PhotoUrlsJson = photoJson;
                             obs.SortOrder = sortOffset + r;
@@ -330,6 +346,7 @@ public sealed class ScoutingSessionsController(
                             Longitude = item.Longitude,
                             IsUnknownPest = item.IsUnknownPest,
                             Notes = item.Notes,
+                            ThresholdCount = threshold,
                             LifeStage = item.LifeStage,
                             PhotoUrlsJson = photoJson,
                             ObservationGroupId = groupId,
@@ -431,6 +448,13 @@ public sealed class ScoutingSessionsController(
             .Where(so => so.SessionId == sessionId)
             .MaxAsync(so => (int?)so.SortOrder, ct) ?? -1;
 
+        int? thresholdCount = null;
+        if (request.PestId.HasValue)
+            thresholdCount = await db.Pests
+                .Where(p => p.Id == request.PestId.Value)
+                .Select(p => p.ThresholdCount)
+                .FirstOrDefaultAsync(ct);
+
         var repeatCount = Math.Max(1, request.RepeatCount);
         var groupId = request.ObservationGroupId ?? Guid.NewGuid();
         var photoJson = request.PhotoUrls is { Count: > 0 } ? JsonSerializer.Serialize(request.PhotoUrls) : null;
@@ -453,6 +477,7 @@ public sealed class ScoutingSessionsController(
                 Longitude = request.Longitude,
                 IsUnknownPest = request.IsUnknownPest,
                 Notes = request.Notes,
+                ThresholdCount = thresholdCount,
                 LifeStage = request.LifeStage,
                 PhotoUrlsJson = photoJson,
                 SortOrder = nextSort + 1 + r,
@@ -496,6 +521,9 @@ public sealed class ScoutingSessionsController(
         obs.ObservationType = request.ObservationType;
         obs.TrapId = request.TrapId;
         obs.PestId = request.PestId;
+        obs.ThresholdCount = request.PestId.HasValue
+            ? await db.Pests.Where(p => p.Id == request.PestId.Value).Select(p => p.ThresholdCount).FirstOrDefaultAsync(ct)
+            : null;
         obs.CaptureMode = request.CaptureMode;
         obs.Count = request.Count;
         obs.IsPresent = request.IsPresent;

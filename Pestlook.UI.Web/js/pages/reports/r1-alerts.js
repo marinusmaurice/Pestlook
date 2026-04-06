@@ -12,10 +12,10 @@ export function renderThresholdAlerts(el, { sessions, pests }, rawData) {
   const breaches = [];
   for (const s of sessions) {
     for (const o of realObs(s)) {
-      const pest = o.pestId ? pestById[o.pestId] : null;
-      if (!pest?.thresholdCount || (o.count || 0) <= pest.thresholdCount) continue;
-      const pct    = Math.round(((o.count - pest.thresholdCount) / pest.thresholdCount) * 100);
-      const isCrit = (o.count || 0) >= pest.thresholdCount * 2;
+      if (!o.thresholdCount || (o.count || 0) <= o.thresholdCount) continue;
+      const pct    = Math.round(((o.count - o.thresholdCount) / o.thresholdCount) * 100);
+      const isCrit = (o.count || 0) >= o.thresholdCount * 2;
+      const pest   = o.pestId ? pestById[o.pestId] : null;
       breaches.push({ o, s, pest, pct, isCrit });
     }
   }
@@ -25,7 +25,7 @@ export function renderThresholdAlerts(el, { sessions, pests }, rawData) {
   const offenderMap = {};
   for (const { pest, s, o, pct, isCrit } of breaches) {
     const key = pest.commonName;
-    if (!offenderMap[key]) offenderMap[key] = { pest, sessions: [], maxPct: 0, fields: new Set() };
+    if (!offenderMap[key]) offenderMap[key] = { pest, sessions: [], maxPct: 0, fields: new Set(), threshold: o.thresholdCount };
     offenderMap[key].sessions.push({ s, o, pct, isCrit });
     if (pct > offenderMap[key].maxPct) offenderMap[key].maxPct = pct;
     offenderMap[key].fields.add(s.fieldId || s.fieldName);
@@ -64,7 +64,7 @@ export function renderThresholdAlerts(el, { sessions, pests }, rawData) {
         <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
           <div style="flex:1;">
             <span style="font-weight:600;font-size:0.88rem;">${escapeHtml(r.pest.commonName)}</span>
-            <span style="font-size:0.75rem;color:var(--text-dim);margin-left:8px;">Threshold: ${r.pest.thresholdCount}</span>
+            <span style="font-size:0.75rem;color:var(--text-dim);margin-left:8px;">Threshold: ${r.threshold ?? '—'}</span>
           </div>
           <div style="font-size:0.8rem;color:var(--text-dim);">${r.fields.size} field${r.fields.size !== 1 ? 's' : ''}</div>
           ${tag(r.sessions.length + ' breaches', 'red')}
@@ -78,7 +78,7 @@ export function renderThresholdAlerts(el, { sessions, pests }, rawData) {
         <td>${escapeHtml(s.fieldName || '—')}</td>
         <td>${escapeHtml(s.farmName  || '—')}</td>
         <td style="font-family:'JetBrains Mono',monospace;font-weight:600;color:${isCrit ? C.red : C.amber};">${o.count ?? '—'}</td>
-        <td style="font-family:'JetBrains Mono',monospace;">${pest.thresholdCount}</td>
+        <td style="font-family:'JetBrains Mono',monospace;">${o.thresholdCount ?? '—'}</td>
         <td style="font-family:'JetBrains Mono',monospace;">${pct}%</td>
         <td>${escapeHtml(s.scouterName || '—')}</td>
         <td style="font-size:0.82rem;">${s.completedAt ? formatDate(s.completedAt) : '—'}</td>

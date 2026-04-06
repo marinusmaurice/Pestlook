@@ -97,11 +97,12 @@ public sealed record SessionObservationResponse(
     bool IsUnknownPest,
     string? Notes,
     LifeStage? LifeStage,
+    int? ThresholdCount,
     int SortOrder,
     List<string> PhotoUrls,
     Guid? ObservationGroupId,
     string? CreatedByName,
     string? UpdatedByName)
 {
-    public SessionObservationResponse() : this(default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, [], default, default, default) { }
+    public SessionObservationResponse() : this(default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, [], default, default, default) { }
 }

@@ -18,6 +18,7 @@ export function renderTopPests(el, { sessions, pests }, rawData) {
         count: 0, fields: new Set(), farms: new Set(),
         sessionIds: new Set(), breaches: 0,
         lifeStageCounts: {}, pestId: o.pestId,
+        thresholdCount: o.thresholdCount ?? null,
       };
       const ps = pestStats[o.pestName];
       ps.count += o.count || 1;
@@ -28,8 +29,7 @@ export function renderTopPests(el, { sessions, pests }, rawData) {
         const ls = LifeStage[o.lifeStage] ?? String(o.lifeStage);
         ps.lifeStageCounts[ls] = (ps.lifeStageCounts[ls] || 0) + 1;
       }
-      const pest = o.pestId ? pestById[o.pestId] : null;
-      if (pest?.thresholdCount && (o.count || 0) > pest.thresholdCount) ps.breaches++;
+      if (o.thresholdCount && (o.count || 0) > o.thresholdCount) ps.breaches++;
     }
   }
 
@@ -51,7 +51,7 @@ export function renderTopPests(el, { sessions, pests }, rawData) {
     ? sorted.map(([name, ps], idx) => {
         const pest     = ps.pestId ? pestById[ps.pestId] : null;
         const cat      = pest?.category != null ? (PestCategory[pest.category] || '—') : '—';
-        const thresh   = pest?.thresholdCount ?? '—';
+        const thresh   = ps.thresholdCount ?? '—';
         const pct      = totalObs > 0 ? ((ps.count / totalObs) * 100).toFixed(1) : '0';
         const topStage = Object.entries(ps.lifeStageCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
         const hasAlert = ps.breaches > 0;
@@ -96,7 +96,7 @@ export function renderTopPests(el, { sessions, pests }, rawData) {
         data: topForChart.map(([, ps]) => ps.count),
         backgroundColor: topForChart.map(([, ps]) => {
           const pest = ps.pestId ? pestById[ps.pestId] : null;
-          return pest?.thresholdCount && ps.breaches > 0 ? C.red : C.blue;
+          return ps.thresholdCount && ps.breaches > 0 ? C.red : C.blue;
         }),
         borderRadius: 4,
       }],
