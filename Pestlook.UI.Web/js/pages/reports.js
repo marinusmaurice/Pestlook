@@ -32,7 +32,7 @@ const TABS = [
   { id: 'r2',   label: '🌿 Pest Pressure' },
   { id: 'r3',   label: '📋 Sessions' },
   { id: 'r4',   label: '🐛 Top Pests' },
-  { id: 'r5',   label: '🪤 Trap Performance' },
+  { id: 'r5',   label: '🕸️ Trap Performance' },
   { id: 'r6',   label: '👤 Scout Productivity' },
   { id: 'r7',   label: '📅 Seasonal Trends' },
   { id: 'r8',   label: '❓ Unknown Pests' },
