@@ -73,8 +73,8 @@
                         </div>
                         <div class="sess-stats">
                             <div class="sess-stat">
-                                <div style="font-size:16px;font-weight:600;">@(pointCounts.GetValueOrDefault(s.Id, 0))</div>
-                                <div style="font-size:10px;color:var(--text-dim);">Points</div>
+                                <div style="font-size:16px;font-weight:600;">@(obsCounts.GetValueOrDefault(s.Id, 0))</div>
+                                <div style="font-size:10px;color:var(--text-dim);">Observations</div>
                             </div>
                             <div class="sess-stat">
                                 <div style="font-size:16px;font-weight:600;">@(s.WeatherCondition ?? "—")</div>
@@ -135,7 +135,6 @@
     private List<LocalSession> activeSessions = new();
     private List<LocalSession> pendingSessions = new();
     private List<LocalSession> syncedSessions = new();
-    private Dictionary<string, int> pointCounts = new();
     private Dictionary<string, int> obsCounts = new();
 
     protected override async Task OnInitializedAsync()
@@ -172,13 +171,10 @@
         syncedSessions = all.Where(s => s.Status == 2).ToList();
 
         // Load counts per session
-        pointCounts.Clear();
         obsCounts.Clear();
         foreach (var s in all)
         {
-            var pts = await Db.GetPointsForSessionAsync(s.Id);
             var obs = await Db.GetObservationsForSessionAsync(s.Id);
-            pointCounts[s.Id] = pts.Count;
             obsCounts[s.Id] = obs.Count;
         }
 
@@ -191,7 +187,7 @@
         if (!Conn.IsOnline) return;
         syncStatus = "Syncing...";
         StateHasChanged();
-        await Sync.SyncCompletedSessionsAsync();
+        await Sync.SyncAsync();
         await LoadData();
     }
 

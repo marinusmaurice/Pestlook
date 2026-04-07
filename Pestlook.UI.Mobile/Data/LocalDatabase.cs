@@ -45,23 +45,7 @@ public class LocalDatabase
     public Task DeleteSessionAsync(string id)
         => _db.DeleteAsync<LocalSession>(id);
 
-    // ── Monitoring Points ─────────────────────────────────────
-    public Task<List<LocalMonitoringPoint>> GetPointsForSessionAsync(string sessionId)
-        => _db.Table<LocalMonitoringPoint>().Where(p => p.SessionId == sessionId).OrderBy(p => p.CreatedAt).ToListAsync();
-
-    public Task<LocalMonitoringPoint?> GetPointAsync(string id)
-        => _db.Table<LocalMonitoringPoint>().FirstOrDefaultAsync(p => p.Id == id);
-
-    public Task SavePointAsync(LocalMonitoringPoint point)
-        => _db.InsertOrReplaceAsync(point);
-
-    public Task DeletePointAsync(string id)
-        => _db.DeleteAsync<LocalMonitoringPoint>(id);
-
     // ── Observations ──────────────────────────────────────────
-    public Task<List<LocalObservation>> GetObservationsForPointAsync(string pointId)
-        => _db.Table<LocalObservation>().Where(o => o.MonitoringPointId == pointId).OrderBy(o => o.CreatedAt).ToListAsync();
-
     public Task<List<LocalObservation>> GetObservationsForSessionAsync(string sessionId)
         => _db.Table<LocalObservation>().Where(o => o.SessionId == sessionId).OrderBy(o => o.CreatedAt).ToListAsync();
 
@@ -73,6 +57,15 @@ public class LocalDatabase
 
     public Task DeleteObservationAsync(string id)
         => _db.DeleteAsync<LocalObservation>(id);
+
+    public Task<List<LocalObservation>> GetDirtyObservationsForSessionAsync(string sessionId)
+        => _db.Table<LocalObservation>().Where(o => o.SessionId == sessionId && o.IsDirty).OrderBy(o => o.SortOrder).ToListAsync();
+
+    public Task<List<LocalSession>> GetPlannedSessionsAsync()
+        => _db.Table<LocalSession>().Where(s => s.IsPlanned).OrderBy(s => s.ScheduledDate).ToListAsync();
+
+    public Task<List<LocalSession>> GetPendingAdHocSessionsAsync()
+        => _db.Table<LocalSession>().Where(s => !s.IsPlanned && s.Status == 1 && s.SyncedAt == null).OrderBy(s => s.CompletedAt).ToListAsync();
 
     // ── Observation Photos ────────────────────────────────────
     public Task<List<LocalObservationPhoto>> GetPhotosForObservationAsync(string observationId)

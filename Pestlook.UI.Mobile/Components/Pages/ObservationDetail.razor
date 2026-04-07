@@ -28,9 +28,9 @@
                 </div>
                 <div style="flex:1;">
                     <div style="font-size:15px;font-weight:600;@(obs.IsUnknownPest ? "color:var(--amber);" : "")">@DisplayName</div>
-                    @if (obs.IsUnknownPest && !string.IsNullOrEmpty(obs.UnknownPestDescription))
+                    @if (obs.IsUnknownPest && !string.IsNullOrEmpty(obs.Notes))
                     {
-                        <div style="font-size:12px;color:var(--text-dim);margin-top:2px;font-style:italic;">"@obs.UnknownPestDescription"</div>
+                        <div style="font-size:12px;color:var(--text-dim);margin-top:2px;font-style:italic;">"@obs.Notes"</div>
                     }
                     else if (!string.IsNullOrEmpty(obs.PestName))
                     {
@@ -163,12 +163,8 @@
         var session = await Db.GetSessionAsync(SessionId);
         sessionStatus = session?.Status ?? 1;
 
-        // Check alert threshold
-        if (obs?.PestId is not null)
-        {
-            var pests = await Db.GetCachedPestsAsync();
-            alertThreshold = pests.FirstOrDefault(p => p.Id == obs.PestId)?.AlertThreshold;
-        }
+        // Check alert threshold from observation snapshot
+        alertThreshold = obs?.ThresholdCount;
 
         loading = false;
     }

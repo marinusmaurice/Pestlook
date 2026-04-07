@@ -1,6 +1,10 @@
 @page "/sessions"
 @inject ApiClient Api
 @inject NavigationManager Nav
+@inject SyncService Sync
+@inject LocalDatabase Db
+@inject ConnectivityService Conn
+@implements IDisposable
 
 <div class="app-shell">
     <div class="ab">
@@ -12,9 +16,9 @@
 
     <!-- Filter tabs -->
     <div class="filter-tabs">
-        <button class="filter-tab @(filter == "all" ? "on" : "")" @onclick='() => filter = "all"'>All (@allSessions.Count)</button>
-        <button class="filter-tab @(filter == "pending" ? "on" : "")" @onclick='() => filter = "pending"'>Pending (@pending.Count)</button>
-        <button class="filter-tab @(filter == "synced" ? "on" : "")" @onclick='() => filter = "synced"'>Synced (@synced.Count)</button>
+        <button class="filter-tab @(filter == "planned" ? "on" : "")" @onclick='() => filter = "planned"'>Planned (@planned.Count)</button>
+        <button class="filter-tab @(filter == "active" ? "on" : "")" @onclick='() => filter = "active"'>Active (@active.Count)</button>
+        <button class="filter-tab @(filter == "completed" ? "on" : "")" @onclick='() => filter = "completed"'>Completed (@completed.Count)</button>
     </div>
 
     <div class="app-body">
@@ -24,12 +28,53 @@
         }
         else
         {
-            @if (filter is "all" or "pending")
+            @if (filter == "planned")
             {
-                <!-- Active sessions -->
-                @if (active.Count > 0)
+                @if (planned.Count == 0)
                 {
-                    <div class="sl">Active</div>
+                    <div style="text-align:center;padding:40px 20px;color:var(--text-dim);">
+                        <div style="font-size:28px;margin-bottom:8px;">📋</div>
+                        <div style="font-size:14px;">No planned sessions</div>
+                        <div style="font-size:12px;margin-top:4px;">Pull from server to load your plan</div>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var s in planned)
+                    {
+                        <div class="sess-card" style="border-color:rgba(109,222,132,.15);"
+                             @onclick="() => OpenSession(s)">
+                            <div class="sess-head" style="background:var(--green-glow);">
+                                <span style="font-size:16px;">📋</span>
+                                <div style="flex:1;">
+                                    <div style="font-size:13px;font-weight:600;color:var(--green);">@(s.FieldName ?? s.FarmName ?? "Planned session")</div>
+                                    <div style="font-size:11px;color:var(--text-dim);">@(s.ScheduledDate?.ToString("d MMM yyyy") ?? "Unscheduled")</div>
+                                </div>
+                                <span class="ch cw">Planned</span>
+                            </div>
+                            <div class="sess-stats">
+                                <div class="sess-stat">
+                                    <div style="font-size:16px;font-weight:600;">@obsCounts.GetValueOrDefault(s.Id)</div>
+                                    <div style="font-size:10px;color:var(--text-dim);">Observations</div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+            }
+
+            @if (filter == "active")
+            {
+                @if (active.Count == 0)
+                {
+                    <div style="text-align:center;padding:40px 20px;color:var(--text-dim);">
+                        <div style="font-size:28px;margin-bottom:8px;">🌾</div>
+                        <div style="font-size:14px;">No active sessions</div>
+                        <div style="font-size:12px;margin-top:4px;">Start a new session to begin scouting</div>
+                    </div>
+                }
+                else
+                {
                     @foreach (var s in active)
                     {
                         <div class="sess-card" style="border-color:rgba(109,222,132,.25);"
@@ -37,78 +82,76 @@
                             <div class="sess-head" style="background:var(--green-glow);">
                                 <span style="font-size:16px;">🌾</span>
                                 <div style="flex:1;">
-                                    <div style="font-size:13px;font-weight:600;color:var(--green);">Session · @s.StartedAt.ToString("d MMM")</div>
-                                    <div style="font-size:11px;color:var(--text-dim);">Started @s.StartedAt.ToString("HH:mm")</div>
+                                    <div style="font-size:13px;font-weight:600;color:var(--green);">@(s.FieldName ?? s.FarmName ?? "Session") · @s.StartedAt.ToLocalTime().ToString("d MMM")</div>
+                                    <div style="font-size:11px;color:var(--text-dim);">Started @s.StartedAt.ToLocalTime().ToString("HH:mm")</div>
                                 </div>
                                 <span class="ch cs">● Live</span>
                             </div>
                             <div class="sess-stats">
                                 <div class="sess-stat">
-                                    <div style="font-size:16px;font-weight:600;">@s.ObservationCount</div>
+                                    <div style="font-size:16px;font-weight:600;">@obsCounts.GetValueOrDefault(s.Id)</div>
                                     <div style="font-size:10px;color:var(--text-dim);">Observations</div>
                                 </div>
                                 <div class="sess-stat">
-                                    <div style="font-size:16px;font-weight:600;">@(s.WeatherConditions ?? "—")</div>
+                                    <div style="font-size:16px;font-weight:600;">@(s.WeatherCondition ?? "—")</div>
                                     <div style="font-size:10px;color:var(--text-dim);">Weather</div>
                                 </div>
                             </div>
                         </div>
                     }
                 }
-
-                <!-- Pending sessions -->
-                @if (pending.Count > 0)
-                {
-                    <div class="sl">Pending sync</div>
-                    @foreach (var s in pending.Where(s => !active.Contains(s)))
-                    {
-                        <div class="sess-card" @onclick="() => ViewSession(s)">
-                            <div class="sess-head">
-                                <span style="font-size:16px;">🗂</span>
-                                <div style="flex:1;">
-                                    <div style="font-size:13px;font-weight:600;">Session · @s.StartedAt.ToString("d MMM")</div>
-                                    <div style="font-size:11px;color:var(--text-dim);">@s.ObservationCount obs</div>
-                                </div>
-                                <span class="ch cw">Queued</span>
-                            </div>
-                            <div class="sess-stats">
-                                <div class="sess-stat">
-                                    <div style="font-size:16px;font-weight:600;">@s.ObservationCount</div>
-                                    <div style="font-size:10px;color:var(--text-dim);">Observations</div>
-                                </div>
-                            </div>
-                        </div>
-                    }
-                }
             }
 
-            @if (filter is "all" or "synced")
+            @if (filter == "completed")
             {
-                <!-- Synced sessions -->
-                @if (synced.Count > 0)
+                @if (completed.Count == 0)
                 {
-                    <div class="sl">Synced</div>
-                    @foreach (var s in synced)
+                    <div style="text-align:center;padding:40px 20px;color:var(--text-dim);">
+                        <div style="font-size:28px;margin-bottom:8px;">✅</div>
+                        <div style="font-size:14px;">No completed sessions</div>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var s in completed)
                     {
-                        <div class="rw" style="cursor:pointer;" @onclick="() => ViewSession(s)">
+                        <div class="rw" style="cursor:pointer;" @onclick="() => OpenSession(s)">
                             <span style="font-size:15px;">🌻</span>
                             <div style="flex:1;">
-                                <div style="font-size:13px;font-weight:600;">Session · @s.StartedAt.ToString("d MMM")</div>
-                                <div style="font-size:11px;color:var(--text-dim);">@s.StartedAt.ToString("d MMM") · @s.ObservationCount obs@(s.WeatherConditions != null ? $" · {s.WeatherConditions}" : "")</div>
+                                <div style="font-size:13px;font-weight:600;">@(s.FieldName ?? s.FarmName ?? "Session") · @s.StartedAt.ToLocalTime().ToString("d MMM")</div>
+                                <div style="font-size:11px;color:var(--text-dim);">@s.StartedAt.ToLocalTime().ToString("d MMM") · @obsCounts.GetValueOrDefault(s.Id) obs@(s.WeatherCondition != null ? $" · {s.WeatherCondition}" : "")</div>
                             </div>
                             <span class="ch cs">✓</span>
                         </div>
                     }
                 }
             }
+        }
+    </div>
 
-            @if (Filtered.Count == 0)
-            {
-                <div style="text-align:center;padding:40px 20px;color:var(--text-dim);">
-                    <div style="font-size:28px;margin-bottom:8px;">📋</div>
-                    <div style="font-size:14px;">No sessions found</div>
-                </div>
-            }
+    <!-- Sync button -->
+    <div style="padding:8px 10px;border-top:.5px solid var(--border);">
+        @if (syncError is not null)
+        {
+            <div style="font-size:11px;color:var(--red,#e87070);margin-bottom:6px;padding:6px 8px;background:rgba(232,112,112,.1);border-radius:6px;">⚠ @syncError</div>
+        }
+        @if (Conn.IsOnline)
+        {
+            <button class="bp" style="width:100%;" @onclick="SyncNow" disabled="@syncing">
+                @if (syncing)
+                {
+                    <span class="spinner-sm" style="width:14px;height:14px;margin-right:6px;"></span>
+                    <span>@syncStatus</span>
+                }
+                else
+                {
+                    <span>⇅ Sync</span>
+                }
+            </button>
+        }
+        else
+        {
+            <div style="font-size:11px;color:var(--text-dim);text-align:center;">Offline — connect to sync</div>
         }
     </div>
 
@@ -117,23 +160,23 @@
 
 @code {
     private bool loading = true;
-    private string filter = "all";
-    private List<SessionResponse> allSessions = new();
-    private List<SessionResponse> active = new();
-    private List<SessionResponse> pending = new();
-    private List<SessionResponse> synced = new();
-    private List<FarmResponse> farms = new();
-
-    private List<SessionResponse> Filtered => filter switch
-    {
-        "pending" => pending,
-        "synced" => synced,
-        _ => allSessions
-    };
+    private bool syncing;
+    private string filter = "planned";
+    private string syncStatus = "Syncing...";
+    private string? syncError;
+    private List<LocalSession> allSessions = new();
+    private List<LocalSession> planned = new();
+    private List<LocalSession> active = new();
+    private List<LocalSession> completed = new();
+    private Dictionary<string, int> obsCounts = new();
 
     protected override async Task OnInitializedAsync()
     {
         if (!Api.IsLoggedIn) { Nav.NavigateTo("/"); return; }
+        await Db.InitAsync();
+        Sync.OnProgress += OnSyncProgress;
+        Sync.OnCompleted += OnSyncCompleted;
+        Sync.OnError += OnSyncError;
         await LoadData();
     }
 
@@ -142,36 +185,50 @@
         loading = true;
         StateHasChanged();
 
-        var res = await Api.GetSessionsAsync();
-        if (res.Success && res.Data is not null)
+        var all = await Db.GetSessionsAsync();
+        allSessions = all;
+        planned = all.Where(s => s.IsPlanned && !s.CompletedAt.HasValue).OrderBy(s => s.ScheduledDate).ToList();
+        active = all.Where(s => !s.IsPlanned && !s.CompletedAt.HasValue).OrderByDescending(s => s.StartedAt).ToList();
+        completed = all.Where(s => s.CompletedAt.HasValue).OrderByDescending(s => s.CompletedAt).ToList();
+
+        obsCounts.Clear();
+        foreach (var s in all)
         {
-            allSessions = res.Data;
-            active = allSessions.Where(s => !s.IsCompleted).Take(1).ToList();
-            pending = allSessions.Where(s => !s.IsCompleted).ToList();
-            synced = allSessions.Where(s => s.IsCompleted).ToList();
+            var obs = await Db.GetObservationsForSessionAsync(s.Id);
+            obsCounts[s.Id] = obs.Count;
         }
 
-        var farmsRes = await Api.GetFarmsAsync();
-        if (farmsRes.Success && farmsRes.Data is not null)
-            farms = farmsRes.Data.Where(f => f.IsActive).ToList();
-
         loading = false;
+        StateHasChanged();
     }
 
-    private void OpenSession(SessionResponse s)
+    private void OpenSession(LocalSession s)
+        => Nav.NavigateTo($"/session-detail/{s.Id}");
+
+    private void StartNew()
+        => Nav.NavigateTo("/new-session");
+
+    private async Task SyncNow()
     {
-        var farmId = farms.FirstOrDefault()?.Id ?? Guid.Empty;
-        var farmName = farms.FirstOrDefault()?.Name ?? "Session";
-        Nav.NavigateTo($"/points-list/{s.Id}/{farmId}/{Uri.EscapeDataString(farmName)}");
+        if (syncing) return;
+        syncing = true;
+        syncError = null;
+        syncStatus = "Syncing...";
+        StateHasChanged();
+        await Sync.SyncAsync();
+        await LoadData();
+        syncing = false;
+        StateHasChanged();
     }
 
-    private void ViewSession(SessionResponse s)
-    {
-        Nav.NavigateTo($"/session-detail/{s.Id}");
-    }
+    private void OnSyncProgress(string msg) { syncStatus = msg; InvokeAsync(StateHasChanged); }
+    private void OnSyncCompleted() { syncing = false; _ = InvokeAsync(LoadData); }
+    private void OnSyncError(string msg) { syncing = false; syncError = msg; _ = InvokeAsync(StateHasChanged); }
 
-    private async Task StartNew()
+    public void Dispose()
     {
-        Nav.NavigateTo("/new-session");
+        Sync.OnProgress -= OnSyncProgress;
+        Sync.OnCompleted -= OnSyncCompleted;
+        Sync.OnError -= OnSyncError;
     }
 }

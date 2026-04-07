@@ -108,111 +108,18 @@ public class SyncService
         }
     }
 
-    /// <summary>Upload all completed sessions to the server.</summary>
-    public async Task SyncCompletedSessionsAsync()
+    /// <summary>Full sync: pull planned sessions then push ad-hoc and planned observation changes.</summary>
+    public async Task SyncAsync()
     {
-        if (_syncing || !_connectivity.IsOnline || !_api.IsLoggedIn) return;
+        if (_syncing) { OnError?.Invoke("Sync already in progress"); return; }
+        if (!_connectivity.IsOnline) { OnError?.Invoke("No internet connection"); return; }
+        if (!_api.IsLoggedIn) { OnError?.Invoke("Not logged in — please sign in again"); return; }
         _syncing = true;
-
         try
         {
-            var sessions = await _db.GetCompletedUnsyncedSessionsAsync();
-            for (int si = 0; si < sessions.Count; si++)
-            {
-                var session = sessions[si];
-                OnProgress?.Invoke($"Uploading session {si + 1} of {sessions.Count}...");
-
-                // 1. Create session on server (temperature stored locally is always Celsius)
-                var sessRes = await _api.StartSessionAsync(session.WeatherCondition, session.Notes, session.Temperature != 0 ? session.Temperature : null);
-                if (!sessRes.Success || sessRes.Data is null) { OnError?.Invoke($"Failed to sync session: {sessRes.Message}"); continue; }
-                var remoteSessionId = sessRes.Data.Id;
-
-                // 2. Upload points and observations
-                var points = await _db.GetPointsForSessionAsync(session.Id);
-                for (int pi = 0; pi < points.Count; pi++)
-                {
-                    var pt = points[pi];
-                    var observations = await _db.GetObservationsForPointAsync(pt.Id);
-
-                    for (int oi = 0; oi < observations.Count; oi++)
-                    {
-                        OnProgress?.Invoke($"Session {si + 1}/{sessions.Count}: obs {oi + 1}/{observations.Count}");
-                        var obs = observations[oi];
-
-                        // Find or use the monitoring point's RemoteId if it exists, otherwise create on server
-                        Guid remotePointId;
-                        if (!string.IsNullOrEmpty(pt.RemoteId) && Guid.TryParse(pt.RemoteId, out var rpid))
-                        {
-                            remotePointId = rpid;
-                        }
-                        else
-                        {
-                            var ptReq = new CreatePointRequest
-                            {
-                                FarmId = Guid.TryParse(session.FarmId, out var fid) ? fid : Guid.Empty,
-                                PointType = pt.PointType,
-                                Name = pt.Name,
-                                Latitude = pt.Latitude,
-                                Longitude = pt.Longitude,
-                                TrapTypeId = Guid.TryParse(pt.TrapTypeId, out var ttid) ? ttid : null
-                            };
-                            var ptRes = await _api.CreateMonitoringPointAsync(ptReq);
-                            if (ptRes.Success && ptRes.Data is not null)
-                            {
-                                pt.RemoteId = ptRes.Data.Id.ToString();
-                                await _db.SavePointAsync(pt);
-                                remotePointId = ptRes.Data.Id;
-                            }
-                            else continue;
-                        }
-
-                        var obsReq = new CreateObservationRequest
-                        {
-                            SessionId = remoteSessionId,
-                            MonitoringPointId = remotePointId,
-                            PestId = Guid.TryParse(obs.PestId, out var pestId) ? pestId : null,
-                            IsUnknownPest = obs.IsUnknownPest,
-                            UnknownPestDescription = obs.UnknownPestDescription,
-                            CaptureMode = obs.CaptureMode,
-                            Count = obs.Count,
-                            Present = obs.IsPresent,
-                            CapturedLat = obs.CapturedLat,
-                            CapturedLng = obs.CapturedLng,
-                            Notes = obs.Notes,
-                            ObservedAt = obs.CreatedAt
-                        };
-                        var obsRes = await _api.CreateObservationAsync(obsReq);
-                        if (obsRes.Success && obsRes.Data is not null)
-                        {
-                            obs.RemoteId = obsRes.Data.Id.ToString();
-                            await _db.SaveObservationAsync(obs);
-
-                            // Upload photos
-                            var photos = await _db.GetPhotosForObservationAsync(obs.Id);
-                            foreach (var photo in photos.Where(p => p.UploadedAt == null))
-                            {
-                                // Photo upload would go here (multipart form data)
-                                // For now mark as uploaded if file exists
-                                if (File.Exists(photo.LocalFilePath))
-                                {
-                                    photo.UploadedAt = DateTime.UtcNow;
-                                    await _db.SavePhotoAsync(photo);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // 3. Complete the session on server
-                await _api.CompleteSessionAsync(remoteSessionId);
-
-                // 4. Mark local session as synced
-                session.Status = 2; // Synced
-                session.SyncedAt = DateTime.UtcNow;
-                session.RemoteId = remoteSessionId.ToString();
-                await _db.SaveSessionAsync(session);
-            }
-
+            await PullPlannedSessionsAsync();
+            await PushAdHocSessionsAsync();
+            await PushPlannedObservationsAsync();
             OnCompleted?.Invoke();
         }
         catch (Exception ex)
@@ -222,6 +129,185 @@ public class SyncService
         finally
         {
             _syncing = false;
+        }
+    }
+
+    /// <summary>Pull planned sessions (IsPlanned=true) from server and store them locally.</summary>
+    public async Task PullPlannedSessionsAsync()
+    {
+        if (!_connectivity.IsOnline || !_api.IsLoggedIn) return;
+
+        OnProgress?.Invoke("Pulling planned sessions...");
+        var sessionsRes = await _api.GetSessionsAsync();
+        if (!sessionsRes.Success || sessionsRes.Data is null)
+        {
+            OnError?.Invoke($"Could not load sessions: {sessionsRes.Message ?? "Server error"}");
+            return;
+        }
+
+        var plannedFromServer = sessionsRes.Data.Where(s => s.IsPlanned).ToList();
+        for (int i = 0; i < plannedFromServer.Count; i++)
+        {
+            var s = plannedFromServer[i];
+            OnProgress?.Invoke($"Syncing planned session {i + 1}/{plannedFromServer.Count}...");
+
+            // Fetch full session with observations
+            var detailRes = await _api.GetSessionAsync(s.Id);
+            if (!detailRes.Success || detailRes.Data is null)
+            {
+                OnError?.Invoke($"Could not load session detail: {detailRes.Message ?? "Server error"}");
+                continue;
+            }
+            var detail = detailRes.Data;
+
+            var localSession = new LocalSession
+            {
+                Id = detail.Id.ToString(),
+                RemoteId = detail.Id.ToString(),
+                FarmId = detail.FarmId?.ToString(),
+                FarmName = detail.FarmName,
+                FieldId = detail.FieldId?.ToString(),
+                FieldName = detail.FieldName,
+                IsPlanned = true,
+                ScheduledDate = detail.ScheduledDate,
+                Status = detail.IsCompleted ? 2 : 0,
+                WeatherCondition = detail.WeatherConditions,
+                Notes = detail.Notes,
+                StartedAt = detail.StartedAt ?? DateTime.UtcNow,
+                CompletedAt = detail.CompletedAt
+            };
+            await _db.SaveSessionAsync(localSession);
+
+            if (detail.Observations is null) continue;
+            foreach (var o in detail.Observations)
+            {
+                var localObs = new LocalObservation
+                {
+                    Id = o.Id.ToString(),
+                    RemoteId = o.Id.ToString(),
+                    SessionId = detail.Id.ToString(),
+                    PestId = o.PestId?.ToString(),
+                    PestName = o.PestName,
+                    IsUnknownPest = o.IsUnknownPest,
+                    CaptureMode = o.CaptureMode,
+                    Count = o.Count,
+                    IsPresent = o.IsPresent,
+                    Notes = o.Notes,
+                    TrapId = o.TrapId?.ToString(),
+                    TrapName = o.TrapName,
+                    CapturedLat = o.CapturedLat,
+                    CapturedLng = o.CapturedLng,
+                    LifeStage = o.LifeStage,
+                    ThresholdCount = o.ThresholdCount,
+                    IsPlanned = o.IsPlanned,
+                    ObservationGroupId = o.ObservationGroupId?.ToString(),
+                    SortOrder = o.SortOrder,
+                    IsDirty = false
+                };
+                await _db.SaveObservationAsync(localObs);
+            }
+        }
+    }
+
+    /// <summary>Push completed ad-hoc sessions (offline) to the server.</summary>
+    public async Task PushAdHocSessionsAsync()
+    {
+        if (!_connectivity.IsOnline || !_api.IsLoggedIn) return;
+
+        var sessions = await _db.GetPendingAdHocSessionsAsync();
+        for (int si = 0; si < sessions.Count; si++)
+        {
+            var session = sessions[si];
+            OnProgress?.Invoke($"Uploading session {si + 1}/{sessions.Count}...");
+
+            var fieldId = Guid.TryParse(session.FieldId, out var fld) ? fld : (Guid?)null;
+            var farmId = Guid.TryParse(session.FarmId, out var frm) ? frm : (Guid?)null;
+            var sessRes = await _api.StartSessionAsync(fieldId, farmId, session.WeatherCondition, session.Notes,
+                session.Temperature != 0 ? session.Temperature : null);
+            if (!sessRes.Success || sessRes.Data is null) { OnError?.Invoke($"Failed to sync session: {sessRes.Message}"); continue; }
+            var remoteSessionId = sessRes.Data.Id;
+
+            var observations = await _db.GetObservationsForSessionAsync(session.Id);
+            for (int oi = 0; oi < observations.Count; oi++)
+            {
+                OnProgress?.Invoke($"Session {si + 1}/{sessions.Count}: obs {oi + 1}/{observations.Count}");
+                var obs = observations[oi];
+                var obsReq = new SessionObservationRequest
+                {
+                    PestId = Guid.TryParse(obs.PestId, out var pid) ? pid : null,
+                    IsUnknownPest = obs.IsUnknownPest,
+                    CaptureMode = obs.CaptureMode,
+                    Count = obs.Count,
+                    IsPresent = obs.IsPresent,
+                    TrapId = Guid.TryParse(obs.TrapId, out var tid) ? tid : null,
+                    CapturedLat = obs.CapturedLat,
+                    CapturedLng = obs.CapturedLng,
+                    Notes = obs.Notes,
+                    LifeStage = obs.LifeStage
+                };
+                var obsRes = await _api.AddObservationAsync(remoteSessionId, obsReq);
+                if (obsRes.Success && obsRes.Data is not null)
+                {
+                    obs.RemoteId = obsRes.Data.Id.ToString();
+                    obs.IsDirty = false;
+                    await _db.SaveObservationAsync(obs);
+                }
+            }
+
+            await _api.CompleteSessionAsync(remoteSessionId);
+            session.Status = 2;
+            session.SyncedAt = DateTime.UtcNow;
+            session.RemoteId = remoteSessionId.ToString();
+            await _db.SaveSessionAsync(session);
+        }
+    }
+
+    /// <summary>Push dirty observations on planned sessions (scout filled in counts while online).</summary>
+    public async Task PushPlannedObservationsAsync()
+    {
+        if (!_connectivity.IsOnline || !_api.IsLoggedIn) return;
+
+        var sessions = await _db.GetPlannedSessionsAsync();
+        foreach (var session in sessions)
+        {
+            if (string.IsNullOrEmpty(session.RemoteId)) continue;
+            if (!Guid.TryParse(session.RemoteId, out var remoteSessionId)) continue;
+
+            var dirty = await _db.GetDirtyObservationsForSessionAsync(session.Id);
+            foreach (var obs in dirty)
+            {
+                var req = new SessionObservationRequest
+                {
+                    PestId = Guid.TryParse(obs.PestId, out var pid) ? pid : null,
+                    IsUnknownPest = obs.IsUnknownPest,
+                    CaptureMode = obs.CaptureMode,
+                    Count = obs.Count,
+                    IsPresent = obs.IsPresent,
+                    TrapId = Guid.TryParse(obs.TrapId, out var tid) ? tid : null,
+                    CapturedLat = obs.CapturedLat,
+                    CapturedLng = obs.CapturedLng,
+                    Notes = obs.Notes,
+                    LifeStage = obs.LifeStage
+                };
+
+                if (!string.IsNullOrEmpty(obs.RemoteId) && Guid.TryParse(obs.RemoteId, out var remoteObsId))
+                {
+                    var res = await _api.UpdateObservationAsync(remoteSessionId, remoteObsId, req);
+                    if (res.Success) { obs.IsDirty = false; await _db.SaveObservationAsync(obs); }
+                    else OnError?.Invoke($"Update observation failed: {res.Message ?? "Server error"}");
+                }
+                else
+                {
+                    var res = await _api.AddObservationAsync(remoteSessionId, req);
+                    if (res.Success && res.Data is not null)
+                    {
+                        obs.RemoteId = res.Data.Id.ToString();
+                        obs.IsDirty = false;
+                        await _db.SaveObservationAsync(obs);
+                    }
+                    else OnError?.Invoke($"Add observation failed: {res.Message ?? "Server error"}");
+                }
+            }
         }
     }
 }

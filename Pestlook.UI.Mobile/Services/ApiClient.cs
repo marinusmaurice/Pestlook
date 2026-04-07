@@ -90,27 +90,14 @@ public class ApiClient
     public Task<ApiResult<List<SessionResponse>>> GetSessionsAsync()
         => GetAsync<List<SessionResponse>>("scouting-sessions");
 
-    public Task<ApiResult<SessionResponse>> StartSessionAsync(string? weather = null, string? notes = null, double? temperatureCelsius = null)
-        => PostAsync<SessionResponse>("scouting-sessions", new { weatherConditions = weather, temperatureCelsius, notes });
+    public Task<ApiResult<SessionResponse>> StartSessionAsync(Guid? fieldId = null, Guid? farmId = null, string? weather = null, string? notes = null, double? temperatureCelsius = null)
+        => PostAsync<SessionResponse>("scouting-sessions", new { fieldId, farmId, weatherConditions = weather, temperatureCelsius, notes });
 
     public Task<ApiResult<SessionResponse>> GetSessionAsync(Guid id)
         => GetAsync<SessionResponse>($"scouting-sessions/{id}");
 
     public Task<ApiResult<SessionResponse>> CompleteSessionAsync(Guid id)
         => PatchAsync<SessionResponse>($"scouting-sessions/{id}/complete", new { });
-
-    // ── Monitoring Points ─────────────────────────────────────
-    public Task<ApiResult<List<MonitoringPointResponse>>> GetMonitoringPointsAsync(Guid? farmId = null)
-    {
-        var q = farmId.HasValue ? $"?farmId={farmId}" : "";
-        return GetAsync<List<MonitoringPointResponse>>($"monitoring-points{q}");
-    }
-
-    public Task<ApiResult<MonitoringPointResponse>> GetMonitoringPointAsync(Guid id)
-        => GetAsync<MonitoringPointResponse>($"monitoring-points/{id}");
-
-    public Task<ApiResult<MonitoringPointResponse>> CreateMonitoringPointAsync(CreatePointRequest req)
-        => PostAsync<MonitoringPointResponse>("monitoring-points", req);
 
     // ── Trap Types ────────────────────────────────────────────
     public Task<ApiResult<List<TrapTypeResponse>>> GetTrapTypesAsync()
@@ -140,23 +127,14 @@ public class ApiClient
         => GetAsync<List<PestResponse>>("pests");
 
     // ── Observations ──────────────────────────────────────────
-    public Task<ApiResult<List<ObservationResponse>>> GetObservationsAsync(Guid? sessionId = null, Guid? pointId = null)
-    {
-        var parts = new List<string>();
-        if (sessionId.HasValue) parts.Add($"sessionId={sessionId}");
-        if (pointId.HasValue) parts.Add($"monitoringPointId={pointId}");
-        var q = parts.Count > 0 ? "?" + string.Join("&", parts) : "";
-        return GetAsync<List<ObservationResponse>>($"pest-observations{q}");
-    }
+    public Task<ApiResult<SessionObservationResponse>> AddObservationAsync(Guid sessionId, SessionObservationRequest req)
+        => PostAsync<SessionObservationResponse>($"scouting-sessions/{sessionId}/observations", req);
 
-    public Task<ApiResult<ObservationResponse>> GetObservationAsync(Guid id)
-        => GetAsync<ObservationResponse>($"pest-observations/{id}");
+    public Task<ApiResult<SessionObservationResponse>> UpdateObservationAsync(Guid sessionId, Guid obsId, SessionObservationRequest req)
+        => PatchAsync<SessionObservationResponse>($"scouting-sessions/{sessionId}/observations/{obsId}", req);
 
-    public Task<ApiResult<ObservationResponse>> CreateObservationAsync(CreateObservationRequest req)
-        => PostAsync<ObservationResponse>("pest-observations", req);
-
-    public async Task DeleteObservationAsync(Guid id)
-        => await SendAsync(HttpMethod.Delete, $"pest-observations/{id}");
+    public async Task DeleteObservationAsync(Guid sessionId, Guid obsId)
+        => await SendAsync(HttpMethod.Delete, $"scouting-sessions/{sessionId}/observations/{obsId}");
 
     // ── HTTP helpers ──────────────────────────────────────────
     private async Task<ApiResult<T>> GetAsync<T>(string path, bool auth = true)
@@ -294,39 +272,62 @@ public class FieldResponse
 public class SessionResponse
 {
     [JsonPropertyName("id")] public Guid Id { get; set; }
-    [JsonPropertyName("startedAt")] public DateTime StartedAt { get; set; }
+    [JsonPropertyName("farmId")] public Guid? FarmId { get; set; }
+    [JsonPropertyName("farmName")] public string? FarmName { get; set; }
+    [JsonPropertyName("fieldId")] public Guid? FieldId { get; set; }
+    [JsonPropertyName("fieldName")] public string? FieldName { get; set; }
+    [JsonPropertyName("startedAt")] public DateTime? StartedAt { get; set; }
     [JsonPropertyName("completedAt")] public DateTime? CompletedAt { get; set; }
     [JsonPropertyName("weatherConditions")] public string? WeatherConditions { get; set; }
     [JsonPropertyName("temperatureCelsius")] public double? TemperatureCelsius { get; set; }
     [JsonPropertyName("notes")] public string? Notes { get; set; }
     [JsonPropertyName("observationCount")] public int ObservationCount { get; set; }
+    [JsonPropertyName("isPlanned")] public bool IsPlanned { get; set; }
+    [JsonPropertyName("scheduledDate")] public DateTime? ScheduledDate { get; set; }
+    [JsonPropertyName("observations")] public List<SessionObservationResponse>? Observations { get; set; }
     public bool IsCompleted => CompletedAt.HasValue;
 }
 
-public class MonitoringPointResponse
-{
-    [JsonPropertyName("id")] public Guid Id { get; set; }
-    [JsonPropertyName("farmId")] public Guid FarmId { get; set; }
-    [JsonPropertyName("pointType")] public int PointType { get; set; }
-    [JsonPropertyName("name")] public string? Name { get; set; }
-    [JsonPropertyName("latitude")] public double Latitude { get; set; }
-    [JsonPropertyName("longitude")] public double Longitude { get; set; }
-    [JsonPropertyName("trapTypeName")] public string? TrapTypeName { get; set; }
-    [JsonPropertyName("isActive")] public bool IsActive { get; set; }
-    [JsonPropertyName("notes")] public string? Notes { get; set; }
-    [JsonPropertyName("assignedPests")] public List<AssignedPestSummary>? AssignedPests { get; set; }
-    public string TypeIcon => PointType switch { 0 => "🪤", 1 => "👁", _ => "👁" };
-    public string TypeLabel => PointType switch { 0 => "Fixed Trap", 1 => "Fixed Scouting", _ => "Scouting Visit" };
-}
+    public class SessionObservationResponse
+    {
+        [JsonPropertyName("id")] public Guid Id { get; set; }
+        [JsonPropertyName("sessionId")] public Guid SessionId { get; set; }
+        [JsonPropertyName("pestId")] public Guid? PestId { get; set; }
+        [JsonPropertyName("pestName")] public string? PestName { get; set; }
+        [JsonPropertyName("isUnknownPest")] public bool IsUnknownPest { get; set; }
+        [JsonPropertyName("captureMode")] public int CaptureMode { get; set; }
+        [JsonPropertyName("count")] public int? Count { get; set; }
+        [JsonPropertyName("isPresent")] public bool? IsPresent { get; set; }
+        [JsonPropertyName("notes")] public string? Notes { get; set; }
+        [JsonPropertyName("trapId")] public Guid? TrapId { get; set; }
+        [JsonPropertyName("trapName")] public string? TrapName { get; set; }
+        [JsonPropertyName("capturedLat")] public double? CapturedLat { get; set; }
+        [JsonPropertyName("capturedLng")] public double? CapturedLng { get; set; }
+        [JsonPropertyName("lifeStage")] public int? LifeStage { get; set; }
+        [JsonPropertyName("thresholdCount")] public int? ThresholdCount { get; set; }
+        [JsonPropertyName("isPlanned")] public bool IsPlanned { get; set; }
+        [JsonPropertyName("observationGroupId")] public Guid? ObservationGroupId { get; set; }
+        [JsonPropertyName("sortOrder")] public int SortOrder { get; set; }
+        [JsonPropertyName("photoUrls")] public List<string>? PhotoUrls { get; set; }
+        [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
+        public string DisplayName => IsUnknownPest ? "Unknown pest" : (PestName ?? "\u2014");
+    }
 
-public class AssignedPestSummary
-{
-    [JsonPropertyName("pestId")] public Guid PestId { get; set; }
-    [JsonPropertyName("pestName")] public string PestName { get; set; } = "";
-    [JsonPropertyName("isActive")] public bool IsActive { get; set; }
-}
+    public class SessionObservationRequest
+    {
+        [JsonPropertyName("pestId")] public Guid? PestId { get; set; }
+        [JsonPropertyName("isUnknownPest")] public bool IsUnknownPest { get; set; }
+        [JsonPropertyName("captureMode")] public int CaptureMode { get; set; }
+        [JsonPropertyName("count")] public int? Count { get; set; }
+        [JsonPropertyName("isPresent")] public bool? IsPresent { get; set; }
+        [JsonPropertyName("notes")] public string? Notes { get; set; }
+        [JsonPropertyName("trapId")] public Guid? TrapId { get; set; }
+        [JsonPropertyName("capturedLat")] public double? CapturedLat { get; set; }
+        [JsonPropertyName("capturedLng")] public double? CapturedLng { get; set; }
+        [JsonPropertyName("lifeStage")] public int? LifeStage { get; set; }
+    }
 
-public class PestResponse
+    public class PestResponse
 {
     [JsonPropertyName("id")] public Guid Id { get; set; }
     [JsonPropertyName("commonName")] public string CommonName { get; set; } = "";
@@ -337,60 +338,11 @@ public class PestResponse
     public string Emoji => Category switch { "Insect" => "🦟", "Disease" => "🦠", "Weed" => "🌿", "Rodent" => "🐀", _ => "❓" };
 }
 
-public class ObservationResponse
-{
-    [JsonPropertyName("id")] public Guid Id { get; set; }
-    [JsonPropertyName("sessionId")] public Guid SessionId { get; set; }
-    [JsonPropertyName("monitoringPointId")] public Guid MonitoringPointId { get; set; }
-    [JsonPropertyName("pestId")] public Guid? PestId { get; set; }
-    [JsonPropertyName("pestName")] public string? PestName { get; set; }
-    [JsonPropertyName("isUnknownPest")] public bool IsUnknownPest { get; set; }
-    [JsonPropertyName("unknownPestDescription")] public string? UnknownPestDescription { get; set; }
-    [JsonPropertyName("captureMode")] public int CaptureMode { get; set; }
-    [JsonPropertyName("count")] public int? Count { get; set; }
-    [JsonPropertyName("present")] public bool? Present { get; set; }
-    [JsonPropertyName("notes")] public string? Notes { get; set; }
-    [JsonPropertyName("capturedLat")] public double? CapturedLat { get; set; }
-    [JsonPropertyName("capturedLng")] public double? CapturedLng { get; set; }
-    [JsonPropertyName("lifeStage")] public string? LifeStage { get; set; }
-    [JsonPropertyName("photoUrls")] public List<string>? PhotoUrls { get; set; }
-    [JsonPropertyName("observedAt")] public DateTime ObservedAt { get; set; }
-    public string DisplayName => IsUnknownPest ? "Unknown pest" : (PestName ?? "—");
-}
-
 public class TrapTypeResponse
 {
     [JsonPropertyName("id")] public Guid Id { get; set; }
     [JsonPropertyName("name")] public string Name { get; set; } = "";
     [JsonPropertyName("description")] public string? Description { get; set; }
-}
-
-public class CreatePointRequest
-{
-    [JsonPropertyName("farmId")] public Guid FarmId { get; set; }
-    [JsonPropertyName("fieldId")] public Guid? FieldId { get; set; }
-    [JsonPropertyName("pointType")] public int PointType { get; set; }
-    [JsonPropertyName("name")] public string? Name { get; set; }
-    [JsonPropertyName("latitude")] public double Latitude { get; set; }
-    [JsonPropertyName("longitude")] public double Longitude { get; set; }
-    [JsonPropertyName("trapTypeId")] public Guid? TrapTypeId { get; set; }
-    [JsonPropertyName("notes")] public string? Notes { get; set; }
-}
-
-public class CreateObservationRequest
-{
-    [JsonPropertyName("sessionId")] public Guid SessionId { get; set; }
-    [JsonPropertyName("monitoringPointId")] public Guid MonitoringPointId { get; set; }
-    [JsonPropertyName("pestId")] public Guid? PestId { get; set; }
-    [JsonPropertyName("isUnknownPest")] public bool IsUnknownPest { get; set; }
-    [JsonPropertyName("unknownPestDescription")] public string? UnknownPestDescription { get; set; }
-    [JsonPropertyName("captureMode")] public int CaptureMode { get; set; }
-    [JsonPropertyName("count")] public int? Count { get; set; }
-    [JsonPropertyName("present")] public bool? Present { get; set; }
-    [JsonPropertyName("capturedLat")] public double? CapturedLat { get; set; }
-    [JsonPropertyName("capturedLng")] public double? CapturedLng { get; set; }
-    [JsonPropertyName("notes")] public string? Notes { get; set; }
-    [JsonPropertyName("observedAt")] public DateTime? ObservedAt { get; set; }
 }
 
 public class TrapApiResponse

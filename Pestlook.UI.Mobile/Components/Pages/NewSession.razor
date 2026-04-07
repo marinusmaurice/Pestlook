@@ -277,7 +277,9 @@
         // Also create on server if online (best-effort, session is local-first)
         if (Conn.IsOnline)
         {
-            var res = await Api.StartSessionAsync(weather, session.Notes, tempCelsius);
+            var fieldId = Guid.TryParse(selectedFieldId, out var fid) ? fid : (Guid?)null;
+            var farmId = Guid.TryParse(selectedFarmId, out var frm) ? frm : (Guid?)null;
+            var res = await Api.StartSessionAsync(fieldId, farmId, weather, session.Notes, tempCelsius);
             if (res.Success && res.Data is not null)
             {
                 session.RemoteId = res.Data.Id.ToString();
@@ -286,7 +288,7 @@
         }
 
         saving = false;
-        Nav.NavigateTo($"/points-list/{session.Id}");
+        Nav.NavigateTo($"/session-detail/{session.Id}");
     }
 
     private void GoBack()

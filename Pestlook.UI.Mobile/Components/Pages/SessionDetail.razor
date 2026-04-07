@@ -27,7 +27,7 @@
                 <div style="padding:10px 12px;display:flex;align-items:center;gap:8px;border-bottom:.5px solid var(--border);">
                     <span style="font-size:18px;">@StatusIcon</span>
                     <div style="flex:1;">
-                        <div style="font-size:14px;font-weight:600;">Session · @session.StartedAt.ToLocalTime().ToString("d MMM yyyy")</div>
+                        <div style="font-size:14px;font-weight:600;">@(session.FieldName ?? session.FarmName ?? "Session") · @session.StartedAt.ToLocalTime().ToString("d MMM yyyy")</div>
                         <div style="font-size:11px;color:var(--text-dim);">Started @session.StartedAt.ToLocalTime().ToString("HH:mm")</div>
                     </div>
                     <span class="ch @StatusChipClass">@StatusLabel</span>
@@ -79,10 +79,6 @@
                     <div class="sess-stat">
                         <div style="font-size:18px;font-weight:600;">@observations.Count</div>
                         <div style="font-size:10px;color:var(--text-dim);">Observations</div>
-                    </div>
-                    <div class="sess-stat">
-                        <div style="font-size:18px;font-weight:600;">@points.Count</div>
-                        <div style="font-size:10px;color:var(--text-dim);">Points</div>
                     </div>
                     <div class="sess-stat">
                         <div style="font-size:18px;font-weight:600;@(alertCount > 0 ? "color:var(--red);" : "")">@alertCount</div>
@@ -139,11 +135,11 @@
             @if (session.Status == 0)
             {
                 <button class="bo" style="color:var(--red);border-color:rgba(224,96,96,.25);" @onclick="EndSession">End session</button>
-                <button class="bo" style="flex:2;color:var(--green);border-color:rgba(109,222,132,.25);" @onclick="ViewPoints">Continue scouting →</button>
+                <button class="bo" style="flex:2;color:var(--green);border-color:rgba(109,222,132,.25);" @onclick="AddObservation">+ Add observation</button>
             }
             else
             {
-                <button class="bp" style="margin:0;width:100%;" @onclick="ViewPoints">View points →</button>
+                <button class="bp" style="margin:0;width:100%;" @onclick="GoBack">← Back to sessions</button>
             }
         </div>
     }
@@ -155,7 +151,6 @@
     private bool loading = true;
     private LocalSession? session;
     private List<LocalObservation> observations = new();
-    private List<LocalMonitoringPoint> points = new();
     private int alertCount;
 
     private string StatusIcon => session?.Status switch { 2 => "☁️", 1 => "✅", _ => "🌾" };
@@ -183,8 +178,9 @@
         get
         {
             if (session is null) return "—";
+            var start = session.StartedAt != default ? session.StartedAt : (session.ScheduledDate ?? DateTime.UtcNow);
             var end = session.CompletedAt ?? DateTime.UtcNow;
-            var span = end - session.StartedAt;
+            var span = end - start;
             return span.TotalHours >= 1 ? $"{(int)span.TotalHours}h {span.Minutes}m" : $"{(int)span.TotalMinutes}m";
         }
     }
@@ -198,18 +194,9 @@
 
         session = await Db.GetSessionAsync(SessionId);
         observations = await Db.GetObservationsForSessionAsync(SessionId);
-        points = await Db.GetPointsForSessionAsync(SessionId);
 
-        // Count alerts: observations where count exceeds pest threshold
-        alertCount = 0;
-        if (observations.Any(o => o.PestId is not null))
-        {
-            var pests = await Db.GetCachedPestsAsync();
-            var thresholds = pests.Where(p => p.AlertThreshold.HasValue).ToDictionary(p => p.Id, p => p.AlertThreshold!.Value);
-            alertCount = observations.Count(o =>
-                o.PestId is not null && o.Count.HasValue &&
-                thresholds.TryGetValue(o.PestId, out var t) && o.Count.Value >= t);
-        }
+        // Use ThresholdCount snapshot on each observation
+        alertCount = observations.Count(o => o.ThresholdCount.HasValue && o.Count.HasValue && o.Count.Value >= o.ThresholdCount.Value);
 
         loading = false;
     }
@@ -238,9 +225,9 @@
         Nav.NavigateTo("/sessions");
     }
 
-    private void ViewPoints()
+    private void AddObservation()
     {
-        Nav.NavigateTo($"/points-list/{SessionId}");
+        Nav.NavigateTo($"/add-obs/{SessionId}");
     }
 
     private void GoBack() => Nav.NavigateTo("/sessions");
