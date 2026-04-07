@@ -107,7 +107,11 @@
     <!-- Bottom -->
     <div style="padding:8px 10px;border-top:.5px solid var(--border);flex-shrink:0;">
         <button class="bp" style="margin:0;width:100%;" @onclick="Save" disabled="@saving">
-            @if (saving) { <span class="spinner-sm"></span> } 🪤 Create trap
+            @if (saving)
+            {
+                <span class="spinner-sm"></span>
+            }
+ 🕸️ Create trap
         </button>
     </div>
 </div>

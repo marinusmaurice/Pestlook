@@ -20,13 +20,13 @@
         <!-- Email -->
         <div style="margin-bottom:14px;">
             <div class="sl" style="padding:0 0 6px;">Email</div>
-            <input class="inp" type="email" placeholder="thabo@agri-wc.co.za" @bind="email" />
+            <input class="inp" type="email" placeholder="thabo@agri-wc.co.za" @bind="email" @bind:event="oninput" />
         </div>
 
         <!-- Password -->
         <div style="margin-bottom:22px;">
             <div class="sl" style="padding:0 0 6px;">Password</div>
-            <input class="inp" type="password" placeholder="••••••••" @bind="password" @onkeydown="OnPasswordKeyDown" />
+            <input class="inp" type="password" placeholder="••••••••" @bind="password" @bind:event="oninput" @onkeydown="OnPasswordKeyDown" />
         </div>
 
         <!-- Sign in -->
