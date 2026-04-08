@@ -1,6 +1,8 @@
 ﻿@page "/"
 @inject ApiClient Api
 @inject NavigationManager Nav
+@inject ConnectivityService Conn
+@inject LocalDatabase Db
 
 <div class="app-shell">
     <div class="app-body" style="display:flex;flex-direction:column;justify-content:center;padding:24px 20px 16px;">
@@ -10,6 +12,18 @@
             <div style="font-size:40px;margin-bottom:8px;">🐛</div>
             <div style="font-size:24px;font-weight:600;color:#fff;letter-spacing:-.02em;">Pestlook</div>
             <div style="font-size:12px;color:var(--text-dim);margin-top:4px;">Field Intelligence Platform</div>
+        </div>
+
+        <!-- Connectivity indicator -->
+        <div style="text-align:center;margin-bottom:16px;">
+            @if (Conn.IsOnline)
+            {
+                <span style="font-size:11px;color:var(--green);">● Online</span>
+            }
+            else
+            {
+                <span style="font-size:11px;color:var(--red);">● Offline</span>
+            }
         </div>
 
         @if (!string.IsNullOrEmpty(error))
@@ -44,9 +58,29 @@
     private string? error;
     private bool busy;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        if (Api.IsLoggedIn) Nav.NavigateTo("/home");
+        if (Api.IsLoggedIn)
+        {
+            Nav.NavigateTo("/home");
+            return;
+        }
+
+        // Pre-fill saved credentials from secure storage
+        email    = await SecureStorage.Default.GetAsync("saved_email")    ?? "";
+        password = await SecureStorage.Default.GetAsync("saved_password") ?? "";
+
+        // Offline auto-restore: if no internet but a session was previously saved, log in locally
+        if (!Conn.IsOnline)
+        {
+            await Db.InitAsync();
+            var saved = await Db.GetUserSessionAsync();
+            if (saved is not null)
+            {
+                Api.RestoreFromLocalSession(saved);
+                Nav.NavigateTo("/home");
+            }
+        }
     }
 
     private async Task OnPasswordKeyDown(KeyboardEventArgs e)
@@ -67,9 +101,33 @@
         {
             var result = await Api.LoginAsync(email, password);
             if (result.Success)
+            {
+                // Persist credentials securely for next launch
+                await SecureStorage.Default.SetAsync("saved_email",    email);
+                await SecureStorage.Default.SetAsync("saved_password", password);
+
+                // Persist session so the scout can log in offline next time
+                var user = Api.CurrentUser;
+                if (user is not null)
+                {
+                    await Db.InitAsync();
+                    await Db.SaveUserSessionAsync(new LocalUserSession
+                    {
+                        UserId     = user.Id,
+                        Email      = user.Email,
+                        FirstName  = user.FirstName,
+                        LastName   = user.LastName,
+                        TenantSlug = user.TenantSlug,
+                        Roles      = string.Join(',', user.Roles),
+                        SavedAt    = DateTime.UtcNow
+                    });
+                }
                 Nav.NavigateTo("/home");
+            }
             else
+            {
                 error = result.Message ?? "Login failed. Check your credentials.";
+            }
         }
         catch (Exception ex)
         {

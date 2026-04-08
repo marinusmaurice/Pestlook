@@ -85,6 +85,23 @@
                 }
             }
 
+            <!-- Planned sessions -->
+            @if (plannedSessions.Count > 0)
+            {
+                <div class="sl">Planned sessions</div>
+                @foreach (var s in plannedSessions)
+                {
+                    <div class="rw" style="cursor:pointer;" @onclick="() => OpenSession(s)">
+                        <span style="font-size:16px;">📋</span>
+                        <div style="flex:1;margin-left:8px;">
+                            <div style="font-size:13px;font-weight:600;">@(s.FieldName ?? s.FarmName ?? "Session")</div>
+                            <div style="font-size:11px;color:var(--text-dim);">@(s.ScheduledDate.HasValue ? s.ScheduledDate.Value.ToLocalTime().ToString("d MMM yyyy") : "No date") · @(obsCounts.GetValueOrDefault(s.Id, 0)) obs</div>
+                        </div>
+                        <span class="ch" style="background:rgba(100,160,240,.12);color:#64a0f0;border:.5px solid rgba(100,160,240,.3);">Planned</span>
+                    </div>
+                }
+            }
+
             <!-- Sync queue -->
             @if (pendingSessions.Count > 0)
             {
@@ -123,6 +140,32 @@
         }
     </div>
 
+    <!-- Sync section -->
+    <div style="padding:8px 10px;border-top:.5px solid var(--border);">
+        @if (syncError is not null)
+        {
+            <div style="font-size:11px;color:var(--red,#e87070);margin-bottom:6px;padding:6px 8px;background:rgba(232,112,112,.1);border-radius:6px;">⚠ @syncError</div>
+        }
+        @if (Conn.IsOnline)
+        {
+            <button class="bp" style="width:100%;" @onclick="SyncNow" disabled="@syncing">
+                @if (syncing)
+                {
+                    <span class="spinner-sm" style="width:14px;height:14px;margin-right:6px;"></span>
+                    <span>@syncStatus</span>
+                }
+                else
+                {
+                    <span>⇅ Sync</span>
+                }
+            </button>
+        }
+        else
+        {
+            <div style="font-size:11px;color:var(--text-dim);text-align:center;">Offline — connect to sync</div>
+        }
+    </div>
+
     <!-- Tab bar -->
     <TabBar ActiveTab="home" />
 </div>
@@ -130,9 +173,12 @@
 @code {
     private string greeting = "Hello";
     private string userName = "Scout";
-    private string syncStatus = "Tap to sync";
+    private string syncStatus = "";
+    private string? syncError;
+    private bool syncing;
     private bool loading = true;
     private List<LocalSession> activeSessions = new();
+    private List<LocalSession> plannedSessions = new();
     private List<LocalSession> pendingSessions = new();
     private List<LocalSession> syncedSessions = new();
     private Dictionary<string, int> obsCounts = new();
@@ -148,15 +194,9 @@
         Conn.OnConnectivityChanged += OnConnChanged;
         Sync.OnProgress += OnSyncProgress;
         Sync.OnCompleted += OnSyncDone;
+        Sync.OnError += OnSyncError;
 
         await Db.InitAsync();
-
-        // Cache reference data if online
-        if (Conn.IsOnline)
-        {
-            _ = Sync.CacheReferenceDataAsync();
-        }
-
         await LoadData();
     }
 
@@ -166,9 +206,10 @@
         StateHasChanged();
 
         var all = await Db.GetSessionsAsync();
-        activeSessions = all.Where(s => s.Status == 0).ToList();
-        pendingSessions = all.Where(s => s.Status == 1).ToList();
-        syncedSessions = all.Where(s => s.Status == 2).ToList();
+        activeSessions  = all.Where(s => s.Status == 0 && !s.IsPlanned).ToList();
+        plannedSessions = all.Where(s => s.IsPlanned && s.Status < 2).ToList();
+        pendingSessions = all.Where(s => s.Status == 1 && !s.IsPlanned).ToList();
+        syncedSessions  = all.Where(s => s.Status == 2).ToList();
 
         // Load counts per session
         obsCounts.Clear();
@@ -184,11 +225,15 @@
 
     private async Task SyncNow()
     {
-        if (!Conn.IsOnline) return;
+        if (syncing || !Conn.IsOnline) return;
+        syncing = true;
+        syncError = null;
         syncStatus = "Syncing...";
         StateHasChanged();
         await Sync.SyncAsync();
         await LoadData();
+        syncing = false;
+        StateHasChanged();
     }
 
     private void OnConnChanged()
@@ -211,8 +256,16 @@
 
     private void OnSyncDone()
     {
+        syncing = false;
         syncStatus = $"Last synced: {DateTime.Now:HH:mm}";
-        InvokeAsync(async () => { await LoadData(); });
+        _ = InvokeAsync(LoadData);
+    }
+
+    private void OnSyncError(string msg)
+    {
+        syncing = false;
+        syncError = msg;
+        _ = InvokeAsync(StateHasChanged);
     }
 
     private void StartNewSession()
@@ -222,7 +275,7 @@
 
     private void OpenSession(LocalSession s)
     {
-        Nav.NavigateTo($"/points-list/{s.Id}");
+        Nav.NavigateTo($"/session-detail/{s.Id}");
     }
 
     private void ViewSession(LocalSession s)
@@ -235,5 +288,6 @@
         Conn.OnConnectivityChanged -= OnConnChanged;
         Sync.OnProgress -= OnSyncProgress;
         Sync.OnCompleted -= OnSyncDone;
+        Sync.OnError -= OnSyncError;
     }
 }

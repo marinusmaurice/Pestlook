@@ -47,6 +47,17 @@ public sealed class ScoutingSessionsController(
         return Ok(ApiResponse<List<ScoutingSessionResponse>>.Ok(mapper.Map<List<ScoutingSessionResponse>>(sessions)));
     }
 
+    [HttpGet("by-scout")]
+    [ProducesResponseType(typeof(ApiResponse<List<ScoutingSessionResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetByScout([FromQuery] string scouterId, CancellationToken ct)
+    {
+        var sessions = await FullQuery()
+            .Where(ss => ss.ScouterId == scouterId)
+            .OrderByDescending(ss => ss.CreatedAt)
+            .ToListAsync(ct);
+        return Ok(ApiResponse<List<ScoutingSessionResponse>>.Ok(mapper.Map<List<ScoutingSessionResponse>>(sessions)));
+    }
+
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(ApiResponse<ScoutingSessionResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]

@@ -164,3 +164,17 @@ public class LocalAppSetting
     public string Key { get; set; } = "";
     public string? Value { get; set; }
 }
+
+// ── Local User Session ────────────────────────────────────────
+public class LocalUserSession
+{
+    [PrimaryKey]
+    public int Id { get; set; } = 1; // single-row table
+    public string UserId { get; set; } = "";
+    public string Email { get; set; } = "";
+    public string FirstName { get; set; } = "";
+    public string LastName { get; set; } = "";
+    public string TenantSlug { get; set; } = "";
+    public string Roles { get; set; } = ""; // comma-separated
+    public DateTime SavedAt { get; set; } = DateTime.UtcNow;
+}

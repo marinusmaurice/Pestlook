@@ -248,10 +248,12 @@
         var lifeStage = selectedLifeStage >= 0 ? selectedLifeStage : (int?)null;
 
         // Online-first: try to post directly to server
-        if (Conn.IsOnline && Api.IsLoggedIn && Guid.TryParse(SessionId, out var remoteSessionId))
+        var session = await Db.GetSessionAsync(SessionId);
+        if (Conn.IsOnline && Api.IsLoggedIn && Guid.TryParse(session?.RemoteId, out var remoteSessionId))
         {
             var req = new SessionObservationRequest
             {
+                ObservationType = trapId is null ? "AdHoc" : "Trap",
                 PestId = Guid.TryParse(pestId, out var pid) ? pid : null,
                 IsUnknownPest = isUnknown,
                 CaptureMode = captureMode,
@@ -285,6 +287,7 @@
                     LifeStage = lifeStage,
                     ThresholdCount = res.Data.ThresholdCount,
                     SortOrder = res.Data.SortOrder,
+                    ObservationType = trapId is null ? 0 : 1,
                     IsDirty = false
                 };
                 await Db.SaveObservationAsync(obs);
@@ -311,6 +314,7 @@
             Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(),
             LifeStage = lifeStage,
             ThresholdCount = thresholdCount,
+            ObservationType = trapId is null ? 0 : 1,
             IsDirty = true
         };
         await Db.SaveObservationAsync(localObs);

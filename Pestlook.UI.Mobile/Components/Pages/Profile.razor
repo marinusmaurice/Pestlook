@@ -221,8 +221,12 @@
         clearing = false;
     }
 
-    private void SignOut()
+    private async Task SignOut()
     {
+        await Db.InitAsync();
+        await Db.ClearUserSessionAsync();
+        SecureStorage.Default.Remove("saved_email");
+        SecureStorage.Default.Remove("saved_password");
         Api.Logout();
         Nav.NavigateTo("/");
     }

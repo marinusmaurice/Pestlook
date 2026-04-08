@@ -24,6 +24,7 @@ public class LocalDatabase
         await _db.CreateTableAsync<CachedField>();
         await _db.CreateTableAsync<CachedTrap>();
         await _db.CreateTableAsync<LocalAppSetting>();
+        await _db.CreateTableAsync<LocalUserSession>();
     }
 
     // ── Sessions ──────────────────────────────────────────────
@@ -44,6 +45,16 @@ public class LocalDatabase
 
     public Task DeleteSessionAsync(string id)
         => _db.DeleteAsync<LocalSession>(id);
+
+    public async Task DeletePlannedSessionsAsync()
+    {
+        var sessions = await _db.Table<LocalSession>().Where(s => s.IsPlanned).ToListAsync();
+        foreach (var s in sessions)
+        {
+            await _db.Table<LocalObservation>().DeleteAsync(o => o.SessionId == s.Id);
+            await _db.DeleteAsync(s);
+        }
+    }
 
     // ── Observations ──────────────────────────────────────────
     public Task<List<LocalObservation>> GetObservationsForSessionAsync(string sessionId)
@@ -153,6 +164,16 @@ public class LocalDatabase
 
     public Task SetSettingAsync(string key, string? value)
         => _db.InsertOrReplaceAsync(new LocalAppSetting { Key = key, Value = value });
+
+    // ── User Session ──────────────────────────────────────────
+    public Task SaveUserSessionAsync(LocalUserSession session)
+        => _db.InsertOrReplaceAsync(session);
+
+    public Task<LocalUserSession?> GetUserSessionAsync()
+        => _db.Table<LocalUserSession>().FirstOrDefaultAsync();
+
+    public Task ClearUserSessionAsync()
+        => _db.DeleteAllAsync<LocalUserSession>();
 
     // ── Counts (for profile stats) ────────────────────────────
     public Task<int> CountSessionsAsync()
