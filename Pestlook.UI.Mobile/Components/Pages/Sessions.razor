@@ -130,14 +130,14 @@
     </div>
 
     <!-- Sync button -->
-    <div style="padding:8px 10px;border-top:.5px solid var(--border);">
+    <div style="padding:8px 10px;border-top:.5px solid var(--border);display:flex;flex-direction:column;align-items:center;">
         @if (syncError is not null)
         {
-            <div style="font-size:11px;color:var(--red,#e87070);margin-bottom:6px;padding:6px 8px;background:rgba(232,112,112,.1);border-radius:6px;">⚠ @syncError</div>
+            <div style="font-size:11px;color:var(--red,#e87070);margin-bottom:6px;padding:6px 8px;background:rgba(232,112,112,.1);border-radius:6px;width:100%;text-align:center;">⚠ @syncError</div>
         }
         @if (Conn.IsOnline)
         {
-            <button class="bp" style="width:100%;" @onclick="SyncNow" disabled="@syncing">
+            <button class="bp" style="min-width:140px;" @onclick="SyncNow" disabled="@syncing">
                 @if (syncing)
                 {
                     <span class="spinner-sm" style="width:14px;height:14px;margin-right:6px;"></span>

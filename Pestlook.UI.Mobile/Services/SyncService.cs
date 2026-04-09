@@ -165,13 +165,30 @@ public class SyncService
             });
 
             if (detail.Observations is null) continue;
+
+            var sessionId = detail.Id.ToString();
+            var existing  = await _db.GetObservationsForSessionAsync(sessionId);
+
+            // IDs of observations the scout has modified or added offline — preserve these
+            var dirtyRemoteIds = existing
+                .Where(o => o.IsDirty && !string.IsNullOrEmpty(o.RemoteId))
+                .Select(o => o.RemoteId!)
+                .ToHashSet();
+
+            // Delete stale clean copies so they don't accumulate and get re-pushed
+            foreach (var stale in existing.Where(o => !o.IsDirty))
+                await _db.DeleteObservationAsync(stale.Id);
+
             foreach (var o in detail.Observations)
             {
+                // Don't overwrite an observation the scout has already modified locally
+                if (dirtyRemoteIds.Contains(o.Id.ToString())) continue;
+
                 await _db.SaveObservationAsync(new LocalObservation
                 {
                     Id                  = o.Id.ToString(),
                     RemoteId            = o.Id.ToString(),
-                    SessionId           = detail.Id.ToString(),
+                    SessionId           = sessionId,
                     PestId              = o.PestId?.ToString(),
                     PestName            = o.PestName,
                     IsUnknownPest       = o.IsUnknownPest,
