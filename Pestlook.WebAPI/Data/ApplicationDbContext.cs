@@ -102,6 +102,7 @@ public sealed class ApplicationDbContext(
              .WithMany(t => t.Farms)
              .HasForeignKey(f => f.TenantId)
              .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(f => new { f.TenantId, f.DeletedAt });
             e.HasQueryFilter(f => f.DeletedAt == null &&
                 (tenantContext.TenantId == null || f.TenantId == tenantContext.TenantId));
         });
@@ -116,6 +117,8 @@ public sealed class ApplicationDbContext(
              .WithMany(fm => fm.Fields)
              .HasForeignKey(f => f.FarmId)
              .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(f => new { f.TenantId, f.DeletedAt });
+            e.HasIndex(f => f.FarmId);
             e.HasQueryFilter(f => f.DeletedAt == null &&
                 (tenantContext.TenantId == null || f.TenantId == tenantContext.TenantId));
         });
@@ -205,6 +208,9 @@ public sealed class ApplicationDbContext(
              .OnDelete(DeleteBehavior.NoAction);
             e.HasQueryFilter(ss => ss.DeletedAt == null &&
                 (tenantContext.TenantId == null || ss.TenantId == tenantContext.TenantId));
+            e.HasIndex(ss => new { ss.TenantId, ss.DeletedAt });
+            e.HasIndex(ss => new { ss.TenantId, ss.CreatedAt });
+            e.HasIndex(ss => ss.ScouterId);
         });
 
         builder.Entity<SessionObservation>(e =>
@@ -243,6 +249,8 @@ public sealed class ApplicationDbContext(
              .IsRequired(false)
              .OnDelete(DeleteBehavior.NoAction);
             e.HasQueryFilter(so => tenantContext.TenantId == null || so.TenantId == tenantContext.TenantId);
+            e.HasIndex(so => so.SessionId);
+            e.HasIndex(so => so.TenantId);
         });
 
         builder.Entity<Trap>(e =>
@@ -253,6 +261,7 @@ public sealed class ApplicationDbContext(
             e.Property(t => t.Notes).HasMaxLength(1000);
             e.HasIndex(t => new { t.TenantId, t.Barcode }).IsUnique()
              .HasFilter("[DeletedAt] IS NULL AND [Barcode] IS NOT NULL");
+            e.HasIndex(t => new { t.TenantId, t.DeletedAt });
             e.HasOne(t => t.TrapType)
              .WithMany()
              .HasForeignKey(t => t.TrapTypeId)

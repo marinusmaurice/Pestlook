@@ -3,6 +3,7 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.Extensions.FileProviders;
 using Pestlook.WebAPI.Extensions;
+using Pestlook.WebAPI.Infrastructure.Filters;
 using Pestlook.WebAPI.Options;
 using Serilog;
 using System.Text.Json.Serialization;
@@ -29,7 +30,7 @@ builder.Services.AddValidationConfiguration();
 builder.Services.AddMappingConfiguration();
 
 // ── Controllers + Validation ──────────────────────────────────────────────────
-builder.Services.AddControllers()
+builder.Services.AddControllers(options => options.Filters.Add<ActionLoggingFilter>())
     .AddJsonOptions(opt =>
         opt.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddFluentValidationAutoValidation();

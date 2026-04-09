@@ -1,7 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Pestlook.UI.Mobile.Data;
 
 namespace Pestlook.UI.Mobile.Services;
 
@@ -13,7 +12,6 @@ public class ApiClient
     private string? _tenantSlug;
     private DateTime _tokenExpiry;
     private UserInfo? _user;
-    private bool _isOfflineSession;
 
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
@@ -44,8 +42,7 @@ public class ApiClient
 #endif
     }
 
-    public bool IsLoggedIn => !string.IsNullOrEmpty(_accessToken) || _isOfflineSession;
-    public bool IsOfflineSession => _isOfflineSession;
+    public bool IsLoggedIn => !string.IsNullOrEmpty(_accessToken);
     public UserInfo? CurrentUser => _user;
 
     // ── Auth ──────────────────────────────────────────────────
@@ -70,30 +67,12 @@ public class ApiClient
         return res;
     }
 
-    public void RestoreFromLocalSession(LocalUserSession session)
-    {
-        _isOfflineSession = true;
-        _tenantSlug = session.TenantSlug;
-        _user = new UserInfo
-        {
-            Id        = session.UserId,
-            Email     = session.Email,
-            FirstName = session.FirstName,
-            LastName  = session.LastName,
-            TenantSlug = session.TenantSlug,
-            Roles     = session.Roles
-                            .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                            .ToList()
-        };
-    }
-
     public void Logout()
     {
         _accessToken = null;
         _refreshToken = null;
         _user = null;
         _tenantSlug = null;
-        _isOfflineSession = false;
     }
 
     // ── Farms ─────────────────────────────────────────────────
@@ -111,8 +90,8 @@ public class ApiClient
     public Task<ApiResult<List<SessionResponse>>> GetSessionsAsync()
         => GetAsync<List<SessionResponse>>("scouting-sessions");
 
-    public Task<ApiResult<List<SessionResponse>>> GetSessionsByScoutAsync(string scouterId)
-        => GetAsync<List<SessionResponse>>($"scouting-sessions/by-scout?scouterId={Uri.EscapeDataString(scouterId)}");
+    public Task<ApiResult<List<SessionResponse>>> GetPlannedSessionsAsync()
+        => GetAsync<List<SessionResponse>>("scouting-sessions/planned");
 
     public Task<ApiResult<SessionResponse>> StartSessionAsync(Guid? fieldId = null, Guid? farmId = null, string? weather = null, string? notes = null, double? temperatureCelsius = null)
         => PostAsync<SessionResponse>("scouting-sessions", new { fieldId, farmId, weatherConditions = weather, temperatureCelsius, notes });
@@ -296,11 +275,11 @@ public class FieldResponse
 public class SessionResponse
 {
     [JsonPropertyName("id")] public Guid Id { get; set; }
-    [JsonPropertyName("scouterId")] public string? ScouterId { get; set; }
     [JsonPropertyName("farmId")] public Guid? FarmId { get; set; }
     [JsonPropertyName("farmName")] public string? FarmName { get; set; }
     [JsonPropertyName("fieldId")] public Guid? FieldId { get; set; }
     [JsonPropertyName("fieldName")] public string? FieldName { get; set; }
+    [JsonPropertyName("scouterId")] public string? ScouterId { get; set; }
     [JsonPropertyName("startedAt")] public DateTime? StartedAt { get; set; }
     [JsonPropertyName("completedAt")] public DateTime? CompletedAt { get; set; }
     [JsonPropertyName("weatherConditions")] public string? WeatherConditions { get; set; }
@@ -320,7 +299,7 @@ public class SessionResponse
         [JsonPropertyName("pestId")] public Guid? PestId { get; set; }
         [JsonPropertyName("pestName")] public string? PestName { get; set; }
         [JsonPropertyName("isUnknownPest")] public bool IsUnknownPest { get; set; }
-        [JsonPropertyName("captureMode")] public string CaptureMode { get; set; } = "";
+        [JsonPropertyName("captureMode")] public string? CaptureMode { get; set; }
         [JsonPropertyName("count")] public int? Count { get; set; }
         [JsonPropertyName("isPresent")] public bool? IsPresent { get; set; }
         [JsonPropertyName("notes")] public string? Notes { get; set; }
@@ -340,7 +319,6 @@ public class SessionResponse
 
     public class SessionObservationRequest
     {
-        [JsonPropertyName("observationType")] public string ObservationType { get; set; } = "AdHoc";
         [JsonPropertyName("pestId")] public Guid? PestId { get; set; }
         [JsonPropertyName("isUnknownPest")] public bool IsUnknownPest { get; set; }
         [JsonPropertyName("captureMode")] public int CaptureMode { get; set; }

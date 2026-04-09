@@ -1,7 +1,6 @@
 @page "/trap-map"
 @inject LocalDatabase Db
 @inject NavigationManager Nav
-@inject IJSRuntime JS
 
 <div class="app-shell">
     <div class="ab">
@@ -44,14 +43,20 @@
             </div>
 
             <!-- Map -->
-            <div id="trap-leaflet-map" style="margin:8px 10px;border-radius:10px;overflow:hidden;border:.5px solid var(--border);height:300px;"></div>
+            <div style="margin:8px 10px;border-radius:10px;overflow:hidden;border:.5px solid var(--border);height:300px;">
+                <iframe
+                    width="100%" height="100%" frameborder="0" style="border:0;"
+                    src="https://www.openstreetmap.org/export/embed.html?bbox=@BBox&layer=mapnik"
+                    allowfullscreen>
+                </iframe>
+            </div>
 
             <!-- Trap list -->
             <div class="sl">All trap locations</div>
             @foreach (var trap in locatedTraps)
             {
-                <div class="rw" style="cursor:pointer;" @onclick="() => ViewTrap(trap)">
-                    <div style="width:32px;height:32px;border-radius:50%;background:@(trap.IsEnabled ? "rgba(34,197,94,.15)" : "rgba(239,68,68,.15)");border:1.5px solid @(trap.IsEnabled ? "#22c55e" : "#ef4444");display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">🕸️</div>
+                <div class="rw" style="cursor:pointer;opacity:@(trap.IsEnabled ? "1" : "0.55");" @onclick="() => ViewTrap(trap)">
+                    <span style="font-size:15px;">🕸️</span>
                     <div style="flex:1;">
                         <div style="font-size:13px;font-weight:600;">@trap.Name</div>
                         <div style="font-size:11px;color:var(--text-dim);">📍 @trap.Latitude?.ToString("F4"), @trap.Longitude?.ToString("F4")</div>
@@ -69,7 +74,25 @@
 @code {
     private bool loading = true;
     private List<CachedTrap> locatedTraps = new();
-    private bool _mapInitialized;
+
+    private string BBox
+    {
+        get
+        {
+            if (locatedTraps.Count == 0) return "0,0,0,0";
+            double minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+            foreach (var t in locatedTraps)
+            {
+                if (t.Latitude!.Value < minLat) minLat = t.Latitude.Value;
+                if (t.Latitude.Value > maxLat) maxLat = t.Latitude.Value;
+                if (t.Longitude!.Value < minLng) minLng = t.Longitude.Value;
+                if (t.Longitude.Value > maxLng) maxLng = t.Longitude.Value;
+            }
+            double pad = 0.01;
+            var ci = System.Globalization.CultureInfo.InvariantCulture;
+            return $"{(minLng - pad).ToString(ci)},{(minLat - pad).ToString(ci)},{(maxLng + pad).ToString(ci)},{(maxLat + pad).ToString(ci)}";
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -77,22 +100,6 @@
         var all = await Db.GetCachedTrapsAsync();
         locatedTraps = all.Where(t => t.Latitude.HasValue && t.Longitude.HasValue).ToList();
         loading = false;
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (!loading && !_mapInitialized && locatedTraps.Count > 0)
-        {
-            _mapInitialized = true;
-            var pins = locatedTraps.Select(t => new
-            {
-                name      = t.Name,
-                latitude  = t.Latitude!.Value,
-                longitude = t.Longitude!.Value,
-                isEnabled = t.IsEnabled
-            });
-            await JS.InvokeVoidAsync("initTrapMap", "trap-leaflet-map", pins);
-        }
     }
 
     private void ViewTrap(CachedTrap trap) => Nav.NavigateTo($"/trap-detail/{trap.Id}");

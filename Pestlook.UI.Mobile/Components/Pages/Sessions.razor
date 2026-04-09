@@ -1,7 +1,10 @@
 @page "/sessions"
 @inject ApiClient Api
 @inject NavigationManager Nav
+@inject SyncService Sync
 @inject LocalDatabase Db
+@inject ConnectivityService Conn
+@implements IDisposable
 
 <div class="app-shell">
     <div class="ab">
@@ -126,12 +129,41 @@
         }
     </div>
 
+    <!-- Sync button -->
+    <div style="padding:8px 10px;border-top:.5px solid var(--border);">
+        @if (syncError is not null)
+        {
+            <div style="font-size:11px;color:var(--red,#e87070);margin-bottom:6px;padding:6px 8px;background:rgba(232,112,112,.1);border-radius:6px;">⚠ @syncError</div>
+        }
+        @if (Conn.IsOnline)
+        {
+            <button class="bp" style="width:100%;" @onclick="SyncNow" disabled="@syncing">
+                @if (syncing)
+                {
+                    <span class="spinner-sm" style="width:14px;height:14px;margin-right:6px;"></span>
+                    <span>@syncStatus</span>
+                }
+                else
+                {
+                    <span>⇅ Sync</span>
+                }
+            </button>
+        }
+        else
+        {
+            <div style="font-size:11px;color:var(--text-dim);text-align:center;">Offline — connect to sync</div>
+        }
+    </div>
+
     <TabBar ActiveTab="sessions" />
 </div>
 
 @code {
     private bool loading = true;
+    private bool syncing;
     private string filter = "planned";
+    private string syncStatus = "Syncing...";
+    private string? syncError;
     private List<LocalSession> allSessions = new();
     private List<LocalSession> planned = new();
     private List<LocalSession> active = new();
@@ -142,6 +174,9 @@
     {
         if (!Api.IsLoggedIn) { Nav.NavigateTo("/"); return; }
         await Db.InitAsync();
+        Sync.OnProgress += OnSyncProgress;
+        Sync.OnCompleted += OnSyncCompleted;
+        Sync.OnError += OnSyncError;
         await LoadData();
     }
 
@@ -150,18 +185,13 @@
         loading = true;
         StateHasChanged();
 
-        var all = await Db.GetSessionsAsync();
+        var all = await Db.GetSessionsAsync(Api.CurrentUser?.Id);
         allSessions = all;
         planned = all.Where(s => s.IsPlanned && !s.CompletedAt.HasValue).OrderBy(s => s.ScheduledDate).ToList();
         active = all.Where(s => !s.IsPlanned && !s.CompletedAt.HasValue).OrderByDescending(s => s.StartedAt).ToList();
         completed = all.Where(s => s.CompletedAt.HasValue).OrderByDescending(s => s.CompletedAt).ToList();
 
-        obsCounts.Clear();
-        foreach (var s in all)
-        {
-            var obs = await Db.GetObservationsForSessionAsync(s.Id);
-            obsCounts[s.Id] = obs.Count;
-        }
+        obsCounts = await Db.GetAllObservationCountsAsync();
 
         loading = false;
         StateHasChanged();
@@ -172,4 +202,28 @@
 
     private void StartNew()
         => Nav.NavigateTo("/new-session");
+
+    private async Task SyncNow()
+    {
+        if (syncing) return;
+        syncing = true;
+        syncError = null;
+        syncStatus = "Syncing...";
+        StateHasChanged();
+        await Sync.SyncAsync();
+        await LoadData();
+        syncing = false;
+        StateHasChanged();
+    }
+
+    private void OnSyncProgress(string msg) { syncStatus = msg; InvokeAsync(StateHasChanged); }
+    private void OnSyncCompleted() { syncing = false; _ = InvokeAsync(LoadData); }
+    private void OnSyncError(string msg) { syncing = false; syncError = msg; _ = InvokeAsync(StateHasChanged); }
+
+    public void Dispose()
+    {
+        Sync.OnProgress -= OnSyncProgress;
+        Sync.OnCompleted -= OnSyncCompleted;
+        Sync.OnError -= OnSyncError;
+    }
 }

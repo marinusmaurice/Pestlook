@@ -35,25 +35,61 @@ public sealed class ScoutingSessionsController(
           .Include(ss => ss.SessionObservations).ThenInclude(so => so.Trap)
           .Include(ss => ss.SessionObservations).ThenInclude(so => so.Pest)
           .Include(ss => ss.SessionObservations).ThenInclude(so => so.CreatedBy)
-          .Include(ss => ss.SessionObservations).ThenInclude(so => so.UpdatedBy);
+          .Include(ss => ss.SessionObservations).ThenInclude(so => so.UpdatedBy)
+          .AsSplitQuery();
 
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<List<ScoutingSessionResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll(CancellationToken ct)
     {
-        var sessions = await FullQuery()
+        var projected = await db.ScoutingSessions
+            .Select(ss => new
+            {
+                ss.Id,
+                ss.TenantId,
+                ss.ScouterId,
+                ss.IsPlanned,
+                ss.ScheduledDate,
+                ss.StartedAt,
+                ss.CompletedAt,
+                ss.WeatherConditions,
+                ss.TemperatureCelsius,
+                ss.Notes,
+                ss.CreatedAt,
+                ss.FieldId,
+                ss.FarmId,
+                FieldFarmId = ss.Field != null ? (Guid?)ss.Field.FarmId : null,
+                FieldName   = ss.Field != null ? ss.Field.Name : null,
+                FarmName    = ss.Farm  != null ? ss.Farm.Name
+                            : ss.Field != null && ss.Field.Farm != null ? ss.Field.Farm.Name : null,
+                ScouterName    = ss.Scouter   != null ? ss.Scouter.FirstName   + " " + ss.Scouter.LastName   : null,
+                CreatedByName  = ss.CreatedBy != null ? ss.CreatedBy.FirstName + " " + ss.CreatedBy.LastName : null,
+                UpdatedByName  = ss.UpdatedBy != null ? ss.UpdatedBy.FirstName + " " + ss.UpdatedBy.LastName : null,
+                ObservationCount = ss.SessionObservations.Count
+            })
             .OrderByDescending(ss => ss.CreatedAt)
             .ToListAsync(ct);
-        return Ok(ApiResponse<List<ScoutingSessionResponse>>.Ok(mapper.Map<List<ScoutingSessionResponse>>(sessions)));
+
+        var sessions = projected
+            .Select(p => new ScoutingSessionResponse(
+                p.Id, p.TenantId, p.ScouterId, p.ScouterName, p.IsPlanned,
+                p.ScheduledDate, p.StartedAt, p.CompletedAt, p.WeatherConditions,
+                p.TemperatureCelsius, p.Notes, p.CreatedAt, p.FieldId,
+                p.FarmId ?? p.FieldFarmId, p.FieldName, p.FarmName,
+                p.ObservationCount, [], p.CreatedByName, p.UpdatedByName))
+            .ToList();
+
+        return Ok(ApiResponse<List<ScoutingSessionResponse>>.Ok(sessions));
     }
 
-    [HttpGet("by-scout")]
+    /// <summary>All planned sessions with full observation lists — one call replaces N+1 mobile sync pattern.</summary>
+    [HttpGet("planned")]
     [ProducesResponseType(typeof(ApiResponse<List<ScoutingSessionResponse>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetByScout([FromQuery] string scouterId, CancellationToken ct)
+    public async Task<IActionResult> GetPlanned(CancellationToken ct)
     {
         var sessions = await FullQuery()
-            .Where(ss => ss.ScouterId == scouterId)
-            .OrderByDescending(ss => ss.CreatedAt)
+            .Where(ss => ss.IsPlanned)
+            .OrderBy(ss => ss.ScheduledDate)
             .ToListAsync(ct);
         return Ok(ApiResponse<List<ScoutingSessionResponse>>.Ok(mapper.Map<List<ScoutingSessionResponse>>(sessions)));
     }

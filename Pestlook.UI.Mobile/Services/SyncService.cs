@@ -72,19 +72,16 @@ public class SyncService
                 IsActive = f.IsActive
             }).ToList());
 
-            foreach (var farm in farmsRes.Data.Where(f => f.IsActive))
-            {
-                var fieldsRes = await _api.GetFieldsAsync(farm.Id);
-                if (fieldsRes.Success && fieldsRes.Data is not null)
-                    await _db.SaveFieldsAsync(fieldsRes.Data.Select(f => new CachedField
-                    {
-                        Id       = f.Id.ToString(),
-                        FarmId   = f.FarmId.ToString(),
-                        Name     = f.Name,
-                        CropType = f.CropType,
-                        IsActive = f.IsActive
-                    }).ToList());
-            }
+            var fieldsRes = await _api.GetFieldsAsync();
+            if (fieldsRes.Success && fieldsRes.Data is not null)
+                await _db.SaveFieldsAsync(fieldsRes.Data.Select(f => new CachedField
+                {
+                    Id       = f.Id.ToString(),
+                    FarmId   = f.FarmId.ToString(),
+                    Name     = f.Name,
+                    CropType = f.CropType,
+                    IsActive = f.IsActive
+                }).ToList());
         }
 
         OnProgress?.Invoke("↓ Syncing pests...");
@@ -135,49 +132,36 @@ public class SyncService
     private async Task PullPlannedSessionsAsync()
     {
         OnProgress?.Invoke("↓ Pulling planned sessions...");
-
-        // Clear stale planned data so a shared device only holds the current scout's sessions
-        await _db.DeletePlannedSessionsAsync();
-
-        var scouterId = _api.CurrentUser?.Id;
-        var sessionsRes = scouterId is not null
-            ? await _api.GetSessionsByScoutAsync(scouterId)
-            : await _api.GetSessionsAsync();
+        var sessionsRes = await _api.GetPlannedSessionsAsync();
         if (!sessionsRes.Success || sessionsRes.Data is null)
         {
-            OnError?.Invoke($"Could not load sessions: {sessionsRes.Message ?? "Server error"}");
+            OnError?.Invoke($"Could not load planned sessions: {sessionsRes.Message ?? "Server error"}");
             return;
         }
 
-        var planned = sessionsRes.Data.Where(s => s.IsPlanned).ToList();
-        for (int i = 0; i < planned.Count; i++)
+        var scouterId = _api.CurrentUser?.Id;
+        var sessions = sessionsRes.Data;
+        for (int i = 0; i < sessions.Count; i++)
         {
-            var s = planned[i];
-            OnProgress?.Invoke($"↓ Planned session {i + 1}/{planned.Count}: {s.FieldName ?? s.FarmName ?? s.Id.ToString()[..8]}");
-
-            var detailRes = await _api.GetSessionAsync(s.Id);
-            if (!detailRes.Success || detailRes.Data is null)
-            {
-                OnError?.Invoke($"Could not load session detail: {detailRes.Message ?? "Server error"}");
-                continue;
-            }
-            var detail = detailRes.Data;
+            var detail = sessions[i];
+            OnProgress?.Invoke($"↓ Planned session {i + 1}/{sessions.Count}: {detail.FieldName ?? detail.FarmName ?? detail.Id.ToString()[..8]}");
 
             await _db.SaveSessionAsync(new LocalSession
             {
-                Id             = detail.Id.ToString(),
-                RemoteId       = detail.Id.ToString(),
-                FarmId         = detail.FarmId?.ToString(),
-                FarmName       = detail.FarmName,
-                FieldId        = detail.FieldId?.ToString(),
-                FieldName      = detail.FieldName,
-                IsPlanned      = true,
-                ScheduledDate  = detail.ScheduledDate,
-                Status         = detail.IsCompleted ? 2 : 0,
+                Id               = detail.Id.ToString(),
+                RemoteId         = detail.Id.ToString(),
+                ScouterId        = detail.ScouterId ?? scouterId,
+                FarmId           = detail.FarmId?.ToString(),
+                FarmName         = detail.FarmName,
+                FieldId          = detail.FieldId?.ToString(),
+                FieldName        = detail.FieldName,
+                IsPlanned        = true,
+                ScheduledDate    = detail.ScheduledDate,
+                Status           = detail.IsCompleted ? 2 : 0,
                 WeatherCondition = detail.WeatherConditions,
-                Notes          = detail.Notes,
-                StartedAt      = detail.StartedAt ?? DateTime.UtcNow,
-                CompletedAt    = detail.CompletedAt
+                Notes            = detail.Notes,
+                StartedAt        = detail.StartedAt ?? DateTime.UtcNow,
+                CompletedAt      = detail.CompletedAt
             });
 
             if (detail.Observations is null) continue;
@@ -214,7 +198,7 @@ public class SyncService
 
     private async Task PushAdHocSessionsAsync()
     {
-        var sessions = await _db.GetPendingAdHocSessionsAsync();
+        var sessions = await _db.GetPendingAdHocSessionsAsync(_api.CurrentUser?.Id);
         if (sessions.Count == 0) return;
 
         for (int si = 0; si < sessions.Count; si++)
@@ -222,29 +206,18 @@ public class SyncService
             var session = sessions[si];
             OnProgress?.Invoke($"↑ Uploading session {si + 1}/{sessions.Count}...");
 
-            Guid remoteSessionId;
-
-            // Session may already exist on the server (started while online) — reuse its ID
-            // instead of calling StartSession again, which would create a duplicate.
-            if (Guid.TryParse(session.RemoteId, out var existingRemoteId))
+            var fieldId = Guid.TryParse(session.FieldId, out var fld) ? fld : (Guid?)null;
+            var farmId  = Guid.TryParse(session.FarmId,  out var frm) ? frm : (Guid?)null;
+            var sessRes = await _api.StartSessionAsync(fieldId, farmId, session.WeatherCondition, session.Notes,
+                session.Temperature != 0 ? session.Temperature : null);
+            if (!sessRes.Success || sessRes.Data is null)
             {
-                remoteSessionId = existingRemoteId;
+                OnError?.Invoke($"Failed to upload session: {sessRes.Message}");
+                continue;
             }
-            else
-            {
-                var fieldId = Guid.TryParse(session.FieldId, out var fld) ? fld : (Guid?)null;
-                var farmId  = Guid.TryParse(session.FarmId,  out var frm) ? frm : (Guid?)null;
-                var sessRes = await _api.StartSessionAsync(fieldId, farmId, session.WeatherCondition, session.Notes,
-                    session.Temperature != 0 ? session.Temperature : null);
-                if (!sessRes.Success || sessRes.Data is null)
-                {
-                    OnError?.Invoke($"Failed to upload session: {sessRes.Message}");
-                    continue;
-                }
-                remoteSessionId = sessRes.Data.Id;
-            }
+            var remoteSessionId = sessRes.Data.Id;
 
-            var observations = await _db.GetDirtyObservationsForSessionAsync(session.Id);
+            var observations = await _db.GetObservationsForSessionAsync(session.Id);
             for (int oi = 0; oi < observations.Count; oi++)
             {
                 OnProgress?.Invoke($"↑ Session {si + 1}/{sessions.Count} — obs {oi + 1}/{observations.Count}");
@@ -307,7 +280,6 @@ public class SyncService
 
     private static SessionObservationRequest BuildObsRequest(LocalObservation obs) => new()
     {
-        ObservationType = obs.TrapId is null ? "AdHoc" : "Trap",
         PestId       = Guid.TryParse(obs.PestId, out var pid) ? pid : null,
         IsUnknownPest = obs.IsUnknownPest,
         CaptureMode  = obs.CaptureMode,

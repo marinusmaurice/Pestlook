@@ -80,15 +80,39 @@
                         <div style="font-size:18px;font-weight:600;">@observations.Count</div>
                         <div style="font-size:10px;color:var(--text-dim);">Observations</div>
                     </div>
-                    <div class="sess-stat">
-                        <div style="font-size:18px;font-weight:600;@(alertCount > 0 ? "color:var(--red);" : "")">@alertCount</div>
-                        <div style="font-size:10px;color:var(--text-dim);">Alerts</div>
-                    </div>
+                    @if (session.IsPlanned)
+                    {
+                        <div class="sess-stat">
+                            <div style="font-size:18px;font-weight:600;">@groups.Count</div>
+                            <div style="font-size:10px;color:var(--text-dim);">Groups</div>
+                        </div>
+                        <div class="sess-stat">
+                            <div style="font-size:18px;font-weight:600;">@scoutedCount / @observations.Count</div>
+                            <div style="font-size:10px;color:var(--text-dim);">Scouted</div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="sess-stat">
+                            <div style="font-size:18px;font-weight:600;@(alertCount > 0 ? "color:var(--red);" : "")">@alertCount</div>
+                            <div style="font-size:10px;color:var(--text-dim);">Alerts</div>
+                        </div>
+                    }
                 </div>
             </div>
 
-            <!-- Observations list -->
-            <div class="sl">Observations</div>
+            <!-- Observations section header + view toggle -->
+            <div style="display:flex;align-items:center;padding:6px 10px 2px;">
+                <span class="sl" style="flex:1;margin:0;padding:0;">Observations</span>
+                @if (session.IsPlanned && observations.Count > 0)
+                {
+                    <div class="seg" style="flex:0 0 auto;">
+                        <button class="seg-btn @(!groupedView ? "on" : "")" @onclick='() => groupedView = false'>All (@observations.Count)</button>
+                        <button class="seg-btn @(groupedView ? "on" : "")" @onclick='() => groupedView = true'>Groups (@groups.Count)</button>
+                    </div>
+                }
+            </div>
+
             @if (observations.Count == 0)
             {
                 <div style="text-align:center;padding:24px;color:var(--text-dim);">
@@ -96,21 +120,84 @@
                     <div style="font-size:13px;">No observations recorded</div>
                 </div>
             }
+            else if (groupedView && session.IsPlanned)
+            {
+                <!-- ── Grouped view ── -->
+                @foreach (var g in groups)
+                {
+                    <div class="cd" style="margin:4px 10px;padding:0;overflow:hidden;">
+                        <!-- Group header row -->
+                        <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;@(g.IsAlert ? "background:rgba(224,96,96,.06);" : "")"
+                             @onclick="() => g.Expanded = !g.Expanded">
+                            <span style="font-size:16px;">@(g.IsUnknownPest ? "❓" : "🦟")</span>
+                            <div style="flex:1;">
+                                <div style="font-size:13px;font-weight:600;@(g.IsUnknownPest ? "color:var(--amber);" : g.IsAlert ? "color:var(--red);" : "")">@g.PestName</div>
+                                <div style="font-size:11px;color:var(--text-dim);">@CaptureModeLabel(g.CaptureMode) · @g.Total points</div>
+                            </div>
+                            <span class="ch @(g.ScoutedCount == g.Total ? "cs" : g.ScoutedCount > 0 ? "cw" : "cn")"
+                                  style="min-width:44px;text-align:center;font-variant-numeric:tabular-nums;">
+                                @g.ScoutedCount / @g.Total
+                            </span>
+                            @if (g.IsAlert) { <span style="font-size:14px;">⚠</span> }
+                            <span style="color:var(--text-dim);font-size:12px;margin-left:2px;">@(g.Expanded ? "▲" : "▼")</span>
+                        </div>
+
+                        <!-- Individual observation rows -->
+                        @if (g.Expanded)
+                        {
+                            @foreach (var obs in g.Items)
+                            {
+                                <div class="obs-item" style="border-top:.5px solid var(--border);padding-left:36px;cursor:pointer;"
+                                     @onclick="() => ViewObservation(obs)">
+                                    <div style="flex:1;">
+                                        <div style="font-size:12px;font-weight:500;">Point #@(obs.SortOrder + 1)</div>
+                                        <div style="font-size:11px;color:var(--text-dim);">@obs.CreatedAt.ToLocalTime().ToString("HH:mm")</div>
+                                    </div>
+                                    @if (obs.CaptureMode == 0)
+                                    {
+                                        @if (obs.Count.HasValue)
+                                        {
+                                            <span style="font-family:monospace;font-size:15px;font-weight:600;@(obs.ThresholdCount.HasValue && obs.Count.Value >= obs.ThresholdCount.Value ? "color:var(--red);" : "")">@obs.Count</span>
+                                        }
+                                        else
+                                        {
+                                            <span style="font-size:12px;color:var(--text-dim);">—</span>
+                                        }
+                                    }
+                                    else if (obs.CaptureMode == 1)
+                                    {
+                                        @if (obs.IsPresent.HasValue)
+                                        {
+                                            <span class="ch @(obs.IsPresent.Value ? "cw" : "cn")">@(obs.IsPresent.Value ? "Yes" : "No")</span>
+                                        }
+                                        else
+                                        {
+                                            <span style="font-size:12px;color:var(--text-dim);">—</span>
+                                        }
+                                    }
+                                    <span style="color:var(--text-dim);font-size:13px;">›</span>
+                                </div>
+                            }
+                        }
+                    </div>
+                }
+            }
             else
             {
+                <!-- ── Flat view ── -->
                 <div class="cd" style="padding:0;overflow:hidden;">
-                    @foreach (var obs in observations.Take(20))
+                    @foreach (var obs in observations)
                     {
                         <div class="obs-item" style="cursor:pointer;@(obs.IsUnknownPest ? "background:rgba(240,168,64,.06);" : "")"
                              @onclick="() => ViewObservation(obs)">
                             <span style="font-size:16px;">@(obs.IsUnknownPest ? "❓" : "🦟")</span>
                             <div style="flex:1;">
                                 <div style="font-size:12px;font-weight:600;@(obs.IsUnknownPest ? "color:var(--amber);" : "")">@DisplayName(obs)</div>
-                                <div style="font-size:10px;color:var(--text-dim);">@obs.CreatedAt.ToLocalTime().ToString("HH:mm") · @CaptureModeLabel(obs)</div>
+                                <div style="font-size:10px;color:var(--text-dim);">@obs.CreatedAt.ToLocalTime().ToString("HH:mm") · @CaptureModeLabel(obs.CaptureMode)</div>
                             </div>
                             @if (obs.Count.HasValue)
                             {
-                                <span style="font-family:monospace;font-size:15px;font-weight:600;min-width:24px;text-align:right;">@obs.Count</span>
+                                <span style="font-family:monospace;font-size:15px;font-weight:600;min-width:24px;text-align:right;@(obs.ThresholdCount.HasValue && obs.Count.Value >= obs.ThresholdCount.Value ? "color:var(--red);" : "")">@obs.Count</span>
                             }
                             else if (obs.IsPresent.HasValue)
                             {
@@ -119,23 +206,24 @@
                             <span style="color:var(--text-dim);font-size:13px;">›</span>
                         </div>
                     }
-                    @if (observations.Count > 20)
-                    {
-                        <div style="text-align:center;padding:8px;font-size:11px;color:var(--text-dim);">+ @(observations.Count - 20) more</div>
-                    }
                 </div>
             }
         }
     </div>
 
-    <!-- Bottom -->
+    <!-- Bottom actions -->
     @if (session is not null)
     {
         <div style="padding:8px 10px;border-top:.5px solid var(--border);display:flex;gap:6px;flex-shrink:0;">
-            @if (session.Status == 0)
+            @if (session.Status == 0 && !session.IsPlanned)
             {
                 <button class="bo" style="color:var(--red);border-color:rgba(224,96,96,.25);" @onclick="EndSession">End session</button>
                 <button class="bo" style="flex:2;color:var(--green);border-color:rgba(109,222,132,.25);" @onclick="AddObservation">+ Add observation</button>
+            }
+            else if (session.IsPlanned && !session.CompletedAt.HasValue)
+            {
+                <button class="bo" style="flex:1;color:var(--green);border-color:rgba(109,222,132,.25);" @onclick="AddObservation">+ Add observation</button>
+                <button class="bo" style="color:var(--red);border-color:rgba(224,96,96,.25);" @onclick="EndSession">Complete</button>
             }
             else
             {
@@ -151,11 +239,14 @@
     private bool loading = true;
     private LocalSession? session;
     private List<LocalObservation> observations = new();
+    private List<ObsGroup> groups = new();
     private int alertCount;
+    private int scoutedCount;
+    private bool groupedView = true;
 
-    private string StatusIcon => session?.Status switch { 2 => "☁️", 1 => "✅", _ => "🌾" };
-    private string StatusLabel => session?.Status switch { 2 => "☁ Synced", 1 => "✓ Completed", _ => "● Active" };
-    private string StatusChipClass => session?.Status switch { 2 => "ci", 1 => "cs", _ => "ce" };
+    private string StatusIcon => session?.Status switch { 2 => "☁️", 1 => "✅", _ => session?.IsPlanned == true ? "📋" : "🌾" };
+    private string StatusLabel => session?.Status switch { 2 => "☁ Synced", 1 => "✓ Completed", _ => session?.IsPlanned == true ? "Planned" : "● Active" };
+    private string StatusChipClass => session?.Status switch { 2 => "ci", 1 => "cs", _ => session?.IsPlanned == true ? "cw" : "ce" };
     private string TempUnit => Api.CurrentUser?.TemperatureUnit ?? "C";
 
     private string FormatWeather()
@@ -195,26 +286,70 @@
         session = await Db.GetSessionAsync(SessionId);
         observations = await Db.GetObservationsForSessionAsync(SessionId);
 
-        // Use ThresholdCount snapshot on each observation
         alertCount = observations.Count(o => o.ThresholdCount.HasValue && o.Count.HasValue && o.Count.Value >= o.ThresholdCount.Value);
+        scoutedCount = observations.Count(o =>
+            (o.CaptureMode == 0 && o.Count.HasValue) ||
+            (o.CaptureMode == 1 && o.IsPresent.HasValue));
 
+        // Build groups for planned sessions
+        groups = observations
+            .Where(o => o.ObservationGroupId is not null)
+            .GroupBy(o => o.ObservationGroupId!)
+            .Select(g =>
+            {
+                var ordered = g.OrderBy(o => o.SortOrder).ToList();
+                var first = ordered[0];
+                var scouted = ordered.Count(o =>
+                    (o.CaptureMode == 0 && o.Count.HasValue) ||
+                    (o.CaptureMode == 1 && o.IsPresent.HasValue));
+                return new ObsGroup
+                {
+                    GroupId      = g.Key,
+                    PestName     = first.IsUnknownPest ? "Unknown pest" : (first.PestName ?? "—"),
+                    IsUnknownPest= first.IsUnknownPest,
+                    CaptureMode  = first.CaptureMode,
+                    Total        = ordered.Count,
+                    ScoutedCount = scouted,
+                    IsAlert      = ordered.Any(o => o.ThresholdCount.HasValue && o.Count.HasValue && o.Count.Value >= o.ThresholdCount.Value),
+                    Items        = ordered,
+                    Expanded     = false
+                };
+            })
+            .ToList();
+
+        // Ungrouped observations each appear as a single-item group (always expanded)
+        foreach (var obs in observations.Where(o => o.ObservationGroupId is null))
+        {
+            groups.Add(new ObsGroup
+            {
+                GroupId       = null,
+                PestName      = obs.IsUnknownPest ? "Unknown pest" : (obs.PestName ?? "—"),
+                IsUnknownPest = obs.IsUnknownPest,
+                CaptureMode   = obs.CaptureMode,
+                Total         = 1,
+                ScoutedCount  = (obs.CaptureMode == 0 && obs.Count.HasValue) || (obs.CaptureMode == 1 && obs.IsPresent.HasValue) ? 1 : 0,
+                IsAlert       = obs.ThresholdCount.HasValue && obs.Count.HasValue && obs.Count.Value >= obs.ThresholdCount.Value,
+                Items         = [obs],
+                Expanded      = true
+            });
+        }
+
+        groupedView = session?.IsPlanned == true;
         loading = false;
     }
 
     private static string DisplayName(LocalObservation obs)
         => obs.IsUnknownPest ? "Unknown pest" : (obs.PestName ?? "—");
 
-    private static string CaptureModeLabel(LocalObservation obs) => obs.CaptureMode switch
+    private static string CaptureModeLabel(int captureMode) => captureMode switch
     {
-        0 => $"Count: {obs.Count ?? 0}",
-        1 => obs.IsPresent == true ? "Present" : "Absent",
+        0 => "Count",
+        1 => "Present / Absent",
         _ => "—"
     };
 
     private void ViewObservation(LocalObservation obs)
-    {
-        Nav.NavigateTo($"/obs-detail/{obs.Id}/{SessionId}");
-    }
+        => Nav.NavigateTo($"/obs-detail/{obs.Id}/{SessionId}");
 
     private async Task EndSession()
     {
@@ -226,9 +361,20 @@
     }
 
     private void AddObservation()
-    {
-        Nav.NavigateTo($"/add-obs/{SessionId}");
-    }
+        => Nav.NavigateTo($"/add-obs/{SessionId}");
 
     private void GoBack() => Nav.NavigateTo("/sessions");
+
+    private sealed class ObsGroup
+    {
+        public string? GroupId { get; init; }
+        public string PestName { get; init; } = "";
+        public bool IsUnknownPest { get; init; }
+        public int CaptureMode { get; init; }
+        public int Total { get; init; }
+        public int ScoutedCount { get; init; }
+        public bool IsAlert { get; init; }
+        public List<LocalObservation> Items { get; init; } = [];
+        public bool Expanded { get; set; }
+    }
 }

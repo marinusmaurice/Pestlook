@@ -22,7 +22,6 @@ namespace Pestlook.UI.Mobile
             builder.Services.AddSingleton<GpsService>();
             builder.Services.AddSingleton<ConnectivityService>();
             builder.Services.AddSingleton<SyncService>();
-            builder.Services.AddSingleton<ToastService>();
 
 #if DEBUG
             builder.Services.AddBlazorWebViewDeveloperTools();

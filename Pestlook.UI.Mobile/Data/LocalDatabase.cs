@@ -24,12 +24,19 @@ public class LocalDatabase
         await _db.CreateTableAsync<CachedField>();
         await _db.CreateTableAsync<CachedTrap>();
         await _db.CreateTableAsync<LocalAppSetting>();
-        await _db.CreateTableAsync<LocalUserSession>();
     }
 
     // ── Sessions ──────────────────────────────────────────────
     public Task<List<LocalSession>> GetSessionsAsync()
         => _db.Table<LocalSession>().OrderByDescending(s => s.StartedAt).ToListAsync();
+
+    public Task<List<LocalSession>> GetSessionsAsync(string? scouterId)
+    {
+        var q = _db.Table<LocalSession>();
+        if (!string.IsNullOrEmpty(scouterId))
+            q = q.Where(s => s.ScouterId == scouterId);
+        return q.OrderByDescending(s => s.StartedAt).ToListAsync();
+    }
 
     public Task<LocalSession?> GetSessionAsync(string id)
         => _db.Table<LocalSession>().FirstOrDefaultAsync(s => s.Id == id);
@@ -46,19 +53,16 @@ public class LocalDatabase
     public Task DeleteSessionAsync(string id)
         => _db.DeleteAsync<LocalSession>(id);
 
-    public async Task DeletePlannedSessionsAsync()
-    {
-        var sessions = await _db.Table<LocalSession>().Where(s => s.IsPlanned).ToListAsync();
-        foreach (var s in sessions)
-        {
-            await _db.Table<LocalObservation>().DeleteAsync(o => o.SessionId == s.Id);
-            await _db.DeleteAsync(s);
-        }
-    }
-
     // ── Observations ──────────────────────────────────────────
     public Task<List<LocalObservation>> GetObservationsForSessionAsync(string sessionId)
         => _db.Table<LocalObservation>().Where(o => o.SessionId == sessionId).OrderBy(o => o.CreatedAt).ToListAsync();
+
+    public async Task<Dictionary<string, int>> GetAllObservationCountsAsync()
+    {
+        var rows = await _db.QueryAsync<SessionObsCount>(
+            "SELECT SessionId, COUNT(*) AS Count FROM LocalObservation GROUP BY SessionId");
+        return rows.ToDictionary(r => r.SessionId, r => r.Count);
+    }
 
     public Task<LocalObservation?> GetObservationAsync(string id)
         => _db.Table<LocalObservation>().FirstOrDefaultAsync(o => o.Id == id);
@@ -77,6 +81,14 @@ public class LocalDatabase
 
     public Task<List<LocalSession>> GetPendingAdHocSessionsAsync()
         => _db.Table<LocalSession>().Where(s => !s.IsPlanned && s.Status == 1 && s.SyncedAt == null).OrderBy(s => s.CompletedAt).ToListAsync();
+
+    public Task<List<LocalSession>> GetPendingAdHocSessionsAsync(string? scouterId)
+    {
+        var q = _db.Table<LocalSession>().Where(s => !s.IsPlanned && s.Status == 1 && s.SyncedAt == null);
+        if (!string.IsNullOrEmpty(scouterId))
+            q = q.Where(s => s.ScouterId == scouterId);
+        return q.OrderBy(s => s.CompletedAt).ToListAsync();
+    }
 
     // ── Observation Photos ────────────────────────────────────
     public Task<List<LocalObservationPhoto>> GetPhotosForObservationAsync(string observationId)
@@ -165,16 +177,6 @@ public class LocalDatabase
     public Task SetSettingAsync(string key, string? value)
         => _db.InsertOrReplaceAsync(new LocalAppSetting { Key = key, Value = value });
 
-    // ── User Session ──────────────────────────────────────────
-    public Task SaveUserSessionAsync(LocalUserSession session)
-        => _db.InsertOrReplaceAsync(session);
-
-    public Task<LocalUserSession?> GetUserSessionAsync()
-        => _db.Table<LocalUserSession>().FirstOrDefaultAsync();
-
-    public Task ClearUserSessionAsync()
-        => _db.DeleteAllAsync<LocalUserSession>();
-
     // ── Counts (for profile stats) ────────────────────────────
     public Task<int> CountSessionsAsync()
         => _db.Table<LocalSession>().CountAsync();
@@ -198,5 +200,11 @@ public class LocalDatabase
         if (File.Exists(path))
             return new FileInfo(path).Length;
         return 0;
+    }
+
+    private class SessionObsCount
+    {
+        public string SessionId { get; set; } = "";
+        public int Count { get; set; }
     }
 }

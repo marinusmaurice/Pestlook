@@ -24,16 +24,18 @@ public sealed class TrapsController(
     [ProducesResponseType(typeof(ApiResponse<List<TrapResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll([FromQuery] bool? enabled, CancellationToken ct)
     {
-        var query = db.Traps
-            .Include(t => t.TrapType)
-            .Include(t => t.Field).ThenInclude(f => f!.Farm)
-            .AsQueryable();
-
-        if (enabled.HasValue)
-            query = query.Where(t => t.IsEnabled == enabled.Value);
-
-        var traps = await query.OrderBy(t => t.Name).ToListAsync(ct);
-        return Ok(ApiResponse<List<TrapResponse>>.Ok(mapper.Map<List<TrapResponse>>(traps)));
+        var traps = await db.Traps
+            .Where(t => !enabled.HasValue || t.IsEnabled == enabled.Value)
+            .OrderBy(t => t.Name)
+            .Select(t => new TrapResponse(
+                t.Id, t.TenantId, t.Name, t.Barcode,
+                t.TrapTypeId, t.TrapType != null ? t.TrapType.Name : null,
+                t.FieldId, t.Field != null ? t.Field.Name : null,
+                t.Field != null && t.Field.Farm != null ? t.Field.Farm.Name : null,
+                t.Latitude, t.Longitude, t.IsEnabled, t.Notes,
+                t.CreatedAt, t.UpdatedAt))
+            .ToListAsync(ct);
+        return Ok(ApiResponse<List<TrapResponse>>.Ok(traps));
     }
 
     [HttpGet("{id:guid}")]

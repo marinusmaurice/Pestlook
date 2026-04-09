@@ -97,7 +97,6 @@ select.pk-select{width:100%;background:var(--surface2);border:.5px solid var(--b
 .loading-center{display:flex;align-items:center;justify-content:center;padding:40px;color:var(--text-dim);font-size:13px;}
 .spinner-sm{width:18px;height:18px;border:2px solid rgba(255,255,255,.15);border-top-color:var(--green);border-radius:50%;animation:spin .6s linear infinite;display:inline-block;margin-right:8px;}
 @keyframes spin{to{transform:rotate(360deg)}}
-@keyframes toast-in{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 
 /* ── error ── */
 .error-box{background:rgba(224,96,96,.1);border:1px solid rgba(224,96,96,.25);border-radius:8px;padding:10px 14px;margin:8px 10px;font-size:13px;color:var(--red);}
