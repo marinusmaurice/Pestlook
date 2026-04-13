@@ -223,22 +223,39 @@ public class SyncService
             var session = sessions[si];
             OnProgress?.Invoke($"↑ Uploading session {si + 1}/{sessions.Count}...");
 
-            var fieldId = Guid.TryParse(session.FieldId, out var fld) ? fld : (Guid?)null;
-            var farmId  = Guid.TryParse(session.FarmId,  out var frm) ? frm : (Guid?)null;
-            var sessRes = await _api.StartSessionAsync(fieldId, farmId, session.WeatherCondition, session.Notes,
-                session.Temperature != 0 ? session.Temperature : null);
-            if (!sessRes.Success || sessRes.Data is null)
+            Guid remoteSessionId;
+
+            // Reuse existing remote session if a previous sync already created it
+            if (!string.IsNullOrEmpty(session.RemoteId) && Guid.TryParse(session.RemoteId, out remoteSessionId))
             {
-                OnError?.Invoke($"Failed to upload session: {sessRes.Message}");
-                continue;
+                // Session already created on server — skip StartSessionAsync
             }
-            var remoteSessionId = sessRes.Data.Id;
+            else
+            {
+                var fieldId = Guid.TryParse(session.FieldId, out var fld) ? fld : (Guid?)null;
+                var farmId  = Guid.TryParse(session.FarmId,  out var frm) ? frm : (Guid?)null;
+                var sessRes = await _api.StartSessionAsync(fieldId, farmId, session.WeatherCondition, session.Notes,
+                    session.Temperature != 0 ? session.Temperature : null);
+                if (!sessRes.Success || sessRes.Data is null)
+                {
+                    OnError?.Invoke($"Failed to upload session: {sessRes.Message}");
+                    continue;
+                }
+                remoteSessionId = sessRes.Data.Id;
+
+                // Save RemoteId immediately so a retry won't create a duplicate
+                session.RemoteId = remoteSessionId.ToString();
+                await _db.SaveSessionAsync(session);
+            }
 
             var observations = await _db.GetObservationsForSessionAsync(session.Id);
             for (int oi = 0; oi < observations.Count; oi++)
             {
+                var obs = observations[oi];
+                // Skip observations already pushed successfully
+                if (!obs.IsDirty && !string.IsNullOrEmpty(obs.RemoteId)) continue;
+
                 OnProgress?.Invoke($"↑ Session {si + 1}/{sessions.Count} — obs {oi + 1}/{observations.Count}");
-                var obs    = observations[oi];
                 var obsRes = await _api.AddObservationAsync(remoteSessionId, BuildObsRequest(obs));
                 if (obsRes.Success && obsRes.Data is not null)
                 {
@@ -246,12 +263,15 @@ public class SyncService
                     obs.IsDirty  = false;
                     await _db.SaveObservationAsync(obs);
                 }
+                else
+                {
+                    OnError?.Invoke($"Failed to upload observation: {obsRes.Message ?? "Server error"}");
+                }
             }
 
             await _api.CompleteSessionAsync(remoteSessionId);
             session.Status   = 2;
             session.SyncedAt = DateTime.UtcNow;
-            session.RemoteId = remoteSessionId.ToString();
             await _db.SaveSessionAsync(session);
         }
     }
@@ -263,6 +283,8 @@ public class SyncService
         var sessions = await _db.GetPlannedSessionsAsync();
         foreach (var session in sessions)
         {
+            // Skip completed sessions — server rejects observations on them
+            if (session.CompletedAt.HasValue || session.Status == 2) continue;
             if (!Guid.TryParse(session.RemoteId, out var remoteSessionId)) continue;
 
             var dirty = await _db.GetDirtyObservationsForSessionAsync(session.Id);
@@ -297,16 +319,18 @@ public class SyncService
 
     private static SessionObservationRequest BuildObsRequest(LocalObservation obs) => new()
     {
-        PestId       = Guid.TryParse(obs.PestId, out var pid) ? pid : null,
-        IsUnknownPest = obs.IsUnknownPest,
-        CaptureMode  = obs.CaptureMode,
-        Count        = obs.Count,
-        IsPresent    = obs.IsPresent,
-        TrapId       = Guid.TryParse(obs.TrapId, out var tid) ? tid : null,
-        CapturedLat  = obs.CapturedLat,
-        CapturedLng  = obs.CapturedLng,
-        Notes        = obs.Notes,
-        LifeStage    = obs.LifeStage
+        ObservationType = !string.IsNullOrEmpty(obs.TrapId) ? "Trap" : "AdHoc",
+        PestId          = Guid.TryParse(obs.PestId, out var pid) ? pid : null,
+        IsUnknownPest   = obs.IsUnknownPest,
+        CaptureMode     = obs.CaptureMode switch { 1 => "Presence", _ => "Count" },
+        Count           = obs.Count,
+        IsPresent       = obs.IsPresent,
+        TrapId          = Guid.TryParse(obs.TrapId, out var tid) ? tid : null,
+        CapturedLat     = obs.CapturedLat,
+        CapturedLng     = obs.CapturedLng,
+        Notes           = obs.Notes,
+        LifeStage       = obs.LifeStage switch { 0 => "Egg", 1 => "Larva", 2 => "Nymph", 3 => "Pupa", 4 => "Adult", 5 => "Unknown", _ => null },
+        IsPlanned       = obs.IsPlanned
     };
 }
 

@@ -134,7 +134,7 @@ public class ApiClient
         => PostAsync<SessionObservationResponse>($"scouting-sessions/{sessionId}/observations", req);
 
     public Task<ApiResult<SessionObservationResponse>> UpdateObservationAsync(Guid sessionId, Guid obsId, SessionObservationRequest req)
-        => PatchAsync<SessionObservationResponse>($"scouting-sessions/{sessionId}/observations/{obsId}", req);
+        => PutAsync<SessionObservationResponse>($"scouting-sessions/{sessionId}/observations/{obsId}", req);
 
     public async Task DeleteObservationAsync(Guid sessionId, Guid obsId)
         => await SendAsync(HttpMethod.Delete, $"scouting-sessions/{sessionId}/observations/{obsId}");
@@ -152,6 +152,17 @@ public class ApiClient
     {
         if (auth) await EnsureTokenAsync();
         var req = new HttpRequestMessage(HttpMethod.Post, path)
+        {
+            Content = JsonContent.Create(body, options: JsonOpts)
+        };
+        AddHeaders(req, auth);
+        return await SendAndParse<T>(req);
+    }
+
+    private async Task<ApiResult<T>> PutAsync<T>(string path, object body, bool auth = true)
+    {
+        if (auth) await EnsureTokenAsync();
+        var req = new HttpRequestMessage(HttpMethod.Put, path)
         {
             Content = JsonContent.Create(body, options: JsonOpts)
         };
@@ -319,16 +330,18 @@ public class SessionResponse
 
     public class SessionObservationRequest
     {
+        [JsonPropertyName("observationType")] public string ObservationType { get; set; } = "AdHoc";
         [JsonPropertyName("pestId")] public Guid? PestId { get; set; }
         [JsonPropertyName("isUnknownPest")] public bool IsUnknownPest { get; set; }
-        [JsonPropertyName("captureMode")] public int CaptureMode { get; set; }
+        [JsonPropertyName("captureMode")] public string CaptureMode { get; set; } = "Count";
         [JsonPropertyName("count")] public int? Count { get; set; }
         [JsonPropertyName("isPresent")] public bool? IsPresent { get; set; }
         [JsonPropertyName("notes")] public string? Notes { get; set; }
         [JsonPropertyName("trapId")] public Guid? TrapId { get; set; }
         [JsonPropertyName("capturedLat")] public double? CapturedLat { get; set; }
         [JsonPropertyName("capturedLng")] public double? CapturedLng { get; set; }
-        [JsonPropertyName("lifeStage")] public int? LifeStage { get; set; }
+        [JsonPropertyName("lifeStage")] public string? LifeStage { get; set; }
+        [JsonPropertyName("isPlanned")] public bool IsPlanned { get; set; }
     }
 
     public class PestResponse

@@ -1,4 +1,4 @@
-﻿import { isAuthenticated, } from '../utils/storage.js';
+import { isAuthenticated, } from '../utils/storage.js';
 import { navigate } from '../utils/router.js';
 
 export function renderLanding(container) {
@@ -38,6 +38,8 @@ function _injectExternalResources() {
   }
 }
 
+/* ───────────────────── CSS ───────────────────── */
+
 const LANDING_CSS = `
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Inter', sans-serif; background: #FEFCF5 !important; color: #1E2F2A; line-height: 1.5; scroll-behavior: smooth; overflow: auto !important; }
@@ -53,6 +55,8 @@ const LANDING_CSS = `
   }
   a { text-decoration: none; color: var(--primary); font-weight: 500; }
   .container { max-width: 1280px !important; margin: 0 auto !important; padding: 0 24px !important; }
+
+  /* header */
   header { background: rgba(255,255,255,0.96); border-bottom: 1px solid var(--gray-border); position: sticky; top: 0; z-index: 50; backdrop-filter: blur(2px); }
   .navbar { display: flex; justify-content: space-between; align-items: center; padding: 18px 0; flex-wrap: wrap; }
   .logo { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.02em; color: var(--primary-dark); }
@@ -60,25 +64,60 @@ const LANDING_CSS = `
   .nav-links { display: flex; gap: 32px; align-items: center; flex-wrap: wrap; }
   .nav-links a { font-weight: 500; color: var(--text-dark); transition: 0.2s; }
   .nav-links a:hover, .nav-links a.active { color: var(--primary); }
+
+  /* buttons */
   .btn-outline { border: 1.5px solid var(--primary); background: transparent; padding: 8px 18px; border-radius: 40px; font-weight: 600; color: var(--primary); transition: 0.2s; }
   .btn-outline:hover { background: var(--primary-light); }
   .btn-primary { background: var(--primary); color: white; padding: 10px 24px; border-radius: 40px; font-weight: 600; border: none; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; }
   .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
   .btn-accent { background: var(--accent); color: #1E2F2A; font-weight: 700; }
   .btn-accent:hover { background: var(--accent-dark); color: white; }
+
+  /* views */
   .view { display: none; animation: fade 0.25s ease; }
   .active-view { display: block; }
   @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* hero */
   .hero { display: flex; flex-wrap: wrap; gap: 48px; align-items: center; padding: 56px 0 48px; }
-  .hero-content { flex: 1; }
+  .hero-content { flex: 1; min-width: 320px; }
   .hero-badge { background: var(--primary-light); color: var(--primary-dark); padding: 6px 14px; border-radius: 50px; font-size: 0.85rem; font-weight: 600; display: inline-block; margin-bottom: 20px; }
-  .hero h1 { font-size: 3.2rem; font-weight: 800; line-height: 1.2; color: #1F2A26; margin-bottom: 20px; }
-  .hero p { font-size: 1.2rem; color: var(--text-muted); max-width: 550px; margin-bottom: 28px; }
-  .hero-stats { display: flex; gap: 28px; margin-top: 32px; }
+  .hero h1 { font-size: 3.2rem; font-weight: 800; line-height: 1.15; color: #1F2A26; margin-bottom: 20px; }
+  .hero p { font-size: 1.2rem; color: var(--text-muted); max-width: 560px; margin-bottom: 28px; }
+  .hero-stats { display: flex; gap: 28px; margin-top: 32px; flex-wrap: wrap; }
   .stat-item strong { font-size: 1.5rem; color: var(--primary); }
-  .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 32px; margin: 64px 0; }
-  .feature-card { background: white; border-radius: var(--radius-md); padding: 28px 20px; box-shadow: var(--shadow-sm); border: 1px solid var(--gray-border); transition: 0.2s; }
+
+  /* feature cards */
+  .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 28px; margin: 64px 0; }
+  .feature-card { background: white; border-radius: var(--radius-md); padding: 28px 24px; box-shadow: var(--shadow-sm); border: 1px solid var(--gray-border); transition: 0.2s; }
+  .feature-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
   .feature-card i { font-size: 2.2rem; color: var(--primary); margin-bottom: 16px; }
+  .feature-card h3 { margin-bottom: 8px; }
+  .feature-card p { color: var(--text-muted); font-size: 0.95rem; }
+
+  /* how-it-works */
+  .how-section { margin: 48px 0; }
+  .how-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 32px; margin-top: 36px; }
+  .how-step { text-align: center; }
+  .step-number { width: 48px; height: 48px; border-radius: 50%; background: var(--primary); color: white; font-weight: 800; font-size: 1.2rem; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+  .how-step h4 { margin-bottom: 8px; }
+  .how-step p { color: var(--text-muted); font-size: 0.92rem; }
+
+  /* analytics banner */
+  .analytics-banner { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); border-radius: var(--radius-md); padding: 40px 36px; color: white; margin: 48px 0; }
+  .analytics-banner h2 { font-size: 2rem; margin-bottom: 12px; }
+  .analytics-banner p { opacity: 0.9; font-size: 1.05rem; max-width: 600px; margin-bottom: 24px; }
+  .analytics-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+  .analytics-chips .chip { background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.3); padding: 6px 14px; border-radius: 30px; font-size: 0.85rem; font-weight: 500; color: white; }
+
+  /* testimonials */
+  .testimonials-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin: 32px 0 48px; }
+  .testimonial-card { background: white; border-radius: var(--radius-md); padding: 24px; border: 1px solid var(--gray-border); box-shadow: var(--shadow-sm); }
+  .testimonial-card .stars { color: var(--accent); margin-bottom: 12px; }
+  .testimonial-card blockquote { font-style: italic; color: var(--text-dark); margin-bottom: 16px; line-height: 1.6; }
+  .testimonial-card .author { font-weight: 600; color: var(--text-muted); font-size: 0.9rem; }
+
+  /* pricing */
   .pricing-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 32px; margin: 48px 0; }
   .pricing-card { background: white; border-radius: var(--radius-md); padding: 28px 24px; flex: 1; min-width: 260px; border: 1px solid var(--gray-border); transition: 0.2s; }
   .pricing-card.popular { border-top: 4px solid var(--accent); box-shadow: var(--shadow-md); }
@@ -86,22 +125,32 @@ const LANDING_CSS = `
   .feature-list { list-style: none; margin: 24px 0; }
   .feature-list li { margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
   .feature-list i.fa-check { color: var(--primary); }
+
+  /* dashboard */
   .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin: 32px 0; }
   .dash-card { background: white; border-radius: var(--radius-sm); padding: 20px; border: 1px solid var(--gray-border); }
   .scout-log { background: var(--gray-light); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 12px; }
   .logout-btn { background: none; border: 1px solid var(--gray-border); padding: 8px 16px; border-radius: 30px; cursor: pointer; font-weight: 500; }
+
+  /* forms */
   .form-group { margin-bottom: 20px; }
   .form-group input { width: 100%; padding: 14px 16px; border-radius: 40px; border: 1px solid var(--gray-border); font-size: 1rem; }
   .auth-toggle { text-align: center; margin-top: 16px; color: var(--primary); cursor: pointer; font-weight: 500; }
   .error-msg { color: var(--danger); font-size: 0.85rem; margin-top: 8px; }
+
   footer { border-top: 1px solid var(--gray-border); margin-top: 80px; padding: 32px 0; text-align: center; color: var(--text-muted); }
+
   @media (max-width: 768px) {
     .navbar { flex-direction: column; gap: 16px; }
     .nav-links { justify-content: center; gap: 20px; }
     .hero h1 { font-size: 2.3rem; }
     .container { padding: 0 20px; }
+    .analytics-banner { padding: 28px 20px; }
+    .analytics-banner h2 { font-size: 1.5rem; }
   }
 `;
+
+/* ───────────────────── HTML ───────────────────── */
 
 function _getLandingHTML() {
   return `
@@ -121,66 +170,197 @@ function _getLandingHTML() {
     </header>
 
     <main id="appMain" class="container">
+      <!-- HOME VIEW -->
       <div id="homeView" class="view">
         <div class="hero">
           <div class="hero-content">
-            <div class="hero-badge"><i class="fas fa-seedling"></i> Field-first. Trusted by agronomists</div>
-            <h1>Replace paper scouting sheets with <span style="color:var(--accent);">real-time pest monitoring</span></h1>
-            <p>Know pest pressure before it damages your crops â€” digital scouting + trap tracking in one system. Works offline, instant reports.</p>
-            <a href="#account" class="btn-primary" id="heroCtaBtn"><i class="fas fa-tractor"></i> Start free scouting</a>
+            <div class="hero-badge"><i class="fas fa-seedling"></i> Built for the field, not the office</div>
+            <h1>One platform to <span style="color:var(--accent);">scout, trap, and protect</span> every hectare</h1>
+            <p>PestLook gives farmers and agronomists a complete system to manage farms, deploy traps, run scouting sessions, record pest observations with GPS and photos, and turn field data into actionable analytics reports &mdash; even offline.</p>
+            <div style="display:flex;gap:12px;flex-wrap:wrap;">
+              <a href="#account" class="btn-primary" id="heroCtaBtn"><i class="fas fa-tractor"></i> Start free scouting</a>
+              <a href="#pricing" class="btn-outline" id="heroPricingBtn">View plans</a>
+            </div>
             <div class="hero-stats">
-              <div class="stat-item"><strong>4x</strong><br>faster scouting</div>
-              <div class="stat-item"><strong>30%</strong><br>less crop loss*</div>
+              <div class="stat-item"><strong>11</strong><br>analytics reports</div>
               <div class="stat-item"><strong>100%</strong><br>offline capable</div>
+              <div class="stat-item"><strong>GPS</strong><br>every observation</div>
             </div>
           </div>
-          <div style="flex:1;background:var(--primary-light);border-radius:40px;padding:32px;text-align:center;">
-            <i class="fas fa-map-marked-alt" style="font-size:5rem;color:var(--primary);"></i>
-            <p style="margin-top:16px;"><strong>GPS trap locations &bull; Photo logs &bull; PDF reports</strong></p>
+          <div style="flex:1;min-width:300px;background:var(--primary-light);border-radius:40px;padding:36px 28px;text-align:center;">
+            <i class="fas fa-map-marked-alt" style="font-size:4.5rem;color:var(--primary);margin-bottom:12px;"></i>
+            <p style="font-weight:700;font-size:1.1rem;margin-bottom:16px;">Your entire operation on one map</p>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;">
+              <span style="background:white;padding:5px 12px;border-radius:20px;font-size:0.82rem;font-weight:500;"><i class="fas fa-map-pin" style="color:var(--primary);"></i> Farm boundaries</span>
+              <span style="background:white;padding:5px 12px;border-radius:20px;font-size:0.82rem;font-weight:500;"><i class="fas fa-crosshairs" style="color:var(--primary);"></i> Trap GPS pins</span>
+              <span style="background:white;padding:5px 12px;border-radius:20px;font-size:0.82rem;font-weight:500;"><i class="fas fa-barcode" style="color:var(--primary);"></i> Barcode scanning</span>
+              <span style="background:white;padding:5px 12px;border-radius:20px;font-size:0.82rem;font-weight:500;"><i class="fas fa-camera" style="color:var(--primary);"></i> Photo evidence</span>
+              <span style="background:white;padding:5px 12px;border-radius:20px;font-size:0.82rem;font-weight:500;"><i class="fas fa-file-csv" style="color:var(--primary);"></i> CSV &amp; PDF export</span>
+            </div>
           </div>
         </div>
-        <div class="features-grid">
-          <div class="feature-card"><i class="fas fa-mobile-alt"></i><h3>Offline-first</h3><p>Log pests even in remote fields â€” syncs automatically when back online.</p></div>
-          <div class="feature-card"><i class="fas fa-chart-line"></i><h3>Smart trap monitoring</h3><p>Track pheromone traps, sticky traps, thresholds. Get infestation alerts.</p></div>
-          <div class="feature-card"><i class="fas fa-camera"></i><h3>Photo + GPS logging</h3><p>Take photos, add notes, geotag â€” build digital scouting history.</p></div>
-          <div class="feature-card"><i class="fas fa-file-pdf"></i><h3>Instant reports</h3><p>Generate weekly scouting reports for compliance, advisors, or co-ops.</p></div>
+
+        <!-- CORE FEATURES -->
+        <div style="text-align:center;margin-top:24px;">
+          <h2 style="font-size:2rem;">Everything you need from field to report</h2>
+          <p style="color:var(--text-muted);margin-top:8px;max-width:620px;margin-left:auto;margin-right:auto;">PestLook replaces paper sheets, scattered WhatsApp photos, and guesswork with one structured, GPS-tagged, offline-ready system.</p>
         </div>
-        <div style="background:var(--primary-light);border-radius:28px;padding:32px;text-align:center;margin:24px 0;">
-          <h3>ðŸšœ Trusted by South African farmers &amp; agronomists</h3>
-          <p style="margin-top:12px;">"PestLook replaced our messy WhatsApp logs. Now scouting is structured and fast." â€” Riaan, crop consultant</p>
+        <div class="features-grid">
+          <div class="feature-card">
+            <i class="fas fa-warehouse"></i>
+            <h3>Farm &amp; field management</h3>
+            <p>Organise your operation by farm, field, crop type, and season. Define geographic boundaries for precision mapping and track area in hectares.</p>
+          </div>
+          <div class="feature-card">
+            <i class="fas fa-crosshairs"></i>
+            <h3>Trap deployment &amp; barcode scanning</h3>
+            <p>Register sticky, pheromone, or pitfall traps with GPS coordinates. Scan barcodes or QR codes in the field for instant trap lookup.</p>
+          </div>
+          <div class="feature-card">
+            <i class="fas fa-clipboard-check"></i>
+            <h3>Planned &amp; ad-hoc scouting</h3>
+            <p>Admins schedule sessions with assigned scouts, target fields, and observation checklists. Scouts can also start ad-hoc runs on the fly from the mobile app.</p>
+          </div>
+          <div class="feature-card">
+            <i class="fas fa-bug"></i>
+            <h3>Pest observations with thresholds</h3>
+            <p>Record counts or presence/absence per pest species and life stage. The system automatically flags when observations exceed economic action thresholds.</p>
+          </div>
+          <div class="feature-card">
+            <i class="fas fa-mobile-alt"></i>
+            <h3>Offline-first mobile app</h3>
+            <p>The mobile app caches farms, fields, pests, traps, and sessions locally. Work offline in remote blocks &mdash; two-way sync uploads everything when connectivity returns.</p>
+          </div>
+          <div class="feature-card">
+            <i class="fas fa-satellite-dish"></i>
+            <h3>GPS + weather capture</h3>
+            <p>Every observation is geotagged with configurable accuracy. Session temperature and weather conditions are recorded automatically alongside your data.</p>
+          </div>
+          <div class="feature-card">
+            <i class="fas fa-chart-pie"></i>
+            <h3>11 analytics dashboards</h3>
+            <p>From threshold alerts and pest pressure trends to trap performance, scout productivity, seasonal patterns, field coverage, and billing &mdash; all filterable by date, farm, or scout.</p>
+          </div>
+          <div class="feature-card">
+            <i class="fas fa-users-cog"></i>
+            <h3>Multi-tenant team management</h3>
+            <p>Each organisation is fully isolated. Admins manage scouts, assign roles, configure trap types, and review billing snapshots &mdash; all from the web dashboard.</p>
+          </div>
+        </div>
+
+        <!-- HOW IT WORKS -->
+        <div class="how-section">
+          <div style="text-align:center;">
+            <h2 style="font-size:2rem;">How PestLook works</h2>
+            <p style="color:var(--text-muted);margin-top:8px;">From setup to insight in four steps</p>
+          </div>
+          <div class="how-grid">
+            <div class="how-step">
+              <div class="step-number">1</div>
+              <h4>Set up your operation</h4>
+              <p>Add farms with GPS boundaries. Create fields by crop type and season. Register traps with barcodes and locations.</p>
+            </div>
+            <div class="how-step">
+              <div class="step-number">2</div>
+              <h4>Plan scouting sessions</h4>
+              <p>Schedule sessions in the web dashboard with assigned scouts, target fields, and pre-built observation checklists &mdash; or let scouts start ad-hoc from mobile.</p>
+            </div>
+            <div class="how-step">
+              <div class="step-number">3</div>
+              <h4>Record in the field</h4>
+              <p>Scouts log pest counts, life stages, photos, trap inspections, and GPS locations &mdash; even offline. Barcode scan traps for instant identification.</p>
+            </div>
+            <div class="how-step">
+              <div class="step-number">4</div>
+              <h4>Analyse &amp; act</h4>
+              <p>Sync data and explore 11 report dashboards: threshold alerts, pest pressure, trap performance, seasonal trends, field coverage, and more.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ANALYTICS BANNER -->
+        <div class="analytics-banner">
+          <h2><i class="fas fa-chart-line"></i> 11 built-in analytics dashboards</h2>
+          <p>Stop guessing about pest pressure. PestLook turns every scout's field data into filterable, exportable reports &mdash; by date range, farm, field, or scout.</p>
+          <div class="analytics-chips">
+            <span class="chip"><i class="fas fa-bell"></i> Threshold alerts</span>
+            <span class="chip"><i class="fas fa-fire"></i> Pest pressure</span>
+            <span class="chip"><i class="fas fa-clipboard-list"></i> Session tracking</span>
+            <span class="chip"><i class="fas fa-bug"></i> Top pests</span>
+            <span class="chip"><i class="fas fa-crosshairs"></i> Trap performance</span>
+            <span class="chip"><i class="fas fa-user-check"></i> Scout productivity</span>
+            <span class="chip"><i class="fas fa-calendar-alt"></i> Seasonal trends</span>
+            <span class="chip"><i class="fas fa-question-circle"></i> Unknown pests</span>
+            <span class="chip"><i class="fas fa-layer-group"></i> Field coverage</span>
+            <span class="chip"><i class="fas fa-file-invoice-dollar"></i> Billing &amp; quotas</span>
+            <span class="chip"><i class="fas fa-tachometer-alt"></i> Overview</span>
+          </div>
+        </div>
+
+        <!-- TESTIMONIALS -->
+        <div style="text-align:center;margin-top:48px;">
+          <h2 style="font-size:2rem;">Trusted by farmers &amp; agronomists</h2>
+        </div>
+        <div class="testimonials-grid">
+          <div class="testimonial-card">
+            <div class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
+            <blockquote>"PestLook replaced our messy WhatsApp photo logs. Scouting is structured, every observation is GPS-tagged, and the threshold alerts mean we spray only when we need to."</blockquote>
+            <div class="author">&mdash; Riaan V., crop consultant, Limpopo</div>
+          </div>
+          <div class="testimonial-card">
+            <div class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
+            <blockquote>"My scouts work in blocks with zero signal. The offline mode means they never lose data, and everything syncs automatically on the drive back. The reports save me hours every week."</blockquote>
+            <div class="author">&mdash; Annelize M., farm manager, Western Cape</div>
+          </div>
+          <div class="testimonial-card">
+            <div class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
+            <blockquote>"Barcode scanning on the traps is a game-changer &mdash; no more guessing which trap is which. And the seasonal trends report shows us exactly when to prepare for bollworm."</blockquote>
+            <div class="author">&mdash; Johan K., agronomist, Free State</div>
+          </div>
+        </div>
+
+        <!-- FINAL CTA -->
+        <div style="background:var(--primary-light);border-radius:28px;padding:40px 32px;text-align:center;margin:24px 0 48px;">
+          <h2 style="font-size:1.8rem;margin-bottom:12px;">Ready to protect your crops with real data?</h2>
+          <p style="color:var(--text-muted);max-width:520px;margin:0 auto 20px;">Start scouting for free. Add your farms, deploy traps, and run your first scouting session in minutes.</p>
+          <a href="#account" class="btn-primary btn-accent" id="bottomCtaBtn" style="font-size:1.1rem;padding:14px 32px;"><i class="fas fa-rocket"></i> Get started free</a>
         </div>
       </div>
 
+      <!-- PRICING VIEW -->
       <div id="pricingView" class="view">
         <div style="text-align:center;margin:40px 0 20px;">
-          <h1 style="font-size:2.5rem;">Simple, transparent plans</h1>
-          <p style="font-size:1.2rem;color:var(--text-muted);">All plans include offline mode, trap monitoring &amp; digital scouting logs.</p>
+          <h1 style="font-size:2.5rem;">Simple, transparent pricing</h1>
+          <p style="font-size:1.2rem;color:var(--text-muted);">Every plan includes offline mode, GPS logging, scouting sessions, trap monitoring, and the mobile app.</p>
         </div>
         <div class="pricing-grid">
           <div class="pricing-card">
             <h3>Starter Scout</h3>
             <div class="price">$0<span style="font-size:1rem;"> /month</span></div>
-            <p>For individual farmers starting digital logs</p>
+            <p>For individual farmers getting started with digital scouting</p>
             <ul class="feature-list">
               <li><i class="fas fa-check"></i> Up to 3 fields</li>
-              <li><i class="fas fa-check"></i> Trap monitoring (20 traps)</li>
-              <li><i class="fas fa-check"></i> Photo &amp; notes logging</li>
-              <li><i class="fas fa-check"></i> Basic PDF reports</li>
-              <li><i class="fas fa-check"></i> Offline support</li>
+              <li><i class="fas fa-check"></i> 20 traps with GPS &amp; barcode</li>
+              <li><i class="fas fa-check"></i> Planned &amp; ad-hoc sessions</li>
+              <li><i class="fas fa-check"></i> Photo &amp; GPS observations</li>
+              <li><i class="fas fa-check"></i> Threshold alerts</li>
+              <li><i class="fas fa-check"></i> Offline mobile app</li>
+              <li><i class="fas fa-check"></i> Overview report</li>
             </ul>
             <button class="btn-primary choose-plan" data-plan="Starter Scout" style="width:100%;text-align:center;">Get started free</button>
           </div>
           <div class="pricing-card popular">
-            <h3>Pro Agronomist <span style="background:var(--accent);font-size:0.7rem;padding:4px 8px;border-radius:30px;">MOST POPULAR</span></h3>
+            <h3>Pro Agronomist <span style="background:var(--accent);font-size:0.7rem;padding:4px 8px;border-radius:30px;color:white;">MOST POPULAR</span></h3>
             <div class="price">$29<span style="font-size:1rem;"> /month</span></div>
-            <p>Perfect for farms &amp; professional scouts</p>
+            <p>For professional scouts and multi-farm operations</p>
             <ul class="feature-list">
-              <li><i class="fas fa-check"></i> Unlimited fields &amp; traps</li>
-              <li><i class="fas fa-check"></i> Advanced trap threshold alerts</li>
-              <li><i class="fas fa-check"></i> GPS location + offline maps</li>
-              <li><i class="fas fa-check"></i> Custom scouting forms</li>
-              <li><i class="fas fa-check"></i> Multi-farm / client reports</li>
+              <li><i class="fas fa-check"></i> Unlimited farms, fields &amp; traps</li>
+              <li><i class="fas fa-check"></i> All 11 analytics dashboards</li>
+              <li><i class="fas fa-check"></i> Economic threshold alerts</li>
+              <li><i class="fas fa-check"></i> Scout team roles &amp; assignments</li>
+              <li><i class="fas fa-check"></i> Observation groups &amp; repeat counts</li>
               <li><i class="fas fa-check"></i> CSV &amp; PDF export</li>
+              <li><i class="fas fa-check"></i> Custom pest library &amp; trap types</li>
               <li><i class="fas fa-check"></i> Priority email support</li>
             </ul>
             <button class="btn-primary choose-plan" data-plan="Pro Agronomist" style="width:100%;">Start 14-day trial</button>
@@ -192,25 +372,33 @@ function _getLandingHTML() {
             <ul class="feature-list">
               <li><i class="fas fa-check"></i> Everything in Pro</li>
               <li><i class="fas fa-check"></i> API access &amp; integrations</li>
+              <li><i class="fas fa-check"></i> Multi-tenant isolation</li>
+              <li><i class="fas fa-check"></i> Billing snapshots &amp; usage tracking</li>
               <li><i class="fas fa-check"></i> Dedicated account manager</li>
               <li><i class="fas fa-check"></i> White-label reporting</li>
-              <li><i class="fas fa-check"></i> Multi-user roles + permissions</li>
               <li><i class="fas fa-check"></i> On-site training available</li>
             </ul>
             <button class="btn-outline choose-plan" data-plan="Enterprise" style="width:100%;">Contact sales</button>
           </div>
         </div>
         <div style="background:var(--gray-light);border-radius:24px;padding:24px;margin:40px 0;">
-          <h3><i class="fas fa-check-circle"></i> All plans include core features:</h3>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:16px;">
-            <span>âœ” Digital scouting sheets</span><span>âœ” Trap count history</span>
-            <span>âœ” Photo evidence storage</span><span>âœ” Weather tags</span>
-            <span>âœ” Pest identification guide</span><span>âœ” Mobile &amp; web sync</span>
-            <span>âœ” No ads, ever</span>
+          <h3><i class="fas fa-check-circle" style="color:var(--primary);"></i> Every plan includes:</h3>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:16px;">
+            <span>&#10003; Offline-first mobile app</span>
+            <span>&#10003; GPS on every observation</span>
+            <span>&#10003; Barcode trap scanning</span>
+            <span>&#10003; Photo evidence capture</span>
+            <span>&#10003; Pest species library</span>
+            <span>&#10003; Life stage tracking</span>
+            <span>&#10003; Weather &amp; temp logging</span>
+            <span>&#10003; Two-way auto sync</span>
+            <span>&#10003; Audit trail on all data</span>
+            <span>&#10003; No ads, ever</span>
           </div>
         </div>
       </div>
 
+      <!-- ACCOUNT VIEW -->
       <div id="accountView" class="view">
         <div style="max-width:480px;margin:60px auto;background:white;border-radius:28px;padding:36px 28px;box-shadow:var(--shadow-md);">
           <h2 id="formTitle" style="margin-bottom:24px;">Login to PestLook</h2>
@@ -224,6 +412,7 @@ function _getLandingHTML() {
         </div>
       </div>
 
+      <!-- DASHBOARD VIEW -->
       <div id="dashboardView" class="view">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;margin:24px 0 20px;">
           <h1><i class="fas fa-chart-simple"></i> Scouting Dashboard</h1>
@@ -231,15 +420,15 @@ function _getLandingHTML() {
         </div>
         <div class="dashboard-grid">
           <div class="dash-card"><i class="fas fa-bug"></i> <strong>Active traps</strong><br><span style="font-size:2rem;" id="activeTraps">14</span><br>Last 7 days: +2 alerts</div>
-          <div class="dash-card"><i class="fas fa-clipboard-list"></i> <strong>Scouting reports</strong><br><span style="font-size:2rem;" id="scoutCount">4</span><br>This month</div>
+          <div class="dash-card"><i class="fas fa-clipboard-list"></i> <strong>Scouting sessions</strong><br><span style="font-size:2rem;" id="scoutCount">4</span><br>This month</div>
           <div class="dash-card"><i class="fas fa-map-marker-alt"></i> <strong>Fields monitored</strong><br><span style="font-size:2rem;" id="fieldsCount">3</span><br>GPS enabled</div>
         </div>
         <div class="dash-card" style="margin-bottom:24px;">
-          <h3>ðŸ“‹ Recent scouting logs</h3>
+          <h3>Recent scouting logs</h3>
           <div id="recentScoutingList">
-            <div class="scout-log"><i class="fas fa-leaf"></i> <strong>Maize field A</strong> â€” Fall armyworm: 8 larvae, treated (Nov 12)</div>
-            <div class="scout-log"><i class="fas fa-chart-line"></i> <strong>Trap #4 (Citrus)</strong> â€” 12 false codling moth, threshold exceeded</div>
-            <div class="scout-log"><i class="fas fa-camera"></i> <strong>Wheat block</strong> â€” Aphids detected, photo uploaded, action taken</div>
+            <div class="scout-log"><i class="fas fa-leaf"></i> <strong>Maize field A</strong> &mdash; Fall armyworm: 8 larvae counted, threshold exceeded (treated)</div>
+            <div class="scout-log"><i class="fas fa-chart-line"></i> <strong>Trap #4 (Citrus)</strong> &mdash; 12 false codling moth, economic threshold exceeded, alert raised</div>
+            <div class="scout-log"><i class="fas fa-camera"></i> <strong>Wheat block</strong> &mdash; Aphids detected, photo uploaded, GPS logged, action taken</div>
           </div>
           <button class="btn-outline" style="margin-top:12px;"><i class="fas fa-plus-circle"></i> Quick scout log (offline-ready)</button>
         </div>
@@ -251,12 +440,14 @@ function _getLandingHTML() {
 
     <footer>
       <div class="container">
-        <p>&copy; 2025 PestLook â€” Digital scouting &amp; trap monitoring. Built for farmers, agronomists, and the field.</p>
+        <p>&copy; 2026 PestLook &mdash; Complete pest scouting &amp; trap monitoring. Built for farmers, agronomists, and the field.</p>
         <p style="margin-top:8px;"><i class="fas fa-envelope"></i> hello@pestlook.com | <i class="fas fa-phone-alt"></i> +27 (0) 21 001 2345</p>
       </div>
     </footer>
   `;
 }
+
+/* ───────────────────── APP LOGIC ───────────────────── */
 
 function _initLandingApp() {
   let currentUser = null;
@@ -409,12 +600,22 @@ function _initLandingApp() {
       if (!currentUser) {
         navigate('/login');
       } else {
-        alert(`âœ… Thank you! You selected the ${plan} plan. Payment integration demo.`);
+        alert(`Thank you! You selected the ${plan} plan. Payment integration demo.`);
       }
     });
   });
 
   document.getElementById('heroCtaBtn')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    navigate('/login');
+  });
+
+  document.getElementById('heroPricingBtn')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    navigateTo('pricing');
+  });
+
+  document.getElementById('bottomCtaBtn')?.addEventListener('click', (e) => {
     e.preventDefault();
     navigate('/login');
   });
@@ -434,5 +635,3 @@ function _initLandingApp() {
   navigateTo('home');
   updateAuthUI();
 }
-
-

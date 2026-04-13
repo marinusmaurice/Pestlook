@@ -41,8 +41,8 @@
             </div>
         }
 
-        <!-- Field (optional) -->
-        <div class="sl">Field <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></div>
+        <!-- Field (required when farm selected) -->
+        <div class="sl">Field <span style="color:var(--red);font-weight:700;">*</span></div>
         @if (fieldsLoading)
         {
             <div style="padding:8px 12px;font-size:12px;color:var(--text-dim);">Loading fields…</div>
@@ -59,7 +59,7 @@
         {
             <div style="margin:4px 10px;">
                 <select class="pk-select" @bind="selectedFieldId">
-                    <option value="">— None —</option>
+                    <option value="">Select a field…</option>
                     @foreach (var f in fields)
                     {
                         <option value="@f.Id">@f.Name@(f.CropType != null ? $" · {f.CropType}" : "")</option>
@@ -136,7 +136,7 @@
 
     <!-- Bottom -->
     <div style="padding:8px 10px;border-top:.5px solid var(--border);flex-shrink:0;">
-        <button class="bp" style="margin:0;width:100%;" @onclick="StartScouting" disabled="@(saving || string.IsNullOrEmpty(selectedFarmId))">
+        <button class="bp" style="margin:0;width:100%;" @onclick="StartScouting" disabled="@(saving || string.IsNullOrEmpty(selectedFarmId) || (fields.Count > 0 && string.IsNullOrEmpty(selectedFieldId)))">
             @if (saving) { <span class="spinner-sm"></span> } 🥾 Start scouting →
         </button>
     </div>
@@ -249,6 +249,12 @@
         if (string.IsNullOrEmpty(selectedFarmId))
         {
             error = "Please select a farm.";
+            return;
+        }
+
+        if (fields.Count > 0 && string.IsNullOrEmpty(selectedFieldId))
+        {
+            error = "Please select a field.";
             return;
         }
 

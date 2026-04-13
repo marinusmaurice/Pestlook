@@ -157,6 +157,7 @@
 @code {
     [Parameter] public string SessionId { get; set; } = "";
 
+    private LocalSession? session;
     private List<CachedPest> pests = new();
     private List<CachedTrap> traps = new();
     private bool pestsLoading = true;
@@ -178,6 +179,7 @@
     protected override async Task OnInitializedAsync()
     {
         await Db.InitAsync();
+        session = await Db.GetSessionAsync(SessionId);
         pests = await Db.GetCachedPestsAsync();
         traps = await Db.GetEnabledTrapsAsync();
         pestsLoading = false;
@@ -252,16 +254,18 @@
         {
             var req = new SessionObservationRequest
             {
+                ObservationType = trapId is not null ? "Trap" : "AdHoc",
                 PestId = Guid.TryParse(pestId, out var pid) ? pid : null,
                 IsUnknownPest = isUnknown,
-                CaptureMode = captureMode,
+                CaptureMode = captureMode switch { 1 => "Presence", _ => "Count" },
                 Count = captureMode == 0 ? count : null,
                 IsPresent = captureMode == 1 ? present : null,
                 TrapId = Guid.TryParse(trapId, out var tid) ? tid : null,
                 CapturedLat = gpsLat,
                 CapturedLng = gpsLng,
                 Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(),
-                LifeStage = lifeStage
+                LifeStage = lifeStage switch { 0 => "Egg", 1 => "Larva", 2 => "Nymph", 3 => "Pupa", 4 => "Adult", 5 => "Unknown", _ => null },
+                IsPlanned = session?.IsPlanned ?? false
             };
             var res = await Api.AddObservationAsync(remoteSessionId, req);
             if (res.Success && res.Data is not null)
@@ -285,6 +289,7 @@
                     LifeStage = lifeStage,
                     ThresholdCount = res.Data.ThresholdCount,
                     SortOrder = res.Data.SortOrder,
+                    IsPlanned = session?.IsPlanned ?? false,
                     IsDirty = false
                 };
                 await Db.SaveObservationAsync(obs);
@@ -311,6 +316,7 @@
             Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(),
             LifeStage = lifeStage,
             ThresholdCount = thresholdCount,
+            IsPlanned = session?.IsPlanned ?? false,
             IsDirty = true
         };
         await Db.SaveObservationAsync(localObs);

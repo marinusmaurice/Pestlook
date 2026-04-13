@@ -374,6 +374,7 @@
     private void OnSyncDone()
     {
         syncing = false;
+        syncError = null;
         syncStatus = $"Last synced: {DateTime.Now:HH:mm}";
         _ = InvokeAsync(LoadData);
     }

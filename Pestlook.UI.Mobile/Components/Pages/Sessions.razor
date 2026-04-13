@@ -217,7 +217,7 @@
     }
 
     private void OnSyncProgress(string msg) { syncStatus = msg; InvokeAsync(StateHasChanged); }
-    private void OnSyncCompleted() { syncing = false; _ = InvokeAsync(LoadData); }
+    private void OnSyncCompleted() { syncing = false; syncError = null; _ = InvokeAsync(LoadData); }
     private void OnSyncError(string msg) { syncing = false; syncError = msg; _ = InvokeAsync(StateHasChanged); }
 
     public void Dispose()
