@@ -276,41 +276,49 @@ public class SyncService
         }
     }
 
-    // ── Phase 2b: push dirty planned observations ─────────────────────────────
-
     private async Task PushPlannedObservationsAsync()
     {
         var sessions = await _db.GetPlannedSessionsAsync();
         foreach (var session in sessions)
         {
-            // Skip completed sessions — server rejects observations on them
-            if (session.CompletedAt.HasValue || session.Status == 2) continue;
+            if (session.Status == 2) continue; // already fully synced
             if (!Guid.TryParse(session.RemoteId, out var remoteSessionId)) continue;
 
             var dirty = await _db.GetDirtyObservationsForSessionAsync(session.Id);
-            if (dirty.Count == 0) continue;
-
-            OnProgress?.Invoke($"↑ Uploading observations for {session.FieldName ?? session.FarmName ?? "session"}...");
-            foreach (var obs in dirty)
+            if (dirty.Count > 0)
             {
-                var req = BuildObsRequest(obs);
-                if (!string.IsNullOrEmpty(obs.RemoteId) && Guid.TryParse(obs.RemoteId, out var remoteObsId))
+                OnProgress?.Invoke($"↑ Uploading observations for {session.FieldName ?? session.FarmName ?? "session"}...");
+                foreach (var obs in dirty)
                 {
-                    var res = await _api.UpdateObservationAsync(remoteSessionId, remoteObsId, req);
-                    if (res.Success) { obs.IsDirty = false; await _db.SaveObservationAsync(obs); }
-                    else OnError?.Invoke($"Update observation failed: {res.Message ?? "Server error"}");
-                }
-                else
-                {
-                    var res = await _api.AddObservationAsync(remoteSessionId, req);
-                    if (res.Success && res.Data is not null)
+                    var req = BuildObsRequest(obs);
+                    if (!string.IsNullOrEmpty(obs.RemoteId) && Guid.TryParse(obs.RemoteId, out var remoteObsId))
                     {
-                        obs.RemoteId = res.Data.Id.ToString();
-                        obs.IsDirty  = false;
-                        await _db.SaveObservationAsync(obs);
+                        var res = await _api.UpdateObservationAsync(remoteSessionId, remoteObsId, req);
+                        if (res.Success) { obs.IsDirty = false; await _db.SaveObservationAsync(obs); }
+                        else OnError?.Invoke($"Update observation failed: {res.Message ?? "Server error"}");
                     }
-                    else OnError?.Invoke($"Add observation failed: {res.Message ?? "Server error"}");
+                    else
+                    {
+                        var res = await _api.AddObservationAsync(remoteSessionId, req);
+                        if (res.Success && res.Data is not null)
+                        {
+                            obs.RemoteId = res.Data.Id.ToString();
+                            obs.IsDirty  = false;
+                            await _db.SaveObservationAsync(obs);
+                        }
+                        else OnError?.Invoke($"Add observation failed: {res.Message ?? "Server error"}");
+                    }
                 }
+            }
+
+            // If the session was completed offline, mark it complete on the server now
+            if (session.CompletedAt.HasValue && session.SyncedAt is null)
+            {
+                OnProgress?.Invoke($"↑ Completing session {session.FieldName ?? session.FarmName ?? "session"} on server...");
+                await _api.CompleteSessionAsync(remoteSessionId);
+                session.Status   = 2;
+                session.SyncedAt = DateTime.UtcNow;
+                await _db.SaveSessionAsync(session);
             }
         }
     }

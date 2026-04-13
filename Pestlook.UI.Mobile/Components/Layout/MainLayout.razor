@@ -1,3 +1,24 @@
 ﻿@inherits LayoutComponentBase
+@inject ApiClient Api
 
-@Body
+@if (_ready)
+{
+    @Body
+}
+else
+{
+    <div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0e1a14;">
+        <span style="font-size:14px;color:#6ede84;">Loading…</span>
+    </div>
+}
+
+@code {
+    private bool _ready;
+
+    protected override void OnInitialized()
+    {
+        if (!Api.IsLoggedIn)
+            Api.TryRestoreAuth();
+        _ready = true;
+    }
+}

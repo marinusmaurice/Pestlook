@@ -249,8 +249,9 @@
         var trapName = trapId is null ? null : traps.FirstOrDefault(t => t.Id == trapId)?.Name;
         var lifeStage = selectedLifeStage >= 0 ? selectedLifeStage : (int?)null;
 
-        // Online-first: try to post directly to server
-        if (Conn.IsOnline && Api.IsLoggedIn && Guid.TryParse(SessionId, out var remoteSessionId))
+        // Online-first: try to post directly to server (requires a synced session with a RemoteId)
+        if (Conn.IsOnline && Api.IsLoggedIn &&
+            !string.IsNullOrEmpty(session?.RemoteId) && Guid.TryParse(session.RemoteId, out var remoteSessionId))
         {
             var req = new SessionObservationRequest
             {

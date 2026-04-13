@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Maui.Storage;
 
 namespace Pestlook.UI.Mobile.Services;
 
@@ -63,6 +64,7 @@ public class ApiClient
                 _user = me.Data;
                 _tenantSlug = me.Data.TenantSlug;
             }
+            SaveAuthState();
         }
         return res;
     }
@@ -73,6 +75,67 @@ public class ApiClient
         _refreshToken = null;
         _user = null;
         _tenantSlug = null;
+        ClearAuthState();
+    }
+
+    /// <summary>Restores a previously saved login session from local storage. Returns true if a saved session was found.</summary>
+    public bool TryRestoreAuth()
+    {
+        var token = Preferences.Default.Get("auth.access_token", "");
+        if (string.IsNullOrEmpty(token)) return false;
+
+        var userId = Preferences.Default.Get("auth.user_id", "");
+        if (string.IsNullOrEmpty(userId)) return false;
+
+        _accessToken  = token;
+        _refreshToken = Preferences.Default.Get("auth.refresh_token", "");
+        var expiryStr = Preferences.Default.Get("auth.token_expiry", "");
+        _tokenExpiry  = DateTime.TryParse(expiryStr, null,
+            System.Globalization.DateTimeStyles.RoundtripKind, out var exp) ? exp : DateTime.MinValue;
+        _tenantSlug   = Preferences.Default.Get("auth.user_tenant_slug", "");
+        _user = new UserInfo
+        {
+            Id              = userId,
+            Email           = Preferences.Default.Get("auth.user_email", ""),
+            FirstName       = Preferences.Default.Get("auth.user_first_name", ""),
+            LastName        = Preferences.Default.Get("auth.user_last_name", ""),
+            TenantSlug      = _tenantSlug ?? "",
+            TemperatureUnit = Preferences.Default.Get("auth.user_temp_unit", "C"),
+            Roles           = Preferences.Default.Get("auth.user_roles", "")
+                                  .Split(',', StringSplitOptions.RemoveEmptyEntries)
+        };
+        return true;
+    }
+
+    private void SaveAuthState()
+    {
+        Preferences.Default.Set("auth.access_token",  _accessToken  ?? "");
+        Preferences.Default.Set("auth.refresh_token", _refreshToken ?? "");
+        Preferences.Default.Set("auth.token_expiry",  _tokenExpiry.ToString("O"));
+        if (_user is not null)
+        {
+            Preferences.Default.Set("auth.user_id",          _user.Id);
+            Preferences.Default.Set("auth.user_email",        _user.Email);
+            Preferences.Default.Set("auth.user_first_name",   _user.FirstName);
+            Preferences.Default.Set("auth.user_last_name",    _user.LastName);
+            Preferences.Default.Set("auth.user_tenant_slug",  _user.TenantSlug);
+            Preferences.Default.Set("auth.user_temp_unit",    _user.TemperatureUnit);
+            Preferences.Default.Set("auth.user_roles",        string.Join(",", _user.Roles));
+        }
+    }
+
+    private static void ClearAuthState()
+    {
+        Preferences.Default.Remove("auth.access_token");
+        Preferences.Default.Remove("auth.refresh_token");
+        Preferences.Default.Remove("auth.token_expiry");
+        Preferences.Default.Remove("auth.user_id");
+        Preferences.Default.Remove("auth.user_email");
+        Preferences.Default.Remove("auth.user_first_name");
+        Preferences.Default.Remove("auth.user_last_name");
+        Preferences.Default.Remove("auth.user_tenant_slug");
+        Preferences.Default.Remove("auth.user_temp_unit");
+        Preferences.Default.Remove("auth.user_roles");
     }
 
     // ── Farms ─────────────────────────────────────────────────
@@ -232,6 +295,7 @@ public class ApiClient
                 _accessToken = result.Data.AccessToken;
                 _refreshToken = result.Data.RefreshToken;
                 _tokenExpiry = result.Data.AccessTokenExpiry;
+                SaveAuthState();
             }
         }
         catch { /* will re-login */ }
