@@ -1,8 +1,6 @@
 @page "/add-obs/{SessionId}"
 @inject LocalDatabase Db
-@inject ApiClient Api
 @inject GpsService Gps
-@inject ConnectivityService Conn
 @inject NavigationManager Nav
 
 <div class="app-shell">
@@ -249,58 +247,7 @@
         var trapName = trapId is null ? null : traps.FirstOrDefault(t => t.Id == trapId)?.Name;
         var lifeStage = selectedLifeStage >= 0 ? selectedLifeStage : (int?)null;
 
-        // Online-first: try to post directly to server (requires a synced session with a RemoteId)
-        if (Conn.IsOnline && Api.IsLoggedIn &&
-            !string.IsNullOrEmpty(session?.RemoteId) && Guid.TryParse(session.RemoteId, out var remoteSessionId))
-        {
-            var req = new SessionObservationRequest
-            {
-                ObservationType = trapId is not null ? "Trap" : "AdHoc",
-                PestId = Guid.TryParse(pestId, out var pid) ? pid : null,
-                IsUnknownPest = isUnknown,
-                CaptureMode = captureMode switch { 1 => "Presence", _ => "Count" },
-                Count = captureMode == 0 ? count : null,
-                IsPresent = captureMode == 1 ? present : null,
-                TrapId = Guid.TryParse(trapId, out var tid) ? tid : null,
-                CapturedLat = gpsLat,
-                CapturedLng = gpsLng,
-                Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(),
-                LifeStage = lifeStage switch { 0 => "Egg", 1 => "Larva", 2 => "Nymph", 3 => "Pupa", 4 => "Adult", 5 => "Unknown", _ => null },
-                IsPlanned = session?.IsPlanned ?? false
-            };
-            var res = await Api.AddObservationAsync(remoteSessionId, req);
-            if (res.Success && res.Data is not null)
-            {
-                var obs = new LocalObservation
-                {
-                    Id = res.Data.Id.ToString(),
-                    RemoteId = res.Data.Id.ToString(),
-                    SessionId = SessionId,
-                    PestId = pestId,
-                    PestName = pestName,
-                    IsUnknownPest = isUnknown,
-                    CaptureMode = captureMode,
-                    Count = captureMode == 0 ? count : null,
-                    IsPresent = captureMode == 1 ? present : null,
-                    TrapId = trapId,
-                    TrapName = trapName,
-                    CapturedLat = gpsLat,
-                    CapturedLng = gpsLng,
-                    Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(),
-                    LifeStage = lifeStage,
-                    ThresholdCount = res.Data.ThresholdCount,
-                    SortOrder = res.Data.SortOrder,
-                    IsPlanned = session?.IsPlanned ?? false,
-                    IsDirty = false
-                };
-                await Db.SaveObservationAsync(obs);
-                saving = false;
-                Nav.NavigateTo($"/session-detail/{SessionId}");
-                return;
-            }
-        }
-
-        // Offline fallback: save locally with IsDirty=true
+        // Always save locally; SyncService will push to the server on next sync
         var localObs = new LocalObservation
         {
             SessionId = SessionId,

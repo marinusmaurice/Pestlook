@@ -57,7 +57,7 @@
             <div class="cd" style="padding:0;overflow:hidden;">
                 <div style="display:flex;align-items:center;padding:10px 12px;border-bottom:.5px solid var(--border);">
                     <span style="font-size:12px;color:var(--text-dim);min-width:80px;">Type</span>
-                    <span style="font-size:13px;font-weight:500;">@(obs.CaptureMode == 0 ? "Trap count" : "Present / absent")</span>
+                    <span style="font-size:13px;font-weight:500;">@CaptureModeLabel</span>
                 </div>
                 @if (obs.CaptureMode == 0 && obs.Count.HasValue)
                 {
@@ -148,6 +148,15 @@
     private int sessionStatus;
 
     private string DisplayName => obs is null ? "—" : obs.IsUnknownPest ? "Unknown pest" : (obs.PestName ?? "—");
+
+    private string CaptureModeLabel
+    {
+        get
+        {
+            var mode = obs!.CaptureMode == 0 ? "Count" : "Present / Absent";
+            return !string.IsNullOrEmpty(obs.TrapId) ? $"Trap \u00b7 {mode}" : mode;
+        }
+    }
 
     protected override async Task OnParametersSetAsync() => await LoadData();
 
