@@ -131,8 +131,14 @@ public class SyncService
 
     private async Task PullPlannedSessionsAsync()
     {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        System.Diagnostics.Debug.WriteLine($"[SYNC] PullPlannedSessions — start");
+
         OnProgress?.Invoke("↓ Pulling planned sessions...");
+        var t0 = sw.ElapsedMilliseconds;
         var sessionsRes = await _api.GetPlannedSessionsAsync();
+        System.Diagnostics.Debug.WriteLine($"[SYNC] GetPlannedSessionsAsync — {sw.ElapsedMilliseconds - t0}ms  success={sessionsRes.Success}  count={sessionsRes.Data?.Count ?? -1}");
+
         if (!sessionsRes.Success || sessionsRes.Data is null)
         {
             OnError?.Invoke($"Could not load planned sessions: {sessionsRes.Message ?? "Server error"}");
@@ -144,12 +150,15 @@ public class SyncService
         for (int i = 0; i < sessions.Count; i++)
         {
             var detail = sessions[i];
+            var tSession = sw.ElapsedMilliseconds;
             OnProgress?.Invoke($"↓ Planned session {i + 1}/{sessions.Count}: {detail.FieldName ?? detail.FarmName ?? detail.Id.ToString()[..8]}");
 
             var serverId = detail.Id.ToString();
 
             // Remove any orphaned copy that was saved with a random GUID instead of the server ID
+            var t1 = sw.ElapsedMilliseconds;
             var orphan = await _db.GetSessionByRemoteIdAsync(serverId);
+            System.Diagnostics.Debug.WriteLine($"[SYNC]   [{i+1}/{sessions.Count}] GetSessionByRemoteId — {sw.ElapsedMilliseconds - t1}ms  orphan={orphan?.Id ?? "none"}");
             if (orphan is not null && orphan.Id != serverId)
             {
                 System.Diagnostics.Debug.WriteLine(
@@ -159,13 +168,17 @@ public class SyncService
 
             // Preserve local completed state if the scout finished the session offline but it
             // hasn't been pushed to the server yet — the pull must not clobber CompletedAt/Status.
+            var t2 = sw.ElapsedMilliseconds;
             var existing = await _db.GetSessionAsync(serverId);
+            System.Diagnostics.Debug.WriteLine($"[SYNC]   [{i+1}/{sessions.Count}] GetSession — {sw.ElapsedMilliseconds - t2}ms  exists={existing is not null}");
             var isLocallyCompleted = existing?.Status == 1 && existing.SyncedAt is null;
 
+            var t3 = sw.ElapsedMilliseconds;
             await _db.SaveSessionAsync(new LocalSession
             {
                 Id               = serverId,
                 RemoteId         = serverId,
+                TenantId         = detail.TenantId.ToString(),
                 ScouterId        = detail.ScouterId ?? scouterId,
                 FarmId           = detail.FarmId?.ToString(),
                 FarmName         = detail.FarmName,
@@ -174,17 +187,25 @@ public class SyncService
                 IsPlanned        = true,
                 ScheduledDate    = detail.ScheduledDate,
                 Status           = isLocallyCompleted ? 1 : (detail.IsCompleted ? 2 : 0),
-                WeatherCondition = detail.WeatherConditions,
-                Notes            = detail.Notes,
-                StartedAt        = detail.StartedAt ?? DateTime.UtcNow,
+                WeatherCondition = !string.IsNullOrEmpty(detail.WeatherConditions) ? detail.WeatherConditions : existing?.WeatherCondition,
+                Temperature      = detail.TemperatureCelsius.HasValue ? (int)detail.TemperatureCelsius.Value : (existing?.Temperature ?? 0),
+                Notes            = detail.Notes ?? existing?.Notes,
+                StartedAt        = detail.StartedAt ?? existing?.StartedAt ?? DateTime.UtcNow,
                 CompletedAt      = isLocallyCompleted ? existing!.CompletedAt : detail.CompletedAt,
                 SyncedAt         = existing?.SyncedAt
             });
+            System.Diagnostics.Debug.WriteLine($"[SYNC]   [{i+1}/{sessions.Count}] SaveSession — {sw.ElapsedMilliseconds - t3}ms");
 
-            if (detail.Observations is null) continue;
+            if (detail.Observations is null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[SYNC]   [{i+1}/{sessions.Count}] No observations — session total {sw.ElapsedMilliseconds - tSession}ms");
+                continue;
+            }
 
             var sessionId        = detail.Id.ToString();
+            var t4 = sw.ElapsedMilliseconds;
             var existingObs      = await _db.GetObservationsForSessionAsync(sessionId);
+            System.Diagnostics.Debug.WriteLine($"[SYNC]   [{i+1}/{sessions.Count}] GetObservations — {sw.ElapsedMilliseconds - t4}ms  count={existingObs.Count}");
 
             // IDs of observations the scout has modified or added offline — preserve these
             var dirtyRemoteIds = existingObs
@@ -193,13 +214,18 @@ public class SyncService
                 .ToHashSet();
 
             // Delete stale clean copies so they don't accumulate and get re-pushed
-            foreach (var stale in existingObs.Where(o => !o.IsDirty))
+            var t5 = sw.ElapsedMilliseconds;
+            var staleList = existingObs.Where(o => !o.IsDirty).ToList();
+            foreach (var stale in staleList)
                 await _db.DeleteObservationAsync(stale.Id);
+            System.Diagnostics.Debug.WriteLine($"[SYNC]   [{i+1}/{sessions.Count}] DeleteStaleObs ({staleList.Count}) — {sw.ElapsedMilliseconds - t5}ms");
 
+            var t6 = sw.ElapsedMilliseconds;
+            int saved = 0, skipped = 0;
             foreach (var o in detail.Observations)
             {
                 // Don't overwrite an observation the scout has already modified locally
-                if (dirtyRemoteIds.Contains(o.Id.ToString())) continue;
+                if (dirtyRemoteIds.Contains(o.Id.ToString())) { skipped++; continue; }
 
                 await _db.SaveObservationAsync(new LocalObservation
                 {
@@ -224,8 +250,13 @@ public class SyncService
                     SortOrder           = o.SortOrder,
                     IsDirty             = false
                 });
+                saved++;
             }
+            System.Diagnostics.Debug.WriteLine($"[SYNC]   [{i+1}/{sessions.Count}] SaveObservations saved={saved} skipped={skipped} — {sw.ElapsedMilliseconds - t6}ms");
+            System.Diagnostics.Debug.WriteLine($"[SYNC]   [{i+1}/{sessions.Count}] Session total — {sw.ElapsedMilliseconds - tSession}ms");
         }
+
+        System.Diagnostics.Debug.WriteLine($"[SYNC] PullPlannedSessions — DONE  total={sw.ElapsedMilliseconds}ms");
     }
 
     // ── Phase 2a: push completed ad-hoc sessions ──────────────────────────────
@@ -286,7 +317,11 @@ public class SyncService
                 }
             }
 
-            await _api.CompleteSessionAsync(remoteSessionId);
+            await _api.CompleteSessionAsync(remoteSessionId,
+                session.WeatherCondition,
+                session.Temperature != 0 ? (double?)session.Temperature : null,
+                session.Notes,
+                session.StartedAt != default ? session.StartedAt : null);
             session.Status   = 2;
             session.SyncedAt = DateTime.UtcNow;
             await _db.SaveSessionAsync(session);
@@ -332,7 +367,11 @@ public class SyncService
             if (session.CompletedAt.HasValue && session.SyncedAt is null)
             {
                 OnProgress?.Invoke($"↑ Completing session {session.FieldName ?? session.FarmName ?? "session"} on server...");
-                await _api.CompleteSessionAsync(remoteSessionId);
+                await _api.CompleteSessionAsync(remoteSessionId,
+                    session.WeatherCondition,
+                    session.Temperature != 0 ? (double?)session.Temperature : null,
+                    session.Notes,
+                    session.StartedAt != default ? session.StartedAt : null);
                 session.Status   = 2;
                 session.SyncedAt = DateTime.UtcNow;
                 await _db.SaveSessionAsync(session);

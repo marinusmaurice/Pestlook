@@ -99,6 +99,7 @@ public class ApiClient
             Email           = Preferences.Default.Get("auth.user_email", ""),
             FirstName       = Preferences.Default.Get("auth.user_first_name", ""),
             LastName        = Preferences.Default.Get("auth.user_last_name", ""),
+            TenantId        = Guid.TryParse(Preferences.Default.Get("auth.user_tenant_id", ""), out var tid) ? tid : Guid.Empty,
             TenantSlug      = _tenantSlug ?? "",
             TemperatureUnit = Preferences.Default.Get("auth.user_temp_unit", "C"),
             Roles           = Preferences.Default.Get("auth.user_roles", "")
@@ -118,6 +119,7 @@ public class ApiClient
             Preferences.Default.Set("auth.user_email",        _user.Email);
             Preferences.Default.Set("auth.user_first_name",   _user.FirstName);
             Preferences.Default.Set("auth.user_last_name",    _user.LastName);
+            Preferences.Default.Set("auth.user_tenant_id",    _user.TenantId.ToString());
             Preferences.Default.Set("auth.user_tenant_slug",  _user.TenantSlug);
             Preferences.Default.Set("auth.user_temp_unit",    _user.TemperatureUnit);
             Preferences.Default.Set("auth.user_roles",        string.Join(",", _user.Roles));
@@ -162,8 +164,11 @@ public class ApiClient
     public Task<ApiResult<SessionResponse>> GetSessionAsync(Guid id)
         => GetAsync<SessionResponse>($"scouting-sessions/{id}");
 
-    public Task<ApiResult<SessionResponse>> CompleteSessionAsync(Guid id)
-        => PatchAsync<SessionResponse>($"scouting-sessions/{id}/complete", new { });
+    public Task<ApiResult<SessionResponse>> CompleteSessionAsync(Guid id,
+        string? weatherConditions = null, double? temperatureCelsius = null,
+        string? notes = null, DateTime? startedAt = null)
+        => PatchAsync<SessionResponse>($"scouting-sessions/{id}/complete",
+            new { weatherConditions, temperatureCelsius, notes, startedAt });
 
     // ── Trap Types ────────────────────────────────────────────
     public Task<ApiResult<List<TrapTypeResponse>>> GetTrapTypesAsync()
@@ -324,6 +329,7 @@ public class UserInfo
     [JsonPropertyName("email")] public string Email { get; set; } = "";
     [JsonPropertyName("firstName")] public string FirstName { get; set; } = "";
     [JsonPropertyName("lastName")] public string LastName { get; set; } = "";
+    [JsonPropertyName("tenantId")] public Guid TenantId { get; set; }
     [JsonPropertyName("tenantSlug")] public string TenantSlug { get; set; } = "";
     [JsonPropertyName("temperatureUnit")] public string TemperatureUnit { get; set; } = "C";
     [JsonPropertyName("roles")] public IList<string> Roles { get; set; } = [];
@@ -350,6 +356,7 @@ public class FieldResponse
 public class SessionResponse
 {
     [JsonPropertyName("id")] public Guid Id { get; set; }
+    [JsonPropertyName("tenantId")] public Guid TenantId { get; set; }
     [JsonPropertyName("farmId")] public Guid? FarmId { get; set; }
     [JsonPropertyName("farmName")] public string? FarmName { get; set; }
     [JsonPropertyName("fieldId")] public Guid? FieldId { get; set; }
@@ -402,8 +409,8 @@ public class SessionResponse
         [JsonPropertyName("isPresent")] public bool? IsPresent { get; set; }
         [JsonPropertyName("notes")] public string? Notes { get; set; }
         [JsonPropertyName("trapId")] public Guid? TrapId { get; set; }
-        [JsonPropertyName("capturedLat")] public double? CapturedLat { get; set; }
-        [JsonPropertyName("capturedLng")] public double? CapturedLng { get; set; }
+        [JsonPropertyName("latitude")] public double? CapturedLat { get; set; }
+        [JsonPropertyName("longitude")] public double? CapturedLng { get; set; }
         [JsonPropertyName("lifeStage")] public string? LifeStage { get; set; }
         [JsonPropertyName("isPlanned")] public bool IsPlanned { get; set; }
     }

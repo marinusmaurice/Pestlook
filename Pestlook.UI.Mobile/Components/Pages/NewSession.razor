@@ -270,7 +270,7 @@
             FarmName = SelectedFarmName,
             FieldName = string.IsNullOrEmpty(selectedFieldId) ? null : SelectedFieldName,
             ScouterId = Api.CurrentUser?.Id,
-            TenantId = Api.CurrentUser?.TenantSlug,
+            TenantId = Api.CurrentUser?.TenantId.ToString(),
             StartedAt = DateTime.UtcNow,
             Status = 0, // Active
             WeatherCondition = weather,

@@ -1,5 +1,6 @@
 @page "/obs-detail/{ObsId}/{SessionId}"
 @inject LocalDatabase Db
+@inject GpsService Gps
 @inject NavigationManager Nav
 
 <div class="app-shell">
@@ -111,10 +112,65 @@
                 }
             }
 
-            <!-- GPS -->
-            @if (obs.CapturedLat.HasValue && obs.CapturedLng.HasValue)
+            <!-- Life stage -->
+            @if (editing)
             {
-                <div class="sl">GPS location</div>
+                <div class="sl">Life stage</div>
+                <div style="margin:4px 10px;">
+                    <select class="pk-select" @bind="editLifeStage">
+                        <option value="-1">Not specified</option>
+                        <option value="0">Egg</option>
+                        <option value="1">Larva / Nymph</option>
+                        <option value="2">Pupa</option>
+                        <option value="3">Adult</option>
+                    </select>
+                </div>
+            }
+
+            <!-- Trap -->
+            @if (editing && traps.Count > 0)
+            {
+                <div class="sl">Trap <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></div>
+                <div style="margin:4px 10px;">
+                    <select class="pk-select" @bind="editTrapId">
+                        <option value="">No trap selected</option>
+                        @foreach (var t in traps)
+                        {
+                            <option value="@t.Id">🕸️ @t.Name@(!string.IsNullOrEmpty(t.Barcode) ? $" · {t.Barcode}" : "")</option>
+                        }
+                    </select>
+                </div>
+            }
+
+            <!-- GPS -->
+            <div class="sl">GPS location</div>
+            @if (editing)
+            {
+                <div class="cd" style="display:flex;align-items:center;gap:8px;padding:10px 12px;">
+                    <span style="font-size:15px;">📍</span>
+                    <div style="flex:1;">
+                        @if (editGpsLat.HasValue && editGpsLng.HasValue)
+                        {
+                            <div style="font-size:12px;font-weight:500;">@editGpsLat.Value.ToString("F4"), @editGpsLng.Value.ToString("F4")</div>
+                            <div style="font-size:11px;color:var(--text-dim);">Location captured</div>
+                        }
+                        else
+                        {
+                            <div style="font-size:12px;color:var(--text-dim);">@gpsStatus</div>
+                        }
+                    </div>
+                    @if (editGpsLat.HasValue)
+                    {
+                        <span class="ch cs">OK</span>
+                    }
+                    else
+                    {
+                        <button class="bo" style="padding:4px 10px;font-size:11px;" @onclick="CaptureGps" disabled="@gpsCapturing">📍 Get</button>
+                    }
+                </div>
+            }
+            else if (obs.CapturedLat.HasValue && obs.CapturedLng.HasValue)
+            {
                 <div class="cd" style="display:flex;align-items:center;gap:8px;">
                     <span style="font-size:14px;">📍</span>
                     <div style="flex:1;">
@@ -177,9 +233,12 @@
             @if (!editing)
             {
                 <button class="bp" style="flex:1;margin:0;" @onclick="StartEdit">✏️ Edit</button>
-                <button class="bo" style="color:var(--red);border-color:rgba(224,96,96,.25);" @onclick="Delete" disabled="@deleting">
-                    @if (deleting) { <span class="spinner-sm" style="width:12px;height:12px;margin-right:4px;"></span> } 🗑 Delete
-                </button>
+                @if (obs.IsPlanned == false)
+                {
+                    <button class="bo" style="color:var(--red);border-color:rgba(224,96,96,.25);" @onclick="Delete" disabled="@deleting">
+                        @if (deleting) { <span class="spinner-sm" style="width:12px;height:12px;margin-right:4px;"></span> } 🗑 Delete
+                    </button>
+                }
             }
             else
             {
@@ -200,8 +259,10 @@
     private bool deleting;
     private bool editing;
     private bool saving;
+    private bool gpsCapturing;
     private LocalObservation? obs;
     private List<LocalObservationPhoto> photos = new();
+    private List<CachedTrap> traps = new();
     private int? alertThreshold;
     private int sessionStatus;
 
@@ -209,6 +270,11 @@
     private int editCount;
     private bool editPresent;
     private string editNotes = "";
+    private int editLifeStage = -1;
+    private string editTrapId = "";
+    private double? editGpsLat;
+    private double? editGpsLng;
+    private string gpsStatus = "Tap Get to capture location";
 
     private string DisplayName => obs is null ? "—" : obs.IsUnknownPest ? "Unknown pest" : (obs.PestName ?? "—");
 
@@ -230,6 +296,7 @@
 
         obs = await Db.GetObservationAsync(ObsId);
         photos = obs is not null ? await Db.GetPhotosForObservationAsync(ObsId) : new();
+        traps = await Db.GetEnabledTrapsAsync();
 
         // Get session status to control delete visibility
         var session = await Db.GetSessionAsync(SessionId);
@@ -237,6 +304,10 @@
 
         // Check alert threshold from observation snapshot
         alertThreshold = obs?.ThresholdCount;
+
+        // Open directly in edit mode for active sessions
+        if (sessionStatus == 0 && obs is not null)
+            StartEdit();
 
         loading = false;
     }
@@ -255,6 +326,11 @@
         editCount = obs!.Count ?? 0;
         editPresent = obs.IsPresent ?? true;
         editNotes = obs.Notes ?? "";
+        editLifeStage = obs.LifeStage ?? -1;
+        editTrapId = obs.TrapId ?? "";
+        editGpsLat = obs.CapturedLat;
+        editGpsLng = obs.CapturedLng;
+        gpsStatus = editGpsLat.HasValue ? "Location captured" : "Tap Get to capture location";
         editing = true;
     }
 
@@ -268,15 +344,22 @@
         obs!.Count = obs.CaptureMode == 0 ? editCount : null;
         obs.IsPresent = obs.CaptureMode == 1 ? editPresent : null;
         obs.Notes = string.IsNullOrWhiteSpace(editNotes) ? null : editNotes.Trim();
+        obs.LifeStage = editLifeStage >= 0 ? editLifeStage : (int?)null;
+        obs.TrapId = string.IsNullOrEmpty(editTrapId) ? null : editTrapId;
+        obs.TrapName = string.IsNullOrEmpty(editTrapId) ? null : traps.FirstOrDefault(t => t.Id == editTrapId)?.Name;
+        obs.CapturedLat = editGpsLat;
+        obs.CapturedLng = editGpsLng;
         obs.IsDirty = true;
         await Db.SaveObservationAsync(obs);
 
         saving = false;
         editing = false;
+        GoBack();
     }
 
     private async Task Delete()
     {
+        if (obs?.IsPlanned == true) return;
         deleting = true;
         StateHasChanged();
 
@@ -290,6 +373,32 @@
 
         deleting = false;
         GoBack();
+    }
+
+    private async Task CaptureGps()
+    {
+        gpsCapturing = true;
+        gpsStatus = "Getting location...";
+        StateHasChanged();
+        try
+        {
+            var loc = await Gps.GetCurrentLocationAsync();
+            if (loc.lat != 0 || loc.lng != 0)
+            {
+                editGpsLat = loc.lat;
+                editGpsLng = loc.lng;
+                gpsStatus = "Location captured";
+            }
+            else
+            {
+                gpsStatus = "Location unavailable";
+            }
+        }
+        catch
+        {
+            gpsStatus = "Location unavailable";
+        }
+        gpsCapturing = false;
     }
 
     private void GoBack() => Nav.NavigateTo($"/session-detail/{SessionId}");

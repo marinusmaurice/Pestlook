@@ -13,7 +13,8 @@ public sealed record StartScoutingSessionRequest(
 public sealed record CompleteScoutingSessionRequest(
     string? WeatherConditions,
     double? TemperatureCelsius,
-    string? Notes);
+    string? Notes,
+    DateTime? StartedAt);
 
 public sealed record CreatePlannedSessionRequest(
     string? ScouterId,
