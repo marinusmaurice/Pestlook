@@ -41,6 +41,9 @@ public class LocalDatabase
     public Task<LocalSession?> GetSessionAsync(string id)
         => _db.Table<LocalSession>().FirstOrDefaultAsync(s => s.Id == id);
 
+    public Task<LocalSession?> GetSessionByRemoteIdAsync(string remoteId)
+        => _db.Table<LocalSession>().FirstOrDefaultAsync(s => s.RemoteId == remoteId);
+
     public Task<List<LocalSession>> GetSessionsByStatusAsync(int status)
         => _db.Table<LocalSession>().Where(s => s.Status == status).OrderByDescending(s => s.StartedAt).ToListAsync();
 

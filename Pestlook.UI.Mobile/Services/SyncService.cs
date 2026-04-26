@@ -146,10 +146,26 @@ public class SyncService
             var detail = sessions[i];
             OnProgress?.Invoke($"↓ Planned session {i + 1}/{sessions.Count}: {detail.FieldName ?? detail.FarmName ?? detail.Id.ToString()[..8]}");
 
+            var serverId = detail.Id.ToString();
+
+            // Remove any orphaned copy that was saved with a random GUID instead of the server ID
+            var orphan = await _db.GetSessionByRemoteIdAsync(serverId);
+            if (orphan is not null && orphan.Id != serverId)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[SYNC] Removing orphaned session {orphan.Id} (RemoteId={serverId}, Status={orphan.Status})");
+                await _db.DeleteSessionAsync(orphan.Id);
+            }
+
+            // Preserve local completed state if the scout finished the session offline but it
+            // hasn't been pushed to the server yet — the pull must not clobber CompletedAt/Status.
+            var existing = await _db.GetSessionAsync(serverId);
+            var isLocallyCompleted = existing?.Status == 1 && existing.SyncedAt is null;
+
             await _db.SaveSessionAsync(new LocalSession
             {
-                Id               = detail.Id.ToString(),
-                RemoteId         = detail.Id.ToString(),
+                Id               = serverId,
+                RemoteId         = serverId,
                 ScouterId        = detail.ScouterId ?? scouterId,
                 FarmId           = detail.FarmId?.ToString(),
                 FarmName         = detail.FarmName,
@@ -157,26 +173,27 @@ public class SyncService
                 FieldName        = detail.FieldName,
                 IsPlanned        = true,
                 ScheduledDate    = detail.ScheduledDate,
-                Status           = detail.IsCompleted ? 2 : 0,
+                Status           = isLocallyCompleted ? 1 : (detail.IsCompleted ? 2 : 0),
                 WeatherCondition = detail.WeatherConditions,
                 Notes            = detail.Notes,
                 StartedAt        = detail.StartedAt ?? DateTime.UtcNow,
-                CompletedAt      = detail.CompletedAt
+                CompletedAt      = isLocallyCompleted ? existing!.CompletedAt : detail.CompletedAt,
+                SyncedAt         = existing?.SyncedAt
             });
 
             if (detail.Observations is null) continue;
 
-            var sessionId = detail.Id.ToString();
-            var existing  = await _db.GetObservationsForSessionAsync(sessionId);
+            var sessionId        = detail.Id.ToString();
+            var existingObs      = await _db.GetObservationsForSessionAsync(sessionId);
 
             // IDs of observations the scout has modified or added offline — preserve these
-            var dirtyRemoteIds = existing
+            var dirtyRemoteIds = existingObs
                 .Where(o => o.IsDirty && !string.IsNullOrEmpty(o.RemoteId))
                 .Select(o => o.RemoteId!)
                 .ToHashSet();
 
             // Delete stale clean copies so they don't accumulate and get re-pushed
-            foreach (var stale in existing.Where(o => !o.IsDirty))
+            foreach (var stale in existingObs.Where(o => !o.IsDirty))
                 await _db.DeleteObservationAsync(stale.Id);
 
             foreach (var o in detail.Observations)

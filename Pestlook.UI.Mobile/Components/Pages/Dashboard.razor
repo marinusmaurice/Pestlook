@@ -289,7 +289,7 @@
             Log($"GetSessionsAsync returned {all.Count} rows");
 
             activeSessions  = all.Where(s => s.Status == 0 && !s.IsPlanned).ToList();
-            plannedSessions = all.Where(s => s.IsPlanned && s.Status < 2).ToList();
+            plannedSessions = all.Where(s => s.IsPlanned && !s.CompletedAt.HasValue).ToList();
             pendingSessions = all.Where(s => s.Status == 1 && !s.IsPlanned).ToList();
             syncedSessions  = all.Where(s => s.Status == 2).ToList();
             Log($"Buckets — active={activeSessions.Count} planned={plannedSessions.Count} pending={pendingSessions.Count} synced={syncedSessions.Count}");

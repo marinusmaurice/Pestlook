@@ -54,26 +54,62 @@
 
             <!-- Capture details -->
             <div class="sl">Capture details</div>
-            <div class="cd" style="padding:0;overflow:hidden;">
-                <div style="display:flex;align-items:center;padding:10px 12px;border-bottom:.5px solid var(--border);">
-                    <span style="font-size:12px;color:var(--text-dim);min-width:80px;">Type</span>
-                    <span style="font-size:13px;font-weight:500;">@CaptureModeLabel</span>
+            @if (!editing)
+            {
+                <div class="cd" style="padding:0;overflow:hidden;">
+                    <div style="display:flex;align-items:center;padding:10px 12px;border-bottom:.5px solid var(--border);">
+                        <span style="font-size:12px;color:var(--text-dim);min-width:80px;">Type</span>
+                        <span style="font-size:13px;font-weight:500;">@CaptureModeLabel</span>
+                    </div>
+                    @if (obs.CaptureMode == 0 && obs.Count.HasValue)
+                    {
+                        <div style="display:flex;align-items:center;padding:10px 12px;border-bottom:.5px solid var(--border);">
+                            <span style="font-size:12px;color:var(--text-dim);min-width:80px;">Count</span>
+                            <span style="font-size:22px;font-weight:600;">@obs.Count</span>
+                        </div>
+                    }
+                    @if (obs.CaptureMode == 1 && obs.IsPresent.HasValue)
+                    {
+                        <div style="display:flex;align-items:center;padding:10px 12px;border-bottom:.5px solid var(--border);">
+                            <span style="font-size:12px;color:var(--text-dim);min-width:80px;">Status</span>
+                            <span class="ch @(obs.IsPresent.Value ? "cw" : "cn")">@(obs.IsPresent.Value ? "Present" : "Absent")</span>
+                        </div>
+                    }
                 </div>
-                @if (obs.CaptureMode == 0 && obs.Count.HasValue)
+            }
+            else
+            {
+                <!-- Edit: Count -->
+                @if (obs.CaptureMode == 0)
                 {
-                    <div style="display:flex;align-items:center;padding:10px 12px;border-bottom:.5px solid var(--border);">
-                        <span style="font-size:12px;color:var(--text-dim);min-width:80px;">Count</span>
-                        <span style="font-size:22px;font-weight:600;">@obs.Count</span>
+                    <div style="display:flex;align-items:center;gap:14px;padding:6px 12px;">
+                        <button class="cb" style="width:40px;height:40px;font-size:20px;" @onclick="() => { if (editCount > 0) editCount--; }">−</button>
+                        <span style="font-size:30px;font-weight:600;min-width:52px;text-align:center;color:@(obs.ThresholdCount.HasValue && editCount > obs.ThresholdCount.Value ? "var(--red)" : "var(--text)");">@editCount</span>
+                        <button class="cb" style="width:40px;height:40px;font-size:20px;" @onclick="() => editCount++">+</button>
+                        @if (obs.ThresholdCount.HasValue)
+                        {
+                            <div style="flex:1;">
+                                @if (editCount > obs.ThresholdCount.Value)
+                                {
+                                    <div style="font-size:12px;font-weight:600;color:var(--red);">⚠ Exceeds limit (@obs.ThresholdCount)</div>
+                                }
+                                else
+                                {
+                                    <div style="font-size:12px;color:var(--text-dim);">Limit: @obs.ThresholdCount</div>
+                                }
+                            </div>
+                        }
                     </div>
                 }
-                @if (obs.CaptureMode == 1 && obs.IsPresent.HasValue)
+                <!-- Edit: Present / Absent -->
+                @if (obs.CaptureMode == 1)
                 {
-                    <div style="display:flex;align-items:center;padding:10px 12px;border-bottom:.5px solid var(--border);">
-                        <span style="font-size:12px;color:var(--text-dim);min-width:80px;">Status</span>
-                        <span class="ch @(obs.IsPresent.Value ? "cw" : "cn")">@(obs.IsPresent.Value ? "Present" : "Absent")</span>
+                    <div class="seg" style="margin:4px 10px;">
+                        <button class="seg-btn @(editPresent ? "on" : "")" @onclick="() => editPresent = true">Present</button>
+                        <button class="seg-btn @(!editPresent ? "on" : "")" @onclick="() => editPresent = false">Absent</button>
                     </div>
                 }
-            </div>
+            }
 
             <!-- GPS -->
             @if (obs.CapturedLat.HasValue && obs.CapturedLng.HasValue)
@@ -107,11 +143,20 @@
 
             <!-- Notes -->
             <div class="sl">Notes</div>
-            <div class="cd">
-                <div style="font-size:13px;color:@(!string.IsNullOrEmpty(obs.Notes) ? "var(--text)" : "var(--text-dim)");">
-                    @(!string.IsNullOrEmpty(obs.Notes) ? obs.Notes : "No notes")
+            @if (!editing)
+            {
+                <div class="cd">
+                    <div style="font-size:13px;color:@(!string.IsNullOrEmpty(obs.Notes) ? "var(--text)" : "var(--text-dim)");">
+                        @(!string.IsNullOrEmpty(obs.Notes) ? obs.Notes : "No notes")
+                    </div>
                 </div>
-            </div>
+            }
+            else
+            {
+                <div style="margin:4px 10px;">
+                    <input class="inp" placeholder="Field observations..." @bind="editNotes" />
+                </div>
+            }
 
             <!-- Timestamp -->
             <div class="sl">Recorded</div>
@@ -129,9 +174,20 @@
     @if (obs is not null && sessionStatus == 0)
     {
         <div style="padding:8px 10px;border-top:.5px solid var(--border);display:flex;gap:6px;flex-shrink:0;">
-            <button class="bo" style="color:var(--red);border-color:rgba(224,96,96,.25);" @onclick="Delete" disabled="@deleting">
-                @if (deleting) { <span class="spinner-sm" style="width:12px;height:12px;margin-right:4px;"></span> } 🗑 Delete
-            </button>
+            @if (!editing)
+            {
+                <button class="bp" style="flex:1;margin:0;" @onclick="StartEdit">✏️ Edit</button>
+                <button class="bo" style="color:var(--red);border-color:rgba(224,96,96,.25);" @onclick="Delete" disabled="@deleting">
+                    @if (deleting) { <span class="spinner-sm" style="width:12px;height:12px;margin-right:4px;"></span> } 🗑 Delete
+                </button>
+            }
+            else
+            {
+                <button class="bo" style="flex:1;margin:0;" @onclick="CancelEdit">✕ Cancel</button>
+                <button class="bp" style="flex:2;margin:0;" @onclick="SaveEdit" disabled="@saving">
+                    @if (saving) { <span class="spinner-sm" style="width:12px;height:12px;margin-right:4px;"></span> } Save
+                </button>
+            }
         </div>
     }
 </div>
@@ -142,10 +198,17 @@
 
     private bool loading = true;
     private bool deleting;
+    private bool editing;
+    private bool saving;
     private LocalObservation? obs;
     private List<LocalObservationPhoto> photos = new();
     private int? alertThreshold;
     private int sessionStatus;
+
+    // Edit-mode state
+    private int editCount;
+    private bool editPresent;
+    private string editNotes = "";
 
     private string DisplayName => obs is null ? "—" : obs.IsUnknownPest ? "Unknown pest" : (obs.PestName ?? "—");
 
@@ -185,6 +248,31 @@
         if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes}m ago";
         if (span.TotalHours < 24) return $"{(int)span.TotalHours}h ago";
         return $"{(int)span.TotalDays}d ago";
+    }
+
+    private void StartEdit()
+    {
+        editCount = obs!.Count ?? 0;
+        editPresent = obs.IsPresent ?? true;
+        editNotes = obs.Notes ?? "";
+        editing = true;
+    }
+
+    private void CancelEdit() => editing = false;
+
+    private async Task SaveEdit()
+    {
+        saving = true;
+        StateHasChanged();
+
+        obs!.Count = obs.CaptureMode == 0 ? editCount : null;
+        obs.IsPresent = obs.CaptureMode == 1 ? editPresent : null;
+        obs.Notes = string.IsNullOrWhiteSpace(editNotes) ? null : editNotes.Trim();
+        obs.IsDirty = true;
+        await Db.SaveObservationAsync(obs);
+
+        saving = false;
+        editing = false;
     }
 
     private async Task Delete()
