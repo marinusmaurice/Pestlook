@@ -43,11 +43,7 @@
 
         <!-- Field (required when farm selected) -->
         <div class="sl">Field <span style="color:var(--red);font-weight:700;">*</span></div>
-        @if (fieldsLoading)
-        {
-            <div style="padding:8px 12px;font-size:12px;color:var(--text-dim);">Loading fields…</div>
-        }
-        else if (string.IsNullOrEmpty(selectedFarmId))
+        @if (string.IsNullOrEmpty(selectedFarmId))
         {
             <div style="padding:8px 12px;font-size:12px;color:var(--text-dim);">Select a farm first</div>
         }
@@ -98,7 +94,7 @@
         <!-- Notes (optional) -->
         <div class="sl">Notes <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></div>
         <div style="margin:4px 10px;">
-            <textarea class="inp" rows="2" placeholder="Any notes about today's conditions…" @bind="notes"></textarea>
+            <textarea class="inp" rows="2" placeholder="Any notes about today's session…" @bind="notes"></textarea>
         </div>
 
         <!-- Offline indicator -->
@@ -146,7 +142,6 @@
     private List<CachedFarm> farms = new();
     private List<CachedField> fields = new();
     private bool farmsLoading = true;
-    private bool fieldsLoading;
     private string selectedFarmId = "";
     private string selectedFieldId = "";
     private string? weather;
@@ -185,27 +180,13 @@
         if (!Api.IsLoggedIn) { Nav.NavigateTo("/"); return; }
         temperature = DefaultTemp;
 
+        var sw = System.Diagnostics.Stopwatch.StartNew();
         await Db.InitAsync();
+        System.Diagnostics.Debug.WriteLine($"[NewSession] Db.InitAsync: {sw.ElapsedMilliseconds}ms");
+        sw.Restart();
 
-        // Load from cache first, then refresh from API if online
         farms = await Db.GetCachedFarmsAsync();
-
-        if (Conn.IsOnline)
-        {
-            var res = await Api.GetFarmsAsync();
-            if (res.Success && res.Data is not null)
-            {
-                await Db.SaveFarmsAsync(res.Data.Select(f => new CachedFarm
-                {
-                    Id = f.Id.ToString(),
-                    Name = f.Name,
-                    Location = f.Address,
-                    IsActive = f.IsActive
-                }).ToList());
-                farms = await Db.GetCachedFarmsAsync();
-            }
-        }
-
+        System.Diagnostics.Debug.WriteLine($"[NewSession] GetCachedFarmsAsync: {sw.ElapsedMilliseconds}ms, count={farms.Count}");
         farmsLoading = false;
     }
 
@@ -216,30 +197,9 @@
 
         if (string.IsNullOrEmpty(selectedFarmId)) return;
 
-        fieldsLoading = true;
-        StateHasChanged();
-
+        var sw = System.Diagnostics.Stopwatch.StartNew();
         fields = await Db.GetCachedFieldsAsync(selectedFarmId);
-
-        if (Conn.IsOnline && Guid.TryParse(selectedFarmId, out var farmId))
-        {
-            var res = await Api.GetFieldsAsync(farmId);
-            if (res.Success && res.Data is not null)
-            {
-                var cached = res.Data.Select(f => new CachedField
-                {
-                    Id = f.Id.ToString(),
-                    FarmId = f.FarmId.ToString(),
-                    Name = f.Name,
-                    CropType = f.CropType,
-                    IsActive = f.IsActive
-                }).ToList();
-                await Db.SaveFieldsAsync(cached);
-                fields = await Db.GetCachedFieldsAsync(selectedFarmId);
-            }
-        }
-
-        fieldsLoading = false;
+        System.Diagnostics.Debug.WriteLine($"[NewSession] GetCachedFieldsAsync: {sw.ElapsedMilliseconds}ms, count={fields.Count}");
     }
 
     private async Task StartScouting()

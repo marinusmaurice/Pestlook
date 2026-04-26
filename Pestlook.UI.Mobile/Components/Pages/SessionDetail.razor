@@ -239,13 +239,13 @@
         <div style="padding:8px 10px;border-top:.5px solid var(--border);display:flex;gap:6px;flex-shrink:0;">
             @if (session.Status == 0 && !session.IsPlanned)
             {
-                <button class="bo" style="color:var(--red);border-color:rgba(224,96,96,.25);" @onclick="EndSession">End session</button>
                 <button class="bo" style="flex:2;color:var(--green);border-color:rgba(109,222,132,.25);" @onclick="AddObservation">+ Add observation</button>
+                <button class="bo" style="color:var(--red);border-color:rgba(224,96,96,.25);" @onclick="EndSession">End session</button>                
             }
             else if (session.IsPlanned && !session.CompletedAt.HasValue)
             {
                 <button class="bo" style="flex:1;color:var(--green);border-color:rgba(109,222,132,.25);" @onclick="AddObservation">+ Add observation</button>
-                <button class="bo" style="color:var(--red);border-color:rgba(224,96,96,.25);" @onclick="EndSession">Complete</button>
+                <button class="bo" style="color:var(--red);border-color:rgba(224,96,96,.25);" @onclick="EndSession">Complete</button>               
             }
             else
             {
