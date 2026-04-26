@@ -73,6 +73,28 @@
                 }
             </div>
 
+            <!-- Weather edit (planned, not yet completed) -->
+            @if (session.IsPlanned && !session.CompletedAt.HasValue)
+            {
+                <div class="cd" style="margin:4px 10px;padding:10px 12px;">
+                    <div style="font-size:12px;font-weight:600;color:var(--text-dim);margin-bottom:8px;">Weather condition</div>
+                    <div class="wx-row">
+                        <button class="wx-btn @(editWeather == "Sunny"  ? "on" : "")" @onclick='() => SaveWeatherField("Sunny")'><span class="wx-icon">☀️</span><span class="wx-lbl">Sunny</span></button>
+                        <button class="wx-btn @(editWeather == "Cloudy" ? "on" : "")" @onclick='() => SaveWeatherField("Cloudy")'><span class="wx-icon">☁️</span><span class="wx-lbl">Cloudy</span></button>
+                        <button class="wx-btn @(editWeather == "Rainy"  ? "on" : "")" @onclick='() => SaveWeatherField("Rainy")'><span class="wx-icon">🌧️</span><span class="wx-lbl">Rainy</span></button>
+                        <button class="wx-btn @(editWeather == "Windy"  ? "on" : "")" @onclick='() => SaveWeatherField("Windy")'><span class="wx-icon">💨</span><span class="wx-lbl">Windy</span></button>
+                    </div>
+                    <div style="font-size:12px;font-weight:600;color:var(--text-dim);margin:10px 0 6px;">Temperature (@TempUnit°)</div>
+                    <div style="display:flex;align-items:center;gap:14px;">
+                        <button class="cb" style="width:44px;height:44px;font-size:22px;" @onclick="DecrementTemperature">−</button>
+                        <div style="text-align:center;min-width:60px;">
+                            <span style="font-size:32px;font-weight:600;">@editTemperature°</span>
+                        </div>
+                        <button class="cb" style="width:44px;height:44px;font-size:22px;" @onclick="IncrementTemperature">+</button>
+                    </div>
+                </div>
+            }
+
             <!-- Stats -->
             <div class="sess-card" style="margin:6px 10px;cursor:default;">
                 <div class="sess-stats">
@@ -243,6 +265,8 @@
     private int alertCount;
     private int scoutedCount;
     private bool groupedView = true;
+    private string editWeather = "";
+    private int editTemperature;
 
     private string StatusIcon => session?.Status switch { 2 => "☁️", 1 => "✅", _ => session?.IsPlanned == true ? "📋" : "🌾" };
     private string StatusLabel => session?.Status switch { 2 => "☁ Synced", 1 => "✓ Completed", _ => session?.IsPlanned == true ? "Planned" : "● Active" };
@@ -335,6 +359,8 @@
         }
 
         groupedView = session?.IsPlanned == true;
+        editWeather = session?.WeatherCondition ?? "";
+        editTemperature = session?.Temperature ?? 0;
         loading = false;
     }
 
@@ -358,6 +384,41 @@
         session.CompletedAt = DateTime.UtcNow;
         await Db.SaveSessionAsync(session);
         Nav.NavigateTo("/sessions");
+    }
+
+    private void CancelWeatherEdit() { }
+
+    private async Task SaveWeatherEdit()
+    {
+        if (session is null) return;
+        session.WeatherCondition = editWeather;
+        session.Temperature = editTemperature;
+        await Db.SaveSessionAsync(session);
+    }
+
+    private async Task SaveWeatherField(string value)
+    {
+        if (session is null) return;
+        editWeather = value;
+        session.WeatherCondition = editWeather;
+        session.Temperature = editTemperature;
+        await Db.SaveSessionAsync(session);
+    }
+
+    private async Task DecrementTemperature()
+    {
+        if (editTemperature <= -30 || session is null) return;
+        editTemperature--;
+        session.Temperature = editTemperature;
+        await Db.SaveSessionAsync(session);
+    }
+
+    private async Task IncrementTemperature()
+    {
+        if (editTemperature >= 60 || session is null) return;
+        editTemperature++;
+        session.Temperature = editTemperature;
+        await Db.SaveSessionAsync(session);
     }
 
     private void AddObservation()
