@@ -22,11 +22,10 @@
         <div class="seg">
             <button class="seg-btn @(captureMode == 0 ? "on" : "")" @onclick="() => SetCaptureMode(0)">Count</button>
             <button class="seg-btn @(captureMode == 1 ? "on" : "")" @onclick="() => SetCaptureMode(1)">Present / absent</button>
-            <button class="seg-btn @(isUnknown ? "on" : "")" @onclick="SetUnknown">Unknown pest</button>
         </div>
 
-        <!-- Pest selector (hidden for unknown) -->
-        @if (!isUnknown)
+        <!-- Pest selector -->
+        @if (true)
         {
             <div class="sl">Pest</div>
             @if (pestsLoading)
@@ -162,7 +161,6 @@
     private string selectedPestId = "";
     private string selectedTrapId = "";
     private int captureMode;
-    private bool isUnknown;
     private int count;
     private int? thresholdCount;
     private bool present = true;
@@ -187,14 +185,6 @@
     private void SetCaptureMode(int mode)
     {
         captureMode = mode;
-        isUnknown = false;
-    }
-
-    private void SetUnknown()
-    {
-        isUnknown = true;
-        selectedPestId = "";
-        thresholdCount = null;
     }
 
     private void OnPestChanged()
@@ -232,7 +222,7 @@
     {
         error = null;
 
-        if (!isUnknown && string.IsNullOrEmpty(selectedPestId))
+        if (string.IsNullOrEmpty(selectedPestId))
         {
             error = "Please select a pest.";
             return;
@@ -241,8 +231,10 @@
         saving = true;
         StateHasChanged();
 
-        var pestId = isUnknown ? null : selectedPestId;
-        var pestName = isUnknown ? null : pests.FirstOrDefault(p => p.Id == selectedPestId)?.CommonName;
+        var selectedPest = pests.FirstOrDefault(p => p.Id == selectedPestId);
+        var isUnknown = selectedPest?.CommonName == "Unknown";
+        var pestId = selectedPestId;
+        var pestName = selectedPest?.CommonName;
         var trapId = string.IsNullOrEmpty(selectedTrapId) ? null : selectedTrapId;
         var trapName = trapId is null ? null : traps.FirstOrDefault(t => t.Id == trapId)?.Name;
         var lifeStage = selectedLifeStage >= 0 ? selectedLifeStage : (int?)null;

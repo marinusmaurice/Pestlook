@@ -53,6 +53,16 @@ public sealed class AuthService(
         db.Tenants.Add(tenant);
         await db.SaveChangesAsync(ct);
 
+        db.Pests.Add(new Pest
+        {
+            TenantId            = tenant.Id,
+            CommonName          = "Unknown",
+            Category            = PestCategory.Other,
+            DefaultCaptureMode  = CaptureMode.Count,
+            IsSystemPest        = true
+        });
+        await db.SaveChangesAsync(ct);
+
         var user = new ApplicationUser
         {
             UserName  = request.Email,
