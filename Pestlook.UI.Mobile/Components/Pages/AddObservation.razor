@@ -185,12 +185,21 @@
     private void SetCaptureMode(int mode)
     {
         captureMode = mode;
+        if (captureMode != 0)
+        {
+            thresholdCount = null;
+        }
+        else
+        {
+            var sel = pests.FirstOrDefault(p => p.Id == selectedPestId);
+            thresholdCount = sel?.AlertThreshold;
+        }
     }
 
     private void OnPestChanged()
     {
         var sel = pests.FirstOrDefault(p => p.Id == selectedPestId);
-        thresholdCount = sel?.AlertThreshold;
+        thresholdCount = captureMode == 0 ? sel?.AlertThreshold : null;
     }
 
     private async Task GetGps()
@@ -255,7 +264,7 @@
             CapturedLng = gpsLng,
             Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(),
             LifeStage = lifeStage,
-            ThresholdCount = thresholdCount,
+            ThresholdCount = captureMode == 0 ? thresholdCount : null,
             IsPlanned = session?.IsPlanned ?? false,
             IsDirty = true
         };
