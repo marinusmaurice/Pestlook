@@ -105,29 +105,6 @@
                 <span style="font-size:12px;color:var(--amber);">Offline — session will be stored locally</span>
             </div>
         }
-
-        <!-- Summary card -->
-        @if (!string.IsNullOrEmpty(selectedFarmId))
-        {
-            <div class="sl">Summary</div>
-            <div class="cd" style="padding:0;overflow:hidden;">
-                <div class="sess-info-row">
-                    <span style="font-size:12px;color:var(--text-dim);">Farm</span>
-                    <span style="font-size:12px;font-weight:600;">@SelectedFarmName</span>
-                </div>
-                @if (!string.IsNullOrEmpty(selectedFieldId))
-                {
-                    <div class="sess-info-row">
-                        <span style="font-size:12px;color:var(--text-dim);">Field</span>
-                        <span style="font-size:12px;font-weight:600;">@SelectedFieldName</span>
-                    </div>
-                }
-                <div class="sess-info-row">
-                    <span style="font-size:12px;color:var(--text-dim);">Weather</span>
-                    <span style="font-size:12px;font-weight:600;">@(weather ?? "—"), @temperature@TempUnitLabel</span>
-                </div>
-            </div>
-        }
     </div>
 
     <!-- Bottom -->
