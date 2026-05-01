@@ -14,9 +14,9 @@ export async function renderDashboard(container) {
   const name = user?.firstName || 'there';
 
   container.innerHTML = `
-    <div style="margin-bottom:24px;">
-      <div style="font-family:'Fraunces',serif;font-size:1.6rem;font-weight:600;color:#fff;letter-spacing:-0.02em;">${greeting()}, ${escapeHtml(name)} 👋</div>
-      <div style="font-size:0.85rem;color:var(--text-dim);margin-top:3px;">Here's what's happening across your farms today — ${todayFormatted()}</div>
+    <div style="margin-bottom:24px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
+      <div style="font-family:'Fraunces',serif;font-size:1.6rem;font-weight:600;color:var(--text);letter-spacing:-0.02em;">${greeting()}, ${escapeHtml(name)} 👋</div>
+      <div style="font-size:0.85rem;color:var(--text-dim);">Here's what's happening across your farms today — ${todayFormatted()}</div>
     </div>
     <div class="stat-grid" id="dashStats">
       <div class="stat-card"><div class="skeleton skeleton-card"></div></div>
