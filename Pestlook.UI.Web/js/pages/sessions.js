@@ -184,27 +184,27 @@ async function showPlannedSessionModal(listContainer, existing = null) {
   form.innerHTML = `
     <div style="display:flex;flex-direction:column;gap:14px;">
       <div>
-        <label class="input-label">Farm (optional)</label>
+        <label class="input-label">Farm <span style="color:var(--red);">*</span></label>
         <select class="input-field" id="sessionFarm">
           <option value="">— Select farm —</option>
           ${freshFarms.map(f => `<option value="${f.id}" ${selectedFarmId === f.id ? 'selected' : ''}>${escapeHtml(f.name)}</option>`).join('')}
         </select>
       </div>
       <div>
-        <label class="input-label">Field (optional)</label>
+        <label class="input-label">Field <span style="color:var(--red);">*</span></label>
         <select class="input-field" id="sessionField">
           <option value="">— Select field —</option>
         </select>
       </div>
       <div>
-        <label class="input-label">Scout (optional)</label>
+        <label class="input-label">Scout <span style="color:var(--red);">*</span></label>
         <select class="input-field" id="sessionScout">
-          <option value="">— Assign later —</option>
+          <option value="">— Select scout —</option>
           ${freshUsers.filter(u => u.isActive).map(u => `<option value="${u.id}" ${existing?.scouterId === u.id ? 'selected' : ''}>${escapeHtml(u.firstName + ' ' + u.lastName)} (${escapeHtml(u.email)})</option>`).join('')}
         </select>
       </div>
       <div>
-        <label class="input-label">Scheduled Date (optional)</label>
+        <label class="input-label">Scheduled Date <span style="color:var(--red);">*</span></label>
         <input class="input-field" type="date" id="sessionDate" value="${existing?.scheduledDate ? existing.scheduledDate.substring(0, 10) : ''}">
       </div>
       <div>
@@ -234,13 +234,20 @@ async function showPlannedSessionModal(listContainer, existing = null) {
   document.getElementById('cancelSession').addEventListener('click', closeModal);
   document.getElementById('saveSession').addEventListener('click', async () => {
     const btn = document.getElementById('saveSession');
+
+    const farmId = document.getElementById('sessionFarm').value || null;
+    const fieldId = document.getElementById('sessionField').value || null;
+    const scouterId = document.getElementById('sessionScout').value || null;
+    const scheduledDate = document.getElementById('sessionDate').value || null;
+
+    if (!farmId)        { showToast('Please select a farm.', 'error'); return; }
+    if (!fieldId)       { showToast('Please select a field.', 'error'); return; }
+    if (!scouterId)     { showToast('Please assign a scout.', 'error'); return; }
+    if (!scheduledDate) { showToast('Please select a scheduled date.', 'error'); return; }
+
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>';
     try {
-      const scouterId = document.getElementById('sessionScout').value || null;
-      const scheduledDate = document.getElementById('sessionDate').value || null;
-      const fieldId = document.getElementById('sessionField').value || null;
-      const farmId = document.getElementById('sessionFarm').value || null;
       const notes = document.getElementById('sessionNotes').value.trim() || null;
 
       const payload = {
@@ -249,7 +256,7 @@ async function showPlannedSessionModal(listContainer, existing = null) {
         fieldId,
         farmId,
         notes,
-        observations: existing?.observations?.filter(o => o.isPlanned !== false) ?? [],
+        observations: isEdit ? null : (existing?.observations?.filter(o => o.isPlanned !== false) ?? []),
       };
 
       if (isEdit) {
