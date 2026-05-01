@@ -153,7 +153,7 @@ function renderObsTable(observations, session, container, params, canEdit) {
   for (const o of observations) {
     const isTrap = o.observationType === 'Trap' || o.observationType === 0;
     const typeTag = isTrap ? tag('🕸️ Trap', 'green') : tag('👁 AdHoc', 'amber');
-    const plannedTag = o.isPlanned ? tag('Planned', 'blue') : '';
+    const plannedTag = o.isPlanned ? tag('Planned', 'blue') : tag('Unplanned', 'gray');
     const trapName = o.trapName ? escapeHtml(o.trapName) : '—';
     const pestName = o.pestName ? escapeHtml(o.pestName) : (o.isUnknownPest ? '<em>Unknown pest</em>' : '—');
     const mode = o.captureMode || '—';
