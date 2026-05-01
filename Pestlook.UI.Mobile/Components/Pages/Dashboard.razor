@@ -11,11 +11,7 @@
     <!-- App bar -->
     <div class="ab">
         <div class="ib">🐛</div>
-#if DEBUG
-        <span class="ab-title" @onclick="ToggleDebug">Pestlook</span>
-#else
-        <span class="ab-title">Pestlook</span>
-#endif
+<span class="ab-title" @onclick="ToggleDebug">Pestlook</span>
         <div style="width:48px;"></div>
     </div>
 
@@ -244,6 +240,7 @@
     private void ToggleDebug() { _debugExpanded = !_debugExpanded; StateHasChanged(); }
     private void Log(string msg) => _debugLines.Add($"[{DateTime.Now:HH:mm:ss.fff}] {msg}");
 #else
+    private void ToggleDebug() { }
     private void Log(string msg) { }
 #endif
 

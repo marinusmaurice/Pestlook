@@ -121,7 +121,14 @@
                                 <div style="font-size:13px;font-weight:600;">@(s.FieldName ?? s.FarmName ?? "Session") · @s.StartedAt.ToLocalTime().ToString("d MMM")</div>
                                 <div style="font-size:11px;color:var(--text-dim);">@s.StartedAt.ToLocalTime().ToString("d MMM") · @obsCounts.GetValueOrDefault(s.Id) obs@(s.WeatherCondition != null ? $" · {s.WeatherCondition}" : "")</div>
                             </div>
-                            <span class="ch cs">✓</span>
+                            @if (s.Status == SessionStatus.Synced)
+                            {
+                                <span class="ch cs">✓ Synced</span>
+                            }
+                            else
+                            {
+                                <span class="ch cw">Queued</span>
+                            }
                         </div>
                     }
                 }
