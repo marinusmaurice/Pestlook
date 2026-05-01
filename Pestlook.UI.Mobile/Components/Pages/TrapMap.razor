@@ -1,6 +1,8 @@
 @page "/trap-map"
 @inject LocalDatabase Db
 @inject NavigationManager Nav
+@inject IJSRuntime JS
+@implements IAsyncDisposable
 
 <div class="app-shell">
     <div class="ab">
@@ -19,7 +21,14 @@
             <div style="text-align:center;padding:40px 20px;color:var(--text-dim);">
                 <div style="font-size:28px;margin-bottom:8px;">🗺</div>
                 <div style="font-size:14px;">No traps with GPS coordinates</div>
-                <div style="font-size:12px;margin-top:4px;">Add coordinates to your traps to see them on the map</div>
+                @if (allCount > 0)
+                {
+                    <div style="font-size:12px;margin-top:6px;">You have @allCount trap@(allCount == 1 ? "" : "s") but none have GPS coordinates set.<br/>Open a trap and save its location to see it here.</div>
+                }
+                else
+                {
+                    <div style="font-size:12px;margin-top:4px;">Add coordinates to your traps to see them on the map</div>
+                }
             </div>
         }
         else
@@ -44,11 +53,7 @@
 
             <!-- Map -->
             <div style="margin:8px 10px;border-radius:10px;overflow:hidden;border:.5px solid var(--border);height:300px;">
-                <iframe
-                    width="100%" height="100%" frameborder="0" style="border:0;"
-                    src="https://www.openstreetmap.org/export/embed.html?bbox=@BBox&layer=mapnik"
-                    allowfullscreen>
-                </iframe>
+                <div id="trapMapEl" style="width:100%;height:100%;"></div>
             </div>
 
             <!-- Trap list -->
@@ -74,34 +79,46 @@
 @code {
     private bool loading = true;
     private List<CachedTrap> locatedTraps = new();
-
-    private string BBox
-    {
-        get
-        {
-            if (locatedTraps.Count == 0) return "0,0,0,0";
-            double minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
-            foreach (var t in locatedTraps)
-            {
-                if (t.Latitude!.Value < minLat) minLat = t.Latitude.Value;
-                if (t.Latitude.Value > maxLat) maxLat = t.Latitude.Value;
-                if (t.Longitude!.Value < minLng) minLng = t.Longitude.Value;
-                if (t.Longitude.Value > maxLng) maxLng = t.Longitude.Value;
-            }
-            double pad = 0.01;
-            var ci = System.Globalization.CultureInfo.InvariantCulture;
-            return $"{(minLng - pad).ToString(ci)},{(minLat - pad).ToString(ci)},{(maxLng + pad).ToString(ci)},{(maxLat + pad).ToString(ci)}";
-        }
-    }
+    private int allCount;
+    private DotNetObjectReference<TrapMap>? _dotNetRef;
+    private bool _mapInitialised;
 
     protected override async Task OnInitializedAsync()
     {
         await Db.InitAsync();
         var all = await Db.GetCachedTrapsAsync();
+        allCount = all.Count;
         locatedTraps = all.Where(t => t.Latitude.HasValue && t.Longitude.HasValue).ToList();
         loading = false;
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!loading && !_mapInitialised && locatedTraps.Count > 0)
+        {
+            _mapInitialised = true;
+            _dotNetRef = DotNetObjectReference.Create(this);
+            var pins = locatedTraps.Select(t => new
+            {
+                id = t.Id,
+                latitude = t.Latitude!.Value,
+                longitude = t.Longitude!.Value,
+                name = t.Name,
+                isEnabled = t.IsEnabled
+            });
+            await JS.InvokeVoidAsync("initDashboardTrapMap", "trapMapEl", pins, _dotNetRef);
+        }
+    }
+
+    [JSInvokable]
+    public void OnTrapSelected(string id) => Nav.NavigateTo($"/trap-detail/{id}");
+
     private void ViewTrap(CachedTrap trap) => Nav.NavigateTo($"/trap-detail/{trap.Id}");
     private void GoBack() => Nav.NavigateTo("/traps");
+
+    public async ValueTask DisposeAsync()
+    {
+        _dotNetRef?.Dispose();
+        await Task.CompletedTask;
+    }
 }

@@ -16,11 +16,15 @@ window.initDashboardTrapMap = function (elementId, pins, dotNetRef) {
 
     pins.forEach(function (pin) {
         var color = pin.isEnabled ? '#6dde84' : '#e06060';
+        var pinSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="32" viewBox="0 0 24 32">'
+            + '<path d="M12 0C5.373 0 0 5.373 0 12c0 8.25 12 20 12 20S24 20.25 24 12C24 5.373 18.627 0 12 0z" fill="' + color + '" stroke="#fff" stroke-width="1.5"/>'
+            + '<circle cx="12" cy="12" r="4.5" fill="#fff" opacity="0.85"/>'
+            + '</svg>';
         var icon = L.divIcon({
             className: '',
-            html: '<div style="width:12px;height:12px;border-radius:50%;background:' + color + ';border:2px solid #fff;box-shadow:0 0 4px rgba(0,0,0,.5);"></div>',
-            iconSize: [12, 12],
-            iconAnchor: [6, 6]
+            html: pinSvg,
+            iconSize: [24, 32],
+            iconAnchor: [12, 32]
         });
 
         var marker = L.marker([pin.latitude, pin.longitude], { icon: icon })

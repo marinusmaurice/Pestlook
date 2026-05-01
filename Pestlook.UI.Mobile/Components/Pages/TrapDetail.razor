@@ -30,10 +30,7 @@
                 </div>
                 <div style="flex:1;">
                     <div style="font-size:17px;font-weight:600;">@trap.Name</div>
-                    @if (!string.IsNullOrEmpty(trap.Barcode))
-                    {
-                        <div style="font-size:12px;color:var(--text-dim);margin-top:2px;">🏷 @trap.Barcode</div>
-                    }
+                    <div style="font-size:12px;color:var(--text-dim);margin-top:2px;">🏷 @(string.IsNullOrEmpty(trap.Barcode) ? "No barcode" : trap.Barcode)</div>
                     <div style="display:flex;gap:4px;margin-top:6px;">
                         <span class="ch @(trap.IsEnabled ? "cs" : "ce")" style="font-size:9px;">@(trap.IsEnabled ? "Enabled" : "Disabled")</span>
                         @if (!string.IsNullOrEmpty(trap.TrapTypeName))
@@ -41,27 +38,6 @@
                             <span class="ch cn" style="font-size:9px;">@trap.TrapTypeName</span>
                         }
                     </div>
-                </div>
-            </div>
-
-            <!-- Properties -->
-            <div class="sl">Properties</div>
-            <div class="cd" style="padding:0;overflow:hidden;">
-                <div style="display:flex;align-items:center;padding:10px 12px;border-bottom:.5px solid var(--border);">
-                    <span style="font-size:12px;color:var(--text-dim);min-width:120px;">Barcode</span>
-                    <span style="font-size:13px;font-weight:500;">@(trap.Barcode ?? "Not set")</span>
-                </div>
-                <div style="display:flex;align-items:center;padding:10px 12px;border-bottom:.5px solid var(--border);">
-                    <span style="font-size:12px;color:var(--text-dim);min-width:120px;">Trap type</span>
-                    <span style="font-size:13px;font-weight:500;">@(trap.TrapTypeName ?? "Not set")</span>
-                </div>
-@*                 <div style="display:flex;align-items:center;padding:10px 12px;border-bottom:.5px solid var(--border);">
-                    <span style="font-size:12px;color:var(--text-dim);min-width:120px;">Monitoring point</span>
-                    <span style="font-size:13px;font-weight:500;">@(trap.MonitoringPointName ?? "None")</span>
-                </div> *@
-                <div style="display:flex;align-items:center;padding:10px 12px;">
-                    <span style="font-size:12px;color:var(--text-dim);min-width:120px;">Status</span>
-                    <span class="ch @(trap.IsEnabled ? "cs" : "ce")" style="font-size:10px;">@(trap.IsEnabled ? "Enabled" : "Disabled")</span>
                 </div>
             </div>
 
