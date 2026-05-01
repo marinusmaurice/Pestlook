@@ -362,11 +362,13 @@ async function showObservationModal(session, type, existing, container, params) 
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>';
     try {
+      const selectedPest = freshPests.find(p => p.id === pestEl.value);
       const payload = {
         observationType: type,
         trapId: isTrap ? (document.getElementById('obsTrap').value || null) : null,
         pestId: pestEl.value || null,
         captureMode: modeEl.value || null,
+        thresholdCount: modeEl.value === 'Count' ? (selectedPest?.thresholdCount ?? null) : null,
         isPlanned: true,
         observationGroupId: existing?.observationGroupId ?? crypto.randomUUID(),
         repeatCount: !isTrap ? (parseInt(document.getElementById('obsCount').value.trim()) || 1) : 1,

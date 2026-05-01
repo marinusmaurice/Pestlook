@@ -179,7 +179,7 @@ function openCreatePestModal(container) {
   function syncThreshold() {
     const isCount = parseInt(captureEl.value) === CaptureModeValues.Count;
     thresholdEl.closest('div').style.display = isCount ? '' : 'none';
-    if (!isCount) { thresholdEl.value = '0'; }
+    if (!isCount) { thresholdEl.value = ''; }
     else if (!thresholdEl.value || thresholdEl.value === '0') { thresholdEl.value = '1'; }
   }
   captureEl.addEventListener('change', syncThreshold);
@@ -277,7 +277,7 @@ function openEditPestModal(pest, container) {
   function syncEditThreshold() {
     const isCount = parseInt(editCaptureEl.value) === CaptureModeValues.Count;
     editThresholdEl.closest('div').style.display = isCount ? '' : 'none';
-    if (!isCount) { editThresholdEl.value = '0'; }
+    if (!isCount) { editThresholdEl.value = ''; }
     else if (!editThresholdEl.value || editThresholdEl.value === '0') { editThresholdEl.value = '1'; }
   }
   editCaptureEl.addEventListener('change', syncEditThreshold);

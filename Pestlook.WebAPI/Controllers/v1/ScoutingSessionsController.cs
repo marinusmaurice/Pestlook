@@ -235,7 +235,7 @@ public sealed class ScoutingSessionsController(
                 var groupId = Guid.NewGuid();
                 var repeatCount = Math.Max(1, item.RepeatCount);
                 var photoJson = item.PhotoUrls is { Count: > 0 } ? JsonSerializer.Serialize(item.PhotoUrls) : null;
-                var threshold = item.PestId.HasValue && pestThresholds.TryGetValue(item.PestId.Value, out var t) ? t : null;
+                var threshold = (item.CaptureMode == CaptureMode.Count && item.PestId.HasValue && pestThresholds.TryGetValue(item.PestId.Value, out var t)) ? t : null;
 
                 for (var r = 0; r < repeatCount; r++)
                 {
@@ -341,7 +341,7 @@ public sealed class ScoutingSessionsController(
                 var item = request.Observations[i];
                 var desired = Math.Max(1, item.RepeatCount);
                 var photoJson = item.PhotoUrls is { Count: > 0 } ? JsonSerializer.Serialize(item.PhotoUrls) : null;
-                var threshold = item.PestId.HasValue && pestThresholds.TryGetValue(item.PestId.Value, out var t) ? t : null;
+                var threshold = (item.CaptureMode == CaptureMode.Count && item.PestId.HasValue && pestThresholds.TryGetValue(item.PestId.Value, out var t)) ? t : null;
 
                 if (item.ObservationGroupId.HasValue &&
                     existingByGroup.TryGetValue(item.ObservationGroupId.Value, out var existingGroup))
@@ -562,7 +562,7 @@ public sealed class ScoutingSessionsController(
             .MaxAsync(so => (int?)so.SortOrder, ct) ?? -1;
 
         int? thresholdCount = null;
-        if (request.PestId.HasValue)
+        if (request.PestId.HasValue && request.CaptureMode == CaptureMode.Count)
             thresholdCount = await db.Pests
                 .Where(p => p.Id == request.PestId.Value)
                 .Select(p => p.ThresholdCount)
@@ -634,7 +634,7 @@ public sealed class ScoutingSessionsController(
         obs.ObservationType = request.ObservationType;
         obs.TrapId = request.TrapId;
         obs.PestId = request.PestId;
-        obs.ThresholdCount = request.PestId.HasValue
+        obs.ThresholdCount = (request.PestId.HasValue && request.CaptureMode == CaptureMode.Count)
             ? await db.Pests.Where(p => p.Id == request.PestId.Value).Select(p => p.ThresholdCount).FirstOrDefaultAsync(ct)
             : null;
         obs.CaptureMode = request.CaptureMode;
