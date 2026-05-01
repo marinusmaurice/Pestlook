@@ -132,7 +132,7 @@
             {
                 <div class="sl">Trap <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></div>
                 <div style="margin:4px 10px;">
-                    <select class="pk-select" @bind="editTrapId">
+                    <select class="pk-select" @bind="editTrapId" disabled="@(obs!.IsPlanned == true)">
                         <option value="">No trap selected</option>
                         @foreach (var t in traps)
                         {
