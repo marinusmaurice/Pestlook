@@ -44,11 +44,11 @@ public class LocalDatabase
     public Task<LocalSession?> GetSessionByRemoteIdAsync(string remoteId)
         => _db.Table<LocalSession>().FirstOrDefaultAsync(s => s.RemoteId == remoteId);
 
-    public Task<List<LocalSession>> GetSessionsByStatusAsync(int status)
+    public Task<List<LocalSession>> GetSessionsByStatusAsync(SessionStatus status)
         => _db.Table<LocalSession>().Where(s => s.Status == status).OrderByDescending(s => s.StartedAt).ToListAsync();
 
     public Task<List<LocalSession>> GetCompletedUnsyncedSessionsAsync()
-        => _db.Table<LocalSession>().Where(s => s.Status == 1).OrderBy(s => s.CompletedAt).ToListAsync();
+        => _db.Table<LocalSession>().Where(s => s.Status == SessionStatus.Completed).OrderBy(s => s.CompletedAt).ToListAsync();
 
     public Task SaveSessionAsync(LocalSession session)
         => _db.InsertOrReplaceAsync(session);
@@ -83,11 +83,11 @@ public class LocalDatabase
         => _db.Table<LocalSession>().Where(s => s.IsPlanned).OrderBy(s => s.ScheduledDate).ToListAsync();
 
     public Task<List<LocalSession>> GetPendingAdHocSessionsAsync()
-        => _db.Table<LocalSession>().Where(s => !s.IsPlanned && s.Status == 1 && s.SyncedAt == null).OrderBy(s => s.CompletedAt).ToListAsync();
+        => _db.Table<LocalSession>().Where(s => !s.IsPlanned && s.Status == SessionStatus.Completed && s.SyncedAt == null).OrderBy(s => s.CompletedAt).ToListAsync();
 
     public Task<List<LocalSession>> GetPendingAdHocSessionsAsync(string? scouterId)
     {
-        var q = _db.Table<LocalSession>().Where(s => !s.IsPlanned && s.Status == 1 && s.SyncedAt == null);
+        var q = _db.Table<LocalSession>().Where(s => !s.IsPlanned && s.Status == SessionStatus.Completed && s.SyncedAt == null);
         if (!string.IsNullOrEmpty(scouterId))
             q = q.Where(s => s.ScouterId == scouterId);
         return q.OrderBy(s => s.CompletedAt).ToListAsync();

@@ -287,10 +287,10 @@
             var all = await Db.GetSessionsAsync(scouterId);
             Log($"GetSessionsAsync returned {all.Count} rows");
 
-            activeSessions  = all.Where(s => s.Status == 0 && !s.IsPlanned).ToList();
+            activeSessions  = all.Where(s => s.Status == SessionStatus.Active && !s.IsPlanned).ToList();
             plannedSessions = all.Where(s => s.IsPlanned && !s.CompletedAt.HasValue).ToList();
-            pendingSessions = all.Where(s => s.Status == 1 && !s.IsPlanned).ToList();
-            syncedSessions  = all.Where(s => s.Status == 2).ToList();
+            pendingSessions = all.Where(s => s.Status == SessionStatus.Completed && !s.IsPlanned).ToList();
+            syncedSessions  = all.Where(s => s.Status == SessionStatus.Synced).ToList();
             Log($"Buckets — active={activeSessions.Count} planned={plannedSessions.Count} pending={pendingSessions.Count} synced={syncedSessions.Count}");
 
             obsCounts = await Db.GetAllObservationCountsAsync();

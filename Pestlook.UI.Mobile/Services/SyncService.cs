@@ -171,7 +171,7 @@ public class SyncService
             var t2 = sw.ElapsedMilliseconds;
             var existing = await _db.GetSessionAsync(serverId);
             System.Diagnostics.Debug.WriteLine($"[SYNC]   [{i+1}/{sessions.Count}] GetSession — {sw.ElapsedMilliseconds - t2}ms  exists={existing is not null}");
-            var isLocallyCompleted = existing?.Status == 1 && existing.SyncedAt is null;
+            var isLocallyCompleted = existing?.Status == SessionStatus.Completed && existing.SyncedAt is null;
 
             var t3 = sw.ElapsedMilliseconds;
             await _db.SaveSessionAsync(new LocalSession
@@ -186,7 +186,7 @@ public class SyncService
                 FieldName        = detail.FieldName,
                 IsPlanned        = true,
                 ScheduledDate    = detail.ScheduledDate,
-                Status           = isLocallyCompleted ? 1 : (detail.IsCompleted ? 2 : 0),
+                Status           = isLocallyCompleted ? SessionStatus.Completed : (detail.IsCompleted ? SessionStatus.Synced : SessionStatus.Active),
                 WeatherCondition = !string.IsNullOrEmpty(detail.WeatherConditions) ? detail.WeatherConditions : existing?.WeatherCondition,
                 Temperature      = detail.TemperatureCelsius.HasValue ? (int)detail.TemperatureCelsius.Value : (existing?.Temperature ?? 0),
                 Notes            = detail.Notes ?? existing?.Notes,
@@ -322,7 +322,7 @@ public class SyncService
                 session.Temperature != 0 ? (double?)session.Temperature : null,
                 session.Notes,
                 session.StartedAt != default ? session.StartedAt : null);
-            session.Status   = 2;
+            session.Status   = SessionStatus.Synced;
             session.SyncedAt = DateTime.UtcNow;
             await _db.SaveSessionAsync(session);
         }
@@ -333,7 +333,7 @@ public class SyncService
         var sessions = await _db.GetPlannedSessionsAsync();
         foreach (var session in sessions)
         {
-            if (session.Status == 2) continue; // already fully synced
+            if (session.Status == SessionStatus.Synced) continue; // already fully synced
             if (!Guid.TryParse(session.RemoteId, out var remoteSessionId)) continue;
 
             var dirty = await _db.GetDirtyObservationsForSessionAsync(session.Id);
@@ -372,7 +372,7 @@ public class SyncService
                     session.Temperature != 0 ? (double?)session.Temperature : null,
                     session.Notes,
                     session.StartedAt != default ? session.StartedAt : null);
-                session.Status   = 2;
+                session.Status   = SessionStatus.Synced;
                 session.SyncedAt = DateTime.UtcNow;
                 await _db.SaveSessionAsync(session);
             }

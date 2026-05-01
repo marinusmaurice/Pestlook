@@ -197,7 +197,7 @@
                                             <span style="font-size:12px;color:var(--text-dim);">—</span>
                                         }
                                     }
-                                    @if (!obs.IsPlanned && session?.Status == 0)
+                                    @if (!obs.IsPlanned && session?.Status == SessionStatus.Active)
                                     {
                                         <button style="background:none;border:none;padding:4px 6px;color:var(--red);font-size:16px;cursor:pointer;" @onclick:stopPropagation @onclick="() => DeleteObservation(obs)">🗑</button>
                                     }
@@ -232,7 +232,7 @@
                             {
                                 <span class="ch @(obs.IsPresent.Value ? "cw" : "cn")">@(obs.IsPresent.Value ? "Yes" : "No")</span>
                             }
-                            @if (!obs.IsPlanned && session?.Status == 0)
+                            @if (!obs.IsPlanned && session?.Status == SessionStatus.Active)
                             {
                                 <button style="background:none;border:none;padding:4px 6px;color:var(--red);font-size:16px;cursor:pointer;" @onclick:stopPropagation @onclick="() => DeleteObservation(obs)">🗑</button>
                             }
@@ -273,7 +273,7 @@
     @if (session is not null)
     {
         <div style="padding:8px 10px;border-top:.5px solid var(--border);display:flex;gap:6px;flex-shrink:0;">
-            @if (session.Status == 0 && !session.IsPlanned)
+            @if (session.Status == SessionStatus.Active && !session.IsPlanned)
             {
                 <button class="bo" style="flex:2;color:var(--green);border-color:rgba(109,222,132,.25);" @onclick="AddObservation">+ Add observation</button>
                 <button class="bo" style="color:var(--red);border-color:rgba(224,96,96,.25);" @onclick="EndSession">End session</button>                
@@ -307,9 +307,9 @@
     private string editWeather = "";
     private int editTemperature;
 
-    private string StatusIcon => session?.Status switch { 2 => "☁️", 1 => "✅", _ => session?.IsPlanned == true ? "📋" : "🌾" };
-    private string StatusLabel => session?.Status switch { 2 => "☁ Synced", 1 => "✓ Completed", _ => session?.IsPlanned == true ? "Planned" : "● Active" };
-    private string StatusChipClass => session?.Status switch { 2 => "ci", 1 => "cs", _ => session?.IsPlanned == true ? "cw" : "ce" };
+    private string StatusIcon => session?.Status switch { SessionStatus.Synced => "☁️", SessionStatus.Completed => "✅", _ => session?.IsPlanned == true ? "📋" : "🌾" };
+    private string StatusLabel => session?.Status switch { SessionStatus.Synced => "☁ Synced", SessionStatus.Completed => "✓ Completed", _ => session?.IsPlanned == true ? "Planned" : "● Active" };
+    private string StatusChipClass => session?.Status switch { SessionStatus.Synced => "ci", SessionStatus.Completed => "cs", _ => session?.IsPlanned == true ? "cw" : "ce" };
     private string TempUnit => Api.CurrentUser?.TemperatureUnit ?? "C";
 
     private string FormatWeather()
@@ -449,7 +449,7 @@
         if (session is null) return;
         ending = true;
         StateHasChanged();
-        session.Status = 1;
+        session.Status = SessionStatus.Completed;
         session.CompletedAt = DateTime.UtcNow;
         await Db.SaveSessionAsync(session);
         ending = false;

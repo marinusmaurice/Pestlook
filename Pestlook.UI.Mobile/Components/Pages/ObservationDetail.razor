@@ -227,7 +227,7 @@
     </div>
 
     <!-- Bottom -->
-    @if (obs is not null && sessionStatus == 0)
+    @if (obs is not null && sessionStatus == SessionStatus.Active)
     {
         <div style="padding:8px 10px;border-top:.5px solid var(--border);display:flex;gap:6px;flex-shrink:0;">
             @if (!editing)
@@ -264,7 +264,7 @@
     private List<LocalObservationPhoto> photos = new();
     private List<CachedTrap> traps = new();
     private int? alertThreshold;
-    private int sessionStatus;
+    private SessionStatus sessionStatus;
 
     // Edit-mode state
     private int editCount;
@@ -300,13 +300,13 @@
 
         // Get session status to control delete visibility
         var session = await Db.GetSessionAsync(SessionId);
-        sessionStatus = session?.Status ?? 1;
+        sessionStatus = session?.Status ?? SessionStatus.Completed;
 
         // Check alert threshold from observation snapshot
         alertThreshold = obs?.ThresholdCount;
 
         // Open directly in edit mode for active sessions
-        if (sessionStatus == 0 && obs is not null)
+        if (sessionStatus == SessionStatus.Active && obs is not null)
             StartEdit();
 
         loading = false;

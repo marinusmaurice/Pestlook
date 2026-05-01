@@ -2,6 +2,13 @@ using SQLite;
 
 namespace Pestlook.UI.Mobile.Data;
 
+public enum SessionStatus
+{
+    Active = 0,
+    Completed = 1,
+    Synced = 2
+}
+
 // ── Session ──────────────────────────────────────────────────
 public class LocalSession
 {
@@ -16,8 +23,7 @@ public class LocalSession
     public DateTime StartedAt { get; set; } = DateTime.UtcNow;
     public DateTime? CompletedAt { get; set; }
     public DateTime? SyncedAt { get; set; }
-    /// <summary>0 = Active, 1 = Completed, 2 = Synced</summary>
-    public int Status { get; set; }
+    public SessionStatus Status { get; set; }
     public bool IsPlanned { get; set; }
     public DateTime? ScheduledDate { get; set; }
     public string? WeatherCondition { get; set; }
