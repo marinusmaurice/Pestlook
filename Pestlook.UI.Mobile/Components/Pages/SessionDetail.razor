@@ -233,6 +233,28 @@
         }
     </div>
 
+    <!-- End session confirmation dialog -->
+    @if (showEndDialog)
+    {
+        <div style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;display:flex;align-items:flex-end;justify-content:center;" @onclick="() => showEndDialog = false">
+            <div style="background:var(--surface);border-radius:16px 16px 0 0;width:100%;max-width:480px;padding:20px 16px 32px;" @onclick:stopPropagation>
+                <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px;"></div>
+                <div style="font-size:16px;font-weight:700;margin-bottom:10px;">⚠️ End session?</div>
+                @foreach (var msg in endDialogMessages)
+                {
+                    <div style="font-size:13px;color:var(--amber);margin-bottom:6px;">• @msg</div>
+                }
+                <div style="font-size:13px;color:var(--text-dim);margin-top:10px;margin-bottom:20px;">Are you sure you want to end this session?</div>
+                <div style="display:flex;gap:8px;">
+                    <button class="bo" style="flex:1;margin:0;" @onclick="() => showEndDialog = false">Cancel</button>
+                    <button class="bo" style="flex:1;margin:0;color:var(--red);border-color:rgba(224,96,96,.25);" @onclick="ConfirmEndSession" disabled="@ending">
+                        @if (ending) { <span class="spinner-sm" style="width:12px;height:12px;margin-right:4px;"></span> } End session
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
     <!-- Bottom actions -->
     @if (session is not null)
     {
@@ -259,6 +281,9 @@
     [Parameter] public string SessionId { get; set; } = "";
 
     private bool loading = true;
+    private bool ending;
+    private bool showEndDialog;
+    private List<string> endDialogMessages = new();
     private LocalSession? session;
     private List<LocalObservation> observations = new();
     private List<ObsGroup> groups = new();
@@ -380,9 +405,41 @@
     private async Task EndSession()
     {
         if (session is null) return;
+
+        endDialogMessages = new();
+
+        if (observations.Count == 0)
+        {
+            endDialogMessages.Add("This session has no observations recorded.");
+        }
+        else
+        {
+            var incomplete = observations.Count(o =>
+                (o.CaptureMode == 0 && !o.Count.HasValue) ||
+                (o.CaptureMode == 1 && !o.IsPresent.HasValue));
+            if (incomplete > 0)
+                endDialogMessages.Add($"{incomplete} of {observations.Count} observation{(observations.Count == 1 ? "" : "s")} still {(incomplete == 1 ? "needs" : "need")} data captured.");
+        }
+
+        if (endDialogMessages.Count > 0)
+        {
+            showEndDialog = true;
+            return;
+        }
+
+        await ConfirmEndSession();
+    }
+
+    private async Task ConfirmEndSession()
+    {
+        if (session is null) return;
+        ending = true;
+        StateHasChanged();
         session.Status = 1;
         session.CompletedAt = DateTime.UtcNow;
         await Db.SaveSessionAsync(session);
+        ending = false;
+        showEndDialog = false;
         Nav.NavigateTo("/sessions");
     }
 
