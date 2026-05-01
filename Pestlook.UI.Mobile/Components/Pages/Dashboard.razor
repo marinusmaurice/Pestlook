@@ -125,23 +125,6 @@
                 </div>
             }
 
-            <!-- Past sessions (synced) -->
-            <div class="sl">Past sessions</div>
-            @if (syncedSessions.Count == 0)
-            {
-                <div style="text-align:center;padding:20px;color:var(--text-dim);font-size:13px;">No completed sessions yet</div>
-            }
-            @foreach (var s in syncedSessions)
-            {
-                <div class="rw" style="cursor:pointer;" @onclick="() => ViewSession(s)">
-                    <div style="flex:1;">
-                        <div style="font-size:13px;font-weight:600;">@(s.FarmName ?? "Session") · @s.StartedAt.ToLocalTime().ToString("d MMM")</div>
-                        <div style="font-size:11px;color:var(--text-dim);">@(obsCounts.GetValueOrDefault(s.Id, 0)) obs</div>
-                    </div>
-                    <span class="ch cs">✓ Synced</span>
-                </div>
-            }
-
             <!-- Trap map -->
             @if (locatedTraps.Count > 0)
             {
@@ -250,7 +233,6 @@
     private List<LocalSession> activeSessions = new();
     private List<LocalSession> plannedSessions = new();
     private List<LocalSession> pendingSessions = new();
-    private List<LocalSession> syncedSessions = new();
     private Dictionary<string, int> obsCounts = new();
     private List<CachedTrap> locatedTraps = new();
     private CachedTrap? selectedTrap;
@@ -300,8 +282,7 @@
             activeSessions  = all.Where(s => s.Status == SessionStatus.Active && !s.IsPlanned).ToList();
             plannedSessions = all.Where(s => s.IsPlanned && !s.CompletedAt.HasValue).ToList();
             pendingSessions = all.Where(s => s.Status == SessionStatus.Completed && !s.IsPlanned).ToList();
-            syncedSessions  = all.Where(s => s.Status == SessionStatus.Synced).ToList();
-            Log($"Buckets — active={activeSessions.Count} planned={plannedSessions.Count} pending={pendingSessions.Count} synced={syncedSessions.Count}");
+            Log($"Buckets — active={activeSessions.Count} planned={plannedSessions.Count} pending={pendingSessions.Count}");
 
             obsCounts = await Db.GetAllObservationCountsAsync();
 
@@ -403,11 +384,6 @@
     }
 
     private void OpenSession(LocalSession s)
-    {
-        Nav.NavigateTo($"/session-detail/{s.Id}");
-    }
-
-    private void ViewSession(LocalSession s)
     {
         Nav.NavigateTo($"/session-detail/{s.Id}");
     }
