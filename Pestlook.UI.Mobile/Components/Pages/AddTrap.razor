@@ -31,6 +31,30 @@
             <button class="bo" style="padding:8px 12px;font-size:13px;flex-shrink:0;" @onclick="ScanBarcode">📷 Scan</button>
         </div>
 
+        <!-- Farm -->
+        <div class="sl">Farm *</div>
+        <div style="margin:4px 10px;">
+            <select class="pk-select" @bind="selectedFarmId" @bind:after="OnFarmChanged">
+                <option value="">Select farm…</option>
+                @foreach (var f in farms)
+                {
+                    <option value="@f.Id">@f.Name</option>
+                }
+            </select>
+        </div>
+
+        <!-- Field -->
+        <div class="sl">Field *</div>
+        <div style="margin:4px 10px;">
+            <select class="pk-select" @bind="selectedFieldId" disabled="@(fields.Count == 0)">
+                <option value="">@(string.IsNullOrEmpty(selectedFarmId) ? "Select a farm first…" : fields.Count == 0 ? "No fields for this farm" : "Select field…")</option>
+                @foreach (var f in fields)
+                {
+                    <option value="@f.Id">@f.Name</option>
+                }
+            </select>
+        </div>
+
         <!-- Trap type -->
         <div class="sl">Trap type</div>
         @if (trapTypes.Count > 0)
@@ -100,7 +124,8 @@
         <!-- Notes -->
         <div class="sl">Notes <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></div>
         <div style="margin:4px 10px;">
-            <input class="inp" placeholder="Optional notes about this trap" @bind="notes" />
+            <textarea class="inp" rows="4" placeholder="Optional notes about this trap" @bind="notes"
+                      style="resize:none;height:auto;"></textarea>
         </div>
     </div>
 
@@ -118,9 +143,13 @@
 
 @code {
     private List<CachedTrapType> trapTypes = new();
+    private List<CachedFarm> farms = new();
+    private List<CachedField> fields = new();
     private string name = "";
     private string barcode = "";
     private string selectedTrapTypeId = "";
+    private string selectedFarmId = "";
+    private string selectedFieldId = "";
     private bool useGps = true;
     private double? manualLat;
     private double? manualLng;
@@ -132,6 +161,15 @@
     {
         await Db.InitAsync();
         trapTypes = await Db.GetCachedTrapTypesAsync();
+        farms = await Db.GetCachedFarmsAsync();
+    }
+
+    private async Task OnFarmChanged()
+    {
+        selectedFieldId = "";
+        fields = string.IsNullOrEmpty(selectedFarmId)
+            ? new()
+            : await Db.GetCachedFieldsAsync(selectedFarmId);
     }
 
     private async Task ScanBarcode()
@@ -148,6 +186,18 @@
         if (string.IsNullOrWhiteSpace(name))
         {
             error = "Please enter a trap name.";
+            return;
+        }
+
+        if (string.IsNullOrEmpty(selectedFarmId))
+        {
+            error = "Please select a farm.";
+            return;
+        }
+
+        if (string.IsNullOrEmpty(selectedFieldId))
+        {
+            error = "Please select a field.";
             return;
         }
 
@@ -176,6 +226,7 @@
                     Name = name.Trim(),
                     Barcode = string.IsNullOrWhiteSpace(barcode) ? null : barcode.Trim(),
                     TrapTypeId = Guid.TryParse(selectedTrapTypeId, out var ttid) ? ttid : null,
+                    FieldId = Guid.TryParse(selectedFieldId, out var fid) ? fid : null,
                     Latitude = lat,
                     Longitude = lng,
                     Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim()

@@ -456,6 +456,7 @@ public class CreateTrapApiRequest
     [JsonPropertyName("name")] public string Name { get; set; } = "";
     [JsonPropertyName("barcode")] public string? Barcode { get; set; }
     [JsonPropertyName("trapTypeId")] public Guid? TrapTypeId { get; set; }
+    [JsonPropertyName("fieldId")] public Guid? FieldId { get; set; }
     [JsonPropertyName("monitoringPointId")] public Guid? MonitoringPointId { get; set; }
     [JsonPropertyName("latitude")] public double? Latitude { get; set; }
     [JsonPropertyName("longitude")] public double? Longitude { get; set; }
