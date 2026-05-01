@@ -5,9 +5,6 @@ function ensureOverlay() {
     overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
     overlay.style.zIndex = '9999';
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) closeModal();
-    });
     document.body.appendChild(overlay);
   }
   return overlay;
