@@ -190,6 +190,9 @@ public class ApiClient
     public Task<ApiResult<TrapApiResponse>> CreateTrapAsync(CreateTrapApiRequest req)
         => PostAsync<TrapApiResponse>("traps", req);
 
+    public Task<ApiResult<TrapApiResponse>> UpdateTrapAsync(Guid id, UpdateTrapApiRequest req)
+        => PutAsync<TrapApiResponse>($"traps/{id}", req);
+
     public Task<ApiResult<TrapApiResponse>> ToggleTrapAsync(Guid id)
         => PatchAsync<TrapApiResponse>($"traps/{id}/toggle", new { });
 
@@ -460,5 +463,17 @@ public class CreateTrapApiRequest
     [JsonPropertyName("monitoringPointId")] public Guid? MonitoringPointId { get; set; }
     [JsonPropertyName("latitude")] public double? Latitude { get; set; }
     [JsonPropertyName("longitude")] public double? Longitude { get; set; }
+    [JsonPropertyName("notes")] public string? Notes { get; set; }
+}
+
+public class UpdateTrapApiRequest
+{
+    [JsonPropertyName("name")] public string Name { get; set; } = "";
+    [JsonPropertyName("barcode")] public string? Barcode { get; set; }
+    [JsonPropertyName("trapTypeId")] public Guid? TrapTypeId { get; set; }
+    [JsonPropertyName("fieldId")] public Guid? FieldId { get; set; }
+    [JsonPropertyName("latitude")] public double? Latitude { get; set; }
+    [JsonPropertyName("longitude")] public double? Longitude { get; set; }
+    [JsonPropertyName("isEnabled")] public bool IsEnabled { get; set; }
     [JsonPropertyName("notes")] public string? Notes { get; set; }
 }

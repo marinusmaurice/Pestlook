@@ -2,6 +2,7 @@
 @inject LocalDatabase Db
 @inject ApiClient Api
 @inject ConnectivityService Conn
+@inject GpsService Gps
 @inject NavigationManager Nav
 
 <div class="app-shell">
@@ -84,6 +85,56 @@
                 }
             </div>
 
+            <!-- GPS edit -->
+            <div class="cd" style="margin:4px 10px;padding:10px 12px;">
+                <div style="font-size:12px;font-weight:600;color:var(--text-dim);margin-bottom:8px;">Update GPS coordinates</div>
+
+                <div class="seg" style="margin-bottom:10px;">
+                    <button class="seg-btn @(useGps ? "on" : "")" @onclick="() => useGps = true">📡 Use GPS</button>
+                    <button class="seg-btn @(!useGps ? "on" : "")" @onclick="() => useGps = false">✏️ Enter manually</button>
+                </div>
+
+                @if (useGps)
+                {
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                        <span style="font-size:13px;">
+                            @if (Gps?.HasFix == true)
+                            {
+                                @($"{Gps.Latitude?.ToString("F6")}, {Gps.Longitude?.ToString("F6")}")
+                            }
+                            else
+                            {
+                                <span style="color:var(--text-dim);">Acquiring GPS fix…</span>
+                            }
+                        </span>
+                        @if (Gps?.HasFix == true)
+                        {
+                            <span class="ch cs" style="font-size:9px;">@(Gps.AccuracyMetres?.ToString("F1") ?? "—")m</span>
+                        }
+                        else
+                        {
+                            <span class="spinner-sm" style="width:14px;height:14px;"></span>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div style="display:flex;gap:8px;margin-bottom:8px;">
+                        <input class="inp" style="flex:1;" type="number" step="any" placeholder="Latitude" @bind="manualLat" />
+                        <input class="inp" style="flex:1;" type="number" step="any" placeholder="Longitude" @bind="manualLng" />
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(gpsError))
+                {
+                    <div class="error-box" style="margin-bottom:8px;">@gpsError</div>
+                }
+
+                <button class="bp" style="margin:0;width:100%;" @onclick="SaveGps" disabled="@savingGps">
+                    @if (savingGps) { <span class="spinner-sm"></span> } 💾 Save location
+                </button>
+            </div>
+
             @if (trap.Latitude.HasValue && trap.Longitude.HasValue)
             {
                 <!-- Map embed -->
@@ -114,6 +165,11 @@
 
     private bool loading = true;
     private bool toggling;
+    private bool savingGps;
+    private bool useGps = true;
+    private double? manualLat;
+    private double? manualLng;
+    private string? gpsError;
     private CachedTrap? trap;
 
     protected override async Task OnParametersSetAsync()
@@ -123,7 +179,21 @@
 
         await Db.InitAsync();
         trap = await Db.GetCachedTrapAsync(TrapId);
+
+        // Pre-fill manual fields with existing coordinates
+        if (trap is not null)
+        {
+            manualLat = trap.Latitude;
+            manualLng = trap.Longitude;
+        }
+
         loading = false;
+
+        if (useGps && Gps is not null)
+        {
+            Gps.OnLocationChanged += StateHasChanged;
+            _ = Gps.StartListeningAsync();
+        }
     }
 
     private async Task ToggleTrap()
@@ -166,6 +236,64 @@
                 });
             }
             catch { /* map not available */ }
+        }
+    }
+
+    private async Task SaveGps()
+    {
+        if (trap is null) return;
+        gpsError = null;
+
+        double? lat, lng;
+        if (useGps)
+        {
+            if (Gps is null || !Gps.HasFix) { gpsError = "No GPS fix yet. Wait or switch to manual entry."; return; }
+            lat = Gps.Latitude;
+            lng = Gps.Longitude;
+        }
+        else
+        {
+            if (manualLat is null || manualLng is null) { gpsError = "Please enter both latitude and longitude."; return; }
+            lat = manualLat;
+            lng = manualLng;
+        }
+
+        savingGps = true;
+        StateHasChanged();
+
+        try
+        {
+            trap.Latitude = lat;
+            trap.Longitude = lng;
+
+            if (Conn.IsOnline && Api.IsLoggedIn && Guid.TryParse(trap.Id, out var remoteId))
+            {
+                var req = new UpdateTrapApiRequest
+                {
+                    Name = trap.Name,
+                    Barcode = trap.Barcode,
+                    TrapTypeId = Guid.TryParse(trap.TrapTypeId, out var ttid) ? ttid : null,
+                    FieldId = null,
+                    Latitude = lat,
+                    Longitude = lng,
+                    IsEnabled = trap.IsEnabled,
+                    Notes = trap.Notes
+                };
+                var result = await Api.UpdateTrapAsync(remoteId, req);
+                if (!result.Success)
+                    gpsError = result.Message ?? "Server update failed. Saved locally.";
+            }
+
+            await Db.SaveTrapAsync(trap);
+        }
+        catch (Exception ex)
+        {
+            gpsError = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            savingGps = false;
+            StateHasChanged();
         }
     }
 
