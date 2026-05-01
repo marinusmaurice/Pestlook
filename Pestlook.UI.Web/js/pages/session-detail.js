@@ -266,9 +266,9 @@ async function showObservationModal(session, type, existing, container, params) 
           </select>
         </div>
         <div>
-          <label class="input-label">Pest (optional)</label>
+          <label class="input-label">Pest</label>
           <select class="input-field" id="obsPest">
-            <option value="">— Any pest —</option>
+            <option value="">— Select pest —</option>
             ${freshPests.map(p => `<option value="${p.id}" ${existing?.pestId === p.id ? 'selected' : ''}>${escapeHtml(p.commonName)}</option>`).join('')}
           </select>
         </div>
@@ -290,9 +290,9 @@ async function showObservationModal(session, type, existing, container, params) 
     form.innerHTML = `
       <div style="display:flex;flex-direction:column;gap:14px;">
         <div>
-          <label class="input-label">Pest (optional)</label>
+          <label class="input-label">Pest</label>
           <select class="input-field" id="obsPest">
-            <option value="">— Any pest —</option>
+            <option value="">— Select pest —</option>
             ${freshPests.map(p => `<option value="${p.id}" ${existing?.pestId === p.id ? 'selected' : ''}>${escapeHtml(p.commonName)}</option>`).join('')}
           </select>
         </div>
@@ -306,7 +306,7 @@ async function showObservationModal(session, type, existing, container, params) 
         </div>
         <div id="obsCountWrap">
           <label class="input-label">Number of obs</label>
-          <input class="input-field" type="number" id="obsCount" value="${existing?.count ?? ''}">
+          <input class="input-field" type="number" id="obsCount" value="${existing?.count ?? 1}">
         </div>
         <div style="display:flex;gap:10px;margin-top:6px;">
           <button class="btn-outline" style="flex:1;" id="cancelObs">Cancel</button>
@@ -348,6 +348,17 @@ async function showObservationModal(session, type, existing, container, params) 
   document.getElementById('cancelObs').addEventListener('click', closeModal);
   document.getElementById('saveObs').addEventListener('click', async () => {
     const btn = document.getElementById('saveObs');
+
+    if (isTrap) {
+      if (!document.getElementById('obsTrap').value) { showToast('Trap is required', 'error'); return; }
+      if (!pestEl.value) { showToast('Pest is required', 'error'); return; }
+      if (!modeEl.value) { showToast('Capture Mode is required', 'error'); return; }
+    } else {
+      if (!pestEl.value) { showToast('Pest is required', 'error'); return; }
+      if (!modeEl.value) { showToast('Capture Mode is required', 'error'); return; }
+      if (!document.getElementById('obsCount').value.trim()) { showToast('Number of obs is required', 'error'); return; }
+    }
+
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>';
     try {
