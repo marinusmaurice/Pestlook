@@ -11,7 +11,11 @@
     <!-- App bar -->
     <div class="ab">
         <div class="ib">🐛</div>
+#if DEBUG
         <span class="ab-title" @onclick="ToggleDebug">Pestlook</span>
+#else
+        <span class="ab-title">Pestlook</span>
+#endif
         <div style="width:48px;"></div>
     </div>
 
@@ -215,6 +219,7 @@
         }
     </div>
 
+#if DEBUG
     @if (_debugExpanded)
     {
         <div style="margin:8px 10px;padding:10px;background:rgba(0,0,0,.55);border:.5px solid rgba(255,255,100,.25);border-radius:8px;font-size:10px;font-family:monospace;color:#e0e060;max-height:260px;overflow-y:auto;">
@@ -229,6 +234,7 @@
             }
         </div>
     }
+#endif
 
     <!-- Tab bar -->
     <TabBar ActiveTab="home" />
@@ -250,10 +256,14 @@
     private CachedTrap? selectedTrap;
     private bool _mapInitialized;
     private DotNetObjectReference<Dashboard>? _dotNetRef;
+#if DEBUG
     private bool _debugExpanded;
     private readonly List<string> _debugLines = new();
     private void ToggleDebug() { _debugExpanded = !_debugExpanded; StateHasChanged(); }
     private void Log(string msg) => _debugLines.Add($"[{DateTime.Now:HH:mm:ss.fff}] {msg}");
+#else
+    private void Log(string msg) { }
+#endif
 
     protected override async Task OnInitializedAsync()
     {
@@ -302,7 +312,9 @@
         catch (Exception ex)
         {
             Log($"ERROR: {ex.GetType().Name}: {ex.Message}");
+#if DEBUG
             _debugExpanded = true;
+#endif
         }
 
         loading = false;
