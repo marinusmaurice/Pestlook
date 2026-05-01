@@ -265,7 +265,7 @@
             Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(),
             LifeStage = lifeStage,
             ThresholdCount = captureMode == 0 ? thresholdCount : null,
-            IsPlanned = session?.IsPlanned ?? false,
+            IsPlanned = false,
             IsDirty = true
         };
         await Db.SaveObservationAsync(localObs);

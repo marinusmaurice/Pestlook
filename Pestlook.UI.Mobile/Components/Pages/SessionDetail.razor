@@ -197,7 +197,14 @@
                                             <span style="font-size:12px;color:var(--text-dim);">—</span>
                                         }
                                     }
-                                    <span style="color:var(--text-dim);font-size:13px;">›</span>
+                                    @if (!obs.IsPlanned)
+                                    {
+                                        <button style="background:none;border:none;padding:4px 6px;color:var(--red);font-size:16px;cursor:pointer;" @onclick:stopPropagation @onclick="() => DeleteObservation(obs)">🗑</button>
+                                    }
+                                    else
+                                    {
+                                        <span style="color:var(--text-dim);font-size:13px;">›</span>
+                                    }
                                 </div>
                             }
                         }
@@ -225,7 +232,14 @@
                             {
                                 <span class="ch @(obs.IsPresent.Value ? "cw" : "cn")">@(obs.IsPresent.Value ? "Yes" : "No")</span>
                             }
-                            <span style="color:var(--text-dim);font-size:13px;">›</span>
+                            @if (!obs.IsPlanned)
+                            {
+                                <button style="background:none;border:none;padding:4px 6px;color:var(--red);font-size:16px;cursor:pointer;" @onclick:stopPropagation @onclick="() => DeleteObservation(obs)">🗑</button>
+                            }
+                            else
+                            {
+                                <span style="color:var(--text-dim);font-size:13px;">›</span>
+                            }
                         </div>
                     }
                 </div>
@@ -476,6 +490,17 @@
         editTemperature++;
         session.Temperature = editTemperature;
         await Db.SaveSessionAsync(session);
+    }
+
+    private async Task DeleteObservation(LocalObservation obs)
+    {
+        await Db.DeleteObservationAsync(obs.Id);
+        observations.Remove(obs);
+        alertCount = observations.Count(o => o.ThresholdCount.HasValue && o.Count.HasValue && o.Count.Value >= o.ThresholdCount.Value);
+        scoutedCount = observations.Count(o =>
+            (o.CaptureMode == 0 && o.Count.HasValue) ||
+            (o.CaptureMode == 1 && o.IsPresent.HasValue));
+        groups.RemoveAll(g => g.Items.Contains(obs));
     }
 
     private void AddObservation()
