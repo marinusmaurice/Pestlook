@@ -43,7 +43,7 @@ const TABS = [
 /* ── Entry point ─────────────────────────────────────────────────────────────── */
 
 export async function renderReports(container) {
-  setPageTitle('Reports & Analytics');
+  setPageTitle('Analytics');
   setTopbarCta(null, null);
 
   filters.dateRange = '90';
@@ -54,7 +54,7 @@ export async function renderReports(container) {
   container.innerHTML = `
     <div class="section-head" style="margin-bottom:16px;">
       <div>
-        <div class="page-heading">Reports & Analytics</div>
+        <div class="page-heading">Analytics</div>
         <div class="page-desc">Insights across your farms, traps, sessions and scouts</div>
       </div>
     </div>
