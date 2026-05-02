@@ -130,7 +130,7 @@ function renderFarmGrid(farms, fields) {
 
 // ── Fields panel ──────────────────────────────────────────────
 async function openFarmFields(farm, farmIdx) {
-  setTopbarCta('＋ Add Field', () => showFieldModal(null, farm, farmIdx));
+  setTopbarCta('', null);
 
   const listPanel   = document.getElementById('farms-list-panel');
   const fieldsPanel = document.getElementById('farms-fields-panel');

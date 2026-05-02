@@ -7,6 +7,7 @@ import { tag } from '../components/tag.js';
 
 export async function renderDashboard(container) {
   setPageTitle('Dashboard');
+  setTopbarCta('', null);
 
   const user = getUser();
   const name = user?.firstName || 'there';
