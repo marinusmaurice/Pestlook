@@ -25,7 +25,6 @@ export async function renderFarmDetail(container, params) {
     const farm = farmRes.data;
     const fields = fieldsRes.data || [];
 
-    setPageTitle(farm.name);
     renderDetail(farm, fields, container, params);
   } catch (err) {
     showToast('Failed to load farm: ' + err.message, 'error');

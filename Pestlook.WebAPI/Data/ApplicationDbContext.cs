@@ -381,7 +381,9 @@ public sealed class ApplicationDbContext(
         {
             if (entry.State == EntityState.Added)
             {
-                entry.Entity.CreatedByUserId = userId;
+                // Only set if not already pre-populated (e.g. by the data seeder)
+                if (entry.Entity.CreatedByUserId is null)
+                    entry.Entity.CreatedByUserId = userId;
             }
             else if (entry.State == EntityState.Modified)
             {

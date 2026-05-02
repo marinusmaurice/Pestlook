@@ -86,6 +86,9 @@ app.UseDatabaseMigration();
 // ── Seed roles ────────────────────────────────────────────────────────────────
 app.UseRolesSeeding();
 
+// ── Seed dev/demo data ────────────────────────────────────────────────────────
+app.UseDevDataSeeding();
+
 app.Run();
 
 // Required for WebApplicationFactory<Program> in integration tests

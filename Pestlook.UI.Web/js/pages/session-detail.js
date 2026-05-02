@@ -34,7 +34,6 @@ export async function renderSessionDetail(container, params) {
     cachedPests = pestsRes.data || [];
     cachedFields = fieldsRes.data || [];
     const session = sessionRes.data;
-    setPageTitle(`Session ${session.id.substring(0, 8)}`);
     renderDetail(session, container, params);
   } catch (err) {
     showToast('Failed to load session: ' + err.message, 'error');

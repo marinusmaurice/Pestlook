@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Pestlook.WebAPI.Data;
+using Pestlook.WebAPI.Data.Seeding;
 using Pestlook.WebAPI.Infrastructure.Middleware;
 using Scalar.AspNetCore;
 
@@ -61,6 +62,15 @@ public static class WebApplicationExtensions
                 roleManager.CreateAsync(new Microsoft.AspNetCore.Identity.IdentityRole(role)).GetAwaiter().GetResult();
         }
 
+        return app;
+    }
+
+    public static WebApplication UseDevDataSeeding(this WebApplication app)
+    {
+        if (!app.Environment.IsDevelopment())
+            return app;
+
+        DevDataSeeder.SeedAsync(app.Services).GetAwaiter().GetResult();
         return app;
     }
 }
