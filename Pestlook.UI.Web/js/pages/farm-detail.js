@@ -1,6 +1,5 @@
 import { getFarm, updateFarm } from '../api/farms.js';
 import { getFields, createField, updateField, deleteField } from '../api/fields.js';
-import { setPageTitle, setTopbarCta } from '../components/topbar.js';
 import { openModal, closeModal } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
 import { tag } from '../components/tag.js';
@@ -9,7 +8,6 @@ import { navigate } from '../utils/router.js';
 
 export async function renderFarmDetail(container, params) {
   const farmId = params.id;
-  setTopbarCta('＋ Add Field', () => showFieldModal(null, farmId, container, params));
 
   container.innerHTML = `
     <div style="margin-bottom:20px;">
@@ -61,7 +59,7 @@ function renderDetail(farm, fields, container, params) {
     for (const f of fields) {
       fieldsHtml += `
         <tr>
-          <td><div style="font-weight:600;color:#fff;">${escapeHtml(f.name)}</div></td>
+          <td><div style="font-weight:600;color:var(--text);">${escapeHtml(f.name)}</div></td>
           <td>${f.cropType
             ? `<span class="tag tag-green" style="font-size:0.72rem;">${escapeHtml(f.cropType)}</span>`
             : '<span style="color:var(--text-dim);font-size:0.8rem;">—</span>'}</td>
@@ -91,7 +89,7 @@ function renderDetail(farm, fields, container, params) {
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:20px;">
       <div style="font-size:2.2rem;">🌾</div>
       <div style="flex:1;">
-        <div style="font-family:'Fraunces',serif;font-weight:700;font-size:1.1rem;color:#fff;">${escapeHtml(farm.name)}</div>
+        <div style="font-family:'Fraunces',serif;font-weight:700;font-size:1.1rem;color:var(--text);">${escapeHtml(farm.name)}</div>
         <div style="font-size:0.78rem;color:var(--text-dim);margin-top:2px;">📍 ${escapeHtml(farm.address || 'No address')}${farm.latitude ? ` · ${farm.latitude.toFixed(4)}, ${farm.longitude.toFixed(4)}` : ''}</div>
       </div>
       <div style="display:flex;gap:20px;align-items:center;">

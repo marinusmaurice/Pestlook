@@ -4,7 +4,6 @@ import { getPests } from '../api/pests.js';
 import { getFarms } from '../api/farms.js';
 import { getFields } from '../api/fields.js';
 import { getBillingSnapshots } from '../api/billing.js';
-import { setPageTitle, setTopbarCta } from '../components/topbar.js';
 import { showToast } from '../components/toast.js';
 import { escapeHtml } from '../utils/helpers.js';
 
@@ -43,8 +42,6 @@ const TABS = [
 /* ── Entry point ─────────────────────────────────────────────────────────────── */
 
 export async function renderReports(container) {
-  setPageTitle('Analytics');
-  setTopbarCta(null, null);
 
   filters.dateRange = '90';
   filters.farmId    = '';

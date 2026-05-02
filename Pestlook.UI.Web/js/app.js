@@ -1,7 +1,6 @@
 import { registerRoute, navigate, startRouter, setBeforeNavigate, currentPath } from './utils/router.js';
 import { isAuthenticated, clearTokens, getRefreshToken, getUser } from './utils/storage.js';
 import { renderSidebar, updateActiveNav } from './components/sidebar.js';
-import { renderTopbar, setPageTitle } from './components/topbar.js';
 
 import { revoke } from './api/auth.js';
 import { showToast } from './components/toast.js';
@@ -26,12 +25,10 @@ function renderShell() {
   appRoot.innerHTML = `
     <div id="sidebar"></div>
     <div id="main">
-      <div class="topbar" id="topbar"></div>
       <div class="content-area" id="content"></div>
     </div>
   `;
   renderSidebar(document.getElementById('sidebar'));
-  renderTopbar(document.getElementById('topbar'), 'Dashboard');
 }
 
 function renderAuthShell() {

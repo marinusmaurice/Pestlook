@@ -2,7 +2,6 @@ import { getSessions, createPlannedSession, updatePlannedSession, completeSessio
 import { getUsers } from '../api/roles.js';
 import { getFarms } from '../api/farms.js';
 import { getFields } from '../api/fields.js';
-import { setPageTitle, setTopbarCta } from '../components/topbar.js';
 import { openModal, closeModal } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
 import { tag } from '../components/tag.js';
@@ -15,8 +14,6 @@ let cachedFarms = [];
 let cachedFields = [];
 
 export async function renderSessions(container) {
-  setPageTitle('Scouting Sessions');
-  setTopbarCta('＋ Plan Session', () => showPlannedSessionModal(container));
 
   container.innerHTML = `
     <div class="section-head" style="margin-bottom:20px;">
@@ -24,9 +21,12 @@ export async function renderSessions(container) {
         <div class="page-heading">Scouting Sessions</div>
         <div class="page-desc">Plan, track and review scouting runs</div>
       </div>
+      <button class="btn-primary" id="planSessionBtn">＋ Plan Session</button>
     </div>
     <div class="card" id="sessionsTable"><div class="card-p"><div class="skeleton skeleton-card" style="height:300px;"></div></div></div>
   `;
+
+  document.getElementById('planSessionBtn').addEventListener('click', () => showPlannedSessionModal(container));
 
   try {
     const sessionsRes = await getSessions();

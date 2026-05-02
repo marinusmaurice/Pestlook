@@ -1,6 +1,5 @@
 import { getFarms, createFarm, updateFarm, deleteFarm } from '../api/farms.js';
 import { getFields, createField, updateField, deleteField } from '../api/fields.js';
-import { setPageTitle, setTopbarCta } from '../components/topbar.js';
 import { openModal, closeModal } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
 import { tag } from '../components/tag.js';
@@ -8,8 +7,6 @@ import { escapeHtml, formatDate } from '../utils/helpers.js';
 
 export async function renderFarms(container) {
   _container = container;
-  setPageTitle('Farms & Fields');
-  setTopbarCta('＋ Add Farm', () => showCreateFarmModal());
 
   container.innerHTML = `
     <div id="farms-list-panel">
@@ -18,6 +15,7 @@ export async function renderFarms(container) {
           <div class="page-heading">Farms &amp; Fields</div>
           <div class="page-desc">Click a farm to manage its fields</div>
         </div>
+        <button class="btn-primary" id="addFarmBtn">＋ Add Farm</button>
       </div>
       <div class="three-col" id="farmsGrid">
         ${[0,1,2].map(() => '<div class="card"><div class="card-p"><div class="skeleton skeleton-card"></div></div></div>').join('')}
@@ -27,6 +25,7 @@ export async function renderFarms(container) {
   `;
 
   await loadAndRenderGrid();
+  document.getElementById('addFarmBtn')?.addEventListener('click', () => showCreateFarmModal());
 }
 
 // ── module state ──────────────────────────────────────────────
@@ -68,7 +67,7 @@ function renderFarmGrid(farms, fields) {
         </div>
         <div class="card-p" style="flex:1;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <div style="font-weight:600;color:#fff;font-size:0.95rem;">${escapeHtml(farm.name)}</div>
+            <div style="font-weight:600;color:var(--text);font-size:0.95rem;">${escapeHtml(farm.name)}</div>
             ${farm.isActive !== false ? tag('Active', 'green') : tag('Inactive', 'red')}
           </div>
           <div style="font-size:0.78rem;color:var(--text-dim);margin-bottom:12px;">📍 ${escapeHtml(farm.address || 'No address')}</div>
@@ -130,8 +129,6 @@ function renderFarmGrid(farms, fields) {
 
 // ── Fields panel ──────────────────────────────────────────────
 async function openFarmFields(farm, farmIdx) {
-  setTopbarCta('', null);
-
   const listPanel   = document.getElementById('farms-list-panel');
   const fieldsPanel = document.getElementById('farms-fields-panel');
   listPanel.style.display   = 'none';
@@ -149,8 +146,6 @@ async function openFarmFields(farm, farmIdx) {
 }
 
 function closeFarmFields() {
-  setTopbarCta('＋ Add Farm', () => showCreateFarmModal());
-  setPageTitle('Farms & Fields');
   document.getElementById('farms-list-panel').style.display   = 'block';
   document.getElementById('farms-fields-panel').style.display = 'none';
   loadAndRenderGrid();
@@ -221,7 +216,7 @@ function renderFieldsPanel(farm, farmIdx, fields) {
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:20px;">
       <div style="font-size:2.2rem;">${emoji}</div>
       <div style="flex:1;">
-        <div style="font-family:'Fraunces',serif;font-weight:700;font-size:1.1rem;color:#fff;">${escapeHtml(farm.name)}</div>
+        <div style="font-family:'Fraunces',serif;font-weight:700;font-size:1.1rem;color:var(--text);">${escapeHtml(farm.name)}</div>
         <div style="font-size:0.78rem;color:var(--text-dim);margin-top:2px;">📍 ${escapeHtml(farm.address || 'No address')}</div>
       </div>
       <div style="display:flex;gap:20px;align-items:center;">

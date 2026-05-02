@@ -1,12 +1,9 @@
 import { getObservations } from '../api/observations.js';
-import { setPageTitle, setTopbarCta } from '../components/topbar.js';
 import { showToast } from '../components/toast.js';
 import { tag } from '../components/tag.js';
 import { escapeHtml, formatTime, CaptureMode } from '../utils/helpers.js';
 
 export async function renderObservations(container) {
-  setPageTitle('Pest Observations');
-  setTopbarCta('', null);
 
   container.innerHTML = `
     <div class="section-head" style="margin-bottom:20px;">

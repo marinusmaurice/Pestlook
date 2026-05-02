@@ -1,5 +1,4 @@
 import { getPests, createPest, updatePest, deletePest } from '../api/pests.js';
-import { setPageTitle, setTopbarCta } from '../components/topbar.js';
 import { openModal, closeModal } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
 import { tag } from '../components/tag.js';
@@ -20,15 +19,14 @@ const categoryEmojis = {
 const captureModeColors = { 0: 'amber', 1: 'blue' };
 
 export async function renderPests(container) {
-  setPageTitle('Pest Catalogue');
-  setTopbarCta('＋ Add Pest', () => openCreatePestModal(container));
 
   container.innerHTML = `
     <div class="section-head" style="margin-bottom:20px;">
       <div>
-        <div style="font-family:'Fraunces',serif;font-size:1.4rem;font-weight:700;color:#fff;letter-spacing:-0.02em;">Pest Catalogue</div>
+        <div style="font-family:'Fraunces',serif;font-size:1.4rem;font-weight:700;color:var(--text);letter-spacing:-0.02em;">Pest Catalogue</div>
         <div style="font-size:0.82rem;color:var(--text-dim);">Species reference for your tenant</div>
       </div>
+      <button class="btn-primary" id="addPestBtn">＋ Add Pest</button>
     </div>
     <div id="pests-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;">
       <div class="skeleton-block" style="height:140px;border-radius:14px;"></div>
@@ -36,6 +34,8 @@ export async function renderPests(container) {
       <div class="skeleton-block" style="height:140px;border-radius:14px;"></div>
     </div>
   `;
+
+  document.getElementById('addPestBtn').addEventListener('click', () => openCreatePestModal(container));
 
   await loadPests(container);
 }
@@ -50,7 +50,7 @@ async function loadPests(container) {
       grid.innerHTML = `
         <div style="grid-column:1/-1;text-align:center;padding:60px 20px;">
           <div style="font-size:3rem;margin-bottom:12px;">🦗</div>
-          <div style="font-family:'Fraunces',serif;font-size:1.1rem;color:#fff;margin-bottom:6px;">No pests yet</div>
+          <div style="font-family:'Fraunces',serif;font-size:1.1rem;color:var(--text);margin-bottom:6px;">No pests yet</div>
           <div style="font-size:0.82rem;color:var(--text-dim);">Add your first pest species to get started</div>
         </div>
       `;

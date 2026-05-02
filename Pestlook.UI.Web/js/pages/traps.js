@@ -2,7 +2,6 @@ import { getTraps, createTrap, updateTrap, toggleTrap, deleteTrap } from '../api
 import { getTrapTypes } from '../api/trap-types.js';
 import { getFarms } from '../api/farms.js';
 import { getFields } from '../api/fields.js';
-import { setPageTitle, setTopbarCta } from '../components/topbar.js';
 import { openModal, closeModal } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
 import { tag } from '../components/tag.js';
@@ -17,8 +16,6 @@ let currentContainer = null;
 
 export async function renderTraps(container) {
   currentContainer = container;
-  setPageTitle('Traps');
-  setTopbarCta('＋ Add Trap', () => showCreateTrapModal(container));
 
   container.innerHTML = `
     <div class="section-head" style="margin-bottom:20px;">
@@ -26,11 +23,14 @@ export async function renderTraps(container) {
         <div class="page-heading">Traps</div>
         <div class="page-desc">Manage physical traps, barcodes and locations</div>
       </div>
+      <button class="btn-primary" id="addTrapBtn">＋ Add Trap</button>
     </div>
     <div class="tab-bar" id="trapTabs" style="margin-bottom:20px;"></div>
     <div id="trapMapWrap" style="margin-bottom:20px;border-radius:12px;overflow:hidden;border:1px solid var(--border);height:380px;display:none;position:relative;"></div>
     <div class="card" id="trapTable"><div class="card-p"><div class="skeleton skeleton-card" style="height:300px;"></div></div></div>
   `;
+
+  document.getElementById('addTrapBtn').addEventListener('click', () => showCreateTrapModal(container));
 
   try {
     const [trapsRes, typesRes] = await Promise.all([

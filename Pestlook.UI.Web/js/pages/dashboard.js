@@ -1,13 +1,10 @@
 import { getDashboard } from '../api/dashboard.js';
 import { getUser } from '../utils/storage.js';
 import { greeting, todayFormatted, formatTime, escapeHtml } from '../utils/helpers.js';
-import { setPageTitle, setTopbarCta } from '../components/topbar.js';
 import { showToast } from '../components/toast.js';
 import { tag } from '../components/tag.js';
 
 export async function renderDashboard(container) {
-  setPageTitle('Dashboard');
-  setTopbarCta('', null);
 
   const user = getUser();
   const name = user?.firstName || 'there';

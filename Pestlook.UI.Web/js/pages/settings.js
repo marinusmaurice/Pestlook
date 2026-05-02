@@ -2,19 +2,16 @@ import { getTrapTypes, createTrapType, updateTrapType, deleteTrapType } from '..
 import { getUsers, updateUser } from '../api/roles.js';
 import { registerUser, updatePreferences } from '../api/auth.js';
 import { getUser, saveUser } from '../utils/storage.js';
-import { setPageTitle, setTopbarCta } from '../components/topbar.js';
 import { openModal, closeModal } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
 import { tag } from '../components/tag.js';
 import { escapeHtml, initials } from '../utils/helpers.js';
 
 export async function renderSettings(container) {
-  setPageTitle('Settings');
-  setTopbarCta('', null);
 
   container.innerHTML = `
     <div style="margin-bottom:24px;">
-      <div style="font-family:'Fraunces',serif;font-size:1.4rem;font-weight:700;color:#fff;letter-spacing:-0.02em;">Settings</div>
+      <div style="font-family:'Fraunces',serif;font-size:1.4rem;font-weight:700;color:var(--text);letter-spacing:-0.02em;">Settings</div>
       <div style="font-size:0.82rem;color:var(--text-dim);">Manage your organisation and preferences</div>
     </div>
     <div class="two-col">

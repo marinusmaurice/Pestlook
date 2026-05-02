@@ -2,7 +2,6 @@ import { getSession, completeSession, addObservation, updateObservation, deleteO
 import { getTraps } from '../api/traps.js';
 import { getPests } from '../api/pests.js';
 import { getFields } from '../api/fields.js';
-import { setPageTitle, setTopbarCta } from '../components/topbar.js';
 import { openModal, closeModal } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
 import { tag } from '../components/tag.js';
@@ -16,7 +15,6 @@ let cachedFields = [];
 
 export async function renderSessionDetail(container, params) {
   const sessionId = params.id;
-  setTopbarCta('', null);
 
   container.innerHTML = `
     <div style="margin-bottom:20px;">
@@ -68,7 +66,7 @@ function renderDetail(session, container, params) {
     <div class="card" style="margin-bottom:20px;">
       <div class="card-p" style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start;">
         <div style="flex:1;min-width:200px;">
-          <div style="font-family:'Fraunces',serif;font-size:1.3rem;font-weight:700;color:#fff;margin-bottom:8px;">
+          <div style="font-family:'Fraunces',serif;font-size:1.3rem;font-weight:700;color:var(--text);margin-bottom:8px;">
             Session ${session.id.substring(0, 8)} ${statusTag}
           </div>
           <div style="display:grid;grid-template-columns:auto 1fr auto 1fr;gap:4px 16px;font-size:0.85rem;color:var(--text-dim);">
