@@ -158,6 +158,7 @@ function renderObsTable(observations, session, container, params, canEdit) {
     const pestName = o.pestName ? escapeHtml(o.pestName) : (o.isUnknownPest ? '<em>Unknown pest</em>' : '—');
     const mode = o.captureMode || '—';
     const countVal = o.count != null ? o.count : '—';
+    const thresholdVal = o.thresholdCount != null ? o.thresholdCount : '—';
     const presentVal = o.isPresent != null ? (o.isPresent ? '✓ Yes' : '✗ No') : '—';
     const lifeStage = o.lifeStage || '—';
     const coords = (o.latitude != null && o.longitude != null) ? `${Number(o.latitude).toFixed(4)}, ${Number(o.longitude).toFixed(4)}` : '—';
@@ -178,6 +179,7 @@ function renderObsTable(observations, session, container, params, canEdit) {
         <td>${pestName}</td>
         <td>${mode}</td>
         <td style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;">${countVal}</td>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;">${thresholdVal}</td>
         <td>${presentVal}</td>
         <td>${lifeStage}</td>
         <td style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text-dim);">${coords}</td>
@@ -194,7 +196,7 @@ function renderObsTable(observations, session, container, params, canEdit) {
       <table class="data-table">
         <thead><tr>
           <th>Type</th><th>Trap</th><th>Pest</th><th>Mode</th>
-          <th>Count</th><th>Present</th><th>Stage</th><th>Coords</th><th>Notes</th><th>Created by</th><th>Updated by</th><th></th>
+          <th>Count</th><th>Threshold</th><th>Present</th><th>Stage</th><th>Coords</th><th>Notes</th><th>Created by</th><th>Updated by</th><th></th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>
