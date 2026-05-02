@@ -74,8 +74,8 @@ function renderTable(sessions, container) {
     ].filter(Boolean);
     const weatherDisplay = weatherParts.length ? weatherParts.join(', ') : '—';
 
-    const trapCount = (s.observations || []).filter(o => o.observationType === 'Trap' || o.observationType === 0).length;
-    const obsCount = (s.observations || []).filter(o => o.observationType === 'AdHoc' || o.observationType === 1).length;
+    const trapCount = s.trapObservationCount || 0;
+    const obsCount  = s.adHocObservationCount || 0;
     const itemsSummary = [trapCount ? `${trapCount} trap${trapCount > 1 ? 's' : ''}` : null, obsCount ? `${obsCount} obs` : null].filter(Boolean).join(', ') || '—';
 
     const dateDisplay = s.scheduledDate ? formatDateTime(s.scheduledDate) : (s.startedAt ? formatDateTime(s.startedAt) : '—');

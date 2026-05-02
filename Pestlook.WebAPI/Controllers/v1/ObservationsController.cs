@@ -18,34 +18,36 @@ public sealed class ObservationsController(ApplicationDbContext db) : Controller
     [ProducesResponseType(typeof(ApiResponse<List<PestObservationResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll(CancellationToken ct)
     {
-        var observations = await db.SessionObservations
+        var rows = await db.SessionObservations
             .Include(o => o.Pest)
             .Include(o => o.Trap)
             .OrderByDescending(o => o.CreatedAt)
-            .Select(o => new PestObservationResponse(
+            .ToListAsync(ct);
+
+        var observations = rows.Select(o => new PestObservationResponse(
                 o.Id,
                 o.TenantId,
                 o.SessionId,
                 o.TrapId ?? Guid.Empty,
                 o.PestId,
-                o.Pest != null ? o.Pest.CommonName : null,
+                o.Pest?.CommonName,
                 o.IsUnknownPest,
                 null,
                 o.CaptureMode ?? default,
                 o.Count,
                 o.IsPresent,
-                o.LifeStage != null ? o.LifeStage.ToString() : null,
+                o.LifeStage?.ToString(),
                 o.Latitude,
                 o.Longitude,
                 o.TrapId,
-                o.Trap != null ? o.Trap.Name : null,
-                o.PhotoUrlsJson != null
-                    ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(o.PhotoUrlsJson) ?? new List<string>()
-                    : new List<string>(),
+                o.Trap?.Name,
+                o.PhotoUrlsJson is not null
+                    ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(o.PhotoUrlsJson) ?? []
+                    : [],
                 o.Notes,
                 o.CreatedAt,
                 o.CreatedAt))
-            .ToListAsync(ct);
+            .ToList();
 
         return Ok(ApiResponse<List<PestObservationResponse>>.Ok(observations));
     }

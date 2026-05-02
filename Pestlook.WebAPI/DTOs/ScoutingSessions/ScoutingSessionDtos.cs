@@ -75,11 +75,13 @@ public sealed record ScoutingSessionResponse(
     string? FieldName,
     string? FarmName,
     int ObservationCount,
+    int TrapObservationCount,
+    int AdHocObservationCount,
     List<SessionObservationResponse> Observations,
     string? CreatedByName,
     string? UpdatedByName)
 {
-    public ScoutingSessionResponse() : this(default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, [], default, default) { }
+    public ScoutingSessionResponse() : this(default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, 0, 0, [], default, default) { }
 }
 
 public sealed record SessionObservationResponse(

@@ -65,7 +65,9 @@ public sealed class ScoutingSessionsController(
                 ScouterName    = ss.Scouter   != null ? ss.Scouter.FirstName   + " " + ss.Scouter.LastName   : null,
                 CreatedByName  = ss.CreatedBy != null ? ss.CreatedBy.FirstName + " " + ss.CreatedBy.LastName : null,
                 UpdatedByName  = ss.UpdatedBy != null ? ss.UpdatedBy.FirstName + " " + ss.UpdatedBy.LastName : null,
-                ObservationCount = ss.SessionObservations.Count
+                ObservationCount      = ss.SessionObservations.Count,
+                TrapObservationCount  = ss.SessionObservations.Count(o => o.ObservationType == ObservationType.Trap),
+                AdHocObservationCount = ss.SessionObservations.Count(o => o.ObservationType == ObservationType.AdHoc)
             })
             .OrderByDescending(ss => ss.CreatedAt)
             .ToListAsync(ct);
@@ -76,7 +78,7 @@ public sealed class ScoutingSessionsController(
                 p.ScheduledDate, p.StartedAt, p.CompletedAt, p.WeatherConditions,
                 p.TemperatureCelsius, p.Notes, p.CreatedAt, p.FieldId,
                 p.FarmId ?? p.FieldFarmId, p.FieldName, p.FarmName,
-                p.ObservationCount, [], p.CreatedByName, p.UpdatedByName))
+                p.ObservationCount, p.TrapObservationCount, p.AdHocObservationCount, [], p.CreatedByName, p.UpdatedByName))
             .ToList();
 
         return Ok(ApiResponse<List<ScoutingSessionResponse>>.Ok(sessions));
@@ -145,6 +147,8 @@ public sealed class ScoutingSessionsController(
             p.TemperatureCelsius, p.Notes, p.CreatedAt, p.FieldId,
             p.FarmId ?? p.FieldFarmId, p.FieldName, p.FarmName,
             p.Observations.Count,
+            p.Observations.Count(o => o.ObservationType == ObservationType.Trap),
+            p.Observations.Count(o => o.ObservationType == ObservationType.AdHoc),
             p.Observations.Select(o => new SessionObservationResponse(
                 o.Id, o.ObservationType, o.IsPlanned, o.TrapId, o.TrapName,
                 o.PestId, o.PestName, o.CaptureMode, o.Count, o.IsPresent,
