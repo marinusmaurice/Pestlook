@@ -98,6 +98,14 @@ export async function apiRequest(path, options = {}) {
     throw new Error('Unauthorized');
   }
 
+  const contentType = res.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    const text = await res.text();
+    const err = new Error(`Server returned non-JSON response (${res.status}): ${text.slice(0, 120)}`);
+    err.status = res.status;
+    throw err;
+  }
+
   const json = await res.json();
 
   if (!res.ok) {

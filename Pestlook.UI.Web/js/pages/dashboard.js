@@ -1,6 +1,7 @@
 import { getFarms } from '../api/farms.js';
 import { getTraps } from '../api/traps.js';
 import { getSessions } from '../api/sessions.js';
+import { getObservations } from '../api/observations.js';
 import { getUser } from '../utils/storage.js';
 import { greeting, todayFormatted, formatTime, escapeHtml } from '../utils/helpers.js';
 import { setPageTitle, setTopbarCta } from '../components/topbar.js';
@@ -35,27 +36,33 @@ export async function renderDashboard(container) {
   `;
 
   try {
-    const [farmsRes, trapsRes, sessionsRes] = await Promise.all([
-      getFarms(),
-      getTraps(),
-      getSessions(),
-    ]);
+    const [farmsRes, trapsRes, sessionsRes, obsRes] = await Promise.allSettled([
+        getFarms(),
+        getTraps(),
+        getSessions(),
+        getObservations(),
+      ]);
 
-    const farms = farmsRes.data || [];
-    const traps = trapsRes.data || [];
-    const sessions = sessionsRes.data || [];
+      const farms        = farmsRes.status    === 'fulfilled' ? (farmsRes.value.data    || []) : [];
+      const traps        = trapsRes.status    === 'fulfilled' ? (trapsRes.value.data    || []) : [];
+      const sessions     = sessionsRes.status === 'fulfilled' ? (sessionsRes.value.data || []) : [];
+      const allObservations = obsRes.status   === 'fulfilled' ? (obsRes.value.data      || []) : [];
 
-    const enabledTraps = traps.filter(t => t.isEnabled);
-    const activeSessions = sessions.filter(s => !s.completedAt);
-    const allObservations = sessions.flatMap(s => s.observations || []);
+      if (farmsRes.status    === 'rejected') showToast('Could not load farms: '        + farmsRes.reason.message,    'error');
+      if (trapsRes.status    === 'rejected') showToast('Could not load traps: '        + trapsRes.reason.message,    'error');
+      if (sessionsRes.status === 'rejected') showToast('Could not load sessions: '     + sessionsRes.reason.message, 'error');
+      if (obsRes.status      === 'rejected') showToast('Could not load observations: ' + obsRes.reason.message,      'error');
 
-    renderStats(farms.length, traps.length, enabledTraps.length, sessions.length, allObservations.length);
-    renderActiveSessions(activeSessions, sessions);
-    renderActivityFeed(allObservations);
-    renderMap(traps);
-    renderTopPests(allObservations);
-  } catch (err) {
-    showToast('Failed to load dashboard: ' + err.message, 'error');
+      const enabledTraps   = traps.filter(t => t.isEnabled);
+      const activeSessions = sessions.filter(s => !s.completedAt);
+
+      renderStats(farms.length, traps.length, enabledTraps.length, sessions.length, allObservations.length);
+      renderActiveSessions(activeSessions, sessions);
+      renderActivityFeed(allObservations);
+      renderMap(traps);
+      renderTopPests(allObservations);
+    } catch (err) {
+      showToast('Failed to load dashboard: ' + err.message, 'error');
   }
 }
 
@@ -160,32 +167,55 @@ function renderActivityFeed(observations) {
   `;
 }
 
+let _dashMap = null;
+
 function renderMap(traps) {
   const el = document.getElementById('dashMap');
-  let pins = '';
 
-  for (const t of traps.slice(0, 12)) {
-    const top = 15 + Math.random() * 65;
-    const left = 10 + Math.random() * 75;
-    const color = t.isEnabled ? '#3aad54' : '#708060';
-    const borderColor = t.isEnabled ? '#6dde84' : '#a0b898';
-    pins += `<div class="map-pin" style="background:${color};border-color:${borderColor};top:${top}%;left:${left}%;" title="${escapeHtml(t.name)}"></div>`;
-  }
+  const located = traps.filter(t => t.latitude != null && t.longitude != null);
 
   el.innerHTML = `
     <div class="section-head">
       <div class="section-title">Trap Map</div>
       ${tag('Live', 'gray')}
     </div>
-    <div class="map-area" style="height:240px;">
-      <div class="map-grid"></div>
-      ${pins}
-      <div style="position:absolute;bottom:12px;left:14px;display:flex;gap:12px;font-size:0.65rem;color:var(--text-dim);">
-        <span><span style="color:var(--green);">●</span> Enabled</span>
-        <span><span style="color:var(--text-dim);">●</span> Disabled</span>
-      </div>
+    <div id="dashMapLeaflet" style="height:240px;border-radius:8px;overflow:hidden;"></div>
+    <div style="display:flex;gap:12px;font-size:0.65rem;color:var(--text-dim);margin-top:6px;">
+      <span><span style="color:var(--green);">●</span> Enabled</span>
+      <span><span style="color:var(--text-dim);">●</span> Disabled</span>
     </div>
   `;
+
+  if (located.length === 0) {
+    document.getElementById('dashMapLeaflet').innerHTML =
+      `<div style="height:100%;display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-size:0.82rem;">No trap locations available</div>`;
+    return;
+  }
+
+  if (_dashMap) { _dashMap.remove(); _dashMap = null; }
+
+  const map = L.map('dashMapLeaflet', { zoomControl: true, attributionControl: false });
+  _dashMap = map;
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+  }).addTo(map);
+
+  const bounds = [];
+  for (const t of located) {
+    const color = t.isEnabled ? '#6dde84' : '#888';
+    const marker = L.circleMarker([t.latitude, t.longitude], {
+      radius: 7,
+      fillColor: color,
+      color: t.isEnabled ? '#3aad54' : '#555',
+      weight: 1.5,
+      fillOpacity: 0.9,
+    }).addTo(map);
+    marker.bindPopup(`<strong>${escapeHtml(t.name || 'Trap')}</strong><br>${t.isEnabled ? '✓ Enabled' : '✗ Disabled'}`);
+    bounds.push([t.latitude, t.longitude]);
+  }
+
+  map.fitBounds(bounds, { padding: [20, 20] });
 }
 
 function renderTopPests(observations) {
