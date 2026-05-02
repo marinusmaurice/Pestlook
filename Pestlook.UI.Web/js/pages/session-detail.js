@@ -172,8 +172,11 @@ function renderObsTable(observations, session, container, params, canEdit) {
       actions += `<button class="btn-outline" style="padding:3px 8px;font-size:0.72rem;color:var(--red);border-color:var(--red);" data-del-obs="${o.id}">Del</button>`;
     }
 
+    const thresholdExceeded = o.thresholdCount != null && o.count != null && o.count > o.thresholdCount;
+    const rowStyle = thresholdExceeded ? ' style="background:rgba(220,38,38,0.12);box-shadow:inset 0 0 8px rgba(220,38,38,0.25);"' : '';
+
     rows += `
-      <tr>
+      <tr${rowStyle}>
         <td>${typeTag} ${plannedTag}</td>
         <td>${isTrap ? trapName : '—'}</td>
         <td>${pestName}</td>
