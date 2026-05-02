@@ -1,7 +1,4 @@
-import { getFarms } from '../api/farms.js';
-import { getTraps } from '../api/traps.js';
-import { getSessions } from '../api/sessions.js';
-import { getObservations } from '../api/observations.js';
+import { getDashboard } from '../api/dashboard.js';
 import { getUser } from '../utils/storage.js';
 import { greeting, todayFormatted, formatTime, escapeHtml } from '../utils/helpers.js';
 import { setPageTitle, setTopbarCta } from '../components/topbar.js';
@@ -36,33 +33,16 @@ export async function renderDashboard(container) {
   `;
 
   try {
-    const [farmsRes, trapsRes, sessionsRes, obsRes] = await Promise.allSettled([
-        getFarms(),
-        getTraps(),
-        getSessions(),
-        getObservations(),
-      ]);
+    const res = await getDashboard();
+    const d = res.data;
 
-      const farms        = farmsRes.status    === 'fulfilled' ? (farmsRes.value.data    || []) : [];
-      const traps        = trapsRes.status    === 'fulfilled' ? (trapsRes.value.data    || []) : [];
-      const sessions     = sessionsRes.status === 'fulfilled' ? (sessionsRes.value.data || []) : [];
-      const allObservations = obsRes.status   === 'fulfilled' ? (obsRes.value.data      || []) : [];
-
-      if (farmsRes.status    === 'rejected') showToast('Could not load farms: '        + farmsRes.reason.message,    'error');
-      if (trapsRes.status    === 'rejected') showToast('Could not load traps: '        + trapsRes.reason.message,    'error');
-      if (sessionsRes.status === 'rejected') showToast('Could not load sessions: '     + sessionsRes.reason.message, 'error');
-      if (obsRes.status      === 'rejected') showToast('Could not load observations: ' + obsRes.reason.message,      'error');
-
-      const enabledTraps   = traps.filter(t => t.isEnabled);
-      const activeSessions = sessions.filter(s => !s.completedAt);
-
-      renderStats(farms.length, traps.length, enabledTraps.length, sessions.length, allObservations.length);
-      renderActiveSessions(activeSessions, sessions);
-      renderActivityFeed(allObservations);
-      renderMap(traps);
-      renderTopPests(allObservations);
-    } catch (err) {
-      showToast('Failed to load dashboard: ' + err.message, 'error');
+    renderStats(d.stats.farmCount, d.stats.trapCount, d.stats.enabledTrapCount, d.stats.sessionCount, d.stats.observationCount);
+    renderActiveSessions(d.recentSessions.filter(s => !s.completedAt), d.recentSessions);
+    renderActivityFeed(d.recentActivity);
+    renderMap(d.traps);
+    renderTopPests(d.topPests);
+  } catch (err) {
+    showToast('Failed to load dashboard: ' + err.message, 'error');
   }
 }
 
@@ -218,32 +198,25 @@ function renderMap(traps) {
   map.fitBounds(bounds, { padding: [20, 20] });
 }
 
-function renderTopPests(observations) {
+function renderTopPests(topPests) {
   const el = document.getElementById('dashTopPests');
-  const counts = {};
-  for (const obs of observations) {
-    if (obs.isUnknownPest || !obs.pestName) continue;
-    counts[obs.pestName] = (counts[obs.pestName] || 0) + (obs.count || 1);
-  }
-
-  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
-  const max = sorted.length > 0 ? sorted[0][1] : 1;
+  const max = topPests.length > 0 ? topPests[0].totalCount : 1;
 
   let bars = '';
-  for (const [name, count] of sorted) {
-    const pct = Math.round((count / max) * 100);
+  for (const { pestName, totalCount } of topPests) {
+    const pct = Math.round((totalCount / max) * 100);
     bars += `
       <div style="margin-bottom:14px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
-          <span style="font-size:0.83rem;font-weight:500;color:var(--text);">${escapeHtml(name)}</span>
-          <span style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--amber);">${count}</span>
+          <span style="font-size:0.83rem;font-weight:500;color:var(--text);">${escapeHtml(pestName)}</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--amber);">${totalCount}</span>
         </div>
         <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;"></div></div>
       </div>
     `;
   }
 
-  if (sorted.length === 0) {
+  if (topPests.length === 0) {
     bars = `<div class="empty-state" style="padding:16px;"><p>No pest data yet</p></div>`;
   }
 
