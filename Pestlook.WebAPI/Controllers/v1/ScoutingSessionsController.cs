@@ -42,6 +42,22 @@ public sealed class ScoutingSessionsController(
     [ProducesResponseType(typeof(ApiResponse<List<ScoutingSessionResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll(CancellationToken ct)
     {
+        // Single aggregation query instead of 3 correlated subqueries per row
+        var obsCounts = await db.SessionObservations
+            .GroupBy(o => new { o.SessionId, o.ObservationType })
+            .Select(g => new { g.Key.SessionId, g.Key.ObservationType, Count = g.Count() })
+            .ToListAsync(ct);
+
+        var obsLookup = obsCounts
+            .GroupBy(x => x.SessionId)
+            .ToDictionary(
+                g => g.Key,
+                g => (
+                    Total: g.Sum(x => x.Count),
+                    Trap:  g.Where(x => x.ObservationType == ObservationType.Trap).Sum(x => x.Count),
+                    AdHoc: g.Where(x => x.ObservationType == ObservationType.AdHoc).Sum(x => x.Count)
+                ));
+
         var projected = await db.ScoutingSessions
             .Select(ss => new
             {
@@ -64,21 +80,22 @@ public sealed class ScoutingSessionsController(
                             : ss.Field != null && ss.Field.Farm != null ? ss.Field.Farm.Name : null,
                 ScouterName    = ss.Scouter   != null ? ss.Scouter.FirstName   + " " + ss.Scouter.LastName   : null,
                 CreatedByName  = ss.CreatedBy != null ? ss.CreatedBy.FirstName + " " + ss.CreatedBy.LastName : null,
-                UpdatedByName  = ss.UpdatedBy != null ? ss.UpdatedBy.FirstName + " " + ss.UpdatedBy.LastName : null,
-                ObservationCount      = ss.SessionObservations.Count,
-                TrapObservationCount  = ss.SessionObservations.Count(o => o.ObservationType == ObservationType.Trap),
-                AdHocObservationCount = ss.SessionObservations.Count(o => o.ObservationType == ObservationType.AdHoc)
+                UpdatedByName  = ss.UpdatedBy != null ? ss.UpdatedBy.FirstName + " " + ss.UpdatedBy.LastName : null
             })
             .OrderByDescending(ss => ss.CreatedAt)
             .ToListAsync(ct);
 
         var sessions = projected
-            .Select(p => new ScoutingSessionResponse(
-                p.Id, p.TenantId, p.ScouterId, p.ScouterName, p.IsPlanned,
-                p.ScheduledDate, p.StartedAt, p.CompletedAt, p.WeatherConditions,
-                p.TemperatureCelsius, p.Notes, p.CreatedAt, p.FieldId,
-                p.FarmId ?? p.FieldFarmId, p.FieldName, p.FarmName,
-                p.ObservationCount, p.TrapObservationCount, p.AdHocObservationCount, [], p.CreatedByName, p.UpdatedByName))
+            .Select(p =>
+            {
+                var counts = obsLookup.TryGetValue(p.Id, out var c) ? c : (Total: 0, Trap: 0, AdHoc: 0);
+                return new ScoutingSessionResponse(
+                    p.Id, p.TenantId, p.ScouterId, p.ScouterName, p.IsPlanned,
+                    p.ScheduledDate, p.StartedAt, p.CompletedAt, p.WeatherConditions,
+                    p.TemperatureCelsius, p.Notes, p.CreatedAt, p.FieldId,
+                    p.FarmId ?? p.FieldFarmId, p.FieldName, p.FarmName,
+                    counts.Total, counts.Trap, counts.AdHoc, [], p.CreatedByName, p.UpdatedByName);
+            })
             .ToList();
 
         return Ok(ApiResponse<List<ScoutingSessionResponse>>.Ok(sessions));

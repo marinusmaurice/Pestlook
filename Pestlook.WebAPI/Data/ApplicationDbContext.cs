@@ -251,6 +251,7 @@ public sealed class ApplicationDbContext(
             e.HasQueryFilter(so => tenantContext.TenantId == null || so.TenantId == tenantContext.TenantId);
             e.HasIndex(so => so.SessionId);
             e.HasIndex(so => so.TenantId);
+            e.HasIndex(so => new { so.SessionId, so.ObservationType });
         });
 
         builder.Entity<Trap>(e =>

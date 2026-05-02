@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Pestlook.WebAPI.Domain.Entities;
 using Pestlook.WebAPI.DTOs.Auth;
+using Pestlook.WebAPI.Data;
 using Pestlook.WebAPI.DTOs.Common;
 using Pestlook.WebAPI.DTOs.Roles;
 
@@ -20,6 +21,7 @@ namespace Pestlook.WebAPI.Controllers.v1;
 public sealed class RolesController(
     UserManager<ApplicationUser> userManager,
     RoleManager<IdentityRole> roleManager,
+    ApplicationDbContext db,
     IMapper mapper) : ControllerBase
 {
     private static readonly string[] _adminManageable = ["Admin", "Scout"];
@@ -44,18 +46,30 @@ public sealed class RolesController(
     [ProducesResponseType(typeof(ApiResponse<IList<UserInfoResponse>>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> GetUsers()
+    public async Task<IActionResult> GetUsers(CancellationToken ct)
     {
-        var users = await userManager.Users
-            .OrderBy(u => u.Email)
-            .ToListAsync();
+        var userRoles = await (
+            from u in db.Users
+            join ur in db.UserRoles on u.Id equals ur.UserId into urs
+            from ur in urs.DefaultIfEmpty()
+            join r in db.Roles on ur.RoleId equals r.Id into rs
+            from r in rs.DefaultIfEmpty()
+            orderby u.Email
+            select new { User = u, RoleName = r != null ? r.Name : null }
+        ).ToListAsync(ct);
 
-        var result = new List<UserInfoResponse>(users.Count);
-        foreach (var user in users)
-        {
-            var roles = await userManager.GetRolesAsync(user);
-            result.Add(mapper.Map<UserInfoResponse>(user) with { Roles = roles });
-        }
+        var result = userRoles
+            .GroupBy(x => x.User.Id)
+            .Select(g =>
+            {
+                var user = g.First().User;
+                IList<string> roles = g
+                    .Where(x => x.RoleName != null)
+                    .Select(x => x.RoleName!)
+                    .ToList();
+                return mapper.Map<UserInfoResponse>(user) with { Roles = roles };
+            })
+            .ToList();
 
         return Ok(ApiResponse<IList<UserInfoResponse>>.Ok(result));
     }

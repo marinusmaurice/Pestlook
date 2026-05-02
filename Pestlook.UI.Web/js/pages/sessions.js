@@ -29,15 +29,7 @@ export async function renderSessions(container) {
   `;
 
   try {
-    const [sessionsRes, usersRes, farmsRes, fieldsRes] = await Promise.all([
-      getSessions(),
-      getUsers(),
-      getFarms(),
-      getFields(),
-    ]);
-    cachedUsers = usersRes.data || [];
-    cachedFarms = farmsRes.data || [];
-    cachedFields = fieldsRes.data || [];
+    const sessionsRes = await getSessions();
     const sessions = sessionsRes.data || [];
     renderTable(sessions, container);
   } catch (err) {
