@@ -313,6 +313,19 @@ public sealed class ApplicationDbContext(
         ChangeTracker.DetectChanges();
         var entries = new List<PendingAuditEntry>();
 
+        // Resolve the IP: prefer X-Forwarded-For (set by proxies/load balancers),
+        // fall back to the direct connection address.
+        var httpContext = httpContextAccessor.HttpContext;
+        var ipAddress = httpContext?.Request.Headers["X-Forwarded-For"].FirstOrDefault()
+                            ?.Split(',', StringSplitOptions.TrimEntries).FirstOrDefault()
+                        ?? httpContext?.Connection.RemoteIpAddress?.ToString();
+
+        // Resolve tenant: middleware sets it from the X-Tenant-ID header;
+        // fall back to the claim embedded in the JWT for requests that skip the header.
+        var tenantId = tenantContext.TenantId ?? currentUserService.TenantId;
+
+        var userId = currentUserService.UserId;
+
         foreach (var entry in ChangeTracker.Entries())
         {
             if (entry.Entity is AuditLog or ExceptionLog)
@@ -325,9 +338,9 @@ public sealed class ApplicationDbContext(
             {
                 EntityName = entry.Entity.GetType().Name,
                 Action = entry.State.ToString(),
-                TenantId = tenantContext.TenantId,
-                UserId = currentUserService.UserId,
-                IpAddress = httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString(),
+                TenantId = tenantId,
+                UserId = userId,
+                IpAddress = ipAddress,
                 EntityId = GetEntityId(entry),
                 OldValues = entry.State == EntityState.Added
                     ? null

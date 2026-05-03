@@ -170,7 +170,8 @@ public sealed class AuthService(
         var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? throw new UnauthorizedAccessException("Invalid token claims.");
 
-        var user = await userManager.Users
+        var user = await db.Users
+            .IgnoreQueryFilters()
             .Include(u => u.RefreshTokens)
             .FirstOrDefaultAsync(u => u.Id == userId, ct)
             ?? throw new UnauthorizedAccessException("User not found.");

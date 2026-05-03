@@ -198,22 +198,20 @@
         }
     </div>
 
-#if DEBUG
-    @if (_debugExpanded)
-    {
-        <div style="margin:8px 10px;padding:10px;background:rgba(0,0,0,.55);border:.5px solid rgba(255,255,100,.25);border-radius:8px;font-size:10px;font-family:monospace;color:#e0e060;max-height:260px;overflow-y:auto;">
-            <div style="font-weight:700;margin-bottom:6px;color:#ffe;font-size:11px;">🔍 Debug Log <span style="float:right;cursor:pointer;" @onclick="() => _debugLines.Clear()">clear</span></div>
-            @foreach (var line in _debugLines)
-            {
-                <div style="border-bottom:.5px solid rgba(255,255,255,.08);padding:2px 0;">@line</div>
-            }
-            @if (_debugLines.Count == 0)
-            {
-                <div style="color:var(--text-dim);">No log entries yet. Tap the title to refresh.</div>
-            }
-        </div>
-    }
-#endif
+@if (_isDebug && _debugExpanded)
+{
+    <div style="margin:8px 10px;padding:10px;background:rgba(0,0,0,.55);border:.5px solid rgba(255,255,100,.25);border-radius:8px;font-size:10px;font-family:monospace;color:#e0e060;max-height:260px;overflow-y:auto;">
+        <div style="font-weight:700;margin-bottom:6px;color:#ffe;font-size:11px;">🔍 Debug Log <span style="float:right;cursor:pointer;" @onclick="() => _debugLines.Clear()">clear</span></div>
+        @foreach (var line in _debugLines)
+        {
+            <div style="border-bottom:.5px solid rgba(255,255,255,.08);padding:2px 0;">@line</div>
+        }
+        @if (_debugLines.Count == 0)
+        {
+            <div style="color:var(--text-dim);">No log entries yet. Tap the title to refresh.</div>
+        }
+    </div>
+}
 
     <!-- Tab bar -->
     <TabBar ActiveTab="home" />
@@ -235,11 +233,13 @@
     private bool _mapInitialized;
     private DotNetObjectReference<Dashboard>? _dotNetRef;
 #if DEBUG
+    private readonly bool _isDebug = true;
     private bool _debugExpanded;
     private readonly List<string> _debugLines = new();
     private void ToggleDebug() { _debugExpanded = !_debugExpanded; StateHasChanged(); }
     private void Log(string msg) => _debugLines.Add($"[{DateTime.Now:HH:mm:ss.fff}] {msg}");
 #else
+    private readonly bool _isDebug = false;
     private void ToggleDebug() { }
     private void Log(string msg) { }
 #endif

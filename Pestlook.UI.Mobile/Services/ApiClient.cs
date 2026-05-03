@@ -296,6 +296,15 @@ public class ApiClient
                 Content = JsonContent.Create(new { accessToken = _accessToken, refreshToken = _refreshToken }, options: JsonOpts)
             };
             var res = await _http.SendAsync(req);
+
+            if (res.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                // Refresh token is invalid or the user no longer exists (e.g. DB was reset).
+                // Clear stale credentials so the app forces a fresh login.
+                Logout();
+                return;
+            }
+
             var json = await res.Content.ReadAsStringAsync();
             var result = JsonSerializer.Deserialize<ApiResult<TokenResponse>>(json, JsonOpts);
             if (result?.Success == true && result.Data is not null)
@@ -305,8 +314,13 @@ public class ApiClient
                 _tokenExpiry = result.Data.AccessTokenExpiry;
                 SaveAuthState();
             }
+            else
+            {
+                // Server rejected the refresh for any other reason — force re-login.
+                Logout();
+            }
         }
-        catch { /* will re-login */ }
+        catch { /* network error – will retry on next request */ }
     }
 }
 
