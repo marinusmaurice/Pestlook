@@ -23,7 +23,7 @@ export function renderScoutProductivity(el, { sessions, pests }, rawData) {
     sm.sessions++;
     if (s.completedAt) sm.completed++;
     const obs = realObs(s);
-    sm.totalObs += obs.reduce((sum, o) => sum + (o.count || 1), 0);
+    sm.totalObs += obs.reduce((sum, o) => sum + (o.count ?? 1), 0);
     for (const o of obs) {
       const pest = o.pestId ? pestById[o.pestId] : null;
       if (pest?.thresholdCount != null && (o.count || 0) > pest.thresholdCount) sm.alerts++;

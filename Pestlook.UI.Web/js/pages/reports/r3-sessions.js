@@ -65,7 +65,7 @@ export function renderScoutingSessions(el, { sessions }, rawData) {
 
       const dur      = sessionDuration(s);
       const obs      = realObs(s);
-      const obsTotal = obs.reduce((sum, o) => sum + (o.count || 1), 0);
+      const obsTotal = obs.reduce((sum, o) => sum + (o.count ?? 1), 0);
       const dateStr  = s.scheduledDate ? formatDate(s.scheduledDate) : (s.startedAt ? formatDate(s.startedAt) : '—');
       const weather  = s.weatherConditions
         ? escapeHtml(s.weatherConditions) + (s.temperatureCelsius != null ? ', ' + Math.round(s.temperatureCelsius) + '°C' : '')

@@ -114,7 +114,12 @@ export function applyFilters(rawData) {
 /* ── Data helpers ────────────────────────────────────────────────────────────── */
 
 export function realObs(session) {
-  return (session.observations || []).filter(o => !o.isPlanned);
+  // Exclude only unexecuted planned slots (no data recorded yet).
+  // A planned observation that has been filled in (count or presence recorded)
+  // is a real result and must appear in all analytics including breach alerts.
+  return (session.observations || []).filter(o =>
+    !o.isPlanned || o.count != null || o.isPresent != null
+  );
 }
 
 export function allRealObs(sessions) {

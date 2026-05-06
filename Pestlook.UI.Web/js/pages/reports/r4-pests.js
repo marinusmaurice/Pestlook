@@ -21,7 +21,7 @@ export function renderTopPests(el, { sessions, pests }, rawData) {
         thresholdCount: o.thresholdCount ?? null,
       };
       const ps = pestStats[o.pestName];
-      ps.count += o.count || 1;
+      ps.count += o.count ?? 1;
       if (s.fieldId) ps.fields.add(s.fieldId);
       if (s.farmId)  ps.farms.add(s.farmId);
       ps.sessionIds.add(s.id || s.sessionId);

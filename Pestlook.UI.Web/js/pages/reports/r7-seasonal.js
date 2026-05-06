@@ -15,9 +15,9 @@ export function renderSeasonalTrends(el, { sessions }, rawData) {
     const m = monthMap[key];
     m.sessions++;
     for (const o of realObs(s)) {
-      m.totalObs += o.count || 1;
+      m.totalObs += o.count ?? 1;
       if (!o.isUnknownPest && o.pestName) {
-        m.pestCounts[o.pestName] = (m.pestCounts[o.pestName] || 0) + (o.count || 1);
+        m.pestCounts[o.pestName] = (m.pestCounts[o.pestName] || 0) + (o.count ?? 1);
       }
     }
     if (s.temperatureCelsius != null) m.temps.push(s.temperatureCelsius);

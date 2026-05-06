@@ -27,14 +27,14 @@ export function renderOverview(el, { sessions, traps, pests }, rawData) {
   const completed = completedSessions(sessions);
   const planned   = plannedSessions(sessions);
   const overdue   = overdueSessions(sessions);
-  const totalObs  = obs.reduce((sum, o) => sum + (o.count || 1), 0);
+  const totalObs  = obs.reduce((sum, o) => sum + (o.count ?? 1), 0);
   const compTotal = completed.length + planned.length + overdue.length;
   const compRate  = compTotal > 0 ? Math.round((completed.length / compTotal) * 100) : 0;
 
   const pestCounts = {};
   for (const o of obs) {
     if (o.isUnknownPest || !o.pestName) continue;
-    pestCounts[o.pestName] = (pestCounts[o.pestName] || 0) + (o.count || 1);
+    pestCounts[o.pestName] = (pestCounts[o.pestName] || 0) + (o.count ?? 1);
   }
   const topPests = Object.entries(pestCounts).sort((a, b) => b[1] - a[1]).slice(0, 6);
 
@@ -43,7 +43,7 @@ export function renderOverview(el, { sessions, traps, pests }, rawData) {
   for (const s of sessions) {
     const idx = weekIndex(s.completedAt || s.startedAt);
     if (idx < 0) continue;
-    for (const o of realObs(s)) weekCounts[idx] += o.count || 1;
+    for (const o of realObs(s)) weekCounts[idx] += o.count ?? 1;
   }
   const recent4   = weekCounts.slice(4).reduce((a, b) => a + b, 0);
   const prior4    = weekCounts.slice(0, 4).reduce((a, b) => a + b, 0);

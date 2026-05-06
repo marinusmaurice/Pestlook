@@ -31,7 +31,7 @@ export function renderFieldCoverage(el, { sessions, fields, farmNameById }, rawD
     const pestCounts = {};
     for (const s of allSess) {
       for (const o of realObs(s)) {
-        if (!o.isUnknownPest && o.pestName) pestCounts[o.pestName] = (pestCounts[o.pestName] || 0) + (o.count || 1);
+        if (!o.isUnknownPest && o.pestName) pestCounts[o.pestName] = (pestCounts[o.pestName] || 0) + (o.count ?? 1);
       }
     }
     const topPest = Object.entries(pestCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '—';

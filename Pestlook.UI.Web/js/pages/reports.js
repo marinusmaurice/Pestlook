@@ -1,4 +1,5 @@
 import { getSessions } from '../api/sessions.js';
+import { getAnalyticsSessions } from '../api/analytics.js';
 import { getTraps } from '../api/traps.js';
 import { getPests } from '../api/pests.js';
 import { getFarms } from '../api/farms.js';
@@ -89,7 +90,7 @@ export async function renderReports(container) {
     await loadChartJs().catch(err => console.warn('Chart.js unavailable — charts disabled:', err.message));
 
     const [sessRes, trapsRes, pestsRes, farmsRes, fieldsRes, billRes] = await Promise.all([
-      getSessions().catch(() => ({ data: [] })),
+      getAnalyticsSessions().catch(() => ({ data: [] })),
       getTraps().catch(() => ({ data: [] })),
       getPests().catch(() => ({ data: [] })),
       getFarms().catch(() => ({ data: [] })),

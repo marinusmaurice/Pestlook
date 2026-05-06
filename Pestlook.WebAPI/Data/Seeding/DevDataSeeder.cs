@@ -84,14 +84,23 @@ public static class DevDataSeeder
         db.Traps.AddRange(traps);
         await db.SaveChangesAsync();
 
-        // ── Scouting sessions (4 per farm = 20) + observations (~5 each) ─────
+        // ── Scouting sessions (~5,000) ─────────────────────────────────────
         var sessions = BuildSessions(tenant.Id, admin.Id, scout.Id, farms, fields, rng);
-        db.ScoutingSessions.AddRange(sessions);
-        await db.SaveChangesAsync();
+        const int sessionBatch = 500;
+        for (int i = 0; i < sessions.Count; i += sessionBatch)
+        {
+            db.ScoutingSessions.AddRange(sessions.Skip(i).Take(sessionBatch));
+            await db.SaveChangesAsync();
+        }
 
+        // ── Observations (~100,000) ───────────────────────────────────────────
         var observations = BuildObservations(tenant.Id, admin.Id, scout.Id, sessions, pests, traps, rng);
-        db.SessionObservations.AddRange(observations);
-        await db.SaveChangesAsync();
+        const int obsBatch = 5000;
+        for (int i = 0; i < observations.Count; i += obsBatch)
+        {
+            db.SessionObservations.AddRange(observations.Skip(i).Take(obsBatch));
+            await db.SaveChangesAsync();
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -313,25 +322,29 @@ public static class DevDataSeeder
     // ─────────────────────────────────────────────────────────────────────────
     // Scouting Sessions
     // ─────────────────────────────────────────────────────────────────────────
+    // 1,000 sessions per farm × 5 farms = 5,000 sessions spread over 2 years
+    private const int SessionsPerFarm = 1_000;
+
     private static List<ScoutingSession> BuildSessions(
         Guid tenantId, string adminId, string scoutId,
         List<Farm> farms, List<Field> fields, Random rng)
     {
-        var list        = new List<ScoutingSession>();
-        var conditions  = new[] { "Sunny", "Partly Cloudy", "Overcast", "Light Rain", "Windy" };
-        var baseDate    = DateTime.UtcNow.AddMonths(-3);
+        var list       = new List<ScoutingSession>(farms.Count * SessionsPerFarm);
+        var conditions = new[] { "Sunny", "Partly Cloudy", "Overcast", "Light Rain", "Windy" };
+        var baseDate   = DateTime.UtcNow.AddYears(-2);
+        const int spanDays = 730; // 2 years
 
         foreach (var farm in farms)
         {
             var farmFields = fields.Where(f => f.FarmId == farm.Id).ToList();
 
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < SessionsPerFarm; i++)
             {
-                var isPlanned    = i % 2 == 0;
-                var scheduled    = baseDate.AddDays(i * 14 + rng.Next(0, 5));
-                var started      = scheduled.AddHours(rng.Next(7, 11));
-                var completed    = started.AddHours(rng.Next(1, 4));
-                var field        = farmFields[rng.Next(farmFields.Count)];
+                var isPlanned = rng.Next(2) == 0;
+                var scheduled = baseDate.AddDays(rng.Next(0, spanDays)).AddHours(rng.Next(6, 18));
+                var started   = scheduled.AddMinutes(rng.Next(0, 120));
+                var completed = started.AddHours(rng.Next(1, 5));
+                var field     = farmFields[rng.Next(farmFields.Count)];
 
                 list.Add(new ScoutingSession
                 {
@@ -348,9 +361,7 @@ public static class DevDataSeeder
                     TemperatureCelsius  = Math.Round(15 + rng.NextDouble() * 20, 1),
                     Notes               = $"Session {i + 1} for {farm.Name}.",
                     CreatedAt           = scheduled,
-                    // Planned sessions are pre-created by admin; ad-hoc ones are started by the scout
                     CreatedByUserId     = isPlanned ? adminId : scoutId,
-                    // Once completed, the scout is the last to update
                     UpdatedByUserId     = scoutId,
                 });
             }
@@ -377,7 +388,7 @@ public static class DevDataSeeder
             // Traps deployed in the same field as this session
             var fieldTraps = traps.Where(t => t.FieldId == session.FieldId).ToList();
 
-            int obsCount = rng.Next(4, 8);
+            int obsCount = rng.Next(15, 26); // avg 20 × 5,000 sessions ≈ 100,000 observations
             for (int i = 0; i < obsCount; i++)
             {
                 // Observations mirror the session's intent:
@@ -428,6 +439,8 @@ public static class DevDataSeeder
                     TenantId        = tenantId,
                     SessionId       = session.Id,
                     ObservationType = isAdHoc ? ObservationType.AdHoc : ObservationType.Trap,
+                    // Trap observations on planned sessions are pre-created slots (IsPlanned=true).
+                    // realObs() treats them as real once count/isPresent is recorded.
                     IsPlanned       = !isAdHoc,
                     TrapId          = trapId,
                     PestId          = pest.Id,

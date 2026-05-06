@@ -18,9 +18,9 @@ export function renderPestPressure(el, { sessions, pests }, rawData) {
     const fm = fieldMap[key];
     fm.sessions++;
     for (const o of realObs(s)) {
-      fm.totalObs += o.count || 1;
+      fm.totalObs += o.count ?? 1;
       if (!o.isUnknownPest && o.pestName) {
-        fm.pestCounts[o.pestName] = (fm.pestCounts[o.pestName] || 0) + (o.count || 1);
+        fm.pestCounts[o.pestName] = (fm.pestCounts[o.pestName] || 0) + (o.count ?? 1);
       }
       if (o.thresholdCount && (o.count || 0) > o.thresholdCount) fm.breaches++;
     }
