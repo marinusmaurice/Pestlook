@@ -17,15 +17,27 @@ namespace Pestlook.WebAPI.Controllers.v1;
 public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBase
 {
     /// <summary>
-    /// Returns all scouting sessions with their full observation payloads.
+    /// Returns scouting sessions with their full observation payloads, paginated.
     /// Used exclusively by the analytics/reports pages — the standard
     /// GET /scouting-sessions endpoint deliberately omits observations for performance.
     /// </summary>
     [HttpGet("sessions")]
-    [ProducesResponseType(typeof(ApiResponse<List<ScoutingSessionResponse>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetSessionsWithObservations(CancellationToken ct)
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<ScoutingSessionResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSessionsWithObservations(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 200,
+        CancellationToken ct = default)
     {
-        var projected = await db.ScoutingSessions
+        page     = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 500);
+
+        var query = db.ScoutingSessions.OrderByDescending(ss => ss.CreatedAt);
+
+        var totalCount = await query.CountAsync(ct);
+
+        var projected = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(ss => new
             {
                 ss.Id,
@@ -73,7 +85,6 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
                     UpdatedByName = o.UpdatedBy != null ? o.UpdatedBy.FirstName + " " + o.UpdatedBy.LastName : null
                 }).ToList()
             })
-            .OrderByDescending(ss => ss.CreatedAt)
             .ToListAsync(ct);
 
         var sessions = projected.Select(p => new ScoutingSessionResponse(
@@ -95,6 +106,7 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
                 o.ObservationGroupId, o.CreatedByName, o.UpdatedByName)).ToList(),
             p.CreatedByName, p.UpdatedByName)).ToList();
 
-        return Ok(ApiResponse<List<ScoutingSessionResponse>>.Ok(sessions));
+        var paged = new PagedResult<ScoutingSessionResponse>(sessions, totalCount, page, pageSize);
+        return Ok(ApiResponse<PagedResult<ScoutingSessionResponse>>.Ok(paged));
     }
 }

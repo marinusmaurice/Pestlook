@@ -1,5 +1,5 @@
 import { getSessions } from '../api/sessions.js';
-import { getAnalyticsSessions } from '../api/analytics.js';
+import { getAllAnalyticsSessions } from '../api/analytics.js';
 import { getTraps } from '../api/traps.js';
 import { getPests } from '../api/pests.js';
 import { getFarms } from '../api/farms.js';
@@ -43,6 +43,9 @@ const TABS = [
 /* ── Entry point ─────────────────────────────────────────────────────────────── */
 
 export async function renderReports(container) {
+
+  let alive = true;
+  container._cleanup = () => { alive = false; };
 
   filters.dateRange = '90';
   filters.farmId    = '';
@@ -89,8 +92,8 @@ export async function renderReports(container) {
   try {
     await loadChartJs().catch(err => console.warn('Chart.js unavailable — charts disabled:', err.message));
 
-    const [sessRes, trapsRes, pestsRes, farmsRes, fieldsRes, billRes] = await Promise.all([
-      getAnalyticsSessions().catch(() => ({ data: [] })),
+    const [sessions, trapsRes, pestsRes, farmsRes, fieldsRes, billRes] = await Promise.all([
+      getAllAnalyticsSessions().catch(() => []),
       getTraps().catch(() => ({ data: [] })),
       getPests().catch(() => ({ data: [] })),
       getFarms().catch(() => ({ data: [] })),
@@ -98,8 +101,10 @@ export async function renderReports(container) {
       getBillingSnapshots().catch(() => ({ data: [] })),
     ]);
 
+    if (!alive) return;
+
     const rawData = {
-      sessions: sessRes.data   || [],
+      sessions: sessions,
       traps:    trapsRes.data  || [],
       pests:    pestsRes.data  || [],
       farms:    farmsRes.data  || [],
@@ -173,9 +178,10 @@ export async function renderReports(container) {
     });
 
   } catch (err) {
+    if (!alive) return;
     showToast('Failed to load report data: ' + err.message, 'error');
-    document.getElementById('rpt-body').innerHTML =
-      emptyState('⚠', 'Could not load reports', escapeHtml(err.message));
+    const body = document.getElementById('rpt-body');
+    if (body) body.innerHTML = emptyState('⚠', 'Could not load reports', escapeHtml(err.message));
   }
 }
 

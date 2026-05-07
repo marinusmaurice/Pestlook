@@ -97,6 +97,7 @@ function authedRoute(handler) {
   return async (params) => {
     ensureShell('app');
     const content = getContent();
+    content._cleanup?.();   // cancel any in-flight async renderer
     const path = currentPath();
     updateActiveNav(path);
     await handler(content, params);

@@ -103,7 +103,10 @@ export function applyFilters(rawData) {
 
   let traps = rawData.traps;
   if (filters.fieldId) traps = traps.filter(t => String(t.fieldId) === filters.fieldId);
-  else if (filters.farmId) traps = traps.filter(t => String(t.farmId) === filters.farmId);
+  else if (filters.farmId) {
+    const farmFieldIds = new Set(rawData.fields.filter(f => String(f.farmId) === filters.farmId).map(f => String(f.id)));
+    traps = traps.filter(t => farmFieldIds.has(String(t.fieldId)));
+  }
 
   let fields = rawData.fields;
   if (filters.farmId) fields = fields.filter(f => String(f.farmId) === filters.farmId);

@@ -14,7 +14,7 @@ export function renderTrapPerformance(el, { sessions, traps }, rawData) {
       if ((o.observationType !== 'Trap' && o.observationType !== 0) || !o.trapId) continue;
       if (!trapStats[o.trapId]) trapStats[o.trapId] = { count: 0, checks: 0, lastChecked: null, pestNames: {} };
       const ts = trapStats[o.trapId];
-      ts.count  += o.count ?? 1;
+      ts.count  += o.count ?? 0;
       ts.checks += 1;
       if (!ts.lastChecked || s.completedAt > ts.lastChecked) ts.lastChecked = s.completedAt;
       if (!o.isUnknownPest && o.pestName) ts.pestNames[o.pestName] = (ts.pestNames[o.pestName] || 0) + (o.count ?? 1);
