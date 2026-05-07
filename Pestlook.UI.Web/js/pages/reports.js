@@ -76,10 +76,16 @@ export async function renderReports(container) {
   let alive = true;
   container._cleanup = () => { alive = false; };
 
-  filters.dateRange = '90';
-  filters.farmId    = '';
-  filters.fieldId   = '';
-  filters.scoutId   = '';
+  const _today    = new Date();
+  const _90dAgo   = new Date(_today);
+  _90dAgo.setDate(_90dAgo.getDate() - 90);
+  const _fmt = d => d.toISOString().slice(0, 10);
+
+  filters.from    = _fmt(_90dAgo);
+  filters.to      = _fmt(_today);
+  filters.farmId  = '';
+  filters.fieldId = '';
+  filters.scoutId = '';
 
   container.innerHTML = `
     <div class="section-head" style="margin-bottom:16px;">
@@ -95,13 +101,14 @@ export async function renderReports(container) {
     </div>
     <div id="rpt-filters" style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;">
       <span style="font-size:0.72rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-right:4px;">Filter</span>
-      <select id="rpt-date" class="input-field" style="margin-top:0;width:auto;padding:6px 10px;font-size:0.8rem;">
-        <option value="7">Last 7 days</option>
-        <option value="30">Last 30 days</option>
-        <option value="90" selected>Last 90 days</option>
-        <option value="365">Last 12 months</option>
-        <option value="all">All time</option>
-      </select>
+      <label style="font-size:0.8rem;color:var(--text-dim);display:flex;align-items:center;gap:6px;">
+        From
+        <input type="date" id="rpt-from" class="input-field" style="margin-top:0;width:auto;padding:6px 10px;font-size:0.8rem;" />
+      </label>
+      <label style="font-size:0.8rem;color:var(--text-dim);display:flex;align-items:center;gap:6px;">
+        To
+        <input type="date" id="rpt-to" class="input-field" style="margin-top:0;width:auto;padding:6px 10px;font-size:0.8rem;" />
+      </label>
       <select id="rpt-farm" class="input-field" style="margin-top:0;width:auto;padding:6px 10px;font-size:0.8rem;">
         <option value="">All Farms</option>
       </select>
@@ -177,13 +184,23 @@ export async function renderReports(container) {
       showTab(activeTab, lookups, container);
     }
 
-    document.getElementById('rpt-date').addEventListener('change', e => { filters.dateRange = e.target.value; rerender(); });
+    document.getElementById('rpt-from').value = filters.from;
+    document.getElementById('rpt-to').value   = filters.to;
+
+    document.getElementById('rpt-from').addEventListener('change', e => { if (e.target.value) { filters.from = e.target.value; rerender(); } });
+    document.getElementById('rpt-to').addEventListener('change',   e => { if (e.target.value) { filters.to   = e.target.value; rerender(); } });
     farmSel.addEventListener('change', e => { filters.farmId = e.target.value; populateFields(e.target.value); rerender(); });
     document.getElementById('rpt-field').addEventListener('change', e => { filters.fieldId = e.target.value; rerender(); });
     document.getElementById('rpt-scout').addEventListener('change', e => { filters.scoutId = e.target.value; rerender(); });
     document.getElementById('rpt-clear').addEventListener('click', () => {
-      filters.dateRange = '90'; filters.farmId = ''; filters.fieldId = ''; filters.scoutId = '';
-      document.getElementById('rpt-date').value = '90';
+      const _t  = new Date();
+      const _f  = new Date(_t);
+      _f.setDate(_f.getDate() - 90);
+      const _fmt2 = d => d.toISOString().slice(0, 10);
+      filters.from = _fmt2(_f); filters.to = _fmt2(_t);
+      filters.farmId = ''; filters.fieldId = ''; filters.scoutId = '';
+      document.getElementById('rpt-from').value = filters.from;
+      document.getElementById('rpt-to').value   = filters.to;
       farmSel.value = '';
       document.getElementById('rpt-scout').value = '';
       populateFields('');

@@ -17,8 +17,14 @@ export function renderOverview(el, data, lookups) {
   const activeTraps   = traps.filter(t => t.isEnabled).length;
   const disabledTraps = traps.filter(t => !t.isEnabled).length;
 
+  const spanDays = weeklyTrend.length > 1
+    ? (new Date(weeklyTrend.at(-1).weekStart) - new Date(weeklyTrend[0].weekStart)) / 86400000
+    : 0;
+  const dateFmt = spanDays > 180
+    ? { month: 'short', year: '2-digit' }
+    : { day: 'numeric', month: 'short' };
   const weekLabels = weeklyTrend.map(w =>
-    new Date(w.weekStart).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
+    new Date(w.weekStart).toLocaleDateString('en-GB', dateFmt));
   const weekCounts = weeklyTrend.map(w => w.totalObs);
 
   const recent4 = weekCounts.slice(-4).reduce((a, b) => a + b, 0);

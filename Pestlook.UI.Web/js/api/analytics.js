@@ -27,8 +27,8 @@ export async function getAllAnalyticsSessions() {
 
 function buildParams(filters) {
   const p = new URLSearchParams();
-  if (filters?.dateRange && filters.dateRange !== 'all') p.set('dateRange', filters.dateRange);
-  if (filters?.dateRange === 'all') p.set('dateRange', 'all');
+  if (filters?.from) p.set('from', filters.from);
+  if (filters?.to)   p.set('to',   filters.to);
   if (filters?.farmId)   p.set('farmId',  filters.farmId);
   if (filters?.fieldId)  p.set('fieldId', filters.fieldId);
   if (filters?.scoutId)  p.set('scoutId', filters.scoutId);

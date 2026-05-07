@@ -170,20 +170,42 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
             })
             .FirstOrDefaultAsync(ct);
 
-        // 8-week trend — obs per week
-        var eightWeeksAgo = DateTime.UtcNow.AddDays(-56);
-        var weeklyObs = await db.ScoutingSessions
-            .Where(ss => ss.CompletedAt >= eightWeeksAgo && ss.CompletedAt <= end)
-            .SelectMany(ss => ss.SessionObservations.Select(o => new { ss.CompletedAt, o.Count }))
-            .GroupBy(x => x.CompletedAt!.Value.DayOfYear / 7)
-            .Select(g => new
-            {
-                WeekIndex = g.Key,
-                TotalObs  = g.Sum(x => x.Count ?? 0),
-                WeekStart = g.Min(x => x.CompletedAt),
-            })
-            .OrderBy(x => x.WeekIndex)
-            .ToListAsync(ct);
+        // Trend — bucket size adapts to the selected range
+        var spanDays = (end - start).TotalDays;
+        List<object> weeklyObs;
+        if (spanDays <= 14)
+        {
+            // Daily buckets
+            var raw = await sessQ
+                .SelectMany(ss => ss.SessionObservations.Select(o => new { ss.CompletedAt, o.Count }))
+                .GroupBy(x => x.CompletedAt!.Value.Date)
+                .Select(g => new { BucketDate = g.Key, TotalObs = g.Sum(x => x.Count ?? 0) })
+                .OrderBy(x => x.BucketDate)
+                .ToListAsync(ct);
+            weeklyObs = raw.Select(x => (object)new { WeekStart = (DateTime?)x.BucketDate, x.TotalObs }).ToList();
+        }
+        else if (spanDays <= 180)
+        {
+            // Weekly buckets — group by ISO week number within each year
+            var raw = await sessQ
+                .SelectMany(ss => ss.SessionObservations.Select(o => new { ss.CompletedAt, o.Count }))
+                .GroupBy(x => x.CompletedAt!.Value.DayOfYear / 7)
+                .Select(g => new { WeekIndex = g.Key, TotalObs = g.Sum(x => x.Count ?? 0), WeekStart = g.Min(x => x.CompletedAt) })
+                .OrderBy(x => x.WeekIndex)
+                .ToListAsync(ct);
+            weeklyObs = raw.Select(x => (object)new { x.WeekStart, x.TotalObs }).ToList();
+        }
+        else
+        {
+            // Monthly buckets
+            var raw = await sessQ
+                .SelectMany(ss => ss.SessionObservations.Select(o => new { ss.CompletedAt, o.Count }))
+                .GroupBy(x => new { x.CompletedAt!.Value.Year, x.CompletedAt.Value.Month })
+                .Select(g => new { g.Key.Year, g.Key.Month, TotalObs = g.Sum(x => x.Count ?? 0) })
+                .OrderBy(x => x.Year).ThenBy(x => x.Month)
+                .ToListAsync(ct);
+            weeklyObs = raw.Select(x => (object)new { WeekStart = (DateTime?)new DateTime(x.Year, x.Month, 1), x.TotalObs }).ToList();
+        }
 
         // Top 6 pests
         var topPests = await sessQ
@@ -198,7 +220,7 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         return Ok(ApiResponse<object>.Ok(new
         {
             kpis = kpis ?? new { TotalSessions = 0, CompletedSessions = 0, TotalObservations = 0, ThresholdBreaches = 0 },
-            weeklyTrend = weeklyObs.Select(w => new { w.WeekStart, w.TotalObs }),
+            weeklyTrend = weeklyObs,
             topPests,
         }));
     }
