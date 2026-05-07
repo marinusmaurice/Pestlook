@@ -1,110 +1,84 @@
 import { escapeHtml } from '../../utils/helpers.js';
-import { tag } from '../../components/tag.js';
 import {
   C, PALETTE, mkChart,
-  realObs, sessionDuration, overdueSessions,
-  lastNWeekLabels, weekIndex,
   kpiGrid, kpiCard, chartCard, tableCard, filterBadge,
 } from './utils.js';
 
-export function renderScoutProductivity(el, { sessions, pests }, rawData) {
-  const pestById = Object.fromEntries(pests.map(p => [p.id, p]));
-  const scoutMap = {};
-  const now = new Date();
+// data = { scouts: [...], weeklyActivity: [{ scouterName, weekStart, completedCount }] }
+export function renderScoutProductivity(el, data, lookups) {
+  const scouts         = data.scouts         ?? [];
+  const weeklyActivity = data.weeklyActivity ?? [];
 
-  for (const s of sessions) {
-    const name = s.scouterName || s.scouterId || 'Unknown';
-    if (!scoutMap[name]) scoutMap[name] = {
-      sessions: 0, completed: 0, alerts: 0, overdue: 0,
-      durations: [], totalObs: 0,
-      fields: new Set(), farms: new Set(),
-    };
-    const sm = scoutMap[name];
-    sm.sessions++;
-    if (s.completedAt) sm.completed++;
-    const obs = realObs(s);
-    sm.totalObs += obs.reduce((sum, o) => sum + (o.count ?? 1), 0);
-    for (const o of obs) {
-      const pest = o.pestId ? pestById[o.pestId] : null;
-      if (pest?.thresholdCount != null && (o.count || 0) > pest.thresholdCount) sm.alerts++;
-    }
-    const dur = sessionDuration(s);
-    if (dur !== null) sm.durations.push(dur);
-    if (s.isPlanned && !s.startedAt && !s.completedAt && s.scheduledDate && new Date(s.scheduledDate) < now) sm.overdue++;
-    if (s.fieldId) sm.fields.add(s.fieldId);
-    if (s.farmId)  sm.farms.add(s.farmId);
-  }
+  const totalSessions = scouts.reduce((s, x) => s + (x.totalSessions ?? 0), 0);
+  const avgPerScout   = scouts.length > 0 ? (totalSessions / scouts.length).toFixed(1) : '0';
+  const topScout      = scouts[0];
 
-  const scouts = Object.entries(scoutMap).sort((a, b) => b[1].sessions - a[1].sessions);
-  const totalSessions  = sessions.length;
-  const totalScouts    = scouts.length;
-  const avgSessPerScout = totalScouts > 0 ? (totalSessions / totalScouts).toFixed(1) : '—';
-  const topScout = scouts[0];
+  // Build top-5 weekly stacked chart
+  const top5Names = scouts.slice(0, 5).map(s => s.scouterName);
+  const weekSet   = [...new Set(weeklyActivity.map(w => w.weekStart))].sort();
+  const weekLabels = weekSet.map(w => new Date(w).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
 
-  const weeks = lastNWeekLabels(8);
-  const scoutDatasets = scouts.slice(0, 5).map(([name], i) => {
-    const counts = Array(8).fill(0);
-    for (const s of sessions.filter(ss => (ss.scouterName || ss.scouterId || 'Unknown') === name)) {
-      const idx = weekIndex(s.completedAt || s.startedAt || s.scheduledDate);
-      if (idx >= 0) counts[idx]++;
-    }
-    return {
-      label: name.length > 14 ? name.slice(0, 12) + '…' : name,
-      data: counts,
-      backgroundColor: PALETTE[i % PALETTE.length],
-      borderRadius: 3,
-      stack: 's',
-    };
-  });
+  const datasets = top5Names.map((name, i) => ({
+    label: name,
+    data:  weekSet.map(w => {
+      const entry = weeklyActivity.find(x => x.scouterName === name && x.weekStart === w);
+      return entry?.completedCount ?? 0;
+    }),
+    backgroundColor: PALETTE[i % PALETTE.length],
+    borderRadius: 3,
+  }));
 
-  const tableRows = scouts.map(([name, sm]) => {
-    const avgDur     = sm.durations.length
-      ? Math.round(sm.durations.reduce((a, b) => a + b, 0) / sm.durations.length)
-      : null;
-    const compRate   = sm.sessions > 0 ? Math.round((sm.completed / sm.sessions) * 100) : 0;
-    const obsPerSess = sm.completed > 0 ? (sm.totalObs / sm.completed).toFixed(1) : '—';
-    const compColor  = compRate >= 80 ? C.green : compRate >= 50 ? C.amber : C.red;
-    return `<tr>
-      <td style="font-weight:500;">${escapeHtml(name)}</td>
-      <td style="font-family:'JetBrains Mono',monospace;">${sm.sessions}</td>
-      <td style="font-family:'JetBrains Mono',monospace;">
-        <span style="font-weight:600;color:${compColor};">${compRate}%</span>
-        <span style="font-size:0.75rem;color:var(--text-dim);margin-left:4px;">${sm.completed}/${sm.sessions}</span>
-      </td>
-      <td style="font-family:'JetBrains Mono',monospace;">${avgDur !== null ? avgDur + ' min' : '—'}</td>
-      <td style="font-family:'JetBrains Mono',monospace;">${sm.totalObs.toLocaleString()}</td>
-      <td style="font-family:'JetBrains Mono',monospace;">${obsPerSess}</td>
-      <td style="font-family:'JetBrains Mono',monospace;">${sm.fields.size}</td>
-      <td style="font-family:'JetBrains Mono',monospace;color:${sm.alerts > 0 ? C.red : ''};">${sm.alerts}</td>
-      <td style="font-family:'JetBrains Mono',monospace;color:${sm.overdue > 0 ? C.amber : ''};">${sm.overdue}</td>
-    </tr>`;
-  }).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--text-dim);padding:20px;">No scouting data in selected period</td></tr>`;
+  const tableRows = scouts.length
+    ? scouts.map(s => {
+        const rate  = s.completionRate ?? 0;
+        const color = rate >= 80 ? C.green : rate >= 50 ? C.amber : C.red;
+        return `<tr>
+          <td style="font-weight:500;">${escapeHtml(s.scouterName ?? '—')}</td>
+          <td style="font-family:'JetBrains Mono',monospace;">${s.totalSessions ?? 0}</td>
+          <td style="font-family:'JetBrains Mono',monospace;">${s.completed ?? 0}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div class="progress-bar" style="width:80px;">
+                <div class="progress-fill" style="width:${rate}%;background:${color};"></div>
+              </div>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;color:${color};">${rate.toFixed(0)}%</span>
+            </div>
+          </td>
+          <td style="font-family:'JetBrains Mono',monospace;">${s.avgDurationMin != null ? s.avgDurationMin.toFixed(0) + ' min' : '—'}</td>
+          <td style="font-family:'JetBrains Mono',monospace;">${(s.totalObs ?? 0).toLocaleString()}</td>
+          <td style="font-family:'JetBrains Mono',monospace;">${s.obsPerSession != null ? s.obsPerSession.toFixed(1) : '—'}</td>
+          <td style="font-family:'JetBrains Mono',monospace;">${s.fieldCount ?? 0}</td>
+          <td style="font-family:'JetBrains Mono',monospace;color:${(s.alertCount ?? 0) > 0 ? C.red : ''};">${s.alertCount ?? 0}</td>
+        </tr>`;
+      }).join('')
+    : `<tr><td colspan="9" style="text-align:center;color:var(--text-dim);padding:20px;">No scout activity in selected period</td></tr>`;
 
   el.innerHTML = `
-    ${filterBadge(rawData)}
+    ${filterBadge(lookups)}
     ${kpiGrid([
-      kpiCard('Active Scouts', totalScouts, 'With sessions in period'),
-      kpiCard('Most Sessions', topScout ? escapeHtml(topScout[0]) : '—',
-        topScout ? topScout[1].sessions + ' sessions · ' + topScout[1].completed + ' completed' : ''),
-      kpiCard('Avg Sessions / Scout', avgSessPerScout, 'In selected period'),
-      kpiCard('Overdue Sessions', overdueSessions(sessions).length,
-        'Across all scouts', overdueSessions(sessions).length > 0 ? C.amber : ''),
+      kpiCard('Active Scouts',    scouts.length,   'Scouts with sessions in period'),
+      kpiCard('Total Sessions',   totalSessions,   ''),
+      kpiCard('Avg / Scout',      avgPerScout,     'Average sessions per scout'),
+      kpiCard('Top Scout',        escapeHtml(topScout?.scouterName ?? '—'),
+        topScout ? `${topScout.totalSessions} sessions` : ''),
     ])}
-    ${chartCard('Sessions per scout — last 8 weeks (top 5)', 'c-scouts', 200, 'Stacked by scout name')}
+    ${chartCard('Weekly completed sessions — top 5 scouts', 'c-scouts-weekly', 220)}
     ${tableCard(
-      ['Scout', 'Sessions', 'Compliance', 'Avg Duration', 'Total Obs', 'Obs / Session', 'Fields', 'Alerts', 'Overdue'],
+      ['Scout', 'Sessions', 'Completed', 'Compliance', 'Avg Duration', 'Total Obs', 'Obs/Session', 'Fields', 'Alerts'],
       tableRows,
-      'Scout performance breakdown'
+      'Scout breakdown'
     )}
   `;
 
   setTimeout(() => {
-    mkChart('c-scouts', 'bar', { labels: weeks, datasets: scoutDatasets }, {
-      scales: {
-        x: { stacked: true, ticks: { font: { size: 11 } } },
-        y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } } },
-      },
-      plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 10, font: { size: 11 } } } },
-    });
+    if (datasets.length) {
+      mkChart('c-scouts-weekly', 'bar', { labels: weekLabels, datasets }, {
+        plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 10, font: { size: 11 } } } },
+        scales: {
+          x: { stacked: true, ticks: { font: { size: 11 } } },
+          y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } } },
+        },
+      });
+    }
   }, 0);
 }

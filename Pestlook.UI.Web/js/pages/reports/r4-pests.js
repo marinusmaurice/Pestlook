@@ -1,109 +1,80 @@
 import { escapeHtml } from '../../utils/helpers.js';
 import { tag } from '../../components/tag.js';
-import { PestCategory, LifeStage } from '../../utils/helpers.js';
 import {
   C, PALETTE, mkChart,
-  realObs,
   kpiGrid, kpiCard, chartCard, tableCard, emptyState, filterBadge,
 } from './utils.js';
 
-export function renderTopPests(el, { sessions, pests }, rawData) {
-  const pestById = Object.fromEntries(pests.map(p => [p.id, p]));
+// data = { pests: [{ pestId, pestName, category, totalCount, fieldCount, sessionCount, breachCount, thresholdCount, topLifeStage }] }
+export function renderTopPests(el, data, lookups) {
+  const pests = data.pests ?? [];
 
-  const pestStats = {};
-  for (const s of sessions) {
-    for (const o of realObs(s)) {
-      if (o.isUnknownPest || !o.pestName) continue;
-      if (!pestStats[o.pestName]) pestStats[o.pestName] = {
-        count: 0, fields: new Set(), farms: new Set(),
-        sessionIds: new Set(), breaches: 0,
-        lifeStageCounts: {}, pestId: o.pestId,
-        thresholdCount: o.thresholdCount ?? null,
-      };
-      const ps = pestStats[o.pestName];
-      ps.count += o.count ?? 1;
-      if (s.fieldId) ps.fields.add(s.fieldId);
-      if (s.farmId)  ps.farms.add(s.farmId);
-      ps.sessionIds.add(s.id || s.sessionId);
-      if (o.lifeStage != null) {
-        const ls = LifeStage[o.lifeStage] ?? String(o.lifeStage);
-        ps.lifeStageCounts[ls] = (ps.lifeStageCounts[ls] || 0) + 1;
-      }
-      if (o.thresholdCount && (o.count || 0) > o.thresholdCount) ps.breaches++;
-    }
+  const totalCount    = pests.reduce((s, p) => s + (p.totalCount ?? 0), 0);
+  const uniqueSpecies = pests.length;
+  const aboveThresh   = pests.filter(p => (p.breachCount ?? 0) > 0).length;
+  const mostWide      = pests.reduce((best, p) =>
+    (p.fieldCount ?? 0) > (best?.fieldCount ?? 0) ? p : best, null);
+
+  // Category breakdown
+  const catMap = {};
+  for (const p of pests) {
+    const cat = p.category ?? 'Unknown';
+    catMap[cat] = (catMap[cat] ?? 0) + (p.totalCount ?? 0);
   }
+  const catEntries = Object.entries(catMap).sort((a, b) => b[1] - a[1]);
 
-  const sorted = Object.entries(pestStats).sort((a, b) => b[1].count - a[1].count);
-  const totalObs = sorted.reduce((sum, [, ps]) => sum + ps.count, 0);
+  const top10 = pests.slice(0, 10);
 
-  // Category breakdown for doughnut
-  const catCounts = {};
-  for (const [, { count, pestId }] of sorted) {
-    const pest = pestId ? pestById[pestId] : null;
-    const cat  = pest?.category != null ? (PestCategory[pest.category] || 'Other') : 'Unknown';
-    catCounts[cat] = (catCounts[cat] || 0) + count;
-  }
-  const catEntries = Object.entries(catCounts).sort((a, b) => b[1] - a[1]);
-
-  const topForChart = sorted.slice(0, 10);
-
-  const tableRows = sorted.length
-    ? sorted.map(([name, ps], idx) => {
-        const pest     = ps.pestId ? pestById[ps.pestId] : null;
-        const cat      = pest?.category != null ? (PestCategory[pest.category] || '—') : '—';
-        const thresh   = ps.thresholdCount ?? '—';
-        const pct      = totalObs > 0 ? ((ps.count / totalObs) * 100).toFixed(1) : '0';
-        const topStage = Object.entries(ps.lifeStageCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
-        const hasAlert = ps.breaches > 0;
+  const tableRows = pests.length
+    ? pests.map((p, i) => {
+        const share = totalCount > 0 ? ((p.totalCount / totalCount) * 100).toFixed(1) : '0.0';
         return `<tr>
-          <td style="font-family:'JetBrains Mono',monospace;color:var(--text-dim);">${idx + 1}</td>
-          <td style="font-weight:500;">${escapeHtml(name)}</td>
-          <td>${escapeHtml(cat)}</td>
-          <td style="font-family:'JetBrains Mono',monospace;font-weight:600;">${ps.count.toLocaleString()}</td>
-          <td style="font-family:'JetBrains Mono',monospace;color:var(--text-dim);">${pct}%</td>
-          <td style="font-family:'JetBrains Mono',monospace;">${ps.fields.size}</td>
-          <td style="font-family:'JetBrains Mono',monospace;">${ps.sessionIds.size}</td>
-          <td style="font-family:'JetBrains Mono',monospace;">${thresh}</td>
-          <td>${hasAlert ? tag(ps.breaches + ' breach' + (ps.breaches > 1 ? 'es' : ''), 'red') : tag('None', 'green')}</td>
-          <td style="font-size:0.8rem;">${escapeHtml(topStage)}</td>
+          <td style="font-family:'JetBrains Mono',monospace;color:var(--text-dim);">${i + 1}</td>
+          <td style="font-weight:500;">${escapeHtml(p.pestName ?? '—')}</td>
+          <td style="font-size:0.8rem;">${escapeHtml(p.category ?? '—')}</td>
+          <td style="font-family:'JetBrains Mono',monospace;font-weight:600;">${(p.totalCount ?? 0).toLocaleString()}</td>
+          <td style="font-family:'JetBrains Mono',monospace;">${share}%</td>
+          <td style="font-family:'JetBrains Mono',monospace;">${p.fieldCount ?? 0}</td>
+          <td style="font-family:'JetBrains Mono',monospace;">${p.sessionCount ?? 0}</td>
+          <td style="font-family:'JetBrains Mono',monospace;color:${(p.breachCount ?? 0) > 0 ? C.red : ''};">${p.breachCount ?? 0}</td>
+          <td style="font-size:0.8rem;color:var(--text-dim);">${escapeHtml(p.topLifeStage ?? '—')}</td>
         </tr>`;
       }).join('')
-    : `<tr><td colspan="10" style="text-align:center;color:var(--text-dim);padding:20px;">No pest observations recorded in this period</td></tr>`;
+    : `<tr><td colspan="9" style="text-align:center;color:var(--text-dim);padding:20px;">No pest observations in selected period</td></tr>`;
 
   el.innerHTML = `
-    ${filterBadge(rawData)}
+    ${filterBadge(lookups)}
     ${kpiGrid([
-      kpiCard('Unique Pest Species',   sorted.length,                                     'Identified across all sessions'),
-      kpiCard('Total Observations',    totalObs.toLocaleString(),                          'Sum of all counts'),
-      kpiCard('Species Above Threshold', sorted.filter(([, ps]) => ps.breaches > 0).length, 'Require action', sorted.filter(([, ps]) => ps.breaches > 0).length > 0 ? C.red : ''),
-      kpiCard('Most Widespread',       sorted[0] ? escapeHtml(sorted[0][0]) : '—',         sorted[0] ? sorted[0][1].fields.size + ' fields' : ''),
+      kpiCard('Unique Species',     uniqueSpecies, 'Different pest species observed'),
+      kpiCard('Total Observations', totalCount.toLocaleString(), 'Across all fields and sessions'),
+      kpiCard('Above Threshold',    aboveThresh, 'Species with at least one breach', aboveThresh > 0 ? C.red : ''),
+      kpiCard('Most Widespread',    escapeHtml(mostWide?.pestName ?? '—'),
+        mostWide ? `${mostWide.fieldCount} field${mostWide.fieldCount !== 1 ? 's' : ''}` : ''),
     ])}
     <div class="two-col" style="margin-bottom:16px;">
-      ${chartCard('Top 10 pests by count', 'c-toppests', 220, 'Total observation count in selected period')}
-      ${chartCard('Observations by pest category', 'c-cat-donut', 220)}
+      ${chartCard('Top 10 pests by count', 'c-pests-bar', 220)}
+      ${chartCard('Observations by pest category', 'c-pests-cat', 220)}
     </div>
     ${tableCard(
-      ['#', 'Pest', 'Category', 'Total Count', '% of Total', 'Fields', 'Sessions', 'Threshold', 'Breaches', 'Top Life Stage'],
+      ['#', 'Pest', 'Category', 'Count', 'Share', 'Fields', 'Sessions', 'Breaches', 'Top Life Stage'],
       tableRows,
-      'Full pest ranking'
+      'All observed pests',
+      'Sorted by total count — highest first'
     )}
   `;
 
   setTimeout(() => {
-    mkChart('c-toppests', 'bar', {
-      labels: topForChart.map(([n]) => n.length > 18 ? n.slice(0, 16) + '…' : n),
+    mkChart('c-pests-bar', 'bar', {
+      labels: top10.map(p => (p.pestName ?? '').length > 18 ? p.pestName.slice(0, 16) + '…' : p.pestName),
       datasets: [{
-        data: topForChart.map(([, ps]) => ps.count),
-        backgroundColor: topForChart.map(([, ps]) => {
-          const pest = ps.pestId ? pestById[ps.pestId] : null;
-          return ps.thresholdCount && ps.breaches > 0 ? C.red : C.blue;
-        }),
+        data: top10.map(p => p.totalCount ?? 0),
+        backgroundColor: PALETTE,
         borderRadius: 4,
       }],
-    }, { scales: { x: { ticks: { font: { size: 11 } } }, y: { ticks: { font: { size: 11 } } } } });
+    }, { indexAxis: 'y', scales: { x: { ticks: { font: { size: 11 } } }, y: { ticks: { font: { size: 11 } } } } });
 
-    mkChart('c-cat-donut', 'doughnut', {
-      labels: catEntries.map(([k]) => k),
+    mkChart('c-pests-cat', 'doughnut', {
+      labels: catEntries.map(([n]) => n),
       datasets: [{ data: catEntries.map(([, v]) => v), backgroundColor: PALETTE, borderWidth: 0 }],
     }, { plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } } });
   }, 0);

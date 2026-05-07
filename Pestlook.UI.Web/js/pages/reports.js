@@ -1,15 +1,16 @@
-import { getSessions } from '../api/sessions.js';
-import { getAllAnalyticsSessions } from '../api/analytics.js';
-import { getTraps } from '../api/traps.js';
-import { getPests } from '../api/pests.js';
-import { getFarms } from '../api/farms.js';
+import {
+  getOverview, getAlerts, getPestPressure, getSessionsSummary, getTopPests,
+  getTrapPerformance, getScoutProductivity, getSeasonalTrends,
+  getUnknownPests, getFieldCoverage, getBillingAnalytics,
+} from '../api/analytics.js';
+import { getTraps }  from '../api/traps.js';
+import { getFarms }  from '../api/farms.js';
 import { getFields } from '../api/fields.js';
-import { getBillingSnapshots } from '../api/billing.js';
 import { showToast } from '../components/toast.js';
 import { escapeHtml } from '../utils/helpers.js';
 
 import {
-  loadChartJs, destroyCharts, applyFilters, filters, emptyState,
+  loadChartJs, destroyCharts, filters, emptyState,
 } from './reports/utils.js';
 
 import { renderOverview }          from './reports/r0-overview.js';
@@ -24,7 +25,7 @@ import { renderUnknownPests }      from './reports/r8-unknown.js';
 import { renderFieldCoverage }     from './reports/r9-coverage.js';
 import { renderBilling }           from './reports/r10-billing.js';
 
-/* ── Tabs ─────────────────────────────────────────────────────────────────────── */
+/* -- Tabs ----------------------------------------------------------------------- */
 
 const TABS = [
   { id: 'dash', label: '📊 Overview' },
@@ -40,7 +41,35 @@ const TABS = [
   { id: 'r10',  label: '💳 Billing & Quota' },
 ];
 
-/* ── Entry point ─────────────────────────────────────────────────────────────── */
+const TAB_FETCHER = {
+  dash: f => getOverview(f),
+  r1:   f => getAlerts(f),
+  r2:   f => getPestPressure(f),
+  r3:   f => getSessionsSummary(f),
+  r4:   f => getTopPests(f),
+  r5:   f => getTrapPerformance(f),
+  r6:   f => getScoutProductivity(f),
+  r7:   f => getSeasonalTrends(f),
+  r8:   f => getUnknownPests(f),
+  r9:   f => getFieldCoverage(f),
+  r10:  ()  => getBillingAnalytics(),
+};
+
+const TAB_RENDERER = {
+  dash: renderOverview,
+  r1:   renderThresholdAlerts,
+  r2:   renderPestPressure,
+  r3:   renderScoutingSessions,
+  r4:   renderTopPests,
+  r5:   renderTrapPerformance,
+  r6:   renderScoutProductivity,
+  r7:   renderSeasonalTrends,
+  r8:   renderUnknownPests,
+  r9:   renderFieldCoverage,
+  r10:  renderBilling,
+};
+
+/* -- Entry point --------------------------------------------------------------- */
 
 export async function renderReports(container) {
 
@@ -92,53 +121,35 @@ export async function renderReports(container) {
   try {
     await loadChartJs().catch(err => console.warn('Chart.js unavailable — charts disabled:', err.message));
 
-    const [sessions, trapsRes, pestsRes, farmsRes, fieldsRes, billRes] = await Promise.all([
-      getAllAnalyticsSessions().catch(() => []),
+    const [trapsRes, farmsRes, fieldsRes] = await Promise.all([
       getTraps().catch(() => ({ data: [] })),
-      getPests().catch(() => ({ data: [] })),
       getFarms().catch(() => ({ data: [] })),
       getFields().catch(() => ({ data: [] })),
-      getBillingSnapshots().catch(() => ({ data: [] })),
     ]);
 
     if (!alive) return;
 
-    const rawData = {
-      sessions: sessions,
-      traps:    trapsRes.data  || [],
-      pests:    pestsRes.data  || [],
-      farms:    farmsRes.data  || [],
-      fields:   fieldsRes.data || [],
-      billing:  billRes.data   || [],
+    const lookups = {
+      traps:  trapsRes.data  || [],
+      farms:  farmsRes.data  || [],
+      fields: fieldsRes.data || [],
     };
-    rawData.farmNameById = Object.fromEntries(rawData.farms.map(f => [f.id, f.name]));
+    lookups.farmNameById = Object.fromEntries(lookups.farms.map(f => [f.id, f.name]));
 
     // Populate farm dropdown
     const farmSel = document.getElementById('rpt-farm');
-    for (const f of rawData.farms) {
+    for (const f of lookups.farms) {
       const opt = document.createElement('option');
       opt.value = f.id;
       opt.textContent = f.name;
       farmSel.appendChild(opt);
     }
 
-    // Populate scout dropdown
-    const scoutSel = document.getElementById('rpt-scout');
-    const scoutNames = [...new Set(
-      rawData.sessions.map(s => s.scouterName || s.scouterId).filter(Boolean)
-    )].sort();
-    for (const name of scoutNames) {
-      const opt = document.createElement('option');
-      opt.value = name;
-      opt.textContent = name;
-      scoutSel.appendChild(opt);
-    }
-
     function populateFields(farmId) {
       const fieldSel = document.getElementById('rpt-field');
       fieldSel.innerHTML = '<option value="">All Fields</option>';
       filters.fieldId = '';
-      const list = farmId ? rawData.fields.filter(f => String(f.farmId) === farmId) : rawData.fields;
+      const list = farmId ? lookups.fields.filter(f => String(f.farmId) === farmId) : lookups.fields;
       for (const f of list) {
         const opt = document.createElement('option');
         opt.value = f.id;
@@ -147,33 +158,46 @@ export async function renderReports(container) {
       }
     }
 
+    // Populate scout dropdown lazily from productivity endpoint
+    getScoutProductivity({}).then(res => {
+      const scouts  = res?.data?.scouts ?? [];
+      const sel     = document.getElementById('rpt-scout');
+      if (!sel) return;
+      for (const s of scouts) {
+        const opt = document.createElement('option');
+        opt.value = s.scouterName;
+        opt.textContent = s.scouterName;
+        sel.appendChild(opt);
+      }
+    }).catch(() => {});
+
     function rerender() {
       destroyCharts();
       const activeTab = container.querySelector('[data-tab].active')?.dataset?.tab || 'dash';
-      showTab(activeTab, rawData, container);
+      showTab(activeTab, lookups, container);
     }
 
     document.getElementById('rpt-date').addEventListener('change', e => { filters.dateRange = e.target.value; rerender(); });
     farmSel.addEventListener('change', e => { filters.farmId = e.target.value; populateFields(e.target.value); rerender(); });
     document.getElementById('rpt-field').addEventListener('change', e => { filters.fieldId = e.target.value; rerender(); });
-    scoutSel.addEventListener('change', e => { filters.scoutId = e.target.value; rerender(); });
+    document.getElementById('rpt-scout').addEventListener('change', e => { filters.scoutId = e.target.value; rerender(); });
     document.getElementById('rpt-clear').addEventListener('click', () => {
       filters.dateRange = '90'; filters.farmId = ''; filters.fieldId = ''; filters.scoutId = '';
       document.getElementById('rpt-date').value = '90';
       farmSel.value = '';
-      scoutSel.value = '';
+      document.getElementById('rpt-scout').value = '';
       populateFields('');
       rerender();
     });
 
-    showTab('dash', rawData, container);
+    showTab('dash', lookups, container);
 
     container.querySelectorAll('[data-tab]').forEach(btn => {
       btn.addEventListener('click', () => {
         destroyCharts();
         container.querySelectorAll('[data-tab]').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        showTab(btn.dataset.tab, rawData, container);
+        showTab(btn.dataset.tab, lookups, container);
       });
     });
 
@@ -185,24 +209,23 @@ export async function renderReports(container) {
   }
 }
 
-/* ── Tab dispatcher ──────────────────────────────────────────────────────────── */
+/* -- Tab dispatcher ------------------------------------------------------------ */
 
-function showTab(id, rawData, container) {
+async function showTab(id, lookups, container) {
   const body = document.getElementById('rpt-body');
   if (!body) return;
-  const data = applyFilters(rawData);
-  const map = {
-    dash: renderOverview,
-    r1:   renderThresholdAlerts,
-    r2:   renderPestPressure,
-    r3:   renderScoutingSessions,
-    r4:   renderTopPests,
-    r5:   renderTrapPerformance,
-    r6:   renderScoutProductivity,
-    r7:   renderSeasonalTrends,
-    r8:   renderUnknownPests,
-    r9:   renderFieldCoverage,
-    r10:  renderBilling,
-  };
-  (map[id] || (() => {}))(body, data, rawData);
+
+  body.innerHTML = `<div class="card card-p"><div class="skeleton skeleton-card" style="height:300px;"></div></div>`;
+
+  const fetcher  = TAB_FETCHER[id];
+  const renderer = TAB_RENDERER[id];
+  if (!fetcher || !renderer) return;
+
+  try {
+    const res  = await fetcher({ ...filters });
+    const data = res?.data ?? {};
+    renderer(body, data, lookups);
+  } catch (err) {
+    body.innerHTML = emptyState('⚠', 'Could not load tab', escapeHtml(err.message));
+  }
 }

@@ -2,124 +2,100 @@ import { escapeHtml, formatDate } from '../../utils/helpers.js';
 import { tag } from '../../components/tag.js';
 import {
   C, PALETTE, mkChart,
-  realObs, completedSessions, plannedSessions, overdueSessions, activeSessions, sessionDuration,
-  lastNWeekLabels, weekIndex,
-  kpiGrid, kpiCard, chartCard, tableCard, filterBadge,
+  kpiGrid, kpiCard, chartCard, tableCard, emptyState, filterBadge,
 } from './utils.js';
 
-export function renderScoutingSessions(el, { sessions }, rawData) {
-  const completed = completedSessions(sessions);
-  const planned   = plannedSessions(sessions);
-  const overdue   = overdueSessions(sessions);
-  const active    = activeSessions(sessions);
+// data = { kpis, scoutCompliance, weeklyStacked, sessions }
+export function renderScoutingSessions(el, data, lookups) {
+  const kpis           = data.kpis           ?? {};
+  const scoutCompliance = data.scoutCompliance ?? [];
+  const weeklyStacked  = data.weeklyStacked   ?? [];
+  const sessions       = data.sessions        ?? [];
 
-  const total      = sessions.length;
-  const compRate   = total > 0 ? Math.round((completed.length / total) * 100) : 0;
-  const durations  = completed.map(sessionDuration).filter(d => d !== null);
-  const avgDur     = durations.length ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
-  const minDur     = durations.length ? Math.min(...durations) : null;
-  const maxDur     = durations.length ? Math.max(...durations) : null;
-  const now        = new Date();
+  const weekLabels  = weeklyStacked.map(w =>
+    new Date(w.weekStart).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
+  const completedW  = weeklyStacked.map(w => w.completed);
+  const plannedW    = weeklyStacked.map(w => w.planned);
+  const overdueW    = weeklyStacked.map(w => w.overdue);
 
-  // Compliance rate per scout
-  const scoutMap = {};
-  for (const s of sessions) {
-    const name = s.scouterName || s.scouterId || 'Unknown';
-    if (!scoutMap[name]) scoutMap[name] = { completed: 0, total: 0 };
-    scoutMap[name].total++;
-    if (s.completedAt) scoutMap[name].completed++;
-  }
+  const complianceRows = scoutCompliance.length
+    ? scoutCompliance.map(s => {
+        const rate = s.total > 0 ? Math.round(100 * s.completed / s.total) : 0;
+        const color = rate >= 80 ? C.green : rate >= 50 ? C.amber : C.red;
+        return `<tr>
+          <td style="font-weight:500;">${escapeHtml(s.scouterName ?? '—')}</td>
+          <td style="font-family:'JetBrains Mono',monospace;">${s.total}</td>
+          <td style="font-family:'JetBrains Mono',monospace;">${s.completed}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div class="progress-bar" style="width:80px;">
+                <div class="progress-fill" style="width:${rate}%;background:${color};"></div>
+              </div>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;color:${color};">${rate}%</span>
+            </div>
+          </td>
+        </tr>`;
+      }).join('')
+    : `<tr><td colspan="4" style="text-align:center;color:var(--text-dim);padding:16px;">No scout data</td></tr>`;
 
-  // Weekly completion counts (stacked: completed / planned / overdue)
-  const weeks            = lastNWeekLabels(8);
-  const weekCompleted    = Array(8).fill(0);
-  const weekPlanned      = Array(8).fill(0);
-  const weekOverdue      = Array(8).fill(0);
-  for (const s of sessions) {
-    const ref = s.completedAt || s.startedAt || s.scheduledDate;
-    const idx = weekIndex(ref);
-    if (idx < 0) continue;
-    if (s.completedAt) weekCompleted[idx]++;
-    else if (s.isPlanned && !s.startedAt && s.scheduledDate && new Date(s.scheduledDate) < now) weekOverdue[idx]++;
-    else if (s.isPlanned) weekPlanned[idx]++;
-  }
-
-  const tableRows = sessions
-    .slice()
-    .sort((a, b) => {
-      const da = new Date(b.scheduledDate || b.startedAt || b.completedAt || 0);
-      const db = new Date(a.scheduledDate || a.startedAt || a.completedAt || 0);
-      return da - db;
-    })
-    .slice(0, 150)
-    .map(s => {
-      const isCompleted = !!s.completedAt;
-      const isActive    = !!s.startedAt && !isCompleted;
-      const isOvd       = s.isPlanned && !s.startedAt && !isCompleted && s.scheduledDate && new Date(s.scheduledDate) < now;
-      let statusTag;
-      if (isCompleted)      statusTag = tag('Complete', 'green');
-      else if (isActive)    statusTag = tag('Active',   'blue');
-      else if (isOvd)       statusTag = tag('Overdue',  'red');
-      else if (s.isPlanned) statusTag = tag('Planned',  'gray');
-      else                  statusTag = tag('—', 'gray');
-
-      const dur      = sessionDuration(s);
-      const obs      = realObs(s);
-      const obsTotal = obs.reduce((sum, o) => sum + (o.count ?? 1), 0);
-      const dateStr  = s.scheduledDate ? formatDate(s.scheduledDate) : (s.startedAt ? formatDate(s.startedAt) : '—');
-      const weather  = s.weatherConditions
-        ? escapeHtml(s.weatherConditions) + (s.temperatureCelsius != null ? ', ' + Math.round(s.temperatureCelsius) + '°C' : '')
-        : '—';
-
-      return `<tr>
-        <td style="font-size:0.82rem;">${dateStr}</td>
-        <td>${escapeHtml(s.farmName  || '—')}</td>
-        <td>${escapeHtml(s.fieldName || '—')}</td>
-        <td>${escapeHtml(s.scouterName || '—')}</td>
-        <td style="font-family:'JetBrains Mono',monospace;">${dur !== null ? dur + ' min' : '—'}</td>
-        <td style="font-family:'JetBrains Mono',monospace;">${isCompleted ? obsTotal : '—'}</td>
-        <td style="font-size:0.82rem;color:var(--text-dim);">${weather}</td>
-        <td>${statusTag}</td>
-      </tr>`;
-    }).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--text-dim);padding:20px;">No sessions in selected period</td></tr>`;
+  const sessionRows = sessions.length
+    ? sessions.map(s => {
+        const status = s.completedAt  ? tag('Completed', 'green')
+                     : s.startedAt    ? tag('Active',    'blue')
+                     : s.scheduledDate && new Date(s.scheduledDate) <= new Date() ? tag('Overdue', 'red')
+                     : tag('Planned', 'amber');
+        return `<tr>
+          <td style="font-size:0.82rem;">${s.scheduledDate ? formatDate(s.scheduledDate) : '—'}</td>
+          <td style="font-weight:500;">${escapeHtml(s.fieldName ?? '—')}</td>
+          <td>${escapeHtml(s.farmName ?? '—')}</td>
+          <td>${escapeHtml(s.scouterName ?? '—')}</td>
+          <td>${status}</td>
+          <td style="font-family:'JetBrains Mono',monospace;">${s.durationMin != null ? s.durationMin + ' min' : '—'}</td>
+          <td style="font-family:'JetBrains Mono',monospace;">${s.obsCount ?? 0}</td>
+        </tr>`;
+      }).join('')
+    : `<tr><td colspan="7" style="text-align:center;color:var(--text-dim);padding:20px;">No sessions in selected period</td></tr>`;
 
   el.innerHTML = `
-    ${filterBadge(rawData)}
+    ${filterBadge(lookups)}
     ${kpiGrid([
-      kpiCard('Compliance Rate', compRate + '%',
-        `${completed.length} of ${total} completed`,
-        compRate >= 80 ? C.green : compRate >= 50 ? C.amber : C.red),
-      kpiCard('Overdue Sessions', overdue.length,
-        'Past scheduled date — follow up required',
-        overdue.length > 0 ? C.red : ''),
-      kpiCard('Avg Duration', avgDur !== null ? avgDur + ' min' : '—',
-        minDur !== null ? `Min ${minDur} · Max ${maxDur} min` : 'No completed sessions'),
-      kpiCard('Active Now', active.length,
-        planned.length + ' planned upcoming', active.length > 0 ? C.blue : ''),
+      kpiCard('Total Sessions',    kpis.total      ?? 0, ''),
+      kpiCard('Completion Rate',   (kpis.completionRate ?? 0) + '%',
+        `${kpis.completed ?? 0} completed · ${kpis.overdue ?? 0} overdue`,
+        (kpis.overdue ?? 0) > 0 ? C.amber : C.green),
+      kpiCard('Avg Duration',      (kpis.avgDurationMin ?? 0) + ' min',
+        `Min ${kpis.minDurationMin ?? 0} · Max ${kpis.maxDurationMin ?? 0}`),
+      kpiCard('Active Now',        kpis.active ?? 0, 'Sessions currently in progress'),
     ])}
-    ${chartCard('Weekly session activity', 'c-sessions-weekly', 200, 'Completed, planned and overdue sessions per week')}
+    ${chartCard('Weekly session activity', 'c-sess-weekly', 200, 'Completed / planned / overdue per week')}
     ${tableCard(
-      ['Date', 'Farm', 'Field', 'Scout', 'Duration', 'Obs Total', 'Weather', 'Status'],
-      tableRows,
-      'All sessions',
-      'Most recent first — showing up to 150 records'
+      ['Scout', 'Total', 'Completed', 'Compliance'],
+      complianceRows,
+      'Scout compliance',
+      'Sessions completed vs total assigned'
+    )}
+    ${tableCard(
+      ['Date', 'Field', 'Farm', 'Scout', 'Status', 'Duration', 'Observations'],
+      sessionRows,
+      'Session list',
+      'Most recent 150 sessions'
     )}
   `;
 
   setTimeout(() => {
-    mkChart('c-sessions-weekly', 'bar', {
-      labels: weeks,
+    mkChart('c-sess-weekly', 'bar', {
+      labels: weekLabels,
       datasets: [
-        { label: 'Completed', data: weekCompleted, backgroundColor: C.green,  borderRadius: 3, stack: 's' },
-        { label: 'Planned',   data: weekPlanned,   backgroundColor: C.blue,   borderRadius: 3, stack: 's' },
-        { label: 'Overdue',   data: weekOverdue,   backgroundColor: C.red,    borderRadius: 3, stack: 's' },
+        { label: 'Completed', data: completedW, backgroundColor: C.green,  borderRadius: 3 },
+        { label: 'Planned',   data: plannedW,   backgroundColor: C.blue,   borderRadius: 3 },
+        { label: 'Overdue',   data: overdueW,   backgroundColor: C.red,    borderRadius: 3 },
       ],
     }, {
+      plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 10, font: { size: 11 } } } },
       scales: {
         x: { stacked: true, ticks: { font: { size: 11 } } },
         y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } } },
       },
-      plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 10, font: { size: 11 } } } },
     });
   }, 0);
 }
