@@ -1,6 +1,12 @@
 import { escapeHtml } from '../utils/helpers.js';
 
-const SECTIONS = [
+const GROUPS = [
+  {
+    id: 'web',
+    icon: '🌐',
+    title: 'Web App',
+    intro: 'The Pestlook web application runs in your browser and is the primary management interface for administrators, agronomists, and supervisors.',
+    sections: [
   {
     id: 'dashboard',
     icon: '📊',
@@ -181,32 +187,123 @@ const SECTIONS = [
       { heading: 'Editing a Team Member', body: 'Click the edit icon on the team member row, change the role or name, and click <strong>Save</strong>.' },
     ],
   },
+  ], // end Web App sections
+  },
+  {
+    id: 'mobile',
+    icon: '📱',
+    title: 'Mobile App',
+    intro: 'The Pestlook mobile app is designed for scouts in the field. It works on Android and connects to the same data as the web app. It is optimised for outdoor use — large touch targets, offline capability, and GPS integration.',
+    sections: [
+      {
+        id: 'mob-overview',
+        icon: '📱',
+        title: 'Getting Started',
+        intro: 'The mobile app is used by scouts to conduct scouting sessions, record pest observations, and check traps while in the field.',
+        items: [
+          { heading: 'Logging In', body: 'Open the app and enter your email and password. These are the same credentials used for the web app. Your session stays active until you sign out. If you see a "Tenant not found" error, contact your administrator to ensure your account has been assigned to an organisation.' },
+          { heading: 'Online vs Offline Mode', body: 'The app detects your internet connection automatically. When <strong>online</strong>, all data syncs to the server in real time. When <strong>offline</strong> (e.g. in remote paddocks with no signal), observations are saved locally to the device. When connectivity is restored, the app automatically syncs the queued data to the server. A sync indicator in the header shows pending records.' },
+          { heading: 'GPS & Location', body: 'The app uses your device\'s GPS to tag observations and trap checks with coordinates. When you start a session or add an observation, the app records your location automatically. Ensure you grant the app <strong>Location Permission</strong> during first launch. For best accuracy, enable High Accuracy (GPS + network) in your device settings.' },
+        ],
+      },
+      {
+        id: 'mob-sessions',
+        icon: '🥾',
+        title: 'Conducting a Scouting Session',
+        intro: 'Scouting sessions on mobile work the same way as on the web, but are designed for one-handed field use.',
+        items: [
+          { heading: 'Viewing Planned Sessions', body: 'The home screen shows sessions assigned to you for today, sorted by scheduled time. Planned sessions from the web app appear here automatically — no manual entry needed. Tap a session to open it.' },
+          { heading: 'Starting a Session', body: 'Tap a <em>Planned</em> session and press <strong>Start Session</strong>. The status changes to In Progress and the start time is recorded. If you need to start an unplanned (ad-hoc) session, tap <strong>New Session</strong> on the home screen, select the farm and field, and press Start.' },
+          { heading: 'Adding Observations', body: 'Inside an active session, tap <strong>＋ Add Observation</strong>. Select the pest from the catalogue (or mark as Unknown if unidentified), enter the count, optionally select a life stage (adult, larva, egg, etc.), add notes, and tap <strong>Save</strong>. The observation is saved immediately — even offline.' },
+          { heading: 'Taking Photos', body: 'When adding or editing an observation, tap the <strong>📷 Camera</strong> button to take a photo directly or choose from your gallery. Photos are attached to the observation and synced to the server when online. Photos of unknown pests are particularly valuable for identification.' },
+          { heading: 'Checking Traps', body: 'During a session, tap <strong>Check Trap</strong> to record a trap inspection. Select the trap from the list (filtered to the current field), enter the catch count and pest species, and save. The app records the date, time, and your GPS location for the check.' },
+          { heading: 'Completing a Session', body: 'When all observations have been recorded, tap <strong>Complete Session</strong> and confirm. The session is marked as Completed with the current time. If offline, the completion is queued and synced when connectivity returns.' },
+          { heading: 'Editing / Deleting Observations', body: 'Swipe left on an observation row to reveal Edit and Delete options. You can edit observations in a completed session as long as you are the scout who recorded it, or you have Admin role.' },
+        ],
+      },
+      {
+        id: 'mob-sync',
+        icon: '🔄',
+        title: 'Sync & Data',
+        intro: 'Understanding how data flows between the mobile app and the server.',
+        items: [
+          { heading: 'Automatic Sync', body: 'Whenever the app detects an internet connection, it automatically pushes any locally saved observations, session updates, and trap checks to the server. You do not need to do anything manually — the sync happens in the background.' },
+          { heading: 'Manual Sync', body: 'To force an immediate sync, pull down on the home screen (pull-to-refresh) or tap the sync icon in the top-right corner. The icon spins while syncing and shows a ✓ tick when complete.' },
+          { heading: 'Sync Conflicts', body: 'If the same record was edited on both the web and mobile while offline, the most recently modified version wins. You will see a notification banner if any conflicts were resolved. Review the affected session on the web app to verify the data is correct.' },
+          { heading: 'Storage Usage', body: 'The app stores a local copy of your farm, field, trap, and pest reference data so it works offline. This cache is refreshed on every successful sync. If your reference data seems out of date (e.g. a new field is missing), force a sync or restart the app.' },
+        ],
+      },
+      {
+        id: 'mob-settings',
+        icon: '⚙️',
+        title: 'Mobile Settings',
+        intro: 'App-level settings accessible from the profile icon or the Settings menu in the app.',
+        items: [
+          { heading: 'Account & Profile', body: 'View your name, email, role, and organisation. Tap <strong>Change Password</strong> to update your password (requires current password). Password changes apply to both the web and mobile app.' },
+          { heading: 'Notification Preferences', body: 'Enable or disable push notifications for: new sessions assigned to you, threshold breach alerts for your fields, and sync error alerts. Notifications require the app to have notification permission granted in your device settings.' },
+          { heading: 'GPS Accuracy Mode', body: 'Switch between <strong>High Accuracy</strong> (GPS + Wi-Fi + mobile data — best precision, uses more battery) and <strong>Battery Saving</strong> (network-based only — less accurate but longer battery life). Recommended: High Accuracy for trap checks and observation pinning; Battery Saving for general navigation.' },
+          { heading: 'Temperature Units', body: 'Choose Celsius (°C) or Fahrenheit (°F) for temperature display. This setting is synced to your profile and also applies to the web app.' },
+          { heading: 'Sign Out', body: 'Tap <strong>Sign Out</strong> at the bottom of settings. Any unsynced data will be synced before signing out if a connection is available. If offline, you will be warned that unsynced records may be lost.' },
+        ],
+      },
+    ],
+  },
 ];
 
 export function renderHelp(container) {
-  let tocHtml = SECTIONS.map(s =>
-    `<button data-scroll="help-${s.id}" style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:8px;text-decoration:none;color:var(--text-dim);font-size:0.85rem;transition:background 0.15s;background:none;border:none;cursor:pointer;width:100%;text-align:left;" onmouseover="this.style.background='var(--hover)'" onmouseout="this.style.background=''" >
-       <span style="font-size:1rem;">${s.icon}</span> ${escapeHtml(s.title)}
-     </button>`
-  ).join('');
 
-  let sectionsHtml = SECTIONS.map(s => {
-    const items = s.items.map(it => `
-      <div style="border-left:3px solid var(--border);padding:10px 0 10px 18px;margin-bottom:2px;">
-        <div style="font-weight:600;color:var(--text);font-size:0.9rem;margin-bottom:4px;">${escapeHtml(it.heading)}</div>
-        <div style="color:var(--text-dim);font-size:0.85rem;line-height:1.65;">${it.body}</div>
-      </div>`).join('');
-
-    return `
-      <div id="help-${s.id}" style="margin-bottom:36px;scroll-margin-top:24px;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid var(--border);">
-          <span style="font-size:1.5rem;">${s.icon}</span>
-          <div style="font-family:'Fraunces',serif;font-size:1.2rem;font-weight:700;color:var(--text);letter-spacing:-0.01em;">${escapeHtml(s.title)}</div>
+  // ── Build TOC ──────────────────────────────────────────────────────────────
+  let tocHtml = '';
+  for (const group of GROUPS) {
+    tocHtml += `
+      <div style="margin-bottom:4px;">
+        <button data-scroll="help-${group.id}" style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:8px;color:var(--text);font-size:0.85rem;font-weight:700;transition:background 0.15s;background:none;border:none;cursor:pointer;width:100%;text-align:left;" onmouseover="this.style.background='var(--hover)'" onmouseout="this.style.background=''">
+          <span style="font-size:1rem;">${group.icon}</span> ${escapeHtml(group.title)}
+        </button>
+        <div style="padding-left:10px;display:flex;flex-direction:column;gap:1px;">
+          ${group.sections.map(s => `
+            <button data-scroll="help-${s.id}" style="display:flex;align-items:center;gap:8px;padding:5px 12px;border-radius:8px;color:var(--text-dim);font-size:0.8rem;transition:background 0.15s;background:none;border:none;cursor:pointer;width:100%;text-align:left;" onmouseover="this.style.background='var(--hover)'" onmouseout="this.style.background=''">
+              <span style="font-size:0.9rem;">${s.icon}</span> ${escapeHtml(s.title)}
+            </button>`).join('')}
         </div>
-        <p style="color:var(--text-dim);font-size:0.88rem;line-height:1.65;margin:0 0 16px;">${s.intro}</p>
-        <div style="display:flex;flex-direction:column;gap:6px;">${items}</div>
       </div>`;
-  }).join('');
+  }
+
+  // ── Build content ──────────────────────────────────────────────────────────
+  let contentHtml = '';
+  for (const group of GROUPS) {
+    // Group heading
+    contentHtml += `
+      <div id="help-${group.id}" style="margin-bottom:32px;scroll-margin-top:16px;">
+        <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;background:var(--surface2,#f4f7f4);border-radius:10px;margin-bottom:20px;">
+          <span style="font-size:2rem;">${group.icon}</span>
+          <div>
+            <div style="font-family:'Fraunces',serif;font-size:1.35rem;font-weight:700;color:var(--text);letter-spacing:-0.01em;">${escapeHtml(group.title)}</div>
+            <div style="font-size:0.83rem;color:var(--text-dim);margin-top:2px;">${group.intro}</div>
+          </div>
+        </div>`;
+
+    // Sections within the group
+    for (const s of group.sections) {
+      const items = s.items.map(it => `
+        <div style="border-left:3px solid var(--border);padding:10px 0 10px 18px;margin-bottom:2px;">
+          <div style="font-weight:600;color:var(--text);font-size:0.9rem;margin-bottom:4px;">${escapeHtml(it.heading)}</div>
+          <div style="color:var(--text-dim);font-size:0.85rem;line-height:1.65;">${it.body}</div>
+        </div>`).join('');
+
+      contentHtml += `
+        <div id="help-${s.id}" style="margin-bottom:32px;scroll-margin-top:16px;padding-left:4px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--border);">
+            <span style="font-size:1.3rem;">${s.icon}</span>
+            <div style="font-family:'Fraunces',serif;font-size:1.1rem;font-weight:700;color:var(--text);letter-spacing:-0.01em;">${escapeHtml(s.title)}</div>
+          </div>
+          <p style="color:var(--text-dim);font-size:0.88rem;line-height:1.65;margin:0 0 14px;">${s.intro}</p>
+          <div style="display:flex;flex-direction:column;gap:6px;">${items}</div>
+        </div>`;
+    }
+
+    contentHtml += `</div>`; // close group div
+  }
 
   container.innerHTML = `
     <div style="margin-bottom:24px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
@@ -214,10 +311,10 @@ export function renderHelp(container) {
       <div style="font-size:0.85rem;color:var(--text-dim);">Everything you need to know about Pestlook</div>
     </div>
 
-    <div style="display:grid;grid-template-columns:200px 1fr;gap:24px;align-items:start;">
+    <div style="display:grid;grid-template-columns:210px 1fr;gap:24px;align-items:start;">
 
       <!-- Sticky TOC -->
-      <div class="card card-p" style="position:sticky;top:16px;">
+      <div class="card card-p" style="position:sticky;top:16px;max-height:calc(100vh - 48px);overflow-y:auto;">
         <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-dim);margin-bottom:8px;">Contents</div>
         <nav style="display:flex;flex-direction:column;gap:2px;">
           ${tocHtml}
@@ -226,7 +323,7 @@ export function renderHelp(container) {
 
       <!-- Content -->
       <div class="card card-p" style="min-width:0;">
-        ${sectionsHtml}
+        ${contentHtml}
 
         <div style="border-top:1px solid var(--border);padding-top:20px;margin-top:8px;">
           <div style="font-size:0.78rem;color:var(--text-dim);line-height:1.8;">
@@ -237,7 +334,9 @@ export function renderHelp(container) {
             <strong style="color:var(--text);">Q: A trap is on the map in the wrong location.</strong><br>
             Go to <strong>Traps</strong>, edit the trap, and correct the GPS Latitude / Longitude values. The map updates immediately.<br><br>
             <strong style="color:var(--text);">Q: The dashboard activity feed is empty.</strong><br>
-            Observations are only shown once a session has been started and observations logged. Plan and start a session first.
+            Observations are only shown once a session has been started and observations logged. Plan and start a session first.<br><br>
+            <strong style="color:var(--text);">Q: My mobile observations are not appearing on the web.</strong><br>
+            Check that the mobile app has synced — pull to refresh on the home screen. Ensure you have an active internet connection. If the issue persists, sign out and back in to force a full sync.
           </div>
         </div>
       </div>
@@ -245,7 +344,7 @@ export function renderHelp(container) {
     </div>
   `;
 
-  // Wire up TOC scroll buttons — use JS scroll so the router never sees a hash change
+  // Wire up all scroll buttons — no hash changes, no router interference
   container.querySelectorAll('[data-scroll]').forEach(btn => {
     btn.addEventListener('click', () => {
       const target = document.getElementById(btn.dataset.scroll);
