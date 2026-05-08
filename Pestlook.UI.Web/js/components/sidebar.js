@@ -14,11 +14,12 @@ const navItems = [
     { id: 'sessions', icon: '🥾', label: 'Scouting Sessions', path: '/sessions' },
   ]},
   { section: 'Insights', items: [
-    { id: 'reports', icon: '📈', label: 'Analytics', path: '/reports' },
+    { id: 'reports', icon: '📈', label: 'Analytics', path: '/analytics' },
   ]},
   { section: 'Reference', items: [
     { id: 'pests', icon: '🦗', label: 'Pest Catalogue', path: '/pests' },
     { id: 'settings', icon: '⚙️', label: 'Settings', path: '/settings' },
+    { id: 'help', icon: '📖', label: 'Help', path: '/help' },
   ]},
 ];
 

@@ -16,6 +16,7 @@ import { renderPests } from './pages/pests.js';
 import { renderTraps } from './pages/traps.js';
 import { renderSettings } from './pages/settings.js';
 import { renderReports } from './pages/reports.js';
+import { renderHelp } from './pages/help.js';
 
 const appRoot = document.getElementById('app-root');
 
@@ -136,8 +137,15 @@ registerRoute('/settings', authedRoute(async (content) => {
   await renderSettings(content);
 }));
 
-registerRoute('/reports', authedRoute(async (content) => {
+registerRoute('/analytics', authedRoute(async (content) => {
   await renderReports(content);
+}));
+
+// Redirect legacy /reports links to /analytics
+registerRoute('/reports', async () => { navigate('/analytics'); });
+
+registerRoute('/help', authedRoute(async (content) => {
+  await renderHelp(content);
 }));
 
 registerRoute('/logout', async () => {

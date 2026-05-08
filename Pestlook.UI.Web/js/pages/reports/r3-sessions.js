@@ -44,8 +44,22 @@ export function renderScoutingSessions(el, data, lookups) {
                      : s.startedAt    ? tag('Active',    'blue')
                      : s.scheduledDate && new Date(s.scheduledDate) <= new Date() ? tag('Overdue', 'red')
                      : tag('Planned', 'amber');
+        let dateStr, datePill;
+        if (s.scheduledDate && !s.startedAt) {
+          dateStr  = formatDate(s.scheduledDate);
+          datePill = `<span style="display:inline-block;font-size:0.62rem;font-weight:600;background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.4);border-radius:20px;padding:1px 7px;vertical-align:middle;margin-left:5px;line-height:1.6;">Scheduled</span>`;
+        } else if (s.startedAt && !s.completedAt) {
+          dateStr  = formatDate(s.startedAt);
+          datePill = `<span style="display:inline-block;font-size:0.62rem;font-weight:600;background:rgba(74,222,128,0.15);color:#4ade80;border:1px solid rgba(74,222,128,0.4);border-radius:20px;padding:1px 7px;vertical-align:middle;margin-left:5px;line-height:1.6;">Started</span>`;
+        } else if (s.completedAt) {
+          dateStr  = formatDate(s.startedAt || s.completedAt);
+          datePill = `<span style="display:inline-block;font-size:0.62rem;font-weight:600;background:rgba(129,140,248,0.15);color:#818cf8;border:1px solid rgba(129,140,248,0.4);border-radius:20px;padding:1px 7px;vertical-align:middle;margin-left:5px;line-height:1.6;">Completed</span>`;
+        } else {
+          dateStr  = '—';
+          datePill = '';
+        }
         return `<tr>
-          <td style="font-size:0.82rem;">${s.scheduledDate ? formatDate(s.scheduledDate) : '—'}</td>
+          <td style="font-size:0.82rem;white-space:nowrap;">${dateStr}${datePill}</td>
           <td style="font-weight:500;">${escapeHtml(s.fieldName ?? '—')}</td>
           <td>${escapeHtml(s.farmName ?? '—')}</td>
           <td>${escapeHtml(s.scouterName ?? '—')}</td>

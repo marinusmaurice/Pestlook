@@ -154,8 +154,20 @@ function renderTable(paged, tableEl, pagEl) {
       obsCount  ? `${obsCount} obs`  : null,
     ].filter(Boolean).join(', ') || '—';
 
-    const dateDisplay = s.scheduledDate ? formatDateTime(s.scheduledDate)
-                      : s.startedAt     ? formatDateTime(s.startedAt) : '—';
+    let dateDisplay, datePill;
+    if (s.scheduledDate && !s.startedAt) {
+      dateDisplay = formatDateTime(s.scheduledDate);
+      datePill = `<span style="display:inline-block;font-size:0.62rem;font-weight:600;background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.4);border-radius:20px;padding:1px 7px;vertical-align:middle;margin-left:5px;line-height:1.6;">Scheduled</span>`;
+    } else if (s.startedAt && !s.completedAt) {
+      dateDisplay = formatDateTime(s.startedAt);
+      datePill = `<span style="display:inline-block;font-size:0.62rem;font-weight:600;background:rgba(74,222,128,0.15);color:#4ade80;border:1px solid rgba(74,222,128,0.4);border-radius:20px;padding:1px 7px;vertical-align:middle;margin-left:5px;line-height:1.6;">Started</span>`;
+    } else if (s.completedAt) {
+      dateDisplay = formatDateTime(s.startedAt || s.completedAt);
+      datePill = `<span style="display:inline-block;font-size:0.62rem;font-weight:600;background:rgba(129,140,248,0.15);color:#818cf8;border:1px solid rgba(129,140,248,0.4);border-radius:20px;padding:1px 7px;vertical-align:middle;margin-left:5px;line-height:1.6;">Completed</span>`;
+    } else {
+      dateDisplay = '—';
+      datePill = '';
+    }
 
     let actions = '';
     actions += `<button class="btn-outline" style="padding:4px 10px;font-size:0.75rem;" data-view="${s.id}">View</button> `;
@@ -176,7 +188,7 @@ function renderTable(paged, tableEl, pagEl) {
         <td><div style="font-weight:500;color:var(--text);">${escapeHtml(s.scouterName || '—')}</div></td>
         <td style="font-size:0.85rem;">${farmDisplay}</td>
         <td style="font-size:0.85rem;">${fieldDisplay}</td>
-        <td style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--text-dim);white-space:nowrap;">${dateDisplay}</td>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--text-dim);white-space:nowrap;">${dateDisplay}${datePill}</td>
         <td style="font-size:0.85rem;">${weatherDisplay}</td>
         <td style="font-size:0.85rem;">${itemsSummary}</td>
         <td style="font-family:'Fraunces',serif;font-weight:700;font-size:1.1rem;">${s.observationCount}</td>
