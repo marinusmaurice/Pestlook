@@ -436,6 +436,8 @@ body {
 /* ── Content ── */
 .content-area {
   flex: 1;
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
   padding: 28px;
   scrollbar-width: thin;
@@ -444,6 +446,17 @@ body {
 .content-area::-webkit-scrollbar { width: 5px; }
 .content-area::-webkit-scrollbar-track { background: transparent; }
 .content-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* Pages that need full-page scroll wrap their content in .page-scroll */
+.page-scroll {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.page-scroll::-webkit-scrollbar { width: 5px; }
+.page-scroll::-webkit-scrollbar-track { background: transparent; }
+.page-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
 /* ── Cards ── */
 .card {

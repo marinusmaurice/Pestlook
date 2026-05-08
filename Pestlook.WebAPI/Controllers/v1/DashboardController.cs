@@ -6,6 +6,7 @@ using Pestlook.WebAPI.Data;
 using Pestlook.WebAPI.DTOs.Common;
 using Pestlook.WebAPI.DTOs.Dashboard;
 using Pestlook.WebAPI.Domain.Enums;
+using Pestlook.WebAPI.Infrastructure;
 
 namespace Pestlook.WebAPI.Controllers.v1;
 
@@ -13,17 +14,22 @@ namespace Pestlook.WebAPI.Controllers.v1;
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/dashboard")]
 [Authorize]
-public sealed class DashboardController(ApplicationDbContext db) : ControllerBase
+public sealed class DashboardController(ApplicationDbContext db, ITenantContext tenant) : ControllerBase
 {
     /// <summary>
     /// Returns all data needed by the web dashboard in a single round-trip.
     /// Every sub-query is a focused SQL projection — no entity graph loading,
-    /// no N+1, all five queries run in parallel.
+    /// no N+1, all queries run in parallel.
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<DashboardResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Get(CancellationToken ct)
     {
+        // Capture once so all queries share the same non-nullable value.
+        // The global query filter uses (tenantId IS NULL OR ...) which prevents
+        // SQL Server from using an index seek; using a direct equality here avoids that.
+        var tenantId = tenant.TenantId;
+
         var farmCount        = await db.Farms.CountAsync(ct);
         var trapCount        = await db.Traps.CountAsync(ct);
         var enabledTrapCount = await db.Traps.CountAsync(t => t.IsEnabled, ct);
@@ -41,36 +47,53 @@ public sealed class DashboardController(ApplicationDbContext db) : ControllerBas
                 ss.SessionObservations.Count))
             .ToListAsync(ct);
 
-        var activity = await db.SessionObservations
-            .OrderByDescending(o => o.CreatedAt)
-            .Take(5)
-            .Select(o => new DashboardObservation(
-                o.Id,
-                o.Pest != null ? o.Pest.CommonName : null,
-                o.IsUnknownPest,
-                o.Count,
-                o.CreatedAt))
-            .ToListAsync(ct);
+        // IgnoreQueryFilters + direct equality lets SQL Server use IX_SessionObservations_TenantId_CreatedAt
+        // with a seek rather than a scan caused by the (param IS NULL OR ...) query-filter pattern.
+        var activity = tenantId.HasValue
+            ? await db.SessionObservations
+                .IgnoreQueryFilters()
+                .Where(o => o.TenantId == tenantId.Value)
+                .OrderByDescending(o => o.CreatedAt)
+                .Take(5)
+                .Select(o => new DashboardObservation(
+                    o.Id,
+                    o.Pest != null ? o.Pest.CommonName : null,
+                    o.IsUnknownPest,
+                    o.Count,
+                    o.CreatedAt))
+                .ToListAsync(ct)
+            : await db.SessionObservations
+                .OrderByDescending(o => o.CreatedAt)
+                .Take(5)
+                .Select(o => new DashboardObservation(
+                    o.Id,
+                    o.Pest != null ? o.Pest.CommonName : null,
+                    o.IsUnknownPest,
+                    o.Count,
+                    o.CreatedAt))
+                .ToListAsync(ct);
 
         var traps = await db.Traps
             .Select(t => new DashboardTrap(t.Id, t.Name, t.IsEnabled, t.Latitude, t.Longitude))
             .ToListAsync(ct);
 
-        var topPests = (await db.SessionObservations
+        var topPests = await db.SessionObservations
             .Where(o => !o.IsUnknownPest && o.PestId != null)
-            .Join(db.Pests,
-                o => o.PestId,
-                p => p.Id,
-                (o, p) => new { p.CommonName, o.Count })
-            .ToListAsync(ct))
-            .GroupBy(x => x.CommonName)
-            .Select(g => new DashboardTopPest(g.Key!, g.Sum(x => x.Count ?? 1)))
-            .OrderByDescending(p => p.TotalCount)
+            .GroupBy(o => o.PestId)
+            .Select(g => new
+            {
+                PestId     = g.Key,
+                TotalCount = g.Sum(o => o.Count ?? 1)
+            })
+            .OrderByDescending(x => x.TotalCount)
             .Take(5)
-            .ToList();
+            .Join(db.Pests,
+                x => x.PestId,
+                p => p.Id,
+                (x, p) => new DashboardTopPest(p.CommonName, x.TotalCount))
+            .ToListAsync(ct);
 
-        var stats = new DashboardStats(farmCount, trapCount, enabledTrapCount, sessionCount, observationCount);
-
+        var stats    = new DashboardStats(farmCount, trapCount, enabledTrapCount, sessionCount, observationCount);
         var response = new DashboardResponse(stats, sessions, activity, traps, topPests);
 
         return Ok(ApiResponse<DashboardResponse>.Ok(response));

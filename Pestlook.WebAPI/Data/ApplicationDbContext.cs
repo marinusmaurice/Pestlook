@@ -252,6 +252,7 @@ public sealed class ApplicationDbContext(
             e.HasIndex(so => so.SessionId);
             e.HasIndex(so => so.TenantId);
             e.HasIndex(so => new { so.SessionId, so.ObservationType });
+            e.HasIndex(so => new { so.TenantId, so.CreatedAt });
         });
 
         builder.Entity<Trap>(e =>

@@ -687,4 +687,106 @@ public sealed class ScoutingSessionsController(
         await db.SaveChangesAsync(ct);
         return NoContent();
     }
+
+    /// <summary>
+    /// Server-side paged, sorted and filtered list of scouting sessions (counts only, no observation payloads).
+    /// Used by the Scouting Sessions list page.
+    /// </summary>
+    [HttpGet("paged")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<object>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPaged(
+        [FromQuery] int       page      = 1,
+        [FromQuery] int       pageSize  = 25,
+        [FromQuery] string?   sortBy    = "date",
+        [FromQuery] bool      sortDesc  = true,
+        [FromQuery] string?   status    = null,  // completed | active | planned | overdue
+        [FromQuery] string?   search    = null,  // scout/farm/field name
+        [FromQuery] Guid?     farmId    = null,
+        [FromQuery] Guid?     fieldId   = null,
+        CancellationToken ct = default)
+    {
+        page     = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 5, 100);
+
+        var now = DateTime.UtcNow;
+
+        var q = db.ScoutingSessions.AsQueryable();
+
+        if (farmId.HasValue)  q = q.Where(ss => ss.FarmId == farmId || ss.Field!.FarmId == farmId);
+        if (fieldId.HasValue) q = q.Where(ss => ss.FieldId == fieldId);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.ToLower();
+            q = q.Where(ss =>
+                (ss.Field   != null && ss.Field.Name.ToLower().Contains(s)) ||
+                (ss.Farm    != null && ss.Farm.Name.ToLower().Contains(s)) ||
+                (ss.Scouter != null && (ss.Scouter.FirstName + " " + ss.Scouter.LastName).ToLower().Contains(s)));
+        }
+
+        var projected = q.Select(ss => new
+        {
+            ss.Id,
+            ss.TenantId,
+            ss.ScouterId,
+            ss.IsPlanned,
+            ss.ScheduledDate,
+            ss.StartedAt,
+            ss.CompletedAt,
+            ss.WeatherConditions,
+            ss.TemperatureCelsius,
+            ss.Notes,
+            ss.CreatedAt,
+            ss.FieldId,
+            ss.FarmId,
+            FieldFarmId  = ss.Field != null ? (Guid?)ss.Field.FarmId : null,
+            FieldName    = ss.Field  != null ? ss.Field.Name  : null,
+            FarmName     = ss.Farm   != null ? ss.Farm.Name
+                         : ss.Field  != null && ss.Field.Farm != null ? ss.Field.Farm.Name : null,
+            ScouterName  = ss.Scouter   != null ? ss.Scouter.FirstName   + " " + ss.Scouter.LastName   : null,
+            CreatedByName  = ss.CreatedBy != null ? ss.CreatedBy.FirstName + " " + ss.CreatedBy.LastName : null,
+            UpdatedByName  = ss.UpdatedBy != null ? ss.UpdatedBy.FirstName + " " + ss.UpdatedBy.LastName : null,
+            TotalObs     = ss.SessionObservations.Count(),
+            TrapObs      = ss.SessionObservations.Count(o => o.ObservationType == ObservationType.Trap),
+            AdHocObs     = ss.SessionObservations.Count(o => o.ObservationType == ObservationType.AdHoc),
+        });
+
+        projected = sortBy?.ToLower() switch
+        {
+            "scout"    => sortDesc ? projected.OrderByDescending(s => s.ScouterName)  : projected.OrderBy(s => s.ScouterName),
+            "farm"     => sortDesc ? projected.OrderByDescending(s => s.FarmName)     : projected.OrderBy(s => s.FarmName),
+            "field"    => sortDesc ? projected.OrderByDescending(s => s.FieldName)    : projected.OrderBy(s => s.FieldName),
+            "obs"      => sortDesc ? projected.OrderByDescending(s => s.TotalObs)     : projected.OrderBy(s => s.TotalObs),
+            _          => sortDesc
+                ? projected.OrderByDescending(s => s.CompletedAt ?? s.StartedAt ?? s.ScheduledDate)
+                : projected.OrderBy(s => s.CompletedAt ?? s.StartedAt ?? s.ScheduledDate),
+        };
+
+        var allRows = await projected.ToListAsync(ct);
+
+        // Status filter — derived logic, applied in-memory
+        var filtered = string.IsNullOrEmpty(status) ? allRows : status.ToLower() switch
+        {
+            "completed" => allRows.Where(s => s.CompletedAt != null).ToList(),
+            "active"    => allRows.Where(s => s.StartedAt   != null && s.CompletedAt == null).ToList(),
+            "planned"   => allRows.Where(s => s.IsPlanned   && s.StartedAt == null && s.CompletedAt == null && s.ScheduledDate > now).ToList(),
+            "overdue"   => allRows.Where(s => s.IsPlanned   && s.StartedAt == null && s.CompletedAt == null && s.ScheduledDate <= now).ToList(),
+            _           => allRows,
+        };
+
+        var totalCount = filtered.Count;
+        var pageItems  = filtered
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(p => new ScoutingSessionResponse(
+                p.Id, p.TenantId, p.ScouterId, p.ScouterName, p.IsPlanned,
+                p.ScheduledDate, p.StartedAt, p.CompletedAt, p.WeatherConditions,
+                p.TemperatureCelsius, p.Notes, p.CreatedAt, p.FieldId,
+                p.FarmId ?? p.FieldFarmId, p.FieldName, p.FarmName,
+                p.TotalObs, p.TrapObs, p.AdHocObs, [], p.CreatedByName, p.UpdatedByName))
+            .ToList();
+
+        var paged = new PagedResult<ScoutingSessionResponse>(pageItems, totalCount, page, pageSize);
+        return Ok(ApiResponse<PagedResult<ScoutingSessionResponse>>.Ok(paged));
+    }
 }

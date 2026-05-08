@@ -2,7 +2,7 @@ import { escapeHtml } from '../../utils/helpers.js';
 import { tag } from '../../components/tag.js';
 import {
   C, mkChart,
-  kpiGrid, kpiCard, chartCard, tableCard, emptyState, filterBadge,
+  kpiGrid, kpiCard, chartCard, emptyState, filterBadge,
 } from './utils.js';
 
 // data = { fields: [{ fieldId, fieldName, farmName, sessionCount, totalObs, avgObsPerSession, breachCount, topPests }] }
@@ -41,19 +41,6 @@ export function renderPestPressure(el, data, lookups) {
       </div>`;
   }).join('') : emptyState('🌿', 'No completed sessions', 'Complete scouting sessions to see field pressure');
 
-  const tableRows = rows.length
-    ? rows.map(r => `<tr>
-        <td style="font-weight:500;">${escapeHtml(r.fieldName ?? '—')}</td>
-        <td>${escapeHtml(r.farmName ?? '—')}</td>
-        <td style="font-family:'JetBrains Mono',monospace;">${r.sessionCount ?? 0}</td>
-        <td style="font-family:'JetBrains Mono',monospace;">${(r.totalObs ?? 0).toLocaleString()}</td>
-        <td style="font-family:'JetBrains Mono',monospace;font-weight:600;">${(r.avgObsPerSession ?? 0).toFixed(1)}</td>
-        <td style="font-family:'JetBrains Mono',monospace;color:${(r.breachCount ?? 0) > 0 ? C.red : ''};">${r.breachCount ?? 0}</td>
-        <td style="font-size:0.8rem;">${(r.topPests ?? []).map(p => escapeHtml(p.pestName)).join(', ') || '—'}</td>
-      </tr>`)
-      .join('')
-    : `<tr><td colspan="7" style="text-align:center;color:var(--text-dim);padding:20px;">No completed sessions in selected period</td></tr>`;
-
   el.innerHTML = `
     ${filterBadge(lookups)}
     ${kpiGrid([
@@ -68,11 +55,38 @@ export function renderPestPressure(el, data, lookups) {
       <div style="font-size:0.8rem;color:var(--text-dim);margin-bottom:14px;">Relative pest pressure — bar width proportional to peak field in period</div>
       ${pressureList}
     </div>
-    ${tableCard(
-      ['Field', 'Farm', 'Sessions', 'Total Obs', 'Avg / Session', 'Breaches', 'Top Pests'],
-      tableRows,
-      'Detailed field breakdown'
-    )}
+    <div class="card" style="margin-bottom:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);">
+        <span style="font-weight:600;font-size:0.88rem;">Detailed field breakdown</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <input id="fb-search" type="text" class="input-field" placeholder="Search field or farm…"
+            style="margin:0;padding:5px 10px;font-size:0.78rem;width:190px;" />
+          <select id="fb-level" class="input-field" style="margin:0;padding:5px 8px;font-size:0.78rem;width:auto;">
+            <option value="">All pressure levels</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+      </div>
+      <div style="overflow-x:auto;overflow-y:auto;max-height:260px;">
+        <table class="data-table" style="width:100%;min-width:560px;font-size:0.78rem;">
+          <thead style="position:sticky;top:0;z-index:1;background:var(--surface);">
+            <tr>
+              <th data-col="field"    style="cursor:pointer;white-space:nowrap;">Field</th>
+              <th data-col="farm"     style="cursor:pointer;white-space:nowrap;">Farm</th>
+              <th data-col="sessions" style="cursor:pointer;white-space:nowrap;">Sessions</th>
+              <th data-col="total"    style="cursor:pointer;white-space:nowrap;">Total Obs</th>
+              <th data-col="avg"      style="cursor:pointer;white-space:nowrap;">Avg / Session</th>
+              <th data-col="breaches" style="cursor:pointer;white-space:nowrap;">Breaches</th>
+              <th>Top Pests</th>
+            </tr>
+          </thead>
+          <tbody id="fb-tbody"></tbody>
+        </table>
+      </div>
+      <div id="fb-pagination" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:8px 14px;border-top:1px solid var(--border);font-size:0.76rem;color:var(--text-dim);"></div>
+    </div>
   `;
 
   setTimeout(() => {
@@ -88,5 +102,112 @@ export function renderPestPressure(el, data, lookups) {
         borderRadius: 4,
       }],
     }, { indexAxis: 'y', scales: { x: { beginAtZero: true, ticks: { font: { size: 11 } } }, y: { ticks: { font: { size: 11 } } } } });
+
+    // ── Interactive field breakdown grid ──────────────────────────────────────
+    let sortCol  = 'avg';
+    let sortDesc = true;
+    let search   = '';
+    let level    = '';
+    let page     = 1;
+    const pageSize = 10;
+
+    function levelOf(r) {
+      const pct = maxAvg > 0 ? ((r.avgObsPerSession ?? 0) / maxAvg) * 100 : 0;
+      return pct >= 66 ? 'high' : pct >= 33 ? 'medium' : 'low';
+    }
+
+    function getRows() {
+      const q = search.toLowerCase();
+      return rows
+        .filter(r => {
+          if (level && levelOf(r) !== level) return false;
+          if (!q) return true;
+          return (r.fieldName ?? '').toLowerCase().includes(q) ||
+                 (r.farmName  ?? '').toLowerCase().includes(q);
+        })
+        .sort((a, b) => {
+          let av, bv;
+          switch (sortCol) {
+            case 'field':    av = a.fieldName ?? ''; bv = b.fieldName ?? ''; break;
+            case 'farm':     av = a.farmName  ?? ''; bv = b.farmName  ?? ''; break;
+            case 'sessions': av = a.sessionCount     ?? 0; bv = b.sessionCount     ?? 0; break;
+            case 'total':    av = a.totalObs          ?? 0; bv = b.totalObs          ?? 0; break;
+            case 'avg':      av = a.avgObsPerSession  ?? 0; bv = b.avgObsPerSession  ?? 0; break;
+            case 'breaches': av = a.breachCount       ?? 0; bv = b.breachCount       ?? 0; break;
+            default:         av = 0; bv = 0;
+          }
+          if (av < bv) return sortDesc ? 1 : -1;
+          if (av > bv) return sortDesc ? -1 : 1;
+          return 0;
+        });
+    }
+
+    const colLabels = { field: 'Field', farm: 'Farm', sessions: 'Sessions', total: 'Total Obs', avg: 'Avg / Session', breaches: 'Breaches' };
+
+    function render() {
+      const filtered   = getRows();
+      const total      = filtered.length;
+      const totalPages = Math.max(1, Math.ceil(total / pageSize));
+      if (page > totalPages) page = totalPages;
+      const slice = filtered.slice((page - 1) * pageSize, page * pageSize);
+
+      el.querySelectorAll('th[data-col]').forEach(th => {
+        const key = th.dataset.col;
+        th.textContent = colLabels[key] ?? key;
+        if (key === sortCol) th.textContent += sortDesc ? ' ▼' : ' ▲';
+      });
+
+      const tbody = el.querySelector('#fb-tbody');
+      tbody.innerHTML = slice.length
+        ? slice.map(r => `<tr>
+            <td style="font-weight:500;">${escapeHtml(r.fieldName ?? '—')}</td>
+            <td>${escapeHtml(r.farmName ?? '—')}</td>
+            <td style="font-family:'JetBrains Mono',monospace;">${r.sessionCount ?? 0}</td>
+            <td style="font-family:'JetBrains Mono',monospace;">${(r.totalObs ?? 0).toLocaleString()}</td>
+            <td style="font-family:'JetBrains Mono',monospace;font-weight:600;">${(r.avgObsPerSession ?? 0).toFixed(1)}</td>
+            <td style="font-family:'JetBrains Mono',monospace;color:${(r.breachCount ?? 0) > 0 ? C.red : ''};">${r.breachCount ?? 0}</td>
+            <td style="font-size:0.75rem;">${(r.topPests ?? []).map(p => escapeHtml(p.pestName)).join(', ') || '—'}</td>
+          </tr>`).join('')
+        : `<tr><td colspan="7" style="text-align:center;color:var(--text-dim);padding:16px;">No fields match your filters</td></tr>`;
+
+      const start = total === 0 ? 0 : (page - 1) * pageSize + 1;
+      const end   = Math.min(page * pageSize, total);
+      el.querySelector('#fb-pagination').innerHTML = `
+        <span>${start}–${end} of ${total} fields</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button class="btn-outline fb-prev" style="padding:3px 10px;font-size:0.75rem;" ${page <= 1 ? 'disabled' : ''}>‹ Prev</button>
+          <span>Page ${page} of ${totalPages}</span>
+          <button class="btn-outline fb-next" style="padding:3px 10px;font-size:0.75rem;" ${page >= totalPages ? 'disabled' : ''}>Next ›</button>
+        </div>
+      `;
+      el.querySelector('.fb-prev')?.addEventListener('click', () => { if (page > 1) { page--; render(); } });
+      el.querySelector('.fb-next')?.addEventListener('click', () => { if (page < totalPages) { page++; render(); } });
+    }
+
+    el.querySelectorAll('th[data-col]').forEach(th => {
+      th.addEventListener('click', () => {
+        const key = th.dataset.col;
+        if (sortCol === key) sortDesc = !sortDesc;
+        else { sortCol = key; sortDesc = true; }
+        page = 1;
+        render();
+      });
+    });
+
+    let _deb;
+    el.querySelector('#fb-search').addEventListener('input', e => {
+      clearTimeout(_deb);
+      _deb = setTimeout(() => { search = e.target.value.trim(); page = 1; render(); }, 250);
+    });
+
+    el.querySelector('#fb-level').addEventListener('change', e => {
+      level = e.target.value;
+      page  = 1;
+      render();
+    });
+
+    render();
   }, 0);
 }
+
+

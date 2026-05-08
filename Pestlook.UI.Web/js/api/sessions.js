@@ -4,6 +4,32 @@ export function getSessions() {
   return get('/scouting-sessions');
 }
 
+/**
+ * Server-side paged, sorted and filtered sessions (no observation payloads).
+ * @param {object} opts
+ * @param {number}  opts.page
+ * @param {number}  opts.pageSize
+ * @param {string}  opts.sortBy    - "date"|"scout"|"farm"|"field"|"obs"
+ * @param {boolean} opts.sortDesc
+ * @param {string}  opts.status    - ""|"completed"|"active"|"planned"|"overdue"
+ * @param {string}  opts.search    - free-text on scout/farm/field name
+ * @param {string}  opts.farmId
+ * @param {string}  opts.fieldId
+ */
+export function getSessionsPaged(opts = {}) {
+  const p = new URLSearchParams();
+  if (opts.page     != null) p.set('page',     opts.page);
+  if (opts.pageSize != null) p.set('pageSize',  opts.pageSize);
+  if (opts.sortBy)           p.set('sortBy',    opts.sortBy);
+  if (opts.sortDesc != null) p.set('sortDesc',  opts.sortDesc);
+  if (opts.status)           p.set('status',    opts.status);
+  if (opts.search)           p.set('search',    opts.search);
+  if (opts.farmId)           p.set('farmId',    opts.farmId);
+  if (opts.fieldId)          p.set('fieldId',   opts.fieldId);
+  const qs = p.toString();
+  return get(`/scouting-sessions/paged${qs ? '?' + qs : ''}`);
+}
+
 export function getSession(id) {
   return get(`/scouting-sessions/${id}`);
 }
