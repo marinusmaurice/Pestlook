@@ -165,18 +165,8 @@ export async function renderReports(container) {
       }
     }
 
-    // Populate scout dropdown lazily from productivity endpoint
-    getScoutProductivity({}).then(res => {
-      const scouts  = res?.data?.scouts ?? [];
-      const sel     = document.getElementById('rpt-scout');
-      if (!sel) return;
-      for (const s of scouts) {
-        const opt = document.createElement('option');
-        opt.value = s.scouterName;
-        opt.textContent = s.scouterName;
-        sel.appendChild(opt);
-      }
-    }).catch(() => {});
+    // Scout dropdown is populated after the first overview fetch completes,
+    // avoiding an unnecessary GetScoutProductivity call on every page load.
 
     function rerender() {
       destroyCharts();
@@ -242,6 +232,20 @@ async function showTab(id, lookups, container) {
     const res  = await fetcher({ ...filters });
     const data = res?.data ?? {};
     renderer(body, data, lookups);
+
+    // Populate scout dropdown from productivity data the first time that tab loads —
+    // avoids firing a separate request just to fill the filter on page load.
+    if (id === 'r6' && data.scouts?.length) {
+      const sel = document.getElementById('rpt-scout');
+      if (sel && sel.options.length <= 1) {
+        for (const s of data.scouts) {
+          const opt = document.createElement('option');
+          opt.value = s.scouterName;
+          opt.textContent = s.scouterName;
+          sel.appendChild(opt);
+        }
+      }
+    }
   } catch (err) {
     body.innerHTML = emptyState('⚠', 'Could not load tab', escapeHtml(err.message));
   }

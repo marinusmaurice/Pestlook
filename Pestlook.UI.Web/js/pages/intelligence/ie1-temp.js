@@ -33,6 +33,7 @@ export async function renderTemperatureActivity(el, data) {
     </div>`;
 
   const kpis = `
+    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Groups observation counts into 5°C temperature bands to reveal each pest's <strong>optimal temperature range</strong>. Pearson correlation and OLS regression quantify whether the pest responds to temperature: <strong>Warm-Favoring</strong> pests increase in warmer conditions; <strong>Cold-Favoring</strong> pests peak in cooler weather. The global heat map at the bottom shows combined activity of all pests across the temperature spectrum.</div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;">
       ${kpi('Pests Analysed',   summary.totalPests      ?? 0, 'var(--text)',  'with temperature data')}
       ${kpi('Warm-Favoring',    summary.tempSensitive   ?? 0, '#c0392b',     'higher counts in warm temps')}

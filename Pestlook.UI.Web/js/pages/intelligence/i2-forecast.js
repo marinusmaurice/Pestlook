@@ -73,6 +73,7 @@ export async function renderForecast(el, data) {
 
   /* ── Shell ───────────────────────────────────────────────────────────────── */
   el.innerHTML = `
+    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Applies ordinary least-squares (OLS) linear regression to weekly observation totals to project pest populations up to 12 weeks ahead. Each forecast includes a 90% confidence interval and a <strong>breach probability</strong> — the share of projected weeks where the upper confidence bound crosses the configured action threshold. Combinations are ranked highest-risk first so you can act before a breach occurs.</div>
     ${kpiGrid([
       kpiCard('Pests Tracked',   pestCount,  'species with forecast data'),
       kpiCard('Fields Covered',  fieldCount, 'distinct fields with observations'),

@@ -37,6 +37,7 @@ export async function renderEntryPointAnalysis(el, data) {
     </div>`;
 
   const kpis = `
+    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Identifies the most likely <strong>entry point</strong> for each pest outbreak by locating the field with the earliest detection and measuring how far its farm sits from the centroid of all your farms. Farms on the <strong>perimeter</strong> of your cluster are the most probable entry points for introductions from outside (boundary vectors, road sides, irrigation channels). <strong>Central</strong> entries suggest internal spread via shared equipment, workers, or plant material.</div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
       ${kpi('Pests Analysed',      summary.pestsAnalysed     ?? 0, 'var(--text)',  'with origin detected')}
       ${kpi('Peripheral Entries',  summary.peripheralEntries ?? 0, '#c0392b',     'border / perimeter farms')}

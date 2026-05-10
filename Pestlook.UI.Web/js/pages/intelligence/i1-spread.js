@@ -72,6 +72,9 @@ export async function renderSpreadDirection(el, data, onPestChange) {
     `<option value="${escapeHtml(p.pestId)}">${escapeHtml(p.pestName)}</option>`).join('');
 
   el.innerHTML = `
+    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">
+      Uses GPS-tagged scouting observations grouped into weekly centroids to visualise how each pest is moving across your fields. A <strong>spread vector</strong> is calculated from the earliest to the latest weekly centroid, giving a compass bearing and estimated velocity in new fields per week. Unaffected fields near the current spread front are highlighted as elevated-risk neighbours.
+    </div>
     ${kpiGrid([
       kpiCard('Pests Tracked', pestsWithVectors, 'species with spread data'),
       kpiCard('Fields Affected', allFields.length, 'distinct fields with observations'),

@@ -82,6 +82,7 @@ export async function renderSeasonalPressure(el, data) {
   ` : '';
 
   el.innerHTML = `
+    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Analyses up to 18 months of historical observation data to identify each pest's <strong>peak calendar months</strong>. The heat-map calendar shows the next 6 months with expected pressure for the top 3 pests per month, based on how many observations were recorded in the same calendar month in prior years. Use this to plan treatments and increase scouting frequency before seasonal pressure arrives.</div>
     <div style="font-weight:700;font-size:0.88rem;color:var(--text-dim);text-transform:uppercase;
       letter-spacing:.06em;margin-bottom:10px;">Peak Pressure Species</div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:4px;">

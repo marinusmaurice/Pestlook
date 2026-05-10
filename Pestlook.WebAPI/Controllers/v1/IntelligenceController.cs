@@ -3215,9 +3215,15 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
             pests   = results,
             summary = new
             {
-                pestsWithVector  = results.Count,
+                pestsWithVector   = results.Count,
                 fieldsInPerimeter = results.Sum(p => ((dynamic)p).zonesRecommended),
-                totalInsideZone  = results.Sum(p => ((List<object>)((dynamic)p).insideZone).Count),
+                // Count distinct fields across all pests — not the sum of per-pest lists,
+                // which would double-count a field that has multiple pests.
+                totalInsideZone   = results
+                    .SelectMany(p => (List<object>)((dynamic)p).insideZone)
+                    .Select(z => $"{((dynamic)z).fieldName}|{((dynamic)z).farmName}")
+                    .Distinct()
+                    .Count(),
             },
         }));
     }

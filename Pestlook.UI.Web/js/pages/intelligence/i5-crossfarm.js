@@ -55,7 +55,7 @@ export async function renderCrossFarmCorrelation(container, data, onMinFarmsChan
   let activePestId = pests[0]?.id ?? null;
 
   // ── KPI row ──────────────────────────────────────────────────────────────
-  container.innerHTML = kpiGrid([
+  container.innerHTML = '<div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Detects weeks where the same pest spiked simultaneously across <strong>two or more farms</strong> — a signal of a regional outbreak rather than an isolated farm-level incident. A spike is defined as a week exceeding both the configured action threshold and 1.5× that farm\'s own median weekly count, so detection adapts to each farm\'s normal activity level.</div>' + kpiGrid([
     kpiCard('Outbreak Pests',     summary.totalOutbreakPests,  'species with multi-farm spikes', '', summary.totalOutbreakPests > 0 ? C.red : ''),
     kpiCard('Regional Outbreaks', summary.regionalOutbreaks,   '2+ farms same week',             '', summary.regionalOutbreaks  > 0 ? C.red : ''),
     kpiCard('Peak Farm Count',    summary.peakFarmCount,       summary.peakPestName ?? '',        '', summary.peakFarmCount > 2 ? C.red : C.amber),

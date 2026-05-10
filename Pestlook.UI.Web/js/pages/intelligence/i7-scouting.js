@@ -24,6 +24,7 @@ export async function renderNextScouting(el, data) {
   const colour  = u => URGENCY_COLOUR[u] ?? '#555';
 
   el.innerHTML = `
+    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Calculates the recommended interval between scouting visits for each field by measuring the <strong>pest population growth rate</strong> — the relative change in weekly observation totals from first to last in the period. Rapidly growing populations trigger shorter intervals (as few as 3 days); declining populations allow longer gaps (up to 10 days). Fields already overdue for a visit are listed first.</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;">
       <div class="card card-p" style="text-align:center;">
         <div style="font-size:1.8rem;font-weight:700;">${summary.total ?? 0}</div>

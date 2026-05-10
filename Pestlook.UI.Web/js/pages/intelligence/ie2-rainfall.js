@@ -32,6 +32,7 @@ export async function renderRainfallLag(el, data) {
     </div>`;
 
   const kpis = `
+    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Detects <strong>wet events</strong> — weeks where the average session temperature dropped 3°C or more below the 4-week rolling average (a proxy for rainfall in the absence of a live weather feed) — then checks whether pest populations spiked in the 1–3 weeks following each event. A strong lag signal indicates the pest consistently responds to wet conditions within that window, allowing pre-emptive treatment planning.</div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
       ${kpi('Wet Events Detected', summary.wetEventsFound  ?? 0, 'var(--accent)', 'temp-drop proxy')}
       ${kpi('Pests Analysed',      summary.pestsAnalysed  ?? 0, 'var(--text)',   'with lag check')}

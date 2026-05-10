@@ -35,6 +35,7 @@ export async function renderResistancePatterns(el, data) {
     </div>`;
 
   const kpis = `
+    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Flags field × pest combinations where threshold breaches have recurred across <strong>two or more calendar years</strong> without sustained improvement. A worsening breach rate year-on-year is a strong indicator that current control measures are losing effectiveness and that <strong>pesticide resistance testing</strong> or rotation of mode-of-action should be considered. No treatment records are required — the analysis is based entirely on observation counts and configured thresholds.</div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
       ${kpi('Patterns Found',       summary.totalPatterns      ?? 0, 'var(--text)', `over ${summary.yearsAnalysed ?? '?'} years`)}
       ${kpi('Likely Resistance',    summary.likelyResistance   ?? 0, '#c0392b',    '3+ breach years / worsening')}

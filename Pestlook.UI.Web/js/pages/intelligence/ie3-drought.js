@@ -33,6 +33,7 @@ export async function renderDroughtStress(el, data) {
     </div>`;
 
   const kpis = `
+    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Classifies each scouting date as a <strong>drought day</strong> when the 30-day rolling average session temperature exceeded the long-term mean by 2°C or more, then compares threshold breach rates during drought versus normal periods for each pest. A strong drought-stress link means the pest breaches significantly more often in hot, dry conditions — useful for scheduling pre-emptive interventions ahead of predicted heatwaves.</div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
       ${kpi('Drought Days',      summary.droughtDays    ?? 0, '#c0392b',     `>${summary.droughtThreshold ?? '—'}°C avg`)}
       ${kpi('Normal Days',       summary.normalDays     ?? 0, '#27ae60',     'within long-term mean')}

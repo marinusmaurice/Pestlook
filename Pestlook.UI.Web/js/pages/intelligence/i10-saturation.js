@@ -23,6 +23,7 @@ export async function renderTrapSaturation(el, data) {
   const colour = r => RISK_COLOUR[r] ?? '#888';
 
   el.innerHTML = `
+    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Tracks weekly catch totals for each active trap and uses OLS linear regression to project how many weeks until the catch rate reaches <strong>saturation</strong> — defined as 20% above the trap's own historic peak catch, or 500 insects, whichever is higher. A saturated trap loses effectiveness as adhesive or bait is exhausted; this tab flags traps that need servicing before that point is reached.</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;">
       <div class="card card-p" style="text-align:center;">
         <div style="font-size:1.8rem;font-weight:700;">${summary.totalTraps ?? 0}</div>

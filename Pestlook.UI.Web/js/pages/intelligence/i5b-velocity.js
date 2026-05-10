@@ -60,6 +60,7 @@ export async function renderSpreadVelocity(el, data) {
   const velFmt = v => v > 0 ? `+${v}` : `${v}`;
 
   el.innerHTML = `
+    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Measures how actively each pest is spreading field-to-field right now. <strong>Velocity</strong> is the week-over-week change in the number of distinct fields with at least one active observation. A positive velocity means more fields are affected this week than last; negative means the pest is retreating. This remains meaningful for established pests as it tracks seasonal flare-ups and post-treatment recovery.</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;">
       <div class="card card-p" style="text-align:center;">
         <div style="font-size:1.8rem;font-weight:700;">${summary.totalPests ?? 0}</div>

@@ -24,6 +24,7 @@ export async function renderBreachProbability(el, data) {
   const colour = r => RISK_COLOUR[r] ?? '#888';
 
   el.innerHTML = `
+    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">For each pest × field combination, applies OLS regression to project the next session count and computes the probability that the projection exceeds the configured action threshold using a standard normal z-score. <strong>High ≥ 60%</strong>, <strong>Medium 30–59%</strong>, <strong>Low &lt; 30%</strong>. Use this to prioritise monitoring before a breach happens, not after.</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;">
       <div class="card card-p" style="text-align:center;">
         <div style="font-size:1.8rem;font-weight:700;">${summary.total ?? 0}</div>

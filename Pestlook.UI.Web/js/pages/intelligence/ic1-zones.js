@@ -34,6 +34,7 @@ export async function renderContainmentZones(el, data) {
     </div>`;
 
   const kpis = `
+    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Computes a spread vector (compass bearing and weekly velocity) for each pest from weekly GPS centroids, then identifies unaffected farms within <strong>±60° of the spread bearing</strong> and twice the weekly spread distance. These farms form the recommended <strong>containment perimeter</strong> — the most likely next targets if the outbreak continues unchecked. Farms directly in the spread path are flagged High; nearby off-axis farms are flagged Monitor.</div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;">
       ${kpi('Pests Spreading',    summary.pestsWithVector   ?? 0, 'var(--text)',  'with measurable vector')}
       ${kpi('Perimeter Zones',    summary.fieldsInPerimeter ?? 0, '#c0392b',     'farms directly in spread path')}

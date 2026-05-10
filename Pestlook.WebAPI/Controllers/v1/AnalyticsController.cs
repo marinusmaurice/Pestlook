@@ -158,26 +158,24 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         if (scoutId != null)  sessQ = sessQ.Where(ss => ss.ScouterId == scoutId ||
             (ss.Scouter != null && ss.Scouter.FirstName + " " + ss.Scouter.LastName == scoutId));
 
-        var kpis = await sessQ
-            .GroupBy(_ => 1)
-            .Select(g => new
-            {
-                TotalSessions     = g.Count(),
-                CompletedSessions = g.Count(),
-            })
-            .FirstOrDefaultAsync(ct);
+        var totalSessions = await sessQ.CountAsync(ct);
 
-        // Compute observation aggregates directly from SessionObservations — avoids
-        // the correlated-subquery trap that EF Core emits when navigating from sessions.
-        var obsKpis = await db.SessionObservations
-            .Where(o => o.Session.CompletedAt >= start && o.Session.CompletedAt <= end)
-            .GroupBy(_ => 1)
-            .Select(g => new
-            {
-                TotalObservations = g.Sum(o => (int?)(o.Count ?? 0)) ?? 0,
-                ThresholdBreaches = g.Count(o => o.ThresholdCount != null && o.Count > o.ThresholdCount),
-            })
-            .FirstOrDefaultAsync(ct);
+        // Build a single observation base query filtered via o.Session.* navigation.
+        // Starting from SessionObservations avoids the CROSS APPLY that EF emits when
+        // using sessQ.SelectMany(ss => ss.SessionObservations...) — which issues one
+        // correlated subquery per session row and was causing 20-second runtimes.
+        var obsBase = db.SessionObservations
+            .Where(o => o.Session.CompletedAt >= start && o.Session.CompletedAt <= end);
+        if (farmId.HasValue)  obsBase = obsBase.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
+        if (fieldId.HasValue) obsBase = obsBase.Where(o => o.Session.FieldId == fieldId);
+        if (scoutId != null)  obsBase = obsBase.Where(o => o.Session.ScouterId == scoutId ||
+            (o.Session.Scouter != null && o.Session.Scouter.FirstName + " " + o.Session.Scouter.LastName == scoutId));
+
+        // KPI aggregates — use obsBase (respects all active filters).
+        // Previously used a separate obsKpisQ without farm/field/scout filters which
+        // caused full-table scans and returned wrong totals when filters were active.
+        var totalObservations = await obsBase.SumAsync(o => (int?)(o.Count ?? 0), ct) ?? 0;
+        var thresholdBreaches = await obsBase.CountAsync(o => o.ThresholdCount != null && o.Count > o.ThresholdCount, ct);
 
         // Trend — bucket size adapts to the selected range
         var spanDays = (end - start).TotalDays;
@@ -185,21 +183,19 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         if (spanDays <= 14)
         {
             // Daily buckets
-            var raw = await sessQ
-                .SelectMany(ss => ss.SessionObservations.Select(o => new { ss.CompletedAt, o.Count }))
-                .GroupBy(x => x.CompletedAt!.Value.Date)
-                .Select(g => new { BucketDate = g.Key, TotalObs = g.Sum(x => x.Count ?? 0) })
+            var raw = await obsBase
+                .GroupBy(o => o.Session.CompletedAt!.Value.Date)
+                .Select(g => new { BucketDate = g.Key, TotalObs = g.Sum(o => o.Count ?? 0) })
                 .OrderBy(x => x.BucketDate)
                 .ToListAsync(ct);
             weeklyObs = raw.Select(x => (object)new { WeekStart = (DateTime?)x.BucketDate, x.TotalObs }).ToList();
         }
         else if (spanDays <= 180)
         {
-            // Weekly buckets — group by ISO week number within each year
-            var raw = await sessQ
-                .SelectMany(ss => ss.SessionObservations.Select(o => new { ss.CompletedAt, o.Count }))
-                .GroupBy(x => x.CompletedAt!.Value.DayOfYear / 7)
-                .Select(g => new { WeekIndex = g.Key, TotalObs = g.Sum(x => x.Count ?? 0), WeekStart = g.Min(x => x.CompletedAt) })
+            // Weekly buckets — group by week-of-year
+            var raw = await obsBase
+                .GroupBy(o => o.Session.CompletedAt!.Value.DayOfYear / 7)
+                .Select(g => new { WeekIndex = g.Key, TotalObs = g.Sum(o => o.Count ?? 0), WeekStart = g.Min(o => o.Session.CompletedAt) })
                 .OrderBy(x => x.WeekIndex)
                 .ToListAsync(ct);
             weeklyObs = raw.Select(x => (object)new { x.WeekStart, x.TotalObs }).ToList();
@@ -207,18 +203,16 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         else
         {
             // Monthly buckets
-            var raw = await sessQ
-                .SelectMany(ss => ss.SessionObservations.Select(o => new { ss.CompletedAt, o.Count }))
-                .GroupBy(x => new { x.CompletedAt!.Value.Year, x.CompletedAt.Value.Month })
-                .Select(g => new { g.Key.Year, g.Key.Month, TotalObs = g.Sum(x => x.Count ?? 0) })
+            var raw = await obsBase
+                .GroupBy(o => new { o.Session.CompletedAt!.Value.Year, o.Session.CompletedAt!.Value.Month })
+                .Select(g => new { g.Key.Year, g.Key.Month, TotalObs = g.Sum(o => o.Count ?? 0) })
                 .OrderBy(x => x.Year).ThenBy(x => x.Month)
                 .ToListAsync(ct);
             weeklyObs = raw.Select(x => (object)new { WeekStart = (DateTime?)new DateTime(x.Year, x.Month, 1), x.TotalObs }).ToList();
         }
 
         // Top 6 pests
-        var topPests = await sessQ
-            .SelectMany(ss => ss.SessionObservations)
+        var topPests = await obsBase
             .Where(o => !o.IsUnknownPest && o.PestId != null)
             .GroupBy(o => o.Pest!.CommonName)
             .Select(g => new { PestName = g.Key, TotalCount = g.Sum(o => o.Count ?? 0) })
@@ -228,14 +222,13 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
 
         return Ok(ApiResponse<object>.Ok(new
         {
-            kpis = kpis == null ? new { TotalSessions = 0, CompletedSessions = 0, TotalObservations = 0, ThresholdBreaches = 0 }
-                                : new
-                                  {
-                                      kpis.TotalSessions,
-                                      kpis.CompletedSessions,
-                                      TotalObservations = obsKpis?.TotalObservations ?? 0,
-                                      ThresholdBreaches = obsKpis?.ThresholdBreaches ?? 0,
-                                  },
+            kpis = new
+            {
+                TotalSessions     = totalSessions,
+                CompletedSessions = totalSessions,
+                TotalObservations = totalObservations,
+                ThresholdBreaches = thresholdBreaches,
+            },
             weeklyTrend = weeklyObs,
             topPests,
         }));
@@ -705,10 +698,11 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
             })
             .ToListAsync(ct);
 
-        // Step 2: aggregate observations in one flat query grouped by session.
-        var sessionIds = sessionRows.Select(s => s.Id).ToList();
+        // Step 2: aggregate observations in one query using a subquery instead of
+        // Contains(sessionIds) — which emits one SQL parameter per session ID and
+        // breaks down at scale (600+ parameters seen in logs).
         var obsAgg = await db.SessionObservations
-            .Where(o => sessionIds.Contains(o.SessionId))
+            .Where(o => sessQ.Select(s => s.Id).Contains(o.SessionId))
             .GroupBy(o => o.SessionId)
             .Select(g => new
             {

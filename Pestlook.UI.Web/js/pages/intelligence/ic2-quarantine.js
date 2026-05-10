@@ -32,6 +32,7 @@ export async function renderQuarantineFlags(el, data) {
     </div>`;
 
   const kpis = `
+    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Flags pest species recorded on a field <strong>for the first time</strong> within the selected date range. A <strong>New to Tenant</strong> flag means the species has never been seen anywhere in your organisation before — these carry the highest risk and may warrant reporting to local agricultural authorities. A <strong>New to Field</strong> flag means the pest is established elsewhere but has now appeared on a new field.</div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
       ${kpi('New Introductions',   summary.totalFlags         ?? 0, 'var(--text)',  'flags in period')}
       ${kpi('New to Tenant',       summary.genuineNewSpecies  ?? 0, '#c0392b',     'never seen before — highest risk')}

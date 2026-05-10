@@ -194,6 +194,7 @@ export async function renderOriginDetection(el, data) {
     .join('');
 
   el.innerHTML = `
+    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Works backwards through the observation record to identify the <strong>first field to report each pest</strong>, then builds a chronological spread chain showing how many days later the pest reached each subsequent field and how far it travelled. An outbreak confidence score is assigned based on whether the origin count was above threshold and how quickly the pest reached a second field.</div>
     ${kpiGrid([
       kpiCard('Pests Traced',      origins.length,    'species with traceable origin data'),
       kpiCard('Multi-field Outbreaks', multiField,

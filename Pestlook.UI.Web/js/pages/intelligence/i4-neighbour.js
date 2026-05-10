@@ -84,7 +84,7 @@ export async function renderNeighbourRisk(container, data, onRadiusChange) {
   let activePestId = pests[0]?.id ?? null;
 
   // ── KPI row ──────────────────────────────────────────────────────────────
-  container.innerHTML = kpiGrid([
+  container.innerHTML = '<div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Identifies fields where a pest <strong>breached its action threshold</strong> in the selected period, then finds all other fields within the configurable search radius. Neighbouring fields that have not been scouted in 7 or more days are flagged as unscouted risk — an intelligence gap next to an active infestation that needs immediate attention.</div>' + kpiGrid([
     kpiCard('Breached Fields',   summary.breachedFields,    '',                                         '',      summary.breachedFields > 0 ? C.red : ''),
     kpiCard('At-Risk Neighbours',summary.atRiskFields,      'within radius',                            '',      summary.atRiskFields > 0   ? C.amber : ''),
     kpiCard('Unscouted Risk',    summary.unscoutedRiskFields,'neighbours not visited in 7+ days',       '',      summary.unscoutedRiskFields > 0 ? C.red : ''),
