@@ -110,4 +110,41 @@ public sealed class AuthController(
         var dto = mapper.Map<UserInfoResponse>(user) with { Roles = roles };
         return Ok(ApiResponse<UserInfoResponse>.Ok(dto, "Preferences updated."));
     }
+
+    [HttpPost("confirm-email")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ConfirmEmail([FromBody] ConfirmEmailRequest request, CancellationToken ct)
+    {
+        await authService.ConfirmEmailAsync(request, ct);
+        return Ok(ApiResponse<object>.Ok(null, "Email confirmed successfully."));
+    }
+
+    [HttpPost("forgot-password")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken ct)
+    {
+        await authService.ForgotPasswordAsync(request, ct);
+        return Ok(ApiResponse<object>.Ok(null, "If that email is registered you will receive a reset link shortly."));
+    }
+
+    [HttpPost("reset-password")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request, CancellationToken ct)
+    {
+        await authService.ResetPasswordAsync(request, ct);
+        return Ok(ApiResponse<object>.Ok(null, "Password reset successfully."));
+    }
+
+    [HttpPost("invite")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> InviteMember([FromBody] InviteMemberRequest request, CancellationToken ct)
+    {
+        await authService.InviteMemberAsync(request, ct);
+        return Ok(ApiResponse<object>.Ok(null, "Invitation sent successfully."));
+    }
 }

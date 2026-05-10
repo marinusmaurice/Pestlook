@@ -27,3 +27,19 @@ export function registerUser(request) {
 export function updatePreferences(request) {
   return patch('/auth/me/preferences', request);
 }
+
+export function forgotPassword(email) {
+  return post('/auth/forgot-password', { email }, false);
+}
+
+export function resetPassword(email, token, newPassword) {
+  return post('/auth/reset-password', { email, token, newPassword }, false);
+}
+
+export function confirmEmail(userId, token) {
+  return post('/auth/confirm-email', { userId, token }, false);
+}
+
+export function inviteMember(request) {
+  return post('/auth/invite', request);
+}

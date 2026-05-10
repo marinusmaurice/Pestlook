@@ -19,8 +19,18 @@ export function navigate(path) {
   window.location.hash = '#' + path;
 }
 
+/** Returns the path portion of the hash (strips query string). */
 export function currentPath() {
-  return window.location.hash.slice(1) || '/';
+  const hash = window.location.hash.slice(1) || '/';
+  return hash.split('?')[0] || '/';
+}
+
+/** Returns parsed query params from the hash fragment (e.g. #/reset-password?token=abc). */
+export function getHashQuery() {
+  const hash = window.location.hash.slice(1) || '';
+  const idx = hash.indexOf('?');
+  if (idx === -1) return {};
+  return Object.fromEntries(new URLSearchParams(hash.slice(idx + 1)));
 }
 
 function matchRoute(path) {

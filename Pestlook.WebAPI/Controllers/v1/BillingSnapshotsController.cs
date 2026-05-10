@@ -20,6 +20,8 @@ public sealed class BillingSnapshotsController(
     ApplicationDbContext db,
     ITenantContext tenantContext,
     ICurrentUserService currentUserService,
+    IEmailService emailService,
+    ILogger<BillingSnapshotsController> logger,
     IMapper mapper) : ControllerBase
 {
     [HttpGet]
@@ -65,6 +67,10 @@ public sealed class BillingSnapshotsController(
         if (alreadyExists)
             return Conflict(ApiResponse<object>.Fail($"A snapshot for {year}-{month:D2} already exists."));
 
+        var tenant = await db.Tenants
+            .FirstOrDefaultAsync(t => t.Id == tenantContext.TenantId.Value, ct)
+            ?? throw new InvalidOperationException("Tenant not found.");
+
         var activePointCount = await db.Traps
             .CountAsync(t => t.IsEnabled, ct);
 
@@ -79,6 +85,31 @@ public sealed class BillingSnapshotsController(
         };
         db.BillingSnapshots.Add(snapshot);
         await db.SaveChangesAsync(ct);
+
+        // Notify the tenant admin(s) about the new billing snapshot
+        var admins = await db.Users
+            .Where(u => u.TenantId == tenantContext.TenantId.Value && u.IsActive && u.Email != null)
+            .ToListAsync(ct);
+
+        foreach (var admin in admins)
+        {
+            try
+            {
+                await emailService.SendBillingNotificationAsync(
+                    admin.Email!,
+                    $"{admin.FirstName} {admin.LastName}",
+                    tenant.Name,
+                    month, year,
+                    activePointCount,
+                    snapshot.AmountCents / 100m,
+                    ct);
+            }
+            catch (Exception ex)
+            {
+                // Log but don't fail the HTTP response if email delivery fails
+                logger.LogWarning(ex, "Failed to send billing notification to {Email}", admin.Email);
+            }
+        }
 
         return CreatedAtAction(nameof(GetById), new { id = snapshot.Id },
             ApiResponse<BillingSnapshotResponse>.Ok(mapper.Map<BillingSnapshotResponse>(snapshot), "Billing snapshot generated."));

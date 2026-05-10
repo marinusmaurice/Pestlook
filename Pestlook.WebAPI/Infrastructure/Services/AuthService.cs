@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Web;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Pestlook.WebAPI.Data;
@@ -19,11 +20,14 @@ public sealed class AuthService(
     ApplicationDbContext db,
     ITenantContext tenantContext,
     IOptions<JwtOptions> jwtOptions,
+    IOptions<EmailOptions> emailOptions,
+    IEmailService emailService,
     ILogger<AuthService> logger) : IAuthService
 {
     private const int MaxFailedAttempts = 5;
     private static readonly TimeSpan LockDuration = TimeSpan.FromMinutes(15);
     private readonly JwtOptions _jwt = jwtOptions.Value;
+    private readonly EmailOptions _email = emailOptions.Value;
 
     public async Task<TokenResponse> SignUpAsync(SignUpRequest request, string ipAddress, CancellationToken ct = default)
     {
@@ -85,6 +89,10 @@ public sealed class AuthService(
 
         logger.LogInformation("New tenant {TenantId} ({Slug}) created via sign-up by {Email}",
             tenant.Id, tenant.Slug, user.Email);
+
+        var confirmToken = await userManager.GenerateEmailConfirmationTokenAsync(user);
+        var confirmLink = BuildLink("confirm-email", new { userId = user.Id, token = confirmToken });
+        await emailService.SendEmailConfirmationAsync(user.Email!, $"{user.FirstName} {user.LastName}", confirmLink, ct);
 
         return await IssueTokensAsync(user, ipAddress, ct);
     }
@@ -238,4 +246,102 @@ public sealed class AuthService(
         ExpiresAt = DateTime.UtcNow.AddDays(_jwt.RefreshTokenExpiryDays),
         CreatedByIp = ipAddress
     };
+
+    // ── Email flows ──────────────────────────────────────────────────────────
+
+    public async Task ConfirmEmailAsync(ConfirmEmailRequest request, CancellationToken ct = default)
+    {
+        var user = await userManager.FindByIdAsync(request.UserId)
+            ?? throw new InvalidOperationException("User not found.");
+
+        var result = await userManager.ConfirmEmailAsync(user, request.Token);
+        if (!result.Succeeded)
+        {
+            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+            throw new InvalidOperationException($"Email confirmation failed: {errors}");
+        }
+
+        logger.LogInformation("Email confirmed for user {UserId}", user.Id);
+    }
+
+    public async Task ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken ct = default)
+    {
+        var user = await userManager.FindByEmailAsync(request.Email);
+
+        // Always return successfully to avoid email enumeration
+        if (user is null || !user.IsActive)
+            return;
+
+        var token = await userManager.GeneratePasswordResetTokenAsync(user);
+        var resetLink = BuildLink("reset-password", new { email = user.Email, token });
+        await emailService.SendPasswordResetAsync(user.Email!, $"{user.FirstName} {user.LastName}", resetLink, ct);
+
+        logger.LogInformation("Password reset email sent to {Email}", user.Email);
+    }
+
+    public async Task ResetPasswordAsync(ResetPasswordRequest request, CancellationToken ct = default)
+    {
+        var user = await userManager.FindByEmailAsync(request.Email)
+            ?? throw new InvalidOperationException("User not found.");
+
+        var result = await userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
+        if (!result.Succeeded)
+        {
+            var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+            throw new InvalidOperationException($"Password reset failed: {errors}");
+        }
+
+        logger.LogInformation("Password reset completed for {Email}", user.Email);
+    }
+
+    public async Task InviteMemberAsync(InviteMemberRequest request, CancellationToken ct = default)
+    {
+        if (tenantContext.TenantId is null)
+            throw new InvalidOperationException("Tenant could not be resolved.");
+
+        var tenant = await db.Tenants
+            .FirstOrDefaultAsync(t => t.Id == tenantContext.TenantId && t.IsActive, ct)
+            ?? throw new InvalidOperationException("Tenant not found or inactive.");
+
+        var existing = await userManager.FindByEmailAsync(request.Email);
+        if (existing is not null)
+            throw new ConflictException("A user with this email address already exists.");
+
+        // Create the account without a password; the invite link lets them set one
+        var user = new ApplicationUser
+        {
+            UserName = request.Email,
+            Email = request.Email,
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            TenantId = tenant.Id,
+            EmailConfirmed = true
+        };
+
+        var createResult = await userManager.CreateAsync(user);
+        if (!createResult.Succeeded)
+        {
+            var errors = string.Join(", ", createResult.Errors.Select(e => e.Description));
+            throw new InvalidOperationException($"Invite failed: {errors}");
+        }
+
+        await userManager.AddToRoleAsync(user, request.Role ?? "Scout");
+
+        // Reuse the password-reset token as the set-password token for new invitees
+        var token = await userManager.GeneratePasswordResetTokenAsync(user);
+        var inviteLink = BuildLink("accept-invite", new { email = user.Email, token });
+        await emailService.SendMemberInviteAsync(user.Email!, "your team", tenant.Name, inviteLink, ct);
+
+        logger.LogInformation("Member invite sent to {Email} for tenant {TenantId}", user.Email, tenant.Id);
+    }
+
+    private string BuildLink(string path, object parameters)
+    {
+        var query = string.Join("&", parameters.GetType()
+            .GetProperties()
+            .Select(p => $"{p.Name}={HttpUtility.UrlEncode(p.GetValue(parameters)?.ToString())}"));
+
+        // Hash-based SPA routing: base/#/path?params
+        return $"{_email.AppBaseUrl.TrimEnd('/')}/#/{path.TrimStart('/')}?{query}";
+    }
 }

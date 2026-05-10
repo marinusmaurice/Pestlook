@@ -61,12 +61,17 @@ public sealed class AuthServiceTests : IDisposable
             RefreshTokenExpiryDays = 7
         });
 
+        var emailOptions = Options.Create(new EmailOptions());
+        var emailServiceMock = new Mock<IEmailService>();
+
         _sut = new AuthService(
             _userManagerMock.Object,
             _tokenServiceMock.Object,
             _db,
             _tenantContext,
             jwtOptions,
+            emailOptions,
+            emailServiceMock.Object,
             new Mock<ILogger<AuthService>>().Object);
     }
 

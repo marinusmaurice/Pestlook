@@ -25,6 +25,9 @@ export function renderLogin(container) {
           <div class="form-group">
             <label class="input-label">Password</label>
             <input class="input-field" type="password" id="loginPassword" placeholder="••••••••" required>
+            <div style="text-align:right;margin-top:4px;">
+              <a href="#/forgot-password" style="font-size:0.78rem;color:var(--text-dim);">Forgot password?</a>
+            </div>
           </div>
           <div class="form-actions">
             <button class="btn-primary full-width" type="submit" id="loginBtn">Sign In</button>
