@@ -1,5 +1,298 @@
 import { escapeHtml } from '../utils/helpers.js';
 
+// ── Inline SVG Diagrams (keyed by section id) ─────────────────────────────────
+const SVG = {
+
+  dashboard: `
+  <div style="margin:16px 0 20px;padding:16px;background:#1a2820;border-radius:10px;overflow:hidden;">
+    <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#4ade80;margin-bottom:12px;">Dashboard Layout</div>
+    <svg viewBox="0 0 480 230" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:480px;display:block;">
+      <defs><style>text{font-family:Inter,sans-serif;fill-rule:nonzero;}</style></defs>
+      <!-- Stat cards -->
+      <rect x="0"   y="0" width="108" height="52" rx="7" fill="#243428" stroke="#3a5040" stroke-width="1"/>
+      <text x="54"  y="19" text-anchor="middle" fill="#86efac" font-size="8.5" font-weight="600">Active Farms</text>
+      <text x="54"  y="39" text-anchor="middle" fill="#e2e8f0" font-size="18" font-weight="700">12</text>
+      <rect x="114" y="0" width="108" height="52" rx="7" fill="#243428" stroke="#3a5040" stroke-width="1"/>
+      <text x="168" y="19" text-anchor="middle" fill="#86efac" font-size="8.5" font-weight="600">Traps</text>
+      <text x="168" y="39" text-anchor="middle" fill="#e2e8f0" font-size="18" font-weight="700">34</text>
+      <rect x="228" y="0" width="108" height="52" rx="7" fill="#243428" stroke="#3a5040" stroke-width="1"/>
+      <text x="282" y="19" text-anchor="middle" fill="#86efac" font-size="8.5" font-weight="600">Sessions</text>
+      <text x="282" y="39" text-anchor="middle" fill="#e2e8f0" font-size="18" font-weight="700">248</text>
+      <rect x="342" y="0" width="138" height="52" rx="7" fill="#243428" stroke="#3a5040" stroke-width="1"/>
+      <text x="411" y="19" text-anchor="middle" fill="#86efac" font-size="8.5" font-weight="600">Observations</text>
+      <text x="411" y="39" text-anchor="middle" fill="#e2e8f0" font-size="18" font-weight="700">1,842</text>
+      <!-- Active sessions panel -->
+      <rect x="0"   y="60" width="224" height="162" rx="7" fill="#243428" stroke="#3a5040" stroke-width="1"/>
+      <text x="112" y="76" text-anchor="middle" fill="#86efac" font-size="8.5" font-weight="600">Active Sessions</text>
+      <line x1="8" y1="82" x2="216" y2="82" stroke="#3a5040" stroke-width="1"/>
+      <rect x="10" y="88"  width="204" height="18" rx="3" fill="#1e3028"/>
+      <text x="18" y="100" fill="#94a3b8" font-size="7.5">North Farm — Scout A — 09:15</text>
+      <rect x="10" y="110" width="204" height="18" rx="3" fill="#1e3028"/>
+      <text x="18" y="122" fill="#94a3b8" font-size="7.5">South Paddock — Scout B — 10:40</text>
+      <rect x="10" y="132" width="204" height="18" rx="3" fill="#1e3028"/>
+      <text x="18" y="144" fill="#94a3b8" font-size="7.5">East Field — Scout C — 11:05</text>
+      <text x="112" y="180" text-anchor="middle" fill="#3a5040" font-size="7.5">Activity Feed below ↓</text>
+      <!-- Map panel -->
+      <rect x="230" y="60" width="250" height="162" rx="7" fill="#243428" stroke="#3a5040" stroke-width="1"/>
+      <text x="355" y="76" text-anchor="middle" fill="#86efac" font-size="8.5" font-weight="600">Trap Map</text>
+      <line x1="238" y1="82" x2="472" y2="82" stroke="#3a5040" stroke-width="1"/>
+      <rect x="238" y="86" width="234" height="128" rx="4" fill="#1a2e22"/>
+      <line x1="238" y1="120" x2="472" y2="120" stroke="#2a3e30" stroke-width="0.5"/>
+      <line x1="238" y1="154" x2="472" y2="154" stroke="#2a3e30" stroke-width="0.5"/>
+      <line x1="316" y1="86" x2="316" y2="214" stroke="#2a3e30" stroke-width="0.5"/>
+      <line x1="394" y1="86" x2="394" y2="214" stroke="#2a3e30" stroke-width="0.5"/>
+      <circle cx="280" cy="108" r="7" fill="#4ade80" opacity="0.85"/>
+      <circle cx="345" cy="133" r="7" fill="#f87171" opacity="0.85"/>
+      <circle cx="415" cy="112" r="7" fill="#fbbf24" opacity="0.85"/>
+      <circle cx="455" cy="170" r="7" fill="#4ade80" opacity="0.85"/>
+      <circle cx="260" cy="175" r="7" fill="#4ade80" opacity="0.85"/>
+      <!-- Map legend -->
+      <circle cx="244" cy="208" r="4" fill="#4ade80"/><text x="252" y="211" fill="#86efac" font-size="6.5">Active</text>
+      <circle cx="284" cy="208" r="4" fill="#f87171"/><text x="292" y="211" fill="#fca5a5" font-size="6.5">Inactive</text>
+      <circle cx="328" cy="208" r="4" fill="#fbbf24"/><text x="336" y="211" fill="#fde68a" font-size="6.5">Maintenance</text>
+    </svg>
+  </div>`,
+
+  sessions: `
+  <div style="margin:16px 0 20px;padding:16px;background:#1a2820;border-radius:10px;overflow:hidden;">
+    <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#4ade80;margin-bottom:12px;">Session Status Flow</div>
+    <svg viewBox="0 0 440 80" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:440px;display:block;">
+      <defs>
+        <style>text{font-family:Inter,sans-serif;}</style>
+        <marker id="sa1" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#4ade80"/></marker>
+        <marker id="sa2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#4ade80"/></marker>
+      </defs>
+      <rect x="0"   y="18" width="110" height="44" rx="8" fill="#f59e0b22" stroke="#f59e0b" stroke-width="1.5"/>
+      <text x="55"  y="36" text-anchor="middle" fill="#f59e0b" font-size="9.5" font-weight="700">PLANNED</text>
+      <text x="55"  y="52" text-anchor="middle" fill="#fde68a" font-size="7.5" opacity="0.8">Scheduled date set</text>
+      <line x1="110" y1="40" x2="158" y2="40" stroke="#4ade80" stroke-width="1.5" marker-end="url(#sa1)"/>
+      <text x="134" y="34" text-anchor="middle" fill="#86efac" font-size="7.5" font-weight="600">▶ Start</text>
+      <rect x="160" y="18" width="120" height="44" rx="8" fill="#3b82f622" stroke="#3b82f6" stroke-width="1.5"/>
+      <text x="220" y="36" text-anchor="middle" fill="#93c5fd" font-size="9.5" font-weight="700">IN PROGRESS</text>
+      <text x="220" y="52" text-anchor="middle" fill="#93c5fd" font-size="7.5" opacity="0.8">Start time recorded</text>
+      <line x1="280" y1="40" x2="328" y2="40" stroke="#4ade80" stroke-width="1.5" marker-end="url(#sa2)"/>
+      <text x="304" y="34" text-anchor="middle" fill="#86efac" font-size="7.5" font-weight="600">✓ Complete</text>
+      <rect x="330" y="18" width="110" height="44" rx="8" fill="#818cf822" stroke="#818cf8" stroke-width="1.5"/>
+      <text x="385" y="36" text-anchor="middle" fill="#818cf8" font-size="9.5" font-weight="700">COMPLETED</text>
+      <text x="385" y="52" text-anchor="middle" fill="#a5b4fc" font-size="7.5" opacity="0.8">End time recorded</text>
+    </svg>
+  </div>`,
+
+  'intel-spread': `
+  <div style="margin:16px 0 20px;padding:16px;background:#1a2820;border-radius:10px;overflow:hidden;">
+    <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#4ade80;margin-bottom:12px;">Spread Vector Map — How It Works</div>
+    <svg viewBox="0 0 460 205" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:460px;display:block;">
+      <defs>
+        <style>text{font-family:Inter,sans-serif;}</style>
+        <marker id="redV" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#f87171"/></marker>
+        <marker id="ambV" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#f59e0b"/></marker>
+        <marker id="grnV" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#4ade80"/></marker>
+      </defs>
+      <rect width="460" height="205" rx="10" fill="#1a2e22"/>
+      <line x1="0" y1="68"  x2="460" y2="68"  stroke="#243428" stroke-width="0.8"/>
+      <line x1="0" y1="136" x2="460" y2="136" stroke="#243428" stroke-width="0.8"/>
+      <line x1="115" y1="0" x2="115" y2="205" stroke="#243428" stroke-width="0.8"/>
+      <line x1="230" y1="0" x2="230" y2="205" stroke="#243428" stroke-width="0.8"/>
+      <line x1="345" y1="0" x2="345" y2="205" stroke="#243428" stroke-width="0.8"/>
+      <!-- Field circles -->
+      <circle cx="80"  cy="102" r="24" fill="#3b7db822" stroke="#3b7db8" stroke-width="1.2"/>
+      <text x="80"  y="106" text-anchor="middle" fill="#7ab8e8" font-size="8">Field A</text>
+      <circle cx="205" cy="58"  r="19" fill="#3b7db822" stroke="#3b7db8" stroke-width="1.2"/>
+      <text x="205" y="62"  text-anchor="middle" fill="#7ab8e8" font-size="8">Field B</text>
+      <circle cx="325" cy="78"  r="19" fill="#3b7db822" stroke="#3b7db8" stroke-width="1.2"/>
+      <text x="325" y="82"  text-anchor="middle" fill="#7ab8e8" font-size="8">Field C</text>
+      <circle cx="240" cy="158" r="19" fill="#3b7db822" stroke="#3b7db8" stroke-width="1.2"/>
+      <text x="240" y="162" text-anchor="middle" fill="#7ab8e8" font-size="8">Field D</text>
+      <circle cx="395" cy="148" r="19" fill="#3b7db822" stroke="#3b7db8" stroke-width="1.2"/>
+      <text x="395" y="152" text-anchor="middle" fill="#7ab8e8" font-size="8">Field E</text>
+      <!-- Fast spread: red (A → C) -->
+      <line x1="103" y1="90" x2="298" y2="75" stroke="#f87171" stroke-width="1.8" stroke-dasharray="5,4" marker-end="url(#redV)"/>
+      <circle cx="308" cy="74" r="7" fill="#f87171"/>
+      <!-- Slow spread: amber (A → D) -->
+      <line x1="100" y1="114" x2="218" y2="152" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="5,4" marker-end="url(#ambV)"/>
+      <circle cx="226" cy="155" r="7" fill="#f59e0b"/>
+      <!-- Contained: green (B → E) -->
+      <line x1="224" y1="63" x2="373" y2="141" stroke="#4ade80" stroke-width="1.8" stroke-dasharray="5,4" marker-end="url(#grnV)"/>
+      <circle cx="381" cy="145" r="7" fill="#4ade80"/>
+      <!-- Origin star on Field A -->
+      <circle cx="80" cy="102" r="9" fill="none" stroke="#fff" stroke-width="2"/>
+      <text x="80" y="106" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">★</text>
+      <text x="80" y="133" text-anchor="middle" fill="#64748b" font-size="7.5">First observed</text>
+      <!-- Legend box -->
+      <rect x="8" y="8" width="142" height="56" rx="5" fill="#1e3028" opacity="0.92"/>
+      <line x1="16" y1="23" x2="42" y2="23" stroke="#f87171" stroke-width="2" stroke-dasharray="4,3"/>
+      <circle cx="46" cy="23" r="4" fill="#f87171"/>
+      <text x="54" y="27" fill="#fca5a5" font-size="7.5">Fast spread (&gt;0.5/wk)</text>
+      <line x1="16" y1="37" x2="42" y2="37" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4,3"/>
+      <circle cx="46" cy="37" r="4" fill="#f59e0b"/>
+      <text x="54" y="41" fill="#fde68a" font-size="7.5">Slow spread</text>
+      <line x1="16" y1="51" x2="42" y2="51" stroke="#4ade80" stroke-width="2" stroke-dasharray="4,3"/>
+      <circle cx="46" cy="51" r="4" fill="#4ade80"/>
+      <text x="54" y="55" fill="#86efac" font-size="7.5">Contained</text>
+    </svg>
+  </div>`,
+
+  'intel-origin': `
+  <div style="margin:16px 0 20px;padding:16px;background:#1a2820;border-radius:10px;overflow:hidden;">
+    <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#4ade80;margin-bottom:12px;">Infestation Spread Chain — Origin to Latest Field</div>
+    <svg viewBox="0 0 440 88" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:440px;display:block;">
+      <defs>
+        <style>text{font-family:Inter,sans-serif;}</style>
+        <marker id="cArr" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#64748b"/></marker>
+      </defs>
+      <rect width="440" height="88" rx="8" fill="#1a2e22"/>
+      <!-- Node 1: Origin red -->
+      <circle cx="50"  cy="44" r="20" fill="#c7514699" stroke="#f87171" stroke-width="1.5"/>
+      <text x="50"  y="40" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">1</text>
+      <text x="50"  y="53" text-anchor="middle" fill="#fca5a5" font-size="6.5">ORIGIN</text>
+      <text x="50"  y="74" text-anchor="middle" fill="#64748b" font-size="7">Day 0</text>
+      <!-- Arrow -->
+      <line x1="72" y1="44" x2="108" y2="44" stroke="#64748b" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#cArr)"/>
+      <text x="90" y="37" text-anchor="middle" fill="#475569" font-size="6.5">+4 days</text>
+      <!-- Node 2 -->
+      <circle cx="130" cy="44" r="18" fill="#3b7db844" stroke="#3b82f6" stroke-width="1.5"/>
+      <text x="130" y="40" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">2</text>
+      <text x="130" y="53" text-anchor="middle" fill="#93c5fd" font-size="6.5">Field B</text>
+      <text x="130" y="74" text-anchor="middle" fill="#64748b" font-size="7">Day 4</text>
+      <line x1="150" y1="44" x2="186" y2="44" stroke="#64748b" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#cArr)"/>
+      <text x="168" y="37" text-anchor="middle" fill="#475569" font-size="6.5">+9 days</text>
+      <!-- Node 3 -->
+      <circle cx="208" cy="44" r="18" fill="#3b7db844" stroke="#3b82f6" stroke-width="1.5"/>
+      <text x="208" y="40" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">3</text>
+      <text x="208" y="53" text-anchor="middle" fill="#93c5fd" font-size="6.5">Field C</text>
+      <text x="208" y="74" text-anchor="middle" fill="#64748b" font-size="7">Day 13</text>
+      <line x1="228" y1="44" x2="264" y2="44" stroke="#64748b" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#cArr)"/>
+      <text x="246" y="37" text-anchor="middle" fill="#475569" font-size="6.5">+7 days</text>
+      <!-- Node 4 -->
+      <circle cx="286" cy="44" r="18" fill="#3b7db844" stroke="#3b82f6" stroke-width="1.5"/>
+      <text x="286" y="40" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">4</text>
+      <text x="286" y="53" text-anchor="middle" fill="#93c5fd" font-size="6.5">Field D</text>
+      <text x="286" y="74" text-anchor="middle" fill="#64748b" font-size="7">Day 20</text>
+      <line x1="306" y1="44" x2="342" y2="44" stroke="#64748b" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#cArr)"/>
+      <text x="324" y="37" text-anchor="middle" fill="#475569" font-size="6.5">+12 days</text>
+      <!-- Node 5: Amber = most recent -->
+      <circle cx="364" cy="44" r="18" fill="#f59e0b33" stroke="#f59e0b" stroke-width="1.5"/>
+      <text x="364" y="40" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">5</text>
+      <text x="364" y="53" text-anchor="middle" fill="#fde68a" font-size="6.5">Latest</text>
+      <text x="364" y="74" text-anchor="middle" fill="#64748b" font-size="7">Day 32</text>
+    </svg>
+  </div>`,
+
+  'intel-velocity': `
+  <div style="margin:16px 0 20px;padding:16px;background:#1a2820;border-radius:10px;overflow:hidden;">
+    <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#4ade80;margin-bottom:12px;">Velocity Sparkline — Reading Guide</div>
+    <svg viewBox="0 0 420 125" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:420px;display:block;">
+      <defs><style>text{font-family:Inter,sans-serif;}</style></defs>
+      <rect width="420" height="125" rx="8" fill="#1a2e22"/>
+      <!-- Y axis -->
+      <line x1="55" y1="15" x2="55" y2="100" stroke="#3a5040" stroke-width="1"/>
+      <!-- Zero line -->
+      <line x1="55" y1="60" x2="415" y2="60" stroke="#3a5040" stroke-width="1.5"/>
+      <text x="48" y="64" text-anchor="end" fill="#64748b" font-size="7.5">0</text>
+      <text x="48" y="28" text-anchor="end" fill="#f87171" font-size="7.5">+5</text>
+      <text x="48" y="97" text-anchor="end" fill="#4ade80" font-size="7.5">-4</text>
+      <!-- Gaining label -->
+      <text x="58" y="22" fill="#f87171" font-size="7">▲ Gaining fields</text>
+      <text x="58" y="110" fill="#4ade80" font-size="7">▼ Losing fields</text>
+      <!-- Bars: 8 weeks  heights above/below 60 -->
+      <!-- W1+2 -->  <rect x="68"  y="44" width="26" height="16" rx="3" fill="#f8717166"/>
+      <!-- W2+5 -->  <rect x="102" y="24" width="26" height="36" rx="3" fill="#f8717188"/>
+      <!-- W3+3 -->  <rect x="136" y="36" width="26" height="24" rx="3" fill="#f8717166"/>
+      <!-- W4 0  -->  <rect x="170" y="58" width="26" height="4"  rx="2" fill="#475569"/>
+      <!-- W5-2 -->  <rect x="204" y="60" width="26" height="16" rx="3" fill="#4ade8066"/>
+      <!-- W6-4 -->  <rect x="238" y="60" width="26" height="32" rx="3" fill="#4ade8088"/>
+      <!-- W7-3 -->  <rect x="272" y="60" width="26" height="24" rx="3" fill="#4ade8066"/>
+      <!-- W8 0  -->  <rect x="306" y="58" width="26" height="4"  rx="2" fill="#475569"/>
+      <!-- Annotations -->
+      <text x="81"  y="40" text-anchor="middle" fill="#fca5a5" font-size="7">+2</text>
+      <text x="115" y="20" text-anchor="middle" fill="#fca5a5" font-size="7">+5 peak</text>
+      <text x="251" y="100" text-anchor="middle" fill="#86efac" font-size="7">-4 retreat</text>
+      <!-- Week labels -->
+      <text x="81"  y="115" text-anchor="middle" fill="#475569" font-size="7">W1</text>
+      <text x="115" y="115" text-anchor="middle" fill="#475569" font-size="7">W2</text>
+      <text x="149" y="115" text-anchor="middle" fill="#475569" font-size="7">W3</text>
+      <text x="183" y="115" text-anchor="middle" fill="#475569" font-size="7">W4</text>
+      <text x="217" y="115" text-anchor="middle" fill="#475569" font-size="7">W5</text>
+      <text x="251" y="115" text-anchor="middle" fill="#475569" font-size="7">W6</text>
+      <text x="285" y="115" text-anchor="middle" fill="#475569" font-size="7">W7</text>
+      <text x="319" y="115" text-anchor="middle" fill="#475569" font-size="7">W8</text>
+      <!-- Status indicators -->
+      <rect x="350" y="20" width="60" height="18" rx="4" fill="#f8717122" stroke="#f87171" stroke-width="1"/>
+      <text x="380" y="32" text-anchor="middle" fill="#f87171" font-size="7" font-weight="600">Spreading</text>
+      <rect x="350" y="44" width="60" height="18" rx="4" fill="#47556922" stroke="#475569" stroke-width="1"/>
+      <text x="380" y="56" text-anchor="middle" fill="#94a3b8" font-size="7" font-weight="600">Contained</text>
+      <rect x="350" y="68" width="60" height="18" rx="4" fill="#4ade8022" stroke="#4ade80" stroke-width="1"/>
+      <text x="380" y="80" text-anchor="middle" fill="#4ade80" font-size="7" font-weight="600">Retreating</text>
+    </svg>
+  </div>`,
+
+  'intel-forecast': `
+  <div style="margin:16px 0 20px;padding:16px;background:#1a2820;border-radius:10px;overflow:hidden;">
+    <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#4ade80;margin-bottom:12px;">Population Forecast — Chart Anatomy</div>
+    <svg viewBox="0 0 460 185" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:460px;display:block;">
+      <defs>
+        <style>text{font-family:Inter,sans-serif;}</style>
+        <linearGradient id="cb" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.22"/>
+          <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.04"/>
+        </linearGradient>
+      </defs>
+      <rect width="460" height="185" rx="8" fill="#1a2e22"/>
+      <!-- Axes -->
+      <line x1="44" y1="18" x2="44"  y2="150" stroke="#3a5040" stroke-width="1"/>
+      <line x1="44" y1="150" x2="448" y2="150" stroke="#3a5040" stroke-width="1"/>
+      <!-- Y labels -->
+      <text x="38" y="150" text-anchor="end" fill="#475569" font-size="7">0</text>
+      <text x="38" y="110" text-anchor="end" fill="#475569" font-size="7">25</text>
+      <text x="38" y="70"  text-anchor="end" fill="#475569" font-size="7">50</text>
+      <text x="38" y="30"  text-anchor="end" fill="#475569" font-size="7">75</text>
+      <!-- H-grid -->
+      <line x1="44" y1="110" x2="448" y2="110" stroke="#243428" stroke-width="0.8"/>
+      <line x1="44" y1="70"  x2="448" y2="70"  stroke="#243428" stroke-width="0.8"/>
+      <line x1="44" y1="30"  x2="448" y2="30"  stroke="#243428" stroke-width="0.8"/>
+      <!-- Historical blue bars (w1–w8, val/75*132 height from 150) -->
+      <rect x="50"  y="127" width="22" height="23" rx="2" fill="#3b82f688"/>
+      <rect x="82"  y="118" width="22" height="32" rx="2" fill="#3b82f688"/>
+      <rect x="114" y="121" width="22" height="29" rx="2" fill="#3b82f688"/>
+      <rect x="146" y="114" width="22" height="36" rx="2" fill="#3b82f688"/>
+      <rect x="178" y="104" width="22" height="46" rx="2" fill="#3b82f688"/>
+      <rect x="210" y="109" width="22" height="41" rx="2" fill="#3b82f688"/>
+      <rect x="242" y="98"  width="22" height="52" rx="2" fill="#3b82f688"/>
+      <rect x="274" y="92"  width="22" height="58" rx="2" fill="#3b82f688"/>
+      <!-- Vertical divider -->
+      <line x1="308" y1="18" x2="308" y2="150" stroke="#475569" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="310" y="28" fill="#475569" font-size="7">Forecast →</text>
+      <!-- Confidence band -->
+      <polygon points="308,75 340,65 372,55 404,46 436,38  436,68 404,76 372,84 340,90 308,96" fill="url(#cb)"/>
+      <!-- OLS trend line through history -->
+      <line x1="50" y1="135" x2="295" y2="88" stroke="#94a3b8" stroke-width="1.5"/>
+      <!-- Dashed amber forecast -->
+      <line x1="295" y1="88" x2="322" y2="80" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="5,3"/>
+      <line x1="322" y1="80" x2="354" y2="72" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="5,3"/>
+      <line x1="354" y1="72" x2="386" y2="63" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="5,3"/>
+      <line x1="386" y1="63" x2="418" y2="54" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="5,3"/>
+      <circle cx="322" cy="80" r="4" fill="#f59e0b"/>
+      <circle cx="354" cy="72" r="4" fill="#f59e0b"/>
+      <circle cx="386" cy="63" r="4" fill="#f59e0b"/>
+      <circle cx="418" cy="54" r="4" fill="#f59e0b"/>
+      <!-- Threshold line -->
+      <line x1="44" y1="55" x2="448" y2="55" stroke="#f87171" stroke-width="1.2" stroke-dasharray="6,3"/>
+      <text x="450" y="58" fill="#f87171" font-size="7">Threshold</text>
+      <!-- Legend -->
+      <rect x="48"  y="160" width="12" height="8" rx="2" fill="#3b82f688"/>
+      <text x="64"  y="168" fill="#93c5fd" font-size="7">Observed</text>
+      <line x1="112" y1="164" x2="128" y2="164" stroke="#94a3b8" stroke-width="1.5"/>
+      <text x="132" y="168" fill="#94a3b8" font-size="7">Trend line</text>
+      <line x1="182" y1="164" x2="198" y2="164" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <text x="202" y="168" fill="#fde68a" font-size="7">4-wk forecast</text>
+      <rect x="264" y="160" width="12" height="8" rx="2" fill="#f59e0b22" stroke="#f59e0b66" stroke-width="0.8"/>
+      <text x="280" y="168" fill="#fde68a" font-size="7">90% CI band</text>
+      <line x1="342" y1="164" x2="358" y2="164" stroke="#f87171" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <text x="362" y="168" fill="#fca5a5" font-size="7">Action threshold</text>
+    </svg>
+  </div>`,
+};
+
 const GROUPS = [
   {
     id: 'web',
@@ -461,6 +754,70 @@ const GROUPS = [
           },
         ],
       },
+      {
+        id:    'intel-velocity',
+        icon:  '⚡',
+        title: 'Spread Velocity Score',
+        intro: 'Measures how fast each pest is actively spreading field-to-field right now, week by week. Instead of asking "where has this pest been?", this tab asks "is it spreading faster or slower this week compared to last week?" — giving you an early warning of accelerating outbreaks and confirmation that containment is working.',
+        items: [
+          {
+            heading: 'What "velocity" means in plain terms',
+            body: 'Velocity is simply the change in the number of fields reporting a pest from one week to the next. If aphids were found on 3 fields last week and 5 fields this week, the velocity is +2 — the pest gained two new fields in a week. If it drops from 5 to 3, the velocity is −2 — two fields went quiet, which usually means treatment or seasonal die-off. If the number stays the same, velocity is 0 — the pest is contained at its current level.',
+          },
+          {
+            heading: 'KPI Cards',
+            body: '<strong>Pests Tracked</strong> — total pest species with at least one observation in the selected period. <strong>Actively Spreading</strong> — pests whose velocity this week is positive (more fields than last week); shown in red when greater than 0. <strong>Retreating</strong> — pests whose velocity is negative (fewer active fields than last week); shown in green as a good sign. <strong>Contained / Inactive</strong> — pests with zero velocity: either stable at a fixed number of fields, or with no observations at all in the most recent week.',
+          },
+          {
+            heading: 'Status column — Spreading',
+            body: '<span style="color:#f87171;font-weight:600;">Spreading</span> means the pest gained at least one new active field this week compared to last week. This is your highest-priority status — the pest is actively colonising new areas. Act quickly: check which fields are newly affected and inspect un-scouted neighbours.',
+          },
+          {
+            heading: 'Status column — Retreating',
+            body: '<span style="color:#4ade80;font-weight:600;">Retreating</span> means the pest lost active fields this week — fewer fields are reporting it than last week. This is generally positive: treatment may be working, or the pest population is declining naturally. Continue current management and monitor to confirm the trend continues.',
+          },
+          {
+            heading: 'Status column — Contained',
+            body: '<span style="color:#94a3b8;font-weight:600;">Contained</span> means the pest is present but the number of active fields has not changed this week. The pest is not spreading further, but it has not retreated either. Maintain current monitoring frequency to catch any change early.',
+          },
+          {
+            heading: 'Status column — Inactive',
+            body: '<span style="color:#475569;font-weight:600;">Inactive</span> means no fields reported this pest in the most recent week at all — the count is zero. Either the pest has been fully controlled, it is out of season, or scouts have not yet completed this week\'s visits. Check the scouting schedule before assuming the pest is gone.',
+          },
+          {
+            heading: 'Trend column — Rising / Stable / Falling',
+            body: '<strong>Rising</strong> means the overall direction across the full selected period is upward — more fields are being affected over time, even if this week\'s individual velocity dipped. <strong>Stable</strong> means no consistent directional movement. <strong>Falling</strong> means the overall trend is for fewer active fields over the period. Note: Status is about this week specifically; Trend is about the full period. A pest can be Spreading (this week) but Falling (overall).',
+          },
+          {
+            heading: 'Current Active column',
+            body: 'The number of distinct fields that recorded this pest in the most recent ISO week. This is not a cumulative count — it is a snapshot of which fields are <em>currently</em> affected right now.',
+          },
+          {
+            heading: 'Peak Active column',
+            body: 'The highest number of fields that simultaneously reported this pest in any single week within the selected period. Comparing Current Active to Peak Active tells you whether the pest is at its worst point or has been worse before — if Current equals Peak, the situation has never been more widespread.',
+          },
+          {
+            heading: 'Current Velocity column',
+            body: 'This week\'s change in active field count, shown with a sign: +3 means three new fields, −2 means two fields went quiet, 0 means no change. Positive values are coloured red, negative green, zero grey. This is the most actionable column — sort descending by this to see the fastest-spreading pests at the top.',
+          },
+          {
+            heading: 'Peak Velocity column',
+            body: 'The largest single-week field gain ever recorded for this pest in the selected period. A high peak velocity with a current velocity near zero may mean the pest had an explosive start but has since slowed. Useful context for understanding the pest\'s historical behaviour pattern.',
+          },
+          {
+            heading: 'Velocity sparkline',
+            body: 'The small bar chart in each row shows the week-by-week velocity over the full period. Bars above the centre line (red) mean the pest was gaining fields that week; bars below (green) mean it was losing fields. A sparkline that trends from left-high to right-low is a good sign of containment; one that is flat means the pest is holding steady; one spiking upward recently is a warning to act.',
+          },
+          {
+            heading: 'What to do when you see a red Spreading status',
+            body: '1. Click the row to expand the weekly history. 2. Identify which week the spread accelerated. 3. Cross-reference with the Spread Direction tab to see which compass direction the pest is moving. 4. Check the Neighbour Risk tab to see which un-scouted fields are closest to the current front. 5. Assign emergency inspections to those neighbour fields.',
+          },
+          {
+            heading: 'Data requirements',
+            body: 'Velocity requires at least two consecutive weeks of observation data to compute a change. A pest with only one week of data shows velocity 0 and status Contained by default. The selected date range determines the period analysed — a narrow range (e.g. 2 weeks) will show very limited velocity history.',
+          },
+        ],
+      },
     ],
   },
   {
@@ -533,109 +890,480 @@ const GROUPS = [
           },
         ],
       },
+      {
+        id:    'intel-breach',
+        icon:  '🚦',
+        title: 'Threshold Breach Probability',
+        intro: 'Calculates the statistical probability that the very next scouting session on each field will record a pest count above the configured action threshold. Unlike the Population Forecast which shows trends over weeks, this tab focuses on one question: is this field likely to breach its threshold at the next visit?',
+        items: [
+          {
+            heading: 'What is an action threshold?',
+            body: 'An action threshold is the pest count above which the economic cost of crop damage exceeds the cost of treatment. For example, if the threshold for aphids on a field is 50, any single observation recording 51 or more aphids means control action is warranted. Thresholds are configured per pest in the Pest Catalogue.',
+          },
+          {
+            heading: 'KPI Cards',
+            body: '<strong>Combinations Assessed</strong> — the total number of pest × field pairs analysed. <strong>High Risk</strong> — pairs where breach probability is 60% or higher; shown in red. <strong>Medium Risk</strong> — pairs at 30–59%; shown in amber. <strong>Low Risk</strong> — pairs below 30%; shown in green.',
+          },
+          {
+            heading: 'How breach probability is calculated',
+            body: 'The system fits a linear trend through the weekly observation history for each pest × field pair (the same regression used in Population Forecast). It then projects the count for the next week and computes the probability that the true count will exceed the threshold, taking into account how much the historical data scattered around the trend line. A steep rising trend combined with counts already close to the threshold produces a high probability; a flat or falling trend far below the threshold produces a low probability.',
+          },
+          {
+            heading: 'Breach Probability column',
+            body: 'Shown as a percentage. <span style="color:#c75146;font-weight:600;">60%+</span> = High risk — treat this field as a priority for the next scouting run. <span style="color:#e5a52f;font-weight:600;">30–59%</span> = Medium risk — schedule a visit and monitor closely. <span style="color:#2b6e4f;font-weight:600;">Below 30%</span> = Low risk — maintain normal frequency. The column is sorted highest-first by default.',
+          },
+          {
+            heading: 'Risk column',
+            body: 'A quick colour-coded label: <span style="color:#c75146;font-weight:700;">High</span> / <span style="color:#e5a52f;font-weight:700;">Medium</span> / <span style="color:#2b6e4f;font-weight:700;">Low</span>. Click the Risk column header to group rows by risk level.',
+          },
+          {
+            heading: 'Current Level column',
+            body: 'The total pest count recorded in the most recent scouting week for this pest on this field. This is the last known real measurement — everything to the right of this is model-derived.',
+          },
+          {
+            heading: 'Projected Next column',
+            body: 'The model\'s best estimate of next week\'s count, based on the current trend. If this already exceeds the threshold, the pest has likely already breached — check when the last session was completed and whether a visit is overdue.',
+          },
+          {
+            heading: 'Trend column',
+            body: '<span style="color:#c75146;font-weight:700;">↑ Rising</span>, <span style="color:#94a3b8;font-weight:700;">→ Stable</span>, or <span style="color:#4ade80;font-weight:700;">↓ Falling</span> — the direction of the underlying trend line. A falling trend can still produce a high breach probability if the current level is already very close to the threshold.',
+          },
+          {
+            heading: 'Days-to-Breach Estimate column',
+            body: 'When the trend is rising and the current projected count is still below the threshold, this shows how many days it would take (at the current rate of growth) for the projected count to reach the threshold. A value of <strong>−1</strong> means the trend is falling — no breach is expected at the current trajectory. A value of <strong>0</strong> means the count is already at or above the threshold. Use this to schedule field visits before the breach date.',
+          },
+          {
+            heading: 'Weekly History sparkline',
+            body: 'Each row has a small bar chart showing the week-by-week history. A flat or declining sparkline with a high breach probability means the current level is persistently close to the threshold even without growing — no upward push is needed for the threshold to be crossed.',
+          },
+          {
+            heading: 'What to do when a field is High Risk',
+            body: '1. Look at the Days-to-Breach estimate — if it is less than 7, an urgent visit should be scheduled immediately. 2. Check the Population Forecast tab for this field to see the 4-week trajectory and confidence interval. 3. If the Trend is Rising, consider whether any recent scouting observations were taken during unusually favourable conditions for the pest (check the Weather Risk tab). 4. Consult your agronomist before initiating a treatment based solely on the model — always verify with a physical inspection.',
+          },
+          {
+            heading: 'What if there is no threshold configured?',
+            body: 'If a pest has no action threshold set in the Pest Catalogue, the system uses the rate of population change relative to the average count as a proxy risk score. The result is less precise. Set a threshold in the Pest Catalogue to get accurate probabilities for all pests.',
+          },
+        ],
+      },
+      {
+        id:    'intel-scouting',
+        icon:  '📅',
+        title: 'Optimal Next Scouting Date',
+        intro: 'Replaces the fixed weekly visit schedule with a data-driven recommendation for each field — telling you exactly how many days you can safely wait before the next inspection, based on how fast or slowly pest populations are growing on that field right now.',
+        items: [
+          {
+            heading: 'Why a fixed weekly schedule is not always right',
+            body: 'A field with a fast-doubling pest population needs a visit every 3–4 days. A field where every pest is in decline can safely wait 10 days. Visiting every field every 7 days wastes scout time on stable fields and under-resources fields that are deteriorating. This tab tells you where to send your scouts first.',
+          },
+          {
+            heading: 'KPI Cards',
+            body: '<strong>Urgent</strong> — fields where the recommended next visit is 3 days away or less (or already overdue); shown in red. <strong>Soon</strong> — fields with a recommended visit in 4–7 days; shown in amber. <strong>On Schedule</strong> — fields comfortable beyond 7 days; shown in green.',
+          },
+          {
+            heading: 'How the recommended interval is calculated',
+            body: 'The system takes the first and last weekly observation totals for each field (combining all pest species). The growth rate is the proportional change from first to last: (last week total − first week total) ÷ first week total. A field that went from 10 observations per week to 20 has a growth rate of +100% (doubled). A field that went from 20 to 10 has a growth rate of −50% (halved). The recommended interval is then: 3 days for ≥100% growth, 4 days for ≥50%, 5 days for ≥20%, 7 days (standard) for stable, 10 days for ≥20% decline.',
+          },
+          {
+            heading: 'Urgency column',
+            body: '<span style="color:#c75146;font-weight:700;">Critical</span> — population has doubled or more; visit within 3 days. <span style="color:#e5a52f;font-weight:700;">High</span> — rapid growth (50–99% increase); visit within 4 days. <span style="color:#f59e0b;font-weight:700;">Medium</span> — moderate growth (20–49%); 5-day interval. <span style="color:#4ade80;font-weight:700;">Low</span> — stable or declining; standard 7 or 10-day interval.',
+          },
+          {
+            heading: 'Growth Rate column',
+            body: 'Shown as a percentage, e.g. +47% or −23%. Positive values (red) mean pest populations are growing on this field. Negative values (green) mean they are declining. A value of +0% means either the population is flat, or there was only one week of data available (no comparison possible).',
+          },
+          {
+            heading: 'Last Session column',
+            body: 'The date of the most recent completed scouting session on this field. This is the starting point for the next-visit calculation.',
+          },
+          {
+            heading: 'Days Since Last Session',
+            body: 'How many calendar days have passed since the last visit. Fields where this number already exceeds the recommended interval are overdue.',
+          },
+          {
+            heading: 'Next Recommended Date column',
+            body: 'The calendar date by which the next visit should occur, calculated as Last Session + Recommended Interval. Dates in the past are shown in red and flagged as overdue.',
+          },
+          {
+            heading: 'Days Until Next column',
+            body: 'Days remaining until the next recommended visit. Negative numbers mean the field is overdue. Sort ascending by this column to see the most urgent fields at the top.',
+          },
+          {
+            heading: 'Is Overdue flag',
+            body: 'A red ✗ mark means the recommended date has already passed and the field has not been visited. These fields should be assigned a session immediately, regardless of their urgency level, because the growth rate data is now stale.',
+          },
+          {
+            heading: 'Rationale column',
+            body: 'A plain-English explanation of why this interval was recommended — e.g. "Population has doubled or more — visit within 3 days." Use this when explaining prioritisation decisions to scouts or farm managers who are not familiar with the scoring system.',
+          },
+          {
+            heading: 'Fields not appearing in the list',
+            body: 'A field only appears if it has at least one completed scouting session within the selected date range. Fields that have never been scouted, or whose last session predates the filter window, do not appear here. To get recommendations for all fields, widen the date range or schedule a baseline visit first.',
+          },
+          {
+            heading: 'Using this tab for daily planning',
+            body: 'Each morning, open this tab sorted by Days Until Next (ascending). Assign the scout team to the fields at the top of the list — especially any marked Overdue or Critical. Fields at the bottom of the list can wait. After sessions are completed the list will update automatically the next time it is loaded.',
+          },
+        ],
+      },
+      {
+        id:    'intel-seasonal',
+        icon:  '🌤',
+        title: 'Seasonal Pressure Forecast',
+        intro: 'Uses 18 months of historical observation data to build a monthly pressure profile for each pest species, then forecasts which pests are most likely to cause problems in each of the next six calendar months. Use this to plan scouting resources, pesticide procurement, and monitoring equipment before the season begins.',
+        items: [
+          {
+            heading: 'Why seasonal forecasting matters',
+            body: 'Most pest species follow predictable seasonal cycles — aphid populations peak in early summer, certain moths emerge in autumn, soil insects are active in spring. By knowing which pest is likely to be worst in which month, you can pre-position traps, schedule additional scouting visits, and order treatment products before demand peaks, rather than scrambling to respond mid-season.',
+          },
+          {
+            heading: 'How the forecast is built',
+            body: 'The system adds up all observation counts per pest per calendar month across the last 18 months of data. For months that appear in both years (e.g. March 2024 and March 2025), both years\' counts are combined. The expected count for each upcoming month is calculated as approximately half of this combined total — a rough per-year average. The month with the highest historical total is marked as the Peak Month for that pest.',
+          },
+          {
+            heading: '6-Month Seasonal Calendar',
+            body: 'The top section shows the next six calendar months in a grid. Each month shows the top 3 pest species expected to be most active, along with their historical observation count for that month. Pests are ranked by historical pressure so the most important species appear first. A <span style="background:rgba(199,81,70,0.12);color:#c75146;font-weight:600;padding:2px 8px;border-radius:4px;font-size:0.8rem;">PEAK</span> badge marks the species whose worst-ever historical month coincides with this upcoming month — these deserve extra attention.',
+          },
+          {
+            heading: 'A month showing "No historical data"',
+            body: 'When a calendar month has never had any observations recorded (e.g. the farm only started scouting 6 months ago, or a pest was only introduced recently), no pests will appear for that month. This does not mean no pests will be present — it means there is no history to base a prediction on. Treat these months as unknown and scout at a standard frequency.',
+          },
+          {
+            heading: 'Peak Pests panel',
+            body: 'The lower section lists the top 10 pest species ranked by their all-time single-month peak. Each entry shows the pest name, its peak calendar month (e.g. "October"), the peak total count, and a small monthly profile bar chart showing pressure across all 12 months of the year. Use this to understand each pest\'s seasonal shape — some are sharply seasonal (one big spike), others are broadly present year-round.',
+          },
+          {
+            heading: 'Monthly Profile bar chart',
+            body: 'Each pest in the Peak Pests panel has a 12-bar chart, one bar per calendar month (Jan–Dec). The tallest bar is the peak month. A pest with a single tall bar is highly seasonal; a pest with bars of similar height across all months is a year-round pressure. Seasonal pests are easier to pre-empt with targeted monitoring windows; year-round pests require consistent ongoing attention.',
+          },
+          {
+            heading: 'Limitations and how to improve accuracy',
+            body: 'Predictions are only as good as the data behind them. A farm that has been running for only 6 months will have incomplete seasonal profiles. The more historical scouting data you have — especially covering multiple years — the more reliable the seasonal forecasts become. Unusual weather years can distort the averages. Always cross-check seasonal forecasts with local agricultural extension advice and your own field experience.',
+          },
+          {
+            heading: 'Practical uses for this tab',
+            body: 'At the start of each season: (1) Open this tab to see which pests peak in the coming 3 months. (2) Ensure traps for those species are deployed and functioning. (3) Increase scouting frequency on fields historically associated with peak pests. (4) Order treatment products or biocontrol agents before peak demand. (5) Brief scouts on which species to look for, including identification features.',
+          },
+        ],
+      },
+      {
+        id:    'intel-weather',
+        icon:  '🌡',
+        title: 'Weather-Correlated Risk Index',
+        intro: 'Uses the temperature recorded during scouting sessions to measure how strongly each pest\'s observed counts correlate with ambient temperature — and then uses the most recently recorded temperatures to estimate current pest pressure. No external weather service is required; all data comes from temperatures your scouts already log during sessions.',
+        items: [
+          {
+            heading: 'Why temperature matters for pest management',
+            body: 'Pest development rate, reproduction speed, and population size are all strongly influenced by temperature. Many insects grow faster in warm conditions and their populations can double rapidly during a heat wave. Other pests (such as some aphid species) actually prefer cooler temperatures and spike during cool wet periods. Understanding which pests on your farm are temperature-sensitive allows you to raise the alert level automatically when conditions favour an outbreak.',
+          },
+          {
+            heading: 'KPI Cards',
+            body: '<strong>Pests Assessed</strong> — the number of pest species with enough temperature data to compute a correlation (minimum 3 observations with temperature recorded). <strong>High Risk at Current Temp</strong> — pests whose projected count at today\'s temperature is 80% or more of their action threshold; shown in red. <strong>Total Data Points</strong> — the total number of temperature-linked observations used in the analysis. <strong>Current Temp Average</strong> — the average temperature recorded across the 10 most recent scouting sessions, used as the proxy for current conditions.',
+          },
+          {
+            heading: 'Temperature Influence column',
+            body: '<span style="color:#c75146;font-weight:600;">Positive</span> means warmer temperatures are associated with higher pest counts — this is a warm-season pest. Expect pressure to rise during summer heat waves. <span style="color:#3b7db8;font-weight:600;">Negative</span> means cooler temperatures are associated with higher counts — this is a cool-season pest. Monitor more closely during cold or wet periods. <span style="color:#94a3b8;font-weight:600;">None</span> means no clear linear relationship was found between temperature and count — the pest is driven by other factors (host plant stage, rainfall, natural enemies). A "None" result does not mean the pest is harmless; it just means temperature is not a reliable predictor for it.',
+          },
+          {
+            heading: 'Correlation (r) column',
+            body: 'A number between −1.0 and +1.0. Values close to +1.0 mean strong positive correlation (much warmer = many more pests). Values close to −1.0 mean strong negative correlation (colder = many more pests). Values close to 0 mean temperature has little effect. Values between −0.2 and +0.2 are classified as "None". As a rule of thumb: r > 0.5 or r < −0.5 indicates a practically meaningful relationship.',
+          },
+          {
+            heading: 'Slope per °C column',
+            body: 'How many additional pests the model expects per 1°C increase in temperature. For example, a slope of +4.2 means every extra degree Celsius is associated with 4 more pests per observation. A slope of −3.1 means every extra degree Celsius is associated with 3 fewer pests (a cool-season species). Only relevant when the Temperature Influence is Positive or Negative.',
+          },
+          {
+            heading: 'Optimal Temperature Range column',
+            body: 'The temperature range (in °C) at which this pest\'s counts were historically highest, derived from the 5 highest-count observations. Use this to understand under what conditions the pest thrives most, and to anticipate spikes when forecasts predict those temperatures.',
+          },
+          {
+            heading: 'Current Temp Average column',
+            body: 'The average temperature from the 10 most recent scouting sessions across your farm. This is used as the "current conditions" input to the model. If your scouts have not logged temperatures recently, this figure will be stale and the risk projections will be less accurate.',
+          },
+          {
+            heading: 'Projected Count column',
+            body: 'The model\'s estimate of how many pests would be observed at today\'s average temperature, based on the historical temperature-count relationship. This is what you might expect to find on your next scouting visit if conditions remain similar.',
+          },
+          {
+            heading: 'Risk Index column',
+            body: 'The projected count divided by the action threshold, capped at 2.0. A risk index of 1.0 means the model is projecting exactly the threshold. Values above 1.0 mean the projected count exceeds the threshold — treat this field and pest combination as high priority. Values below 0.4 are Low risk; 0.4–0.8 are Medium; 0.8 and above are High.',
+          },
+          {
+            heading: 'Temperature Profile section',
+            body: 'Each pest has a temperature profile table showing 5°C temperature bands and the average observed count in each band. For example, "25–30°C: avg count 42, 87 observations" means that when sessions were conducted between 25 and 30°C, an average of 42 pests were recorded, and 87 such sessions occurred. This gives you a concrete reference table: if tomorrow will be 28°C, what count should you expect?',
+          },
+          {
+            heading: 'When Temperature Influence shows None for every pest',
+            body: 'This can happen when: (1) Temperature data has not been logged consistently — if scouts don\'t enter the temperature, there is nothing to correlate. (2) The temperature range in your data is too narrow — if all sessions occurred in a similar temperature band, no relationship can be detected. (3) Pest counts on your farm are genuinely driven by other factors. Check that scouts are recording temperature in the session details, and consider widening the date range to capture more seasonal temperature variation.',
+          },
+          {
+            heading: 'How to record temperature',
+            body: 'Temperature is logged per scouting session, not per observation. When completing a session in the web app or the mobile app, there is a Temperature field (in °C) in the session details. Scouts should record the ambient air temperature at the time of the visit. Consistent temperature recording is what makes this tab useful.',
+          },
+        ],
+      },
+      {
+        id:    'intel-saturation',
+        icon:  '🕸',
+        title: 'Trap Saturation Prediction',
+        intro: 'Predicts when each monitoring trap will reach saturation — the point at which so many insects are being caught that the trap\'s physical capacity is being exceeded and counts start underreporting the true population. A saturated trap gives you false "low" readings and creates a dangerous blind spot in your monitoring. This tab helps you service traps before that happens.',
+        items: [
+          {
+            heading: 'What is trap saturation?',
+            body: 'A pheromone or sticky trap has a finite capacity. When the number of insects caught in a week approaches or exceeds that capacity, the trap can no longer catch additional insects efficiently — it is "full". A scout checking the trap then counts a lower number than actually arrived, underestimating the true infestation level. Saturation is most common during peak flight periods for highly mobile insects like moths and aphids.',
+          },
+          {
+            heading: 'How the saturation threshold is set',
+            body: 'Rather than using a fixed number (which would vary by trap model and pest species), the system uses a dynamic threshold: 20% above the highest weekly catch ever recorded for that trap, with a minimum floor of 500 catches per week. This means the alert is relative to each trap\'s own history — a trap that has only ever caught 20 insects per week won\'t trigger a saturation warning at 25, but one that regularly catches 400 will be watched closely as it approaches 480.',
+          },
+          {
+            heading: 'KPI Cards',
+            body: '<strong>Total Traps</strong> — the number of active, non-deleted traps being monitored. <strong>Critical</strong> — traps projected to reach saturation within 4 weeks; shown in red. <strong>High</strong> — traps projected within 5–12 weeks; shown in amber. <strong>Avg Catch Rate</strong> — the average projected weekly catch across all traps right now.',
+          },
+          {
+            heading: 'Saturation Risk column',
+            body: '<span style="color:#c75146;font-weight:700;">Critical</span> — projected to saturate within 4 weeks. Service immediately or it will start underreporting. <span style="color:#e5a52f;font-weight:700;">High</span> — projected to saturate in 5–12 weeks. Plan a maintenance visit this season. <span style="color:#f59e0b;font-weight:700;">Medium</span> — 13–26 weeks away. Monitor and schedule maintenance in the next planning cycle. <span style="color:#4ade80;font-weight:700;">Low</span> — more than 26 weeks away, or the catch rate is stable or falling. <span style="color:#94a3b8;font-weight:700;">Unknown</span> — no catch data in the selected period; verify the trap is being checked.',
+          },
+          {
+            heading: 'Current Rate column',
+            body: 'The model\'s fitted catch rate for the most recent week, based on a trend line through all weekly data. This may differ slightly from the raw count recorded in the last session because it smooths out week-to-week variation.',
+          },
+          {
+            heading: 'Peak Rate column',
+            body: 'The highest actual weekly catch ever recorded for this trap in the selected period. This is the raw data high point, not the model projection.',
+          },
+          {
+            heading: 'Weeks to Peak column',
+            body: 'How many weeks it will take for the current catch rate trajectory to reach the saturation threshold, at the current rate of growth. This is only computed when the catch rate is meaningfully increasing — traps with a flat or falling catch rate show a blank here because they are not trending toward saturation.',
+          },
+          {
+            heading: 'Trend column',
+            body: '<span style="color:#c75146;font-weight:700;">Rising</span> — catch rate is increasing week on week. This is the dangerous direction — a rising trap is heading toward saturation. <span style="color:#94a3b8;font-weight:700;">Stable</span> — no clear trend. <span style="color:#4ade80;font-weight:700;">Falling</span> — catch rate is declining; either the pest population is dropping or the trap has already begun underreporting due to saturation.',
+          },
+          {
+            heading: 'Saturation Threshold column',
+            body: 'The computed saturation ceiling for this trap — 120% of its highest recorded weekly catch, or 500, whichever is higher. When the catch rate crosses this value, the trap should be considered at capacity.',
+          },
+          {
+            heading: 'Weekly History sparkline',
+            body: 'The bar chart shows week-by-week catch totals. A steeply rising sparkline heading toward the right edge is the critical warning sign. A sparkline that suddenly drops from a high plateau may indicate the trap has already saturated and is now underreporting.',
+          },
+          {
+            heading: 'What to do when a trap is Critical',
+            body: '1. Visit the trap immediately to empty, clean, or replace the sticky insert. 2. After servicing, record a new catch count — this resets the baseline. 3. If the catch count immediately before servicing was unusually low despite a rising trend, assume some underreporting occurred and treat that field with extra caution. 4. If catches remain very high after servicing, consider deploying an additional trap at a second position in the field to spread the load.',
+          },
+          {
+            heading: 'Trap showing Unknown / no data',
+            body: 'An Unknown risk means the trap had no catch observations recorded in the selected period. This could mean: (1) scouts did not link their observations to this trap — check the observation entry in Session Detail and ensure the Trap field is selected. (2) The trap has not been visited. (3) The trap is catching nothing — which itself may be worth investigating if catches were high previously.',
+          },
+          {
+            heading: 'Data requirements',
+            body: 'At least 2 weeks of catch data are needed to compute a trend and project saturation. Traps with only a single week of data show current rate but no Weeks to Peak or meaningful risk classification.',
+          },
+        ],
+      },
     ],
   },
 ];
 
+// ── FAQ content shown on the last section of every group ─────────────────────
+const FAQ = {
+  web: [
+    { q: 'Why do I see "No data for selected period" on Analytics?', a: 'Change the date range filter at the top of the Analytics page. If the range is too narrow there may be no sessions or observations recorded in that window.' },
+    { q: 'How do I change the action threshold for a pest?', a: 'Go to <strong>Pest Catalogue</strong>, find the pest, click ✏️, and update the Action Threshold value.' },
+    { q: 'A trap is showing in the wrong location on the map.', a: 'Go to <strong>Traps</strong>, edit the trap, and correct the GPS Latitude / Longitude values. The map updates immediately.' },
+    { q: 'The dashboard activity feed is empty.', a: 'Observations are only shown once a session has been started and pest observations logged. Plan and start a session first.' },
+  ],
+  mobile: [
+    { q: 'My mobile observations are not appearing on the web.', a: 'Check that the mobile app has synced — pull to refresh on the home screen. Ensure you have an active internet connection. If the issue persists, sign out and back in to force a full sync.' },
+    { q: 'The app says "Tenant not found" when I log in.', a: 'Contact your administrator to ensure your account has been assigned to an organisation.' },
+    { q: 'GPS coordinates are not being recorded for my observations.', a: 'Ensure you have granted the app Location Permission. On Android, go to Settings → Apps → Pestlook → Permissions → Location and set it to "Always" or "While in use". Enable High Accuracy mode in the app settings for best results.' },
+  ],
+  intelligence: [
+    { q: 'A pest I know is spreading does not appear on the Spread Direction map.', a: 'At least two weeks of GPS-tagged observations are needed to compute a vector. Check that farm GPS coordinates are set on the Farms page — these are used as a fallback when individual observations lack GPS tags.' },
+    { q: 'The Neighbour Risk panel shows 0 at-risk fields even though I have a breach.', a: 'Verify that the breaching field\'s farm has GPS coordinates set. Farms without coordinates cannot be matched against neighbours.' },
+    { q: 'The Cross-Farm chart shows no outbreak weeks.', a: 'Try widening the date range to at least 12 months, or lower the Min Farms threshold to 2. All observations must come from at least two farms for cross-farm correlation to work.' },
+  ],
+  predictive: [
+    { q: 'The Population Forecast shows a wide confidence band.', a: 'A wide band means the historical data is noisy — pest counts vary significantly week to week. More consistent scouting data (same fields, same intervals) will narrow the band over time.' },
+    { q: 'A trap shows "Unknown" risk on the Trap Saturation page.', a: 'The trap had no catch observations in the selected period. Verify scouts are linking observations to the specific trap in Session Detail, and that the trap has been checked at least twice.' },
+    { q: 'The scouting interval recommendation seems too short.', a: 'The recommended interval is based on the growth rate of pest populations on that field. A very rapid growth rate (≥100%) triggers a 3-day interval. If counts were unusually high in one week due to a data entry error, correct the observation and the interval will recalculate.' },
+  ],
+};
+
 export function renderHelp(container) {
+  let activeGroup = GROUPS[0].id;
+  let activeSection = GROUPS[0].sections[0].id;
 
-  // ── Build TOC ──────────────────────────────────────────────────────────────
-  let tocHtml = '';
-  for (const group of GROUPS) {
-    tocHtml += `
-      <div style="margin-bottom:4px;">
-        <button data-scroll="help-${group.id}" style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:8px;color:var(--text);font-size:0.85rem;font-weight:700;transition:background 0.15s;background:none;border:none;cursor:pointer;width:100%;text-align:left;" onmouseover="this.style.background='var(--hover)'" onmouseout="this.style.background=''">
-          <span style="font-size:1rem;">${group.icon}</span> ${escapeHtml(group.title)}
-        </button>
-        <div style="padding-left:10px;display:flex;flex-direction:column;gap:1px;">
-          ${group.sections.map(s => `
-            <button data-scroll="help-${s.id}" style="display:flex;align-items:center;gap:8px;padding:5px 12px;border-radius:8px;color:var(--text-dim);font-size:0.8rem;transition:background 0.15s;background:none;border:none;cursor:pointer;width:100%;text-align:left;" onmouseover="this.style.background='var(--hover)'" onmouseout="this.style.background=''">
-              <span style="font-size:0.9rem;">${s.icon}</span> ${escapeHtml(s.title)}
-            </button>`).join('')}
-        </div>
-      </div>`;
-  }
+  function render() {
+    const group   = GROUPS.find(g => g.id === activeGroup) || GROUPS[0];
+    const section = group.sections.find(s => s.id === activeSection) || group.sections[0];
 
-  // ── Build content ──────────────────────────────────────────────────────────
-  let contentHtml = '';
-  for (const group of GROUPS) {
-    // Group heading
-    contentHtml += `
-      <div id="help-${group.id}" style="margin-bottom:32px;scroll-margin-top:16px;">
-        <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;background:var(--surface2,#f4f7f4);border-radius:10px;margin-bottom:20px;">
-          <span style="font-size:2rem;">${group.icon}</span>
-          <div>
-            <div style="font-family:'Fraunces',serif;font-size:1.35rem;font-weight:700;color:var(--text);letter-spacing:-0.01em;">${escapeHtml(group.title)}</div>
-            <div style="font-size:0.83rem;color:var(--text-dim);margin-top:2px;">${group.intro}</div>
-          </div>
-        </div>`;
+    // ── Tab bar ──────────────────────────────────────────────────────────────
+    const tabsHtml = GROUPS.map(g => {
+      const isActive = g.id === activeGroup;
+      return `
+        <button data-tab="${g.id}" style="
+          display:inline-flex;align-items:center;gap:7px;
+          padding:8px 18px;border-radius:8px;font-size:0.85rem;font-weight:${isActive ? '700' : '500'};
+          border:1.5px solid ${isActive ? 'var(--accent,#4ade80)' : 'var(--border)'};
+          background:${isActive ? 'var(--accent-dim,rgba(74,222,128,0.12))' : 'none'};
+          color:${isActive ? 'var(--accent,#4ade80)' : 'var(--text-dim)'};
+          cursor:pointer;transition:all 0.15s;white-space:nowrap;">
+          <span style="font-size:1rem;">${g.icon}</span>${escapeHtml(g.title)}
+        </button>`;
+    }).join('');
 
-    // Sections within the group
-    for (const s of group.sections) {
-      const items = s.items.map(it => `
-        <div style="border-left:3px solid var(--border);padding:10px 0 10px 18px;margin-bottom:2px;">
-          <div style="font-weight:600;color:var(--text);font-size:0.9rem;margin-bottom:4px;">${escapeHtml(it.heading)}</div>
-          <div style="color:var(--text-dim);font-size:0.85rem;line-height:1.65;">${it.body}</div>
-        </div>`).join('');
+    // ── Section sub-nav ──────────────────────────────────────────────────────
+    const subNavHtml = group.sections.map(s => {
+      const isActive = s.id === activeSection;
+      return `
+        <button data-section="${s.id}" style="
+          display:flex;align-items:center;gap:8px;width:100%;text-align:left;
+          padding:7px 12px;border-radius:7px;font-size:0.8rem;
+          font-weight:${isActive ? '700' : '400'};
+          background:${isActive ? 'var(--accent-dim,rgba(74,222,128,0.1))' : 'none'};
+          color:${isActive ? 'var(--text)' : 'var(--text-dim)'};
+          border:none;cursor:pointer;transition:background 0.12s;">
+          <span style="font-size:0.9rem;">${s.icon}</span>${escapeHtml(s.title)}
+        </button>`;
+    }).join('');
 
-      contentHtml += `
-        <div id="help-${s.id}" style="margin-bottom:32px;scroll-margin-top:16px;padding-left:4px;">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--border);">
-            <span style="font-size:1.3rem;">${s.icon}</span>
-            <div style="font-family:'Fraunces',serif;font-size:1.1rem;font-weight:700;color:var(--text);letter-spacing:-0.01em;">${escapeHtml(s.title)}</div>
-          </div>
-          <p style="color:var(--text-dim);font-size:0.88rem;line-height:1.65;margin:0 0 14px;">${s.intro}</p>
-          <div style="display:flex;flex-direction:column;gap:6px;">${items}</div>
-        </div>`;
-    }
+    // ── Section content ──────────────────────────────────────────────────────
+    const diagram  = SVG[section.id] || '';
+    const itemsHtml = section.items.map(it => `
+      <div style="border-left:3px solid var(--border);padding:10px 0 10px 18px;margin-bottom:2px;">
+        <div style="font-weight:600;color:var(--text);font-size:0.9rem;margin-bottom:4px;">${escapeHtml(it.heading)}</div>
+        <div style="color:var(--text-dim);font-size:0.85rem;line-height:1.65;">${it.body}</div>
+      </div>`).join('');
 
-    contentHtml += `</div>`; // close group div
-  }
+    // FAQ — shown below items on the last section of each group
+    const isLastSection = group.sections[group.sections.length - 1].id === section.id;
+    const groupFaq      = FAQ[group.id] || [];
+    const faqHtml = (isLastSection && groupFaq.length) ? `
+      <div style="margin-top:28px;border-top:1px solid var(--border);padding-top:20px;">
+        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-dim);margin-bottom:14px;">Frequently Asked Questions</div>
+        ${groupFaq.map(faq => `
+          <div style="margin-bottom:14px;">
+            <div style="font-weight:600;color:var(--text);font-size:0.88rem;margin-bottom:3px;">Q: ${escapeHtml(faq.q)}</div>
+            <div style="color:var(--text-dim);font-size:0.85rem;line-height:1.6;">${faq.a}</div>
+          </div>`).join('')}
+      </div>` : '';
 
-  container.innerHTML = `
-    <div style="margin-bottom:24px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
-      <div style="font-family:'Fraunces',serif;font-size:1.6rem;font-weight:600;color:var(--text);letter-spacing:-0.02em;">Help & User Guide 📖</div>
-      <div style="font-size:0.85rem;color:var(--text-dim);">Everything you need to know about Pestlook</div>
-    </div>
-
-    <div style="display:grid;grid-template-columns:210px 1fr;gap:24px;align-items:start;">
-
-      <!-- Sticky TOC -->
-      <div class="card card-p" style="position:sticky;top:16px;max-height:calc(100vh - 48px);overflow-y:auto;">
-        <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-dim);margin-bottom:8px;">Contents</div>
-        <nav style="display:flex;flex-direction:column;gap:2px;">
-          ${tocHtml}
-        </nav>
+    // ── Render ───────────────────────────────────────────────────────────────
+    container.innerHTML = `
+      <div style="margin-bottom:20px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
+        <div style="font-family:'Fraunces',serif;font-size:1.6rem;font-weight:600;color:var(--text);letter-spacing:-0.02em;">Help & User Guide 📖</div>
+        <div style="font-size:0.85rem;color:var(--text-dim);">Everything you need to know about Pestlook</div>
       </div>
 
-      <!-- Content -->
-      <div class="card card-p" style="min-width:0;">
-        ${contentHtml}
-
-        <div style="border-top:1px solid var(--border);padding-top:20px;margin-top:8px;">
-          <div style="font-size:0.78rem;color:var(--text-dim);line-height:1.8;">
-            <strong style="color:var(--text);">Q: Why do I see "No data for selected period" on Analytics?</strong><br>
-            Change the date range filter at the top of the Analytics page. If the range is too narrow there may be no sessions or observations recorded in that window.<br><br>
-            <strong style="color:var(--text);">Q: How do I change the action threshold for a pest?</strong><br>
-            Go to <strong>Pest Catalogue</strong>, find the pest, click ✏️, and update the Action Threshold value.<br><br>
-            <strong style="color:var(--text);">Q: A trap is on the map in the wrong location.</strong><br>
-            Go to <strong>Traps</strong>, edit the trap, and correct the GPS Latitude / Longitude values. The map updates immediately.<br><br>
-            <strong style="color:var(--text);">Q: The dashboard activity feed is empty.</strong><br>
-            Observations are only shown once a session has been started and observations logged. Plan and start a session first.<br><br>
-            <strong style="color:var(--text);">Q: My mobile observations are not appearing on the web.</strong><br>
-            Check that the mobile app has synced — pull to refresh on the home screen. Ensure you have an active internet connection. If the issue persists, sign out and back in to force a full sync.
-          </div>
-        </div>
+      <!-- Tab bar -->
+      <div style="display:flex;gap:8px;margin-bottom:22px;flex-wrap:wrap;">
+        ${tabsHtml}
       </div>
 
-    </div>
-  `;
+      <!-- Two-column: sub-nav + content -->
+      <div style="display:grid;grid-template-columns:195px 1fr;gap:20px;align-items:start;">
 
-  // Wire up all scroll buttons — no hash changes, no router interference
-  container.querySelectorAll('[data-scroll]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const target = document.getElementById(btn.dataset.scroll);
-      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        <!-- Sticky sub-nav -->
+        <div class="card card-p" style="position:sticky;top:16px;max-height:calc(100vh - 80px);overflow-y:auto;">
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 12px 12px;border-bottom:1px solid var(--border);margin-bottom:6px;">
+            <span style="font-size:1.3rem;">${group.icon}</span>
+            <div>
+              <div style="font-size:0.82rem;font-weight:700;color:var(--text);">${escapeHtml(group.title)}</div>
+              <div style="font-size:0.72rem;color:var(--text-dim);margin-top:1px;">${group.sections.length} section${group.sections.length > 1 ? 's' : ''}</div>
+            </div>
+          </div>
+          <nav style="display:flex;flex-direction:column;gap:1px;">
+            ${subNavHtml}
+          </nav>
+        </div>
+
+        <!-- Main content -->
+        <div class="card card-p" style="min-width:0;">
+          <!-- Section heading -->
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-bottom:10px;border-bottom:2px solid var(--border);">
+            <span style="font-size:1.4rem;">${section.icon}</span>
+            <div>
+              <div style="font-family:'Fraunces',serif;font-size:1.1rem;font-weight:700;color:var(--text);letter-spacing:-0.01em;">${escapeHtml(section.title)}</div>
+              <div style="font-size:0.8rem;color:var(--text-dim);margin-top:2px;">${escapeHtml(group.title)}</div>
+            </div>
+          </div>
+
+          <p style="color:var(--text-dim);font-size:0.88rem;line-height:1.65;margin:0 0 14px;">${section.intro}</p>
+
+          ${diagram}
+
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            ${itemsHtml}
+          </div>
+
+          ${faqHtml}
+
+          <!-- Prev / Next navigation -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:28px;padding-top:16px;border-top:1px solid var(--border);">
+            ${buildPrevNext(group, section)}
+          </div>
+        </div>
+
+      </div>
+    `;
+
+    // Wire tabs
+    container.querySelectorAll('[data-tab]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activeGroup   = btn.dataset.tab;
+        activeSection = GROUPS.find(g => g.id === activeGroup).sections[0].id;
+        render();
+        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
     });
-  });
+
+    // Wire section nav
+    container.querySelectorAll('[data-section]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activeSection = btn.dataset.section;
+        render();
+        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+
+    // Wire prev/next
+    container.querySelectorAll('[data-nav-prev],[data-nav-next]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.navPrev || btn.dataset.navNext;
+        const [gid, sid] = target.split('|');
+        activeGroup   = gid;
+        activeSection = sid;
+        render();
+        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  }
+
+  // ── Prev/Next builder ─────────────────────────────────────────────────────
+  function buildPrevNext(group, section) {
+    // Flatten all sections across all groups
+    const flat = [];
+    for (const g of GROUPS) {
+      for (const s of g.sections) flat.push({ gid: g.id, sid: s.id, icon: s.icon, title: s.title });
+    }
+    const idx  = flat.findIndex(x => x.gid === group.id && x.sid === section.id);
+    const prev = flat[idx - 1];
+    const next = flat[idx + 1];
+
+    const btnStyle = `display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-size:0.8rem;font-weight:600;border:1.5px solid var(--border);background:none;color:var(--text-dim);cursor:pointer;transition:all 0.12s;`;
+
+    const prevBtn = prev
+      ? `<button data-nav-prev="${prev.gid}|${prev.sid}" style="${btnStyle}">← ${prev.icon} ${escapeHtml(prev.title)}</button>`
+      : `<span></span>`;
+
+    const nextBtn = next
+      ? `<button data-nav-next="${next.gid}|${next.sid}" style="${btnStyle}">${next.icon} ${escapeHtml(next.title)} →</button>`
+      : `<span></span>`;
+
+    return `${prevBtn}${nextBtn}`;
+  }
+
+  render();
 }
