@@ -17,6 +17,8 @@ import { renderTraps } from './pages/traps.js';
 import { renderSettings } from './pages/settings.js';
 import { renderReports } from './pages/reports.js';
 import { renderHelp } from './pages/help.js';
+import { renderIntelligence } from './pages/intelligence.js';
+import { renderPredictive } from './pages/predictive.js';
 
 const appRoot = document.getElementById('app-root');
 
@@ -139,6 +141,14 @@ registerRoute('/settings', authedRoute(async (content) => {
 
 registerRoute('/analytics', authedRoute(async (content) => {
   await renderReports(content);
+}));
+
+registerRoute('/intelligence', authedRoute(async (content) => {
+  await renderIntelligence(content);
+}));
+
+registerRoute('/predictive', authedRoute(async (content) => {
+  await renderPredictive(content);
 }));
 
 // Redirect legacy /reports links to /analytics

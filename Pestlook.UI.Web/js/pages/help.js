@@ -243,6 +243,298 @@ const GROUPS = [
       },
     ],
   },
+  {
+    id: 'intelligence',
+    icon: '🧭',
+    title: 'Spread & Movement Intelligence',
+    intro: 'The Spread & Movement section uses GPS-tagged observation history to show how pest populations are physically moving across your farms — where outbreaks originate, which fields are at risk from a nearby breach, and when a simultaneous multi-farm spike signals a regional event.',
+    sections: [
+      {
+        id:    'intel-spread',
+        icon:  '🧭',
+        title: 'Pest Spread Direction Mapping',
+        intro: 'This page shows a live map and analysis of how each pest species is physically moving across your fields over time. All data is derived from GPS-tagged scouting observations.',
+        items: [
+          {
+            heading: 'KPI Cards',
+            body: '<strong>Pests Tracked</strong> — the number of pest species that have enough GPS observation history to compute a spread direction. <strong>Fields Affected</strong> — the total number of distinct fields where at least one observation was recorded in the selected period. <strong>Neighbour Risk</strong> — fields that are within 5 km of an active spread front but have not yet reported that pest; shown in amber when greater than 0. <strong>Fastest Spreading</strong> — the pest species gaining ground most rapidly, shown with its compass direction arrow and speed in new fields per week.',
+          },
+          {
+            heading: 'Map — Blue circle markers',
+            body: 'Each semi-transparent blue circle represents a field with GPS data. Click any circle to see the field name and farm. Fields without GPS coordinates (neither GPS-tagged observations nor a farm location set) will not appear on the map.',
+          },
+          {
+            heading: 'Map — Coloured dashed lines',
+            body: 'Each dashed line is a <em>spread vector</em> — it runs from the field where a pest was <strong>first observed</strong> to the centre-point (centroid) of all fields where it was <strong>most recently observed</strong>. The line colour shows how fast the pest is spreading: <span style="color:#4ade80;font-weight:600;">● Green</span> = contained or not spreading (0 or fewer new fields per week), <span style="color:#f59e0b;font-weight:600;">● Amber</span> = slow spread (less than 0.5 new fields per week), <span style="color:#f87171;font-weight:600;">● Red</span> = fast spread (0.5 or more new fields per week). Click a line to see the pest name, compass direction, and speed.',
+          },
+          {
+            heading: 'Map — Filled circle at the tip of each line',
+            body: 'This circle marks the current front of the spread — where the pest has reached most recently. It is the same colour as its dashed line (green / amber / red) so you can immediately see severity at a glance.',
+          },
+          {
+            heading: '▶ Animate button',
+            body: 'Pressing <strong>▶ Animate</strong> steps through each week of data in sequence, one week every 0.9 seconds, replaying how the infestation grew over time. During playback the map markers change to show only the fields active in that particular week. Press <strong>⏹ Stop</strong> at any moment to freeze the map on that week and inspect it in detail.',
+          },
+          {
+            heading: 'Animation — Red field markers',
+            body: 'During playback, a <span style="color:#c75146;font-weight:600;">red</span> circle on a field means at least one observation in that week recorded a count <strong>above the configured action threshold</strong> for that pest. These are your highest-priority fields — intervention is likely needed.',
+          },
+          {
+            heading: 'Animation — Blue field markers',
+            body: 'During playback, a <span style="color:#3b7db8;font-weight:600;">blue</span> circle means the pest was observed in that field that week but the count was still within the safe threshold. Monitor closely.',
+          },
+          {
+            heading: 'Animation — Grey field markers',
+            body: 'During playback, small grey circles indicate fields that had no observations recorded for the selected pest in that week. They remain visible so you can see the full farm layout at a glance.',
+          },
+          {
+            heading: 'Spread Summary by Pest — compass arrow',
+            body: 'Each pest card shows a large compass arrow (↑ ↗ → ↘ ↓ ↙ ← ↖) in the top-right corner. This is the overall bearing from the pest\'s origin field to its current spread front, snapped to the nearest of 8 compass directions. The full bearing in degrees and the text label (N / NE / E / SE etc.) are shown in the card body.',
+          },
+          {
+            heading: 'Spread Summary by Pest — Velocity colour',
+            body: 'The <em>Velocity</em> figure on each card is coloured the same way as the map lines: <span style="color:#4ade80;font-weight:600;">green</span> = contained, <span style="color:#f59e0b;font-weight:600;">amber</span> = slow, <span style="color:#f87171;font-weight:600;">red</span> = fast. Use the ‹ › buttons to page through all pest cards two at a time.',
+          },
+          {
+            heading: '⚠ Neighbour Risk panel',
+            body: 'This panel appears only when at least one field is at risk. It lists every field that is within <strong>5 km</strong> of an active pest spread front but has not yet had that pest recorded in any scouting session. These fields should be prioritised for an unplanned inspection — early detection at this stage can prevent the spread from taking hold.',
+          },
+          {
+            heading: 'Weekly Field Exposure Timeline',
+            body: 'A grid showing pest activity week by week. Rows are pest species; columns are the week start dates. The view shows 8 weeks at a time — use <strong>‹ Earlier</strong> and <strong>Later ›</strong> to navigate. A <span style="background:rgba(59,125,184,0.12);color:#3b7db8;font-weight:600;padding:1px 5px;border-radius:3px;">blue cell</span> means the pest was observed across one or more fields that week and counts were within threshold. A <span style="background:rgba(199,81,70,0.15);color:#c75146;font-weight:600;padding:1px 5px;border-radius:3px;">red-tinted cell</span> means at least one field exceeded its threshold that week. The large number is the total pest count (sum of all observation counts) and the small subtitle shows how many distinct fields reported that pest.',
+          },
+          {
+            heading: 'Show Pest filter',
+            body: 'The <em>Show Pest</em> dropdown at the top of the page re-fetches data filtered to a single pest species, making the map, vectors, and timeline easier to read when many pests are tracked. Selecting "All pests" returns the combined view.',
+          },
+          {
+            heading: 'Data requirements',
+            body: 'Spread direction mapping requires at least <strong>two weeks</strong> of observations with GPS coordinates for a meaningful vector to be calculated. If GPS coordinates are missing from observations, the system falls back to the farm\'s own latitude and longitude (set on the Farms page) and applies a small position offset per field so they appear as distinct dots rather than a single stacked point.',
+          },
+        ],
+      },
+      {
+        id:    'intel-origin',
+        icon:  '🔍',
+        title: 'Infestation Origin Detection',
+        intro: 'Works backwards through your scouting history to identify the most likely origin field for each pest outbreak — the field that first reported the species — then builds a chronological spread chain showing every subsequent field in the order it was reached.',
+        items: [
+          {
+            heading: 'KPI Cards',
+            body: '<strong>Pests Traced</strong> — the number of distinct pest species for which an origin field could be identified in the selected period. <strong>Multi-field Outbreaks</strong> — the count of pests that were detected on two or more fields, indicating genuine spread rather than an isolated sighting; shown in amber when greater than 0. <strong>Fastest Spread</strong> — the pest that reached a second field in the fewest days from the origin, shown in red as the highest-risk spreading species. <strong>Farthest Spread</strong> — the pest whose spread chain covers the greatest geographic distance from origin to furthest affected field (requires GPS data).',
+          },
+          {
+            heading: 'Show Pest selector',
+            body: 'Switches the map and spread chain panel to show a different pest species. The summary table at the bottom still shows all pests regardless of this selector. Clicking a row in the summary table also switches the active pest.',
+          },
+          {
+            heading: 'Confidence badge',
+            body: 'Shows how certain the system is that the identified origin field is the true outbreak source. <span style="color:#c75146;font-weight:600;">High</span> (≥ 70%) means the origin count was already above threshold and spread to a second field within 21 days — a strong outbreak signature. <span style="color:#e5a52f;font-weight:600;">Moderate</span> (40–69%) means one of those conditions is met. <span style="color:#2b6e4f;font-weight:600;">Low</span> (below 40%) means only one field reported the pest or counts were within threshold — possibly an isolated sighting rather than an outbreak.',
+          },
+          {
+            heading: 'Map — numbered markers',
+            body: 'Each circle is numbered in the order the pest was first detected: <span style="background:#c75146;color:#fff;border-radius:50%;padding:1px 7px;font-size:0.8rem;">1</span> is always the origin field (red). Subsequent fields are blue, and the most recently affected field is amber. Click any marker to see the field name, farm, first count, and how many days after the origin it was reached.',
+          },
+          {
+            heading: 'Map — connecting dashed line',
+            body: 'The grey dashed polyline connects each field in the spread chain in chronological order. It is not a route — it is a straight-line sequence showing the approximate path of spread. Fields without GPS coordinates are omitted from the map but still appear in the chain list on the right.',
+          },
+          {
+            heading: 'Spread Chain list',
+            body: 'The numbered list to the right of the map shows every field in the outbreak chain in order of first detection. Each entry shows the field and farm name, the date the pest was first recorded, the total count in that first week, whether it was above or below the configured threshold, and the distance from the origin field (when GPS is available). The <strong>ORIGIN</strong> badge marks step 1; subsequent steps show how many days after the origin they were reached.',
+          },
+          {
+            heading: '⚠ Above threshold indicator',
+            body: 'A red <strong>⚠ above threshold</strong> label means the first-week count on that field already exceeded the pest\'s configured action threshold at the time of initial detection. This is a strong signal that the infestation was already established by the time it was found — earlier detection or more frequent scouting of that field may have allowed earlier intervention.',
+          },
+          {
+            heading: 'Summary table — Days to 2nd Field',
+            body: 'The number of days between the origin field\'s first detection and the date the pest was first found on the next field. A short lag (3–7 days) suggests rapid active spread; a long lag (30+ days) may indicate independent introduction rather than spread from the origin.',
+          },
+          {
+            heading: 'How the origin is determined',
+            body: 'The system groups all observations for each pest by field and finds the earliest observation date per field. The field with the overall earliest date is designated the origin. If that field\'s first-week count was already above the action threshold, the confidence score rises because an established, above-threshold population is a stronger indicator of a true origin than a single incidental sighting.',
+          },
+          {
+            heading: 'Data requirements and limitations',
+            body: 'Origin detection assumes that the pest entered your farms within the selected date range. If the date range starts after the outbreak began, the system will identify the earliest sighting <em>within the range</em>, which may not be the true origin. Widening the date range improves accuracy. GPS coordinates on the Farms page are used as a fallback when individual observations do not include GPS tags.',
+          },
+        ],
+      },
+      {
+        id:    'intel-neighbour',
+        icon:  '🏘',
+        title: 'Neighbour Risk Alert',
+        intro: 'When a threshold breach is recorded on a field, every other field whose farm centroid lies within the configured search radius is automatically flagged as elevated-risk. The tab shows a map of the breach source and its at-risk neighbours, highlights fields that have not been scouted recently, and lists all neighbours in a sortable table.',
+        items: [
+          {
+            heading: 'KPI Cards',
+            body: '<strong>Breached Fields</strong> — the number of distinct fields that recorded at least one observation above their action threshold in the selected period; shown in red. <strong>At-Risk Neighbours</strong> — the total count of neighbouring fields flagged as elevated-risk across all breaches; shown in amber when greater than 0. <strong>Unscouted Risk</strong> — the subset of at-risk neighbours that have not had a completed scouting session in the last 7 days (or have never been scouted); shown in red as the most urgent group. <strong>Search Radius</strong> — the current radius setting in kilometres.',
+          },
+          {
+            heading: 'Radius selector',
+            body: 'The <strong>Radius</strong> dropdown (3 / 5 / 10 / 20 km) changes the search radius used to find neighbour fields. Selecting a new value re-fetches the data immediately — no need to click a refresh button. A smaller radius focuses on immediate neighbours; a larger radius is appropriate for widely spaced farms or fast-spreading pests.',
+          },
+          {
+            heading: 'Pest selector',
+            body: 'When breaches involve more than one pest species, the <strong>Pest</strong> dropdown appears and lets you switch the map and alert cards to a different pest. The summary table at the bottom always shows all pests.',
+          },
+          {
+            heading: 'Map — red source marker',
+            body: 'The large red filled circle marks the breach source field — the field that exceeded its action threshold. Hovering or clicking the marker shows the field name, farm, peak count, action threshold, and the date of the most recent breach.',
+          },
+          {
+            heading: 'Map — radius ring',
+            body: 'A dashed red circle around the source field shows the exact search radius. Any field whose farm centroid falls inside this ring is considered an at-risk neighbour.',
+          },
+          {
+            heading: 'Map — neighbour markers',
+            body: '<span style="color:#f59e0b;font-weight:600;">Amber</span> markers are at-risk neighbours that have not been scouted in the past 7 days (or never scouted) — these are the highest priority. <span style="color:#4ade80;font-weight:600;">Green</span> markers are at-risk neighbours that were visited within the last 7 days and are considered monitored. Click any marker to see the field name, farm, distance from the breach source, and days since last scouting session.',
+          },
+          {
+            heading: 'Map — dashed connector lines',
+            body: 'Grey dashed lines connect the source field to each of its neighbours. They indicate proximity relationships, not roads or paths. Fields without GPS coordinates are omitted from the map but still appear in the neighbour list and summary table.',
+          },
+          {
+            heading: 'Neighbour list panel',
+            body: 'The scrollable panel to the right of the map lists every at-risk neighbour in order of distance from the breach source. Each card shows the field and farm name, the distance in kilometres, the number of days since the last completed session, and a colour-coded status: <span style="color:#f87171;font-weight:600;">red = critical / never scouted</span>, <span style="color:#f59e0b;font-weight:600;">amber = overdue (&gt; 7 days)</span>, <span style="color:#4ade80;font-weight:600;">green = recently visited</span>.',
+          },
+          {
+            heading: 'All At-Risk Neighbours table',
+            body: 'The table at the bottom of the page lists every flagged neighbour across all source fields for the selected pest, showing field, farm, which breach source triggered the alert, distance, last session date, and urgency status. Use this table to get a quick written overview when the map is not needed.',
+          },
+          {
+            heading: 'How fields are matched',
+            body: 'The system uses the GPS coordinates set on the <strong>Farm</strong> record as the centre point for each field. If a farm has no GPS coordinates set (latitude and longitude both 0), its fields will not appear on the map or in the neighbour list. Set farm GPS coordinates on the Farms page to ensure complete coverage.',
+          },
+          {
+            heading: 'What "unscouted" means',
+            body: 'A neighbour field is classified as <em>unscouted</em> if it has no completed scouting session in the last 7 days, or if it has never had a completed session at all. The 7-day window is a fixed threshold — a field scouted 8 days ago is considered overdue even if the breach only occurred yesterday. This errs on the side of caution to ensure neighbours are visited promptly after a breach is detected.',
+          },
+        ],
+      },
+      {
+        id:    'intel-crossfarm',
+        icon:  '🌍',
+        title: 'Cross-Farm Outbreak Correlation',
+        intro: 'Scans your observation history to identify weeks where the same pest species spiked simultaneously across two or more farms. A simultaneous multi-farm spike is flagged as a regional outbreak event — distinct from an isolated incident on a single farm. The tab shows outbreak summary cards per pest, a multi-line weekly chart, and a table of the specific spike weeks and which farms were affected.',
+        items: [
+          {
+            heading: 'KPI Cards',
+            body: '<strong>Outbreak Pests</strong> — the number of distinct pest species that spiked on two or more farms in the same week within the selected period. <strong>Regional Outbreaks</strong> — the count of pests that satisfied the minimum-farms threshold, confirming a genuinely regional event rather than a coincidence across two nearby farms. <strong>Peak Farm Count</strong> — the single highest number of farms that simultaneously spiked for any one pest in any one week; the pest responsible is shown in the subtitle. <strong>Min Farms Threshold</strong> — indicates the current sensitivity setting, which can be changed using the selector below.',
+          },
+          {
+            heading: 'Min Farms selector',
+            body: 'The <strong>Min Farms</strong> dropdown sets how many farms must spike in the same week for the event to be counted as an outbreak. The default is 2 — any week where 2 or more farms spike qualifies. Raising it to 3 or 4 filters out coincidental two-farm spikes and shows only the most severe regional events. Changing this value re-fetches the data immediately.',
+          },
+          {
+            heading: 'Pest selector',
+            body: 'When multiple pests qualify as outbreak pests, the <strong>Pest</strong> dropdown (and the outbreak summary cards) let you switch the chart and spike-week table to a different species. Clicking an outbreak card also switches the active pest.',
+          },
+          {
+            heading: 'Outbreak summary cards',
+            body: 'One card per qualifying pest, ordered by severity (highest farm count first). Each card shows the pest name, a <span style="color:#f87171;font-weight:600;">🌍 Regional</span> or <span style="color:#f59e0b;font-weight:600;">🏠 Local</span> badge, the peak outbreak week, the number of outbreak weeks, and the combined observation count across all spiking farms. The active pest\'s card is highlighted with a blue border.',
+          },
+          {
+            heading: 'Regional vs Local badge',
+            body: '<span style="color:#f87171;font-weight:600;">🌍 Regional</span> means the peak-week farm count met or exceeded the Min Farms threshold — this is a genuine multi-farm simultaneous event worth treating as a regional alert. <span style="color:#f59e0b;font-weight:600;">🏠 Local</span> means the outbreak is isolated to fewer farms than the threshold and is likely a farm-specific pressure event rather than a regional introduction.',
+          },
+          {
+            heading: 'Weekly Farm Counts chart',
+            body: 'A multi-line chart where each line represents one farm. The x-axis is the week (Monday of each week), the y-axis is the total observation count for that pest on that farm in that week. <strong>Red shaded columns</strong> highlight weeks where the spike criterion was met on 2 or more farms simultaneously — these are the regional outbreak weeks. Hover over the chart to see all farm counts for a given week in a single tooltip, with a total and a "⚠ Regional spike week" flag when applicable.',
+          },
+          {
+            heading: 'How a spike is defined',
+            body: 'A spike is recorded for a farm in a given week when the total observation count for that week exceeds the <em>higher</em> of two thresholds: (1) the configured action threshold for the pest, or (2) 1.5× the farm\'s own median weekly count for that pest over the full selected period. Using the farm\'s own median prevents a naturally high-pressure farm from always appearing to spike relative to a low-pressure farm on the other side of the region.',
+          },
+          {
+            heading: 'Simultaneous Spike Weeks table',
+            body: 'Lists every week in the selected period where the spike criterion was met on two or more farms. Each row shows the week date, the number of farms that spiked (highlighted in red if 3 or more, amber if 2), the combined observation count, and the names of the farms involved. A <span style="color:#f87171;">⚠</span> icon next to a farm name means that farm\'s count was also above its configured action threshold that week — the most severe cases.',
+          },
+          {
+            heading: 'How to use this view',
+            body: 'A regional outbreak week is a signal to increase scouting frequency across <em>all</em> farms in your organisation — not just the farms already reporting counts. It may also warrant communication with neighbouring operations outside your tenancy. Use the date-range filter to narrow in on a specific season or to compare year-over-year outbreak patterns for the same pest.',
+          },
+          {
+            heading: 'Data requirements',
+            body: 'Cross-farm correlation requires completed scouting sessions with pest observations recorded across at least two farms. If all observations come from a single farm, no outbreaks will be detected regardless of count levels. The analysis uses a 12-month default date range — widening this to 18–24 months will capture seasonal patterns across multiple years.',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'predictive',
+    icon: '📈',
+    title: 'Predictive Intelligence',
+    intro: 'The Predictive Intelligence section forecasts where pest populations are heading based on your historical observation data, so scouts and agronomists can act before a threshold breach occurs rather than reacting after.',
+    sections: [
+      {
+        id:    'intel-forecast',
+        icon:  '📈',
+        title: 'Population Forecast',
+        intro: 'Uses a linear regression model fitted to your weekly observation history to project pest counts for the next four weeks per pest per field. Each projection comes with a confidence interval and a breach probability score.',
+        items: [
+          {
+            heading: 'KPI Cards',
+            body: '<strong>Pests Tracked</strong> — the number of distinct pest species included in the forecast. <strong>Fields Covered</strong> — the number of distinct fields with enough observation history to produce a forecast. <strong>High Risk</strong> — the count of pest × field combinations where the breach probability is 60% or higher; shown in red when greater than 0. <strong>Fastest Rising</strong> — the pest and field combination currently showing the steepest upward trend with the highest breach probability.',
+          },
+          {
+            heading: 'Risk table — Trend column',
+            body: '<span style="color:#c75146;font-weight:700;">↑ Rising</span> means the weekly count is trending upward (regression slope > 0.5 per week). <span style="color:#e5a52f;font-weight:700;">→ Stable</span> means counts are broadly flat (slope between −0.5 and +0.5). <span style="color:#2b6e4f;font-weight:700;">↓ Falling</span> means counts are declining (slope below −0.5). Click the Trend column header to sort.',
+          },
+          {
+            heading: 'Risk table — Historical peak',
+            body: 'The highest single-week total observation count recorded for this pest on this field within the selected date range. This is the worst week seen so far, not an average.',
+          },
+          {
+            heading: 'Risk table — Projected (4 wk)',
+            body: 'The highest projected count in any of the next four weekly forecast points. If the projected value exceeds the historical peak it is shown in red — the model is predicting a new record high.',
+          },
+          {
+            heading: 'Risk table — Breach risk bar',
+            body: 'The percentage of the next four forecast weeks where the upper end of the confidence interval crosses the configured action threshold for this pest. <span style="color:#2b6e4f;font-weight:600;">Green</span> = below 30%, <span style="color:#e5a52f;font-weight:600;">Amber</span> = 30–59%, <span style="color:#c75146;font-weight:600;">Red</span> = 60% or higher. A red bar means a threshold breach is likely in the near term and the field should be prioritised for an inspection.',
+          },
+          {
+            heading: 'Risk table — sorting and filtering',
+            body: 'Click any column header to sort the table by that column; click again to reverse the direction. The default sort is highest breach risk first. Use the <strong>Pest</strong> dropdown to narrow the table to a single species, and the <strong>Show</strong> dropdown to show only Rising, Stable, or Falling trends.',
+          },
+          {
+            heading: 'Detail chart — blue bars',
+            body: 'The blue bars show the actual observed total pest count for each historical week. Each bar represents all observations of this pest on this field summed across any scouting sessions that were completed in that calendar week.',
+          },
+          {
+            heading: 'Detail chart — grey trend line',
+            body: 'The grey line is the ordinary least-squares (OLS) regression fit through the historical data. It shows the underlying linear trend, smoothing out week-to-week noise. Where the line is rising, the average direction of counts is upward even if individual weeks dip.',
+          },
+          {
+            heading: 'Detail chart — dashed amber line',
+            body: 'The dashed amber line is the forecast — the regression line extended into the future for the next four weeks. The amber dots mark each weekly projection point. Hover over a point to see the exact projected count for that week.',
+          },
+          {
+            heading: 'Detail chart — shaded confidence band',
+            body: 'The light amber band around the forecast line is the 90% confidence interval. It shows the plausible range of outcomes — the pest count is expected to fall inside this band nine times out of ten. A narrow band means the model is confident; a wide band means the history is noisy and the forecast is less certain.',
+          },
+          {
+            heading: 'Detail chart — red dashed threshold line',
+            body: 'The horizontal red dashed line marks the configured action threshold for this pest. When the confidence band crosses above this line, a threshold breach is considered likely. If no threshold is set for this pest, the line does not appear.',
+          },
+          {
+            heading: 'Detail chart — vertical divider',
+            body: 'The faint dashed vertical line separates the historical period (left) from the forecast period (right). Data to the left of this line comes from real scouting records; data to the right is model-generated.',
+          },
+          {
+            heading: 'How the forecast is calculated',
+            body: 'The system groups all observations for a pest × field combination into weekly totals (one value per Monday-to-Sunday window), then fits a straight-line trend through those values using ordinary least-squares regression. The line is extrapolated forward by the chosen number of weeks. The confidence interval width is derived from the residual standard error of the fit — how much the historical data scattered around the regression line. At least one week of observations is required; more weeks produce a more reliable forecast.',
+          },
+          {
+            heading: 'Limitations',
+            body: 'The forecast is a linear model — it assumes the trend continues in a straight line. It does not account for seasonal cycles, treatment events, weather changes, or data gaps. Use it as a leading indicator, not a guarantee. Always confirm rising forecasts with a physical field inspection before making treatment decisions.',
+          },
+        ],
+      },
+    ],
+  },
 ];
 
 export function renderHelp(container) {

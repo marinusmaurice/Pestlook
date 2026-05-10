@@ -14,7 +14,9 @@ const navItems = [
     { id: 'sessions', icon: '🥾', label: 'Scouting Sessions', path: '/sessions' },
   ]},
   { section: 'Insights', items: [
-    { id: 'reports', icon: '📈', label: 'Analytics', path: '/analytics' },
+    { id: 'reports',       icon: '📈', label: 'Analytics',              path: '/analytics' },
+    { id: 'intelligence',  icon: '🧭', label: 'Spread & Movement',      path: '/intelligence' },
+    { id: 'predictive',    icon: '📈', label: 'Population Forecast',    path: '/predictive' },
   ]},
   { section: 'Reference', items: [
     { id: 'pests', icon: '🦗', label: 'Pest Catalogue', path: '/pests' },
