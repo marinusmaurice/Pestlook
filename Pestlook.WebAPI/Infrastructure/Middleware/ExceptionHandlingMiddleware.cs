@@ -19,6 +19,11 @@ public sealed class ExceptionHandlingMiddleware(
         {
             await next(context);
         }
+        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+        {
+            System.Diagnostics.Debug.WriteLine("[ExceptionHandlingMiddleware] Request cancelled by client.");
+            context.Response.StatusCode = 499; // Client Closed Request
+        }
         catch (Exception ex)
         {
             await HandleExceptionAsync(context, ex);

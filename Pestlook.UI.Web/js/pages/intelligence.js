@@ -65,7 +65,8 @@ const iFilters = {
 
 export async function renderIntelligence(container) {
   let alive = true;
-  container._cleanup = () => { alive = false; };
+  let tabController = null;
+  container._cleanup = () => { alive = false; tabController?.abort(); };
 
   // Default to last 180 days
   const today   = new Date();
@@ -192,6 +193,11 @@ export async function renderIntelligence(container) {
 
   /* ── Tab dispatcher ──────────────────────────────────────────────────────── */
   async function showActiveTab() {
+    // Cancel any in-flight request from a previous tab switch or filter change
+    tabController?.abort();
+    tabController = new AbortController();
+    const { signal } = tabController;
+
     const activeId = container.querySelector('[data-itab].active')?.dataset?.itab ?? SECTIONS[0].id;
     const body     = document.getElementById('int-body');
     if (!body || !alive) return;
@@ -200,8 +206,8 @@ export async function renderIntelligence(container) {
 
     try {
       if (activeId === 'spread') {
-        const res  = await getSpreadDirection({ ...iFilters });
-        if (!alive) return;
+        const res  = await getSpreadDirection({ ...iFilters }, signal);
+        if (!alive || signal.aborted) return;
         const data = res?.data ?? {};
         body.innerHTML = '';
         await renderSpreadDirection(body, data, (pestId) => {
@@ -210,15 +216,15 @@ export async function renderIntelligence(container) {
         });
 
       } else if (activeId === 'origin') {
-        const res  = await getOriginDetection({ ...iFilters });
-        if (!alive) return;
+        const res  = await getOriginDetection({ ...iFilters }, signal);
+        if (!alive || signal.aborted) return;
         const data = res?.data ?? { origins: [] };
         body.innerHTML = '';
         await renderOriginDetection(body, data);
 
       } else if (activeId === 'neighbour') {
-        const res  = await getNeighbourRisk({ ...iFilters }, iFilters.radiusKm);
-        if (!alive) return;
+        const res  = await getNeighbourRisk({ ...iFilters }, iFilters.radiusKm, signal);
+        if (!alive || signal.aborted) return;
         const data = res?.data ?? { alerts: [], summary: {} };
         body.innerHTML = '';
         await renderNeighbourRisk(body, data, (newRadius) => {
@@ -227,24 +233,25 @@ export async function renderIntelligence(container) {
         });
 
       } else if (activeId === 'crossfarm') {
-        const res  = await getCrossFarmCorrelation({ ...iFilters }, iFilters.minFarms);
-        if (!alive) return;
+        const res  = await getCrossFarmCorrelation({ ...iFilters }, iFilters.minFarms, signal);
+        if (!alive || signal.aborted) return;
         const data = res?.data ?? { outbreaks: [], summary: {} };
         body.innerHTML = '';
         await renderCrossFarmCorrelation(body, data, (newMin) => {
           iFilters.minFarms = newMin;
           showActiveTab();
         });
+
       } else if (activeId === 'velocity') {
-        const res  = await getSpreadVelocity({ ...iFilters });
-        if (!alive) return;
+        const res  = await getSpreadVelocity({ ...iFilters }, signal);
+        if (!alive || signal.aborted) return;
         const data = res?.data ?? { pests: [], summary: {} };
         body.innerHTML = '';
         await renderSpreadVelocity(body, data);
       }
       // Additional tab handlers will go here as features are built
     } catch (err) {
-      if (!alive) return;
+      if (err.name === 'AbortError' || !alive || signal.aborted) return;
       showToast('Intelligence load failed: ' + err.message, 'error');
       body.innerHTML = emptyState('⚠', 'Could not load intelligence data', escapeHtml(err.message));
     }

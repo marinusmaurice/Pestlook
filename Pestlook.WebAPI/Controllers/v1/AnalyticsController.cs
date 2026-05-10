@@ -162,11 +162,20 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
             .GroupBy(_ => 1)
             .Select(g => new
             {
-                TotalSessions      = g.Count(),
-                CompletedSessions  = g.Count(),
-                TotalObservations  = g.SelectMany(ss => ss.SessionObservations).Sum(o => (int?)(o.Count ?? 0)) ?? 0,
-                ThresholdBreaches  = g.SelectMany(ss => ss.SessionObservations)
-                                      .Count(o => o.ThresholdCount != null && o.Count > o.ThresholdCount),
+                TotalSessions     = g.Count(),
+                CompletedSessions = g.Count(),
+            })
+            .FirstOrDefaultAsync(ct);
+
+        // Compute observation aggregates directly from SessionObservations — avoids
+        // the correlated-subquery trap that EF Core emits when navigating from sessions.
+        var obsKpis = await db.SessionObservations
+            .Where(o => o.Session.CompletedAt >= start && o.Session.CompletedAt <= end)
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                TotalObservations = g.Sum(o => (int?)(o.Count ?? 0)) ?? 0,
+                ThresholdBreaches = g.Count(o => o.ThresholdCount != null && o.Count > o.ThresholdCount),
             })
             .FirstOrDefaultAsync(ct);
 
@@ -219,7 +228,14 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
 
         return Ok(ApiResponse<object>.Ok(new
         {
-            kpis = kpis ?? new { TotalSessions = 0, CompletedSessions = 0, TotalObservations = 0, ThresholdBreaches = 0 },
+            kpis = kpis == null ? new { TotalSessions = 0, CompletedSessions = 0, TotalObservations = 0, ThresholdBreaches = 0 }
+                                : new
+                                  {
+                                      kpis.TotalSessions,
+                                      kpis.CompletedSessions,
+                                      TotalObservations = obsKpis?.TotalObservations ?? 0,
+                                      ThresholdBreaches = obsKpis?.ThresholdBreaches ?? 0,
+                                  },
             weeklyTrend = weeklyObs,
             topPests,
         }));
@@ -671,22 +687,57 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         if (scoutId != null)  sessQ = sessQ.Where(ss => ss.ScouterId == scoutId ||
             (ss.Scouter != null && ss.Scouter.FirstName + " " + ss.Scouter.LastName == scoutId));
 
-        var sessions = await sessQ
+        // Step 1: fetch session rows without touching SessionObservations.
+        // Selecting ss.SessionObservations.Sum/Count inside a projection produces one
+        // correlated subquery per session row — catastrophic at scale.
+        var sessionRows = await sessQ
             .Select(ss => new
             {
                 ss.Id,
                 ss.ScouterId,
-                ScouterName   = ss.Scouter != null ? ss.Scouter.FirstName + " " + ss.Scouter.LastName : ss.ScouterId,
+                ScouterName = ss.Scouter != null ? ss.Scouter.FirstName + " " + ss.Scouter.LastName : ss.ScouterId,
                 ss.IsPlanned,
                 ss.ScheduledDate,
                 ss.StartedAt,
                 ss.CompletedAt,
                 ss.FieldId,
                 ss.FarmId,
-                TotalObs      = ss.SessionObservations.Sum(o => (int?)o.Count ?? 0),
-                AlertCount    = ss.SessionObservations.Count(o => o.ThresholdCount != null && o.Count > o.ThresholdCount),
             })
             .ToListAsync(ct);
+
+        // Step 2: aggregate observations in one flat query grouped by session.
+        var sessionIds = sessionRows.Select(s => s.Id).ToList();
+        var obsAgg = await db.SessionObservations
+            .Where(o => sessionIds.Contains(o.SessionId))
+            .GroupBy(o => o.SessionId)
+            .Select(g => new
+            {
+                SessionId  = g.Key,
+                TotalObs   = g.Sum(o => o.Count ?? 0),
+                AlertCount = g.Count(o => o.ThresholdCount != null && o.Count > o.ThresholdCount),
+            })
+            .ToListAsync(ct);
+
+        var obsMap = obsAgg.ToDictionary(x => x.SessionId);
+
+        var sessions = sessionRows.Select(s =>
+        {
+            obsMap.TryGetValue(s.Id, out var obs);
+            return new
+            {
+                s.Id,
+                s.ScouterId,
+                s.ScouterName,
+                s.IsPlanned,
+                s.ScheduledDate,
+                s.StartedAt,
+                s.CompletedAt,
+                s.FieldId,
+                s.FarmId,
+                TotalObs   = obs?.TotalObs   ?? 0,
+                AlertCount = obs?.AlertCount ?? 0,
+            };
+        }).ToList();
 
         var scouts = sessions
             .GroupBy(s => s.ScouterName)

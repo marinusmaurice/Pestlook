@@ -1,5 +1,6 @@
 import { getAccessToken, getRefreshToken, saveTokens, clearTokens, isAccessTokenExpired, getUser } from '../utils/storage.js';
 import { navigate } from '../utils/router.js';
+import { recordApiCall } from '../utils/perf.js';
 
 const BASE_URL = '/api/v1';
 
@@ -62,7 +63,7 @@ async function ensureToken() {
 }
 
 export async function apiRequest(path, options = {}) {
-  const { method = 'GET', body, auth = true, query } = options;
+  const { method = 'GET', body, auth = true, query, signal } = options;
 
   let url = `${BASE_URL}${path}`;
   if (query) {
@@ -84,11 +85,26 @@ export async function apiRequest(path, options = {}) {
     if (user?.tenantSlug) headers['X-Tenant-ID'] = user.tenantSlug;
   }
 
-  const res = await fetch(url, {
-    method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  const clientStart = performance.now();
+  let res;
+  try {
+    res = await fetch(url, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal,
+    });
+  } catch (err) {
+    if (err.name === 'AbortError') throw err; // let caller handle silently
+    throw err;
+  }
+  const clientEnd = performance.now();
+
+  const serverMs    = res.headers.get('X-Response-Time') != null
+    ? Number(res.headers.get('X-Response-Time')) : null;
+  const requestId   = res.headers.get('X-Request-Id');
+
+  recordApiCall({ url, method, status: res.status, clientStart, clientEnd, serverMs, requestId });
 
   if (res.status === 204) return { success: true, data: null };
 
@@ -119,8 +135,8 @@ export async function apiRequest(path, options = {}) {
   return json;
 }
 
-export function get(path, query, auth = true) {
-  return apiRequest(path, { method: 'GET', query, auth });
+export function get(path, query, auth = true, signal) {
+  return apiRequest(path, { method: 'GET', query, auth, signal });
 }
 
 export function post(path, body, auth = true) {

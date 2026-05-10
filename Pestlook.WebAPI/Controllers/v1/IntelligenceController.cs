@@ -3253,14 +3253,24 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         if (fieldId.HasValue) periodQ = periodQ.Where(o => o.Session.FieldId == fieldId);
 
         var inPeriod = await periodQ
-            .GroupBy(o => new { PestId = o.PestId!.Value, FieldId = o.Session.FieldId!.Value })
+            // Flatten CompletedAt to a scalar column BEFORE grouping.
+            // Without this, EF Core accesses it via a navigation property inside GroupBy
+            // and emits a correlated scalar subquery per group for g.Min(...) — causing 70+ second queries.
+            .Select(o => new
+            {
+                PestId      = o.PestId!.Value,
+                FieldId     = o.Session.FieldId!.Value,
+                CompletedAt = o.Session.CompletedAt!.Value,
+                Count       = o.Count ?? 0,
+            })
+            .GroupBy(x => new { x.PestId, x.FieldId })
             .Select(g => new
             {
                 g.Key.PestId,
                 g.Key.FieldId,
-                MinDate        = g.Min(o => o.Session.CompletedAt!.Value),
+                MinDate        = g.Min(x => x.CompletedAt),
                 TotalObsCount  = g.Count(),
-                TotalPestCount = g.Sum(o => o.Count ?? 0),
+                TotalPestCount = g.Sum(x => x.Count),
             })
             .ToListAsync(ct);
 

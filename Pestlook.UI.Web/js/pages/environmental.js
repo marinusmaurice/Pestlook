@@ -3,6 +3,7 @@ import { getFields } from '../api/fields.js';
 import { showToast } from '../components/toast.js';
 import { escapeHtml } from '../utils/helpers.js';
 import { emptyState } from './reports/utils.js';
+import { perfPageLoad } from '../utils/perf.js';
 
 import {
   getTemperatureActivity,
@@ -41,6 +42,7 @@ const eFilters = { from: '', to: '', farmId: '', fieldId: '', pestId: '' };
 /* ── Entry point ───────────────────────────────────────────────────────────── */
 
 export async function renderEnvironmental(container) {
+  return perfPageLoad('environmental', async () => {
   let alive = true;
   container._cleanup = () => { alive = false; };
 
@@ -191,4 +193,5 @@ export async function renderEnvironmental(container) {
       body.innerHTML = emptyState('⚠', 'Could not load data', escapeHtml(err.message));
     }
   }
+  }); // perfPageLoad
 }

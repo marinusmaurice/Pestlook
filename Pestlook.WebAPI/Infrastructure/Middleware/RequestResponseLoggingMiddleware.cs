@@ -10,6 +10,7 @@ public sealed class RequestResponseLoggingMiddleware(
     {
         var sw = Stopwatch.StartNew();
         var requestId = context.TraceIdentifier;
+        var requestStart = DateTimeOffset.UtcNow;
 
         logger.LogInformation(
             "→ {Method} {Path} | TraceId: {TraceId} | IP: {Ip}",
@@ -17,6 +18,14 @@ public sealed class RequestResponseLoggingMiddleware(
             context.Request.Path,
             requestId,
             context.Connection.RemoteIpAddress);
+
+        context.Response.OnStarting(() =>
+        {
+            context.Response.Headers["X-Request-Start"]  = requestStart.ToUnixTimeMilliseconds().ToString();
+            context.Response.Headers["X-Response-Time"]  = sw.ElapsedMilliseconds.ToString();
+            context.Response.Headers["X-Request-Id"]     = requestId;
+            return Task.CompletedTask;
+        });
 
         await next(context);
 
