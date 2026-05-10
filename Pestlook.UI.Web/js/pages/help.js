@@ -1164,6 +1164,170 @@ const GROUPS = [
       },
     ],
   },
+  {
+    id: 'actionable',
+    icon: '🎯',
+    title: 'Actionable Recommendations',
+    intro: 'The Actionable Recommendations section turns intelligence data into concrete next steps — telling you when to spray, which fields to visit first, whether past treatments worked, which breaches are overdue for a follow-up, and where you have coverage blind spots.',
+    sections: [
+      {
+        id:    'act-spray',
+        icon:  '💉',
+        title: 'Spray Timing Recommendation',
+        intro: 'For each rising pest population with a configured action threshold, projects how many weeks until the population is expected to breach that threshold and recommends the optimal treatment window.',
+        items: [
+          {
+            heading: 'KPI Cards',
+            body: '<strong>Total</strong> — the number of pest × field combinations with a rising trend and a threshold configured. <strong>Urgent</strong> — combinations where treatment is needed immediately or within 2 weeks (Immediate or Urgent urgency). <strong>Upcoming</strong> — combinations where treatment should be scheduled within 6 weeks. <strong>Monitor</strong> — combinations rising but not close to breach.',
+          },
+          {
+            heading: 'Urgency levels',
+            body: '<span style="color:#c75146;font-weight:700;">Immediate</span> — the population is already at or above threshold. Apply treatment now. <span style="color:#e5a52f;font-weight:700;">Urgent</span> — breach projected within 2 weeks. Act within the number of days shown. <span style="color:#f59e0b;font-weight:700;">Upcoming</span> — breach projected in 3–6 weeks. Schedule treatment to stay ahead. <span style="color:#4ade80;font-weight:700;">Monitor</span> — population is rising but a breach is not imminent. Continue regular monitoring.',
+          },
+          {
+            heading: 'Progress bar — Current vs Threshold',
+            body: 'The green/amber/red bar shows the current projected count as a percentage of the configured action threshold. When the bar is full and red, the population is at or above the threshold.',
+          },
+          {
+            heading: 'Projected at 4 and 8 weeks',
+            body: 'The model extends the current regression line forward to show where the count is expected to be in 4 and 8 weeks. The 8-week multiplier (e.g. 3.2×) shows how many times the threshold will be exceeded if no action is taken.',
+          },
+          {
+            heading: 'How the model works',
+            body: 'The system fits an OLS linear regression through weekly observation totals for each pest × field pair. It then solves for the week number at which the regression line crosses the threshold value. Only rising combinations (positive slope) or those already near threshold (≥70% of threshold) are surfaced.',
+          },
+          {
+            heading: 'Combinations not appearing',
+            body: 'A pest × field pair only appears if: (1) the pest has an action threshold configured, (2) there are at least 2 weeks of observation history, and (3) the trend is rising or the current level is already near threshold. Falling populations are excluded — they do not need spray intervention.',
+          },
+        ],
+      },
+      {
+        id:    'act-priority',
+        icon:  '📋',
+        title: 'Scout Priority Queue',
+        intro: 'Ranks every field by a composite risk score computed from three components: how fast pest populations are growing, how long it has been since the last visit, and how many threshold breaches have been recorded recently.',
+        items: [
+          {
+            heading: 'KPI Cards',
+            body: '<strong>Total Fields</strong> — the number of fields assessed. <strong>Critical</strong> — fields scoring 70 or above; shown in red. <strong>High</strong> — fields scoring 45–69; shown in amber. <strong>Medium / Low</strong> — lower-priority fields.',
+          },
+          {
+            heading: 'Priority Score breakdown',
+            body: 'The score has three components, each capped at a maximum: <strong>Trend Score (0–40 pts)</strong> — based on the OLS growth rate across all pest observations on the field. A doubling population scores near 40. <strong>Recency Score (0–35 pts)</strong> — based on days since the last completed session, capped at 30 days (35 pts). A field never visited scores the full 35. <strong>Breach Score (0–25 pts)</strong> — 5 points per threshold breach recorded in the period, capped at 25.',
+          },
+          {
+            heading: 'Rank badge',
+            body: 'The large number in the top-left of each field card is the priority rank — 1 is the highest-priority field for the day. Send scouts to rank 1 first.',
+          },
+          {
+            heading: 'Days Since Last Session',
+            body: 'A value of −1 means the field has never had a completed session in the selected period. These fields score 35 recency points automatically and should be treated as unknown-risk.',
+          },
+          {
+            heading: 'Fields missing from the list',
+            body: 'A field only appears in the priority queue if it has at least one completed scouting session or at least one observation in the selected date range. Fields with no activity at all are not ranked — they should be visited as a baseline.',
+          },
+        ],
+      },
+      {
+        id:    'act-effectiveness',
+        icon:  '📊',
+        title: 'Treatment Effectiveness',
+        intro: 'Scores past treatment responses by comparing average pest counts in the two sessions before a threshold breach against the two sessions after. This tells you whether your control actions are actually working.',
+        items: [
+          {
+            heading: 'KPI Cards',
+            body: '<strong>Effective</strong> — pest counts fell by 50% or more after the breach response. <strong>Partially Effective</strong> — counts fell by 20–49%. <strong>Ineffective</strong> — counts fell by less than 20% or continued to rise. <strong>Insufficient Data</strong> — no follow-up sessions were recorded after the breach.',
+          },
+          {
+            heading: 'How effectiveness is scored',
+            body: 'The system identifies the first threshold breach for each pest × field pair within the selected period. It then takes up to 2 sessions before that breach and up to 2 sessions after. The percentage change in average count from pre-breach to post-breach determines the score: ≤−50% = Effective, −20% to −50% = Partially Effective, above −20% = Ineffective.',
+          },
+          {
+            heading: 'Before / After comparison bars',
+            body: 'Each card shows two horizontal bars: the pre-breach average (amber) and the post-breach average (green if reduced, red if increased). The threshold is marked as a vertical line on the bar chart.',
+          },
+          {
+            heading: 'Insufficient Data result',
+            body: 'This means no scouting sessions were completed on the field after the threshold breach. It is not possible to know whether the treatment worked. Schedule a follow-up session to close the data gap.',
+          },
+          {
+            heading: 'Data Quality note',
+            body: 'The data quality note on each card indicates whether the score is based on the full 2 sessions before and after (Good) or fewer (Limited). A limited score is still shown but should be interpreted with caution.',
+          },
+          {
+            heading: 'What to do with Ineffective results',
+            body: 'An Ineffective score means the pest population did not meaningfully decline after a threshold breach response. Consider: (1) whether the treatment was applied within the recommended window, (2) whether resistance to the current product is developing (see the intelligence.md Resistance Pattern Detection section), (3) whether the dosage or coverage was adequate, and (4) whether re-infestation from a neighbouring field is occurring.',
+          },
+        ],
+      },
+      {
+        id:    'act-overdue',
+        icon:  '⏰',
+        title: 'Overdue Action Alerts',
+        intro: 'Identifies threshold breaches that did not receive a follow-up scouting session within the required response window. Severe breaches (count ≥ 2× threshold) have a 48-hour window; all others have a 7-day window.',
+        items: [
+          {
+            heading: 'KPI Cards',
+            body: '<strong>Total Overdue</strong> — the number of breach events with no follow-up within the required window. <strong>Critical</strong> — severe breaches (count ≥ 2× threshold) that are overdue. <strong>High</strong> — standard breaches overdue by more than 72 hours. <strong>Medium</strong> — standard breaches overdue by less than 72 hours.',
+          },
+          {
+            heading: 'Response window rules',
+            body: 'If the peak count recorded during the breach was at least twice the configured threshold (a severe breach), the required follow-up window is <strong>48 hours</strong>. For all other breaches the window is <strong>7 days (168 hours)</strong>. If no follow-up session is completed on that field within the window, the breach becomes overdue.',
+          },
+          {
+            heading: 'Days / Hours Overdue',
+            body: 'Both are shown — hours for precision on recent breaches, days for readability on older ones. The clock starts from the deadline (breach date + response window), not the breach date itself.',
+          },
+          {
+            heading: 'Scout Name',
+            body: 'The scout who completed the breach session is shown where available. Use this to follow up directly with the scout if a response is overdue.',
+          },
+          {
+            heading: 'What counts as a follow-up',
+            body: 'Any completed scouting session on the same field after the breach date counts as a follow-up, regardless of which scout completed it or what was observed. The system does not require the follow-up to contain observations of the same pest.',
+          },
+          {
+            heading: 'No alerts showing',
+            body: 'No overdue alerts means all threshold breaches in the selected period received a follow-up session within the required window. This is the expected state for a well-managed operation.',
+          },
+        ],
+      },
+      {
+        id:    'act-underscouted',
+        icon:  '🔍',
+        title: 'Blind Spots',
+        intro: 'Cross-references fields with low scouting coverage against fields showing high pest pressure to identify intelligence blind spots — situations where you do not know what is happening in a field during a potentially dangerous period.',
+        items: [
+          {
+            heading: 'KPI Cards',
+            body: '<strong>Under-scouted</strong> — total fields with fewer than 50% of the target 4 sessions this month. <strong>Critical Blind Spots</strong> — under-scouted fields that also have high pest pressure and recorded threshold breaches. <strong>High Risk</strong> — under-scouted fields with high pest pressure but no breaches yet. <strong>Low Risk</strong> — under-scouted fields with low pest activity.',
+          },
+          {
+            heading: 'Coverage target',
+            body: 'The system targets 4 scouting sessions per field per calendar month. A field with fewer than 2 sessions this month (50% of target) is flagged as under-scouted. Coverage is calculated on the current calendar month only, not a rolling 30-day window.',
+          },
+          {
+            heading: 'High pest pressure definition',
+            body: 'A field is considered high pressure if its total observation count in the selected period exceeds the median across all fields and is greater than zero. This is a relative measure — a field with fewer observations than average is not flagged even if it has some pest activity.',
+          },
+          {
+            heading: 'Critical Blind Spot',
+            body: 'A field is a Critical Blind Spot if it is under-scouted AND has both high pest pressure AND at least one threshold breach in the selected period. These fields are the highest priority — you are flying blind in a field where you already know pests are a serious problem.',
+          },
+          {
+            heading: 'Coverage bar',
+            body: 'The horizontal bar shows sessions this month as a percentage of the 4-session target. Green = 50% or above target. Amber = 25–49%. Red = below 25% (including zero).',
+          },
+          {
+            heading: 'What to do',
+            body: 'For Critical Blind Spots: schedule an immediate inspection and assign it to an available scout. For High Risk: add at least one additional session this month to close the coverage gap. For Low Risk: add a note to the next planning cycle to bring the field up to target coverage next month.',
+          },
+        ],
+      },
+    ],
+  },
 ];
 
 // ── FAQ content shown on the last section of every group ─────────────────────
@@ -1188,6 +1352,13 @@ const FAQ = {
     { q: 'The Population Forecast shows a wide confidence band.', a: 'A wide band means the historical data is noisy — pest counts vary significantly week to week. More consistent scouting data (same fields, same intervals) will narrow the band over time.' },
     { q: 'A trap shows "Unknown" risk on the Trap Saturation page.', a: 'The trap had no catch observations in the selected period. Verify scouts are linking observations to the specific trap in Session Detail, and that the trap has been checked at least twice.' },
     { q: 'The scouting interval recommendation seems too short.', a: 'The recommended interval is based on the growth rate of pest populations on that field. A very rapid growth rate (≥100%) triggers a 3-day interval. If counts were unusually high in one week due to a data entry error, correct the observation and the interval will recalculate.' },
+  ],
+  actionable: [
+    { q: 'A pest I know is near threshold does not appear on the Spray Timing page.', a: 'The pest must have an action threshold configured in the Pest Catalogue, at least 2 weeks of observation history, and a rising or near-threshold trend. Falling populations are excluded — no spray intervention is warranted.' },
+    { q: 'The Scout Priority queue is showing a field I already visited today.', a: 'The priority score is calculated from the selected date range. If the session you completed today has not yet synced, or if the date range does not include today, the recency score will not yet reflect the visit. Wait for sync or widen the date range.' },
+    { q: 'Treatment Effectiveness shows Insufficient Data for all entries.', a: 'The effectiveness score requires at least one completed scouting session after the threshold breach. If scouts have not returned to the field after a breach, no post-breach data is available. Ensure follow-up sessions are completed and observations recorded.' },
+    { q: 'All my overdue alerts disappeared after I added a session.', a: 'As soon as a completed session is recorded on the breached field (even if it contains no observations), the breach is considered followed up and the alert is removed. This is correct behaviour — the alert exists to prompt a visit, not to track treatment.' },
+    { q: 'The Blind Spots page shows fields I have visited this month.', a: 'Coverage is counted against the 4-session monthly target. If you have visited a field once or twice, it may still be flagged as under-scouted (below 50% = fewer than 2 sessions). Increase visit frequency to clear the flag.' },
   ],
 };
 

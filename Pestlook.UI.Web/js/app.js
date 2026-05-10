@@ -19,6 +19,7 @@ import { renderReports } from './pages/reports.js';
 import { renderHelp } from './pages/help.js';
 import { renderIntelligence } from './pages/intelligence.js';
 import { renderPredictive } from './pages/predictive.js';
+import { renderActionable } from './pages/actionable.js';
 
 const appRoot = document.getElementById('app-root');
 
@@ -149,6 +150,10 @@ registerRoute('/intelligence', authedRoute(async (content) => {
 
 registerRoute('/predictive', authedRoute(async (content) => {
   await renderPredictive(content);
+}));
+
+registerRoute('/actionable', authedRoute(async (content) => {
+  await renderActionable(content);
 }));
 
 // Redirect legacy /reports links to /analytics

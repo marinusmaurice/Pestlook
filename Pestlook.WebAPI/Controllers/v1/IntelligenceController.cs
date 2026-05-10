@@ -1782,6 +1782,765 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         return Ok(ApiResponse<object>.Ok(new { traps = predictions, summary }));
     }
 
+    // ── A1 · Actionable — Spray Timing Recommendation ───────────────────────
+
+    /// <summary>
+    /// For each pest × field combination with a rising trend, projects how many days
+    /// until the population is expected to breach its configured action threshold,
+    /// and recommends a treatment window (act now vs. act within N days).
+    /// </summary>
+    [HttpGet("spray-timing")]
+    public async Task<IActionResult> GetSprayTiming(
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to,
+        [FromQuery] Guid?     farmId,
+        [FromQuery] Guid?     fieldId,
+        [FromQuery] Guid?     pestId,
+        CancellationToken ct = default)
+    {
+        var (start, end) = ResolveRange(from, to, 180);
+
+        var obsQ = db.SessionObservations
+            .Where(o => !o.IsUnknownPest && o.PestId != null && o.Count > 0
+                     && o.ThresholdCount != null && o.ThresholdCount > 0
+                     && o.Session.CompletedAt >= start && o.Session.CompletedAt <= end
+                     && o.Session.FieldId != null);
+
+        if (farmId.HasValue)  obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
+        if (fieldId.HasValue) obsQ = obsQ.Where(o => o.Session.FieldId == fieldId);
+        if (pestId.HasValue)  obsQ = obsQ.Where(o => o.PestId == pestId);
+
+        var obs = await obsQ
+            .Select(o => new
+            {
+                o.PestId,
+                PestName    = o.Pest!.CommonName,
+                FieldId     = o.Session.FieldId!.Value,
+                FieldName   = o.Session.Field != null ? o.Session.Field.Name : "(unknown)",
+                FarmName    = o.Session.Farm  != null ? o.Session.Farm.Name
+                            : o.Session.Field != null && o.Session.Field.Farm != null ? o.Session.Field.Farm.Name : null,
+                o.ThresholdCount,
+                o.Count,
+                CompletedAt = o.Session.CompletedAt!.Value,
+            })
+            .ToListAsync(ct);
+
+        if (obs.Count == 0)
+            return Ok(ApiResponse<object>.Ok(new { recommendations = Array.Empty<object>(), summary = new { total = 0, urgent = 0, upcoming = 0, monitor = 0 } }));
+
+        var recommendations = obs
+            .GroupBy(o => (o.PestId, o.FieldId))
+            .Select(grp =>
+            {
+                var first     = grp.First();
+                var threshold = grp.Max(o => o.ThresholdCount) ?? 0;
+                if (threshold == 0) return null;
+
+                var weekly = grp
+                    .GroupBy(o => Monday(o.CompletedAt))
+                    .OrderBy(g => g.Key)
+                    .Select(wg => (WeekStart: wg.Key, Total: wg.Sum(o => o.Count ?? 0)))
+                    .ToList();
+
+                int n = weekly.Count;
+                if (n < 2) return null;
+
+                // OLS slope (count change per week)
+                double xMean    = (n - 1) / 2.0;
+                double yMean    = weekly.Average(w => (double)w.Total);
+                double ssXX     = Enumerable.Range(0, n).Sum(i => Math.Pow(i - xMean, 2));
+                double ssXY     = weekly.Select((w, i) => (i - xMean) * (w.Total - yMean)).Sum();
+                double slope    = ssXX > 0 ? ssXY / ssXX : 0;
+                double intercept = yMean - slope * xMean;
+
+                // Only surface rising or near-threshold combinations
+                double currentProjected = Math.Max(0, intercept + slope * n);
+                if (slope <= 0 && currentProjected < threshold * 0.7) return null;
+
+                // Weeks until threshold breach (solve: intercept + slope*x = threshold)
+                int weeksUntilBreach;
+                if (slope > 0)
+                {
+                    double wk = (threshold - intercept) / slope;
+                    weeksUntilBreach = wk <= n ? 0 : (int)Math.Ceiling(wk - n);
+                }
+                else
+                {
+                    weeksUntilBreach = currentProjected >= threshold ? 0 : 99;
+                }
+
+                // Projected count at 4 and 8 weeks
+                double proj4wk = Math.Max(0, intercept + slope * (n + 4));
+                double proj8wk = Math.Max(0, intercept + slope * (n + 8));
+
+                string urgency;
+                string action;
+                if (weeksUntilBreach == 0)
+                {
+                    urgency = "Immediate";
+                    action  = $"Population is already at or above threshold. Apply treatment now — delaying further will worsen the infestation.";
+                }
+                else if (weeksUntilBreach <= 2)
+                {
+                    urgency = "Urgent";
+                    action  = $"Act within {weeksUntilBreach * 7} days. At the current trajectory the population reaches threshold in ~{weeksUntilBreach} week{(weeksUntilBreach == 1 ? "" : "s")}.";
+                }
+                else if (weeksUntilBreach <= 6)
+                {
+                    urgency = "Upcoming";
+                    action  = $"Schedule treatment in the next {weeksUntilBreach * 7} days to stay ahead of the projected breach.";
+                }
+                else
+                {
+                    urgency = "Monitor";
+                    action  = "Population is rising but a breach is not imminent. Continue regular monitoring.";
+                }
+
+                return (object?)new
+                {
+                    pestId              = first.PestId,
+                    pestName            = first.PestName,
+                    fieldId             = first.FieldId,
+                    fieldName           = first.FieldName,
+                    farmName            = first.FarmName,
+                    currentCount        = (int)Math.Round(currentProjected),
+                    threshold,
+                    weeklySlope         = Math.Round(slope, 2),
+                    weeksUntilBreach,
+                    projectedAt4Weeks   = (int)Math.Round(proj4wk),
+                    projectedAt8Weeks   = (int)Math.Round(proj8wk),
+                    multiplierAt8Weeks  = threshold > 0 ? Math.Round(proj8wk / threshold, 1) : 0,
+                    urgency,
+                    action,
+                    dataPoints          = n,
+                };
+            })
+            .Where(r => r != null)
+            .OrderBy(r =>
+            {
+                string u = (string)((dynamic)r!).urgency;
+                return u == "Immediate" ? 0 : u == "Urgent" ? 1 : u == "Upcoming" ? 2 : 3;
+            })
+            .ThenByDescending(r => ((dynamic)r!).weeklySlope)
+            .ToList<object>();
+
+        var summary = new
+        {
+            total    = recommendations.Count,
+            urgent   = recommendations.Count(r => (string)((dynamic)r!).urgency is "Immediate" or "Urgent"),
+            upcoming = recommendations.Count(r => (string)((dynamic)r!).urgency == "Upcoming"),
+            monitor  = recommendations.Count(r => (string)((dynamic)r!).urgency == "Monitor"),
+        };
+
+        return Ok(ApiResponse<object>.Ok(new { recommendations, summary }));
+    }
+
+    // ── A2 · Actionable — Scout Priority Queue ──────────────────────────────
+
+    /// <summary>
+    /// Ranks all fields by a composite risk score built from: population growth trend,
+    /// days since last visit, number of recent threshold breaches, and whether the field
+    /// is currently in its historical peak-pressure season. Returns an ordered priority
+    /// queue that scouts can use to plan their day.
+    /// </summary>
+    [HttpGet("scout-priority")]
+    public async Task<IActionResult> GetScoutPriority(
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to,
+        [FromQuery] Guid?     farmId,
+        [FromQuery] Guid?     fieldId,
+        CancellationToken ct = default)
+    {
+        var (start, end) = ResolveRange(from, to, 180);
+        var today = DateTime.UtcNow.Date;
+
+        // ── 1. Observation trend per field ───────────────────────────────────
+        var obsQ = db.SessionObservations
+            .Where(o => !o.IsUnknownPest && o.PestId != null && o.Count > 0
+                     && o.Session.CompletedAt >= start && o.Session.CompletedAt <= end
+                     && o.Session.FieldId != null);
+
+        if (farmId.HasValue)  obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
+        if (fieldId.HasValue) obsQ = obsQ.Where(o => o.Session.FieldId == fieldId);
+
+        var obsData = await obsQ
+            .Select(o => new
+            {
+                FieldId     = o.Session.FieldId!.Value,
+                FieldName   = o.Session.Field != null ? o.Session.Field.Name : "(unknown)",
+                FarmName    = o.Session.Farm  != null ? o.Session.Farm.Name
+                            : o.Session.Field != null && o.Session.Field.Farm != null ? o.Session.Field.Farm.Name : null,
+                o.ThresholdCount,
+                o.Count,
+                CompletedAt = o.Session.CompletedAt!.Value,
+                IsAboveThreshold = o.Count > (o.ThresholdCount ?? int.MaxValue),
+            })
+            .ToListAsync(ct);
+
+        // ── 2. Latest session per field ──────────────────────────────────────
+        var sessQ = db.ScoutingSessions
+            .Where(s => s.DeletedAt == null && s.CompletedAt != null && s.FieldId != null
+                     && s.CompletedAt >= start && s.CompletedAt <= end);
+
+        if (farmId.HasValue)  sessQ = sessQ.Where(s => s.FarmId == farmId || s.Field!.FarmId == farmId);
+        if (fieldId.HasValue) sessQ = sessQ.Where(s => s.FieldId == fieldId);
+
+        var sessions = await sessQ
+            .Select(s => new
+            {
+                FieldId     = s.FieldId!.Value,
+                FieldName   = s.Field != null ? s.Field.Name : "(unknown)",
+                FarmName    = s.Farm  != null ? s.Farm.Name
+                            : s.Field != null && s.Field.Farm != null ? s.Field.Farm.Name : null,
+                CompletedAt = s.CompletedAt!.Value,
+            })
+            .ToListAsync(ct);
+
+        // Collect all field IDs appearing in either set
+        var allFieldIds = obsData.Select(o => o.FieldId)
+            .Union(sessions.Select(s => s.FieldId))
+            .Distinct()
+            .ToHashSet();
+
+        var lastSessionByField = sessions
+            .GroupBy(s => s.FieldId)
+            .ToDictionary(g => g.Key, g => g.Max(s => s.CompletedAt));
+
+        var fieldMeta = sessions
+            .GroupBy(s => s.FieldId)
+            .ToDictionary(g => g.Key, g => (FieldName: g.First().FieldName, FarmName: g.First().FarmName));
+
+        // Also collect meta from obs for fields with obs but no completed sessions
+        foreach (var o in obsData.GroupBy(o => o.FieldId))
+        {
+            if (!fieldMeta.ContainsKey(o.Key))
+                fieldMeta[o.Key] = (o.First().FieldName, o.First().FarmName);
+        }
+
+        var priorityList = allFieldIds.Select(fid =>
+        {
+            var meta  = fieldMeta.GetValueOrDefault(fid, ("(unknown)", null));
+
+            // ── Trend score (0–40 pts): OLS slope normalised by max threshold ──
+            var fieldObs = obsData.Where(o => o.FieldId == fid).OrderBy(o => o.CompletedAt).ToList();
+            double trendScore = 0;
+            double growthRate = 0;
+            int topPestCount  = 0;
+            string topPest    = "None";
+
+            if (fieldObs.Count >= 2)
+            {
+                var weekly = fieldObs
+                    .GroupBy(o => Monday(o.CompletedAt))
+                    .OrderBy(g => g.Key)
+                    .Select(wg => wg.Sum(o => o.Count ?? 0))
+                    .ToList();
+
+                int wn       = weekly.Count;
+                double xMean = (wn - 1) / 2.0;
+                double yMean = weekly.Average();
+                double ssXX  = Enumerable.Range(0, wn).Sum(i => Math.Pow(i - xMean, 2));
+                double ssXY  = weekly.Select((v, i) => (i - xMean) * (v - yMean)).Sum();
+                double slope = ssXX > 0 ? ssXY / ssXX : 0;
+
+                growthRate  = yMean > 0 ? slope / yMean : 0;
+                trendScore  = Math.Min(40, Math.Max(0, growthRate * 100));
+            }
+
+            // Breaches
+            int breachCount = fieldObs.Count(o => o.IsAboveThreshold);
+
+            // Top pest by count
+            var byPest = fieldObs
+                .GroupBy(o => o.FieldName) // re-group by pest would need pestName — use count total instead
+                .OrderByDescending(g => g.Sum(o => o.Count ?? 0))
+                .FirstOrDefault();
+            topPestCount = fieldObs.Sum(o => o.Count ?? 0);
+
+            // ── Recency score (0–35 pts): longer since last visit = higher score ─
+            double recencyScore = 0;
+            int daysSinceLast   = -1;
+            if (lastSessionByField.TryGetValue(fid, out var lastSess))
+            {
+                daysSinceLast = (today - lastSess.Date).Days;
+                recencyScore  = Math.Min(35, daysSinceLast * 35.0 / 30.0); // caps at 30 days
+            }
+            else
+            {
+                recencyScore  = 35; // never visited
+                daysSinceLast = -1;
+            }
+
+            // ── Breach score (0–25 pts) ──────────────────────────────────────
+            double breachScore = Math.Min(25, breachCount * 5.0);
+
+            // ── Combined priority score ──────────────────────────────────────
+            double priorityScore = trendScore + recencyScore + breachScore;
+
+            string urgency = priorityScore >= 70 ? "Critical"
+                           : priorityScore >= 45 ? "High"
+                           : priorityScore >= 20 ? "Medium" : "Low";
+
+            return (object?)new
+            {
+                fieldId         = fid,
+                fieldName       = meta.FieldName,
+                farmName        = meta.FarmName,
+                priorityScore   = Math.Round(priorityScore, 1),
+                urgency,
+                growthRate      = Math.Round(growthRate, 3),
+                daysSinceLastSession = daysSinceLast,
+                recentBreaches  = breachCount,
+                totalObsCount   = topPestCount,
+                trendScore      = Math.Round(trendScore, 1),
+                recencyScore    = Math.Round(recencyScore, 1),
+                breachScore     = Math.Round(breachScore, 1),
+            };
+        })
+        .Where(p => p != null)
+        .OrderByDescending(p => ((dynamic)p!).priorityScore)
+        .Select((p, i) => (object)new
+        {
+            rank                 = i + 1,
+            fieldId              = ((dynamic)p!).fieldId,
+            fieldName            = ((dynamic)p!).fieldName,
+            farmName             = ((dynamic)p!).farmName,
+            priorityScore        = ((dynamic)p!).priorityScore,
+            urgency              = ((dynamic)p!).urgency,
+            growthRate           = ((dynamic)p!).growthRate,
+            daysSinceLastSession = ((dynamic)p!).daysSinceLastSession,
+            recentBreaches       = ((dynamic)p!).recentBreaches,
+            totalObsCount        = ((dynamic)p!).totalObsCount,
+            trendScore           = ((dynamic)p!).trendScore,
+            recencyScore         = ((dynamic)p!).recencyScore,
+            breachScore          = ((dynamic)p!).breachScore,
+        })
+        .ToList<object>();
+
+        var summary = new
+        {
+            totalFields = priorityList.Count,
+            critical    = priorityList.Count(p => (string)((dynamic)p!).urgency == "Critical"),
+            high        = priorityList.Count(p => (string)((dynamic)p!).urgency == "High"),
+            medium      = priorityList.Count(p => (string)((dynamic)p!).urgency == "Medium"),
+            low         = priorityList.Count(p => (string)((dynamic)p!).urgency == "Low"),
+        };
+
+        return Ok(ApiResponse<object>.Ok(new { fields = priorityList, summary }));
+    }
+
+    // ── A3 · Actionable — Treatment Effectiveness Scoring ───────────────────
+
+    /// <summary>
+    /// For each pest × field combination that recorded a threshold breach in the period,
+    /// compares the average observation count in the two sessions before the breach
+    /// against the two sessions after. Scores the apparent effectiveness of the
+    /// response as Effective / Partially Effective / Ineffective.
+    /// </summary>
+    [HttpGet("treatment-effectiveness")]
+    public async Task<IActionResult> GetTreatmentEffectiveness(
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to,
+        [FromQuery] Guid?     farmId,
+        [FromQuery] Guid?     fieldId,
+        [FromQuery] Guid?     pestId,
+        CancellationToken ct = default)
+    {
+        // Use a wider look-back so we can capture sessions both before and after breaches
+        var (start, end) = ResolveRange(from, to, 365);
+
+        var obsQ = db.SessionObservations
+            .Where(o => !o.IsUnknownPest && o.PestId != null && o.Count > 0
+                     && o.ThresholdCount != null && o.ThresholdCount > 0
+                     && o.Session.CompletedAt != null
+                     && o.Session.FieldId != null);
+
+        if (farmId.HasValue)  obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
+        if (fieldId.HasValue) obsQ = obsQ.Where(o => o.Session.FieldId == fieldId);
+        if (pestId.HasValue)  obsQ = obsQ.Where(o => o.PestId == pestId);
+
+        var obs = await obsQ
+            .Select(o => new
+            {
+                o.PestId,
+                PestName    = o.Pest!.CommonName,
+                FieldId     = o.Session.FieldId!.Value,
+                FieldName   = o.Session.Field != null ? o.Session.Field.Name : "(unknown)",
+                FarmName    = o.Session.Farm  != null ? o.Session.Farm.Name
+                            : o.Session.Field != null && o.Session.Field.Farm != null ? o.Session.Field.Farm.Name : null,
+                o.ThresholdCount,
+                o.Count,
+                CompletedAt = o.Session.CompletedAt!.Value,
+            })
+            .ToListAsync(ct);
+
+        if (obs.Count == 0)
+            return Ok(ApiResponse<object>.Ok(new
+            {
+                scores  = Array.Empty<object>(),
+                summary = new { total = 0, effective = 0, partial = 0, ineffective = 0, insufficient = 0 },
+            }));
+
+        var scores = obs
+            .GroupBy(o => (o.PestId, o.FieldId))
+            .Select(grp =>
+            {
+                var first     = grp.First();
+                var threshold = grp.Max(o => o.ThresholdCount) ?? 0;
+
+                // All sessions with obs for this pest+field, ordered chronologically
+                var bySession = grp
+                    .GroupBy(o => o.CompletedAt.Date)
+                    .OrderBy(g => g.Key)
+                    .Select(sg => (Date: sg.Key, Total: sg.Sum(o => o.Count ?? 0), IsAbove: sg.Sum(o => o.Count ?? 0) > threshold))
+                    .ToList();
+
+                // Find the first breach point within the queried range
+                var breachIdx = bySession
+                    .Select((s, i) => (s, i))
+                    .Where(x => x.s.IsAbove && x.s.Date >= start && x.s.Date <= end)
+                    .Select(x => (int?)x.i)
+                    .FirstOrDefault();
+
+                if (breachIdx == null) return null;
+
+                int idx     = breachIdx.Value;
+                var preSess  = bySession.Take(idx).TakeLast(2).ToList();
+                var postSess = bySession.Skip(idx + 1).Take(2).ToList();
+
+                double preAvg  = preSess.Any()  ? preSess.Average(s => (double)s.Total)  : 0;
+                double postAvg = postSess.Any() ? postSess.Average(s => (double)s.Total) : 0;
+
+                if (postSess.Count == 0)
+                {
+                    return (object?)new
+                    {
+                        pestId              = first.PestId,
+                        pestName            = first.PestName,
+                        fieldId             = first.FieldId,
+                        fieldName           = first.FieldName,
+                        farmName            = first.FarmName,
+                        threshold,
+                        breachCount         = bySession.Count(s => s.IsAbove),
+                        preBreachAvg        = Math.Round(preAvg, 1),
+                        postBreachAvg       = 0.0,
+                        percentChange       = 0.0,
+                        effectiveness       = "Insufficient Data",
+                        dataQuality         = "No follow-up sessions found after the breach — cannot score treatment.",
+                    };
+                }
+
+                double pctChange = preAvg > 0 ? (postAvg - preAvg) / preAvg * 100.0 : (postAvg > 0 ? 100.0 : 0.0);
+
+                string effectiveness = pctChange <= -50 ? "Effective"
+                    : pctChange <= -20 ? "Partially Effective"
+                    : "Ineffective";
+
+                string dataQuality = preSess.Count < 2 || postSess.Count < 2
+                    ? "Limited data — fewer than 2 sessions before or after the breach."
+                    : "Good — based on 2 sessions before and 2 sessions after the breach.";
+
+                return (object?)new
+                {
+                    pestId        = first.PestId,
+                    pestName      = first.PestName,
+                    fieldId       = first.FieldId,
+                    fieldName     = first.FieldName,
+                    farmName      = first.FarmName,
+                    threshold,
+                    breachCount   = bySession.Count(s => s.IsAbove),
+                    preBreachAvg  = Math.Round(preAvg, 1),
+                    postBreachAvg = Math.Round(postAvg, 1),
+                    percentChange = Math.Round(pctChange, 1),
+                    effectiveness,
+                    dataQuality,
+                };
+            })
+            .Where(s => s != null)
+            .OrderBy(s =>
+            {
+                string e = (string)((dynamic)s!).effectiveness;
+                return e == "Ineffective" ? 0 : e == "Partially Effective" ? 1 : e == "Effective" ? 2 : 3;
+            })
+            .ThenByDescending(s => ((dynamic)s!).breachCount)
+            .ToList<object>();
+
+        var summary = new
+        {
+            total        = scores.Count,
+            effective    = scores.Count(s => (string)((dynamic)s!).effectiveness == "Effective"),
+            partial      = scores.Count(s => (string)((dynamic)s!).effectiveness == "Partially Effective"),
+            ineffective  = scores.Count(s => (string)((dynamic)s!).effectiveness == "Ineffective"),
+            insufficient = scores.Count(s => (string)((dynamic)s!).effectiveness == "Insufficient Data"),
+        };
+
+        return Ok(ApiResponse<object>.Ok(new { scores, summary }));
+    }
+
+    // ── A4 · Actionable — Overdue Action Alerts ──────────────────────────────
+
+    /// <summary>
+    /// Finds threshold breaches in the selected period that did not receive a follow-up
+    /// scouting session within the expected response window — 48 hours for severe breaches
+    /// (count ≥ 2× threshold), 7 days otherwise. Returns these as overdue alerts ordered
+    /// by how long ago the breach occurred.
+    /// </summary>
+    [HttpGet("overdue-alerts")]
+    public async Task<IActionResult> GetOverdueAlerts(
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to,
+        [FromQuery] Guid?     farmId,
+        [FromQuery] Guid?     fieldId,
+        CancellationToken ct = default)
+    {
+        var (start, end) = ResolveRange(from, to, 90);
+        var now = DateTime.UtcNow;
+
+        // ── 1. All threshold breaches in period ──────────────────────────────
+        var obsQ = db.SessionObservations
+            .Where(o => !o.IsUnknownPest && o.PestId != null
+                     && o.Count != null && o.ThresholdCount != null && o.ThresholdCount > 0
+                     && o.Count > o.ThresholdCount
+                     && o.Session.CompletedAt >= start && o.Session.CompletedAt <= end
+                     && o.Session.FieldId != null);
+
+        if (farmId.HasValue)  obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
+        if (fieldId.HasValue) obsQ = obsQ.Where(o => o.Session.FieldId == fieldId);
+
+        var breaches = await obsQ
+            .Select(o => new
+            {
+                o.PestId,
+                PestName    = o.Pest!.CommonName,
+                FieldId     = o.Session.FieldId!.Value,
+                FieldName   = o.Session.Field != null ? o.Session.Field.Name : "(unknown)",
+                FarmName    = o.Session.Farm  != null ? o.Session.Farm.Name
+                            : o.Session.Field != null && o.Session.Field.Farm != null ? o.Session.Field.Farm.Name : null,
+                ScoutName   = o.Session.Scouter != null
+                                ? (o.Session.Scouter.FirstName + " " + o.Session.Scouter.LastName).Trim()
+                                : null,
+                o.ThresholdCount,
+                o.Count,
+                BreachDate  = o.Session.CompletedAt!.Value,
+            })
+            .ToListAsync(ct);
+
+        // ── 2. All completed sessions on breached fields after breach dates ───
+        var breachedFieldIds = breaches.Select(b => b.FieldId).Distinct().ToList();
+
+        var followUpSessions = await db.ScoutingSessions
+            .Where(s => s.DeletedAt == null && s.CompletedAt != null
+                     && s.FieldId != null
+                     && breachedFieldIds.Contains(s.FieldId.Value)
+                     && s.CompletedAt > start)
+            .Select(s => new { FieldId = s.FieldId!.Value, CompletedAt = s.CompletedAt!.Value })
+            .ToListAsync(ct);
+
+        // ── 3. For each unique pest×field breach, check for follow-up ────────
+        var alerts = breaches
+            .GroupBy(b => (b.PestId, b.FieldId))
+            .Select(grp =>
+            {
+                var first         = grp.First();
+                var latestBreach  = grp.Max(b => b.BreachDate);
+                var maxCount      = grp.Max(b => b.Count ?? 0);
+                var threshold     = grp.Max(b => b.ThresholdCount) ?? 0;
+
+                bool isSevere        = maxCount >= threshold * 2;
+                int  responseWindowH = isSevere ? 48 : 168; // 48h or 7 days
+                var  deadline        = latestBreach.AddHours(responseWindowH);
+
+                // Look for any completed session on this field AFTER the breach
+                var followUp = followUpSessions
+                    .Where(s => s.FieldId == first.FieldId && s.CompletedAt > latestBreach)
+                    .OrderBy(s => s.CompletedAt)
+                    .FirstOrDefault();
+
+                bool hasFollowUp   = followUp != null;
+                bool isOverdue     = !hasFollowUp && now > deadline;
+
+                if (!isOverdue) return null; // only surface actual overdue alerts
+
+                double hoursOverdue = (now - deadline).TotalHours;
+
+                string urgency = isSevere         ? "Critical"
+                               : hoursOverdue > 72 ? "High"
+                               : "Medium";
+
+                return (object?)new
+                {
+                    pestId          = first.PestId,
+                    pestName        = first.PestName,
+                    fieldId         = first.FieldId,
+                    fieldName       = first.FieldName,
+                    farmName        = first.FarmName,
+                    scoutName       = first.ScoutName,
+                    breachDate      = latestBreach.ToString("yyyy-MM-dd"),
+                    peakCount       = maxCount,
+                    threshold,
+                    isSevere,
+                    responseWindowHours = responseWindowH,
+                    hoursOverdue    = (int)Math.Round(hoursOverdue),
+                    daysOverdue     = Math.Round(hoursOverdue / 24.0, 1),
+                    urgency,
+                };
+            })
+            .Where(a => a != null)
+            .OrderBy(a =>
+            {
+                string u = (string)((dynamic)a!).urgency;
+                return u == "Critical" ? 0 : u == "High" ? 1 : 2;
+            })
+            .ThenByDescending(a => ((dynamic)a!).hoursOverdue)
+            .ToList<object>();
+
+        var summary = new
+        {
+            total     = alerts.Count,
+            critical  = alerts.Count(a => (string)((dynamic)a!).urgency == "Critical"),
+            high      = alerts.Count(a => (string)((dynamic)a!).urgency == "High"),
+            medium    = alerts.Count(a => (string)((dynamic)a!).urgency == "Medium"),
+        };
+
+        return Ok(ApiResponse<object>.Ok(new { alerts, summary }));
+    }
+
+    // ── A5 · Actionable — Under-scouted High-Risk Zones ─────────────────────
+
+    /// <summary>
+    /// Cross-references fields with low scouting coverage (less than 50% of the 4-session
+    /// monthly target) against fields that currently show high pest pressure, flagging
+    /// the combination as an intelligence blind spot.
+    /// </summary>
+    [HttpGet("underscouted-zones")]
+    public async Task<IActionResult> GetUnderscoutedZones(
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to,
+        [FromQuery] Guid?     farmId,
+        CancellationToken ct = default)
+    {
+        var (start, end) = ResolveRange(from, to, 90);
+        var monthStart   = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        // ── 1. Sessions this month per field ─────────────────────────────────
+        var sessQ = db.ScoutingSessions
+            .Where(s => s.DeletedAt == null && s.CompletedAt != null
+                     && s.FieldId != null && s.CompletedAt >= monthStart);
+
+        if (farmId.HasValue) sessQ = sessQ.Where(s => s.FarmId == farmId || s.Field!.FarmId == farmId);
+
+        var monthlySessions = await sessQ
+            .GroupBy(s => s.FieldId!.Value)
+            .Select(g => new { FieldId = g.Key, SessionCount = g.Count() })
+            .ToListAsync(ct);
+
+        // ── 2. All fields (for coverage denominator) ─────────────────────────
+        var fieldQ = db.Fields.Where(f => f.DeletedAt == null);
+        if (farmId.HasValue) fieldQ = fieldQ.Where(f => f.FarmId == farmId);
+
+        var allFields = await fieldQ
+            .Select(f => new
+            {
+                f.Id,
+                FieldName = f.Name,
+                FarmName  = f.Farm != null ? f.Farm.Name : null,
+            })
+            .ToListAsync(ct);
+
+        // ── 3. Pest pressure per field in the selected period ────────────────
+        var obsQ = db.SessionObservations
+            .Where(o => !o.IsUnknownPest && o.PestId != null && o.Count > 0
+                     && o.Session.CompletedAt >= start && o.Session.CompletedAt <= end
+                     && o.Session.FieldId != null);
+
+        if (farmId.HasValue) obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
+
+        var obsData = await obsQ
+            .Select(o => new
+            {
+                FieldId  = o.Session.FieldId!.Value,
+                PestName = o.Pest!.CommonName,
+                o.Count,
+                o.ThresholdCount,
+                IsAbove  = o.Count > (o.ThresholdCount ?? int.MaxValue),
+            })
+            .ToListAsync(ct);
+
+        // Compute median total obs across all fields for "high pressure" threshold
+        var obsByField = obsData
+            .GroupBy(o => o.FieldId)
+            .ToDictionary(g => g.Key, g => g.Sum(o => o.Count ?? 0));
+
+        double medianObs = obsByField.Any()
+            ? obsByField.Values.OrderBy(v => v).Skip(obsByField.Count / 2).First()
+            : 0;
+
+        const int TARGET_SESSIONS = 4;
+
+        var zones = allFields.Select(f =>
+        {
+            int sessionsThisMonth = monthlySessions.FirstOrDefault(s => s.FieldId == f.Id)?.SessionCount ?? 0;
+            double coveragePct    = Math.Min(100.0, sessionsThisMonth / (double)TARGET_SESSIONS * 100.0);
+
+            int totalObs    = obsByField.GetValueOrDefault(f.Id, 0);
+            int breachCount = obsData.Where(o => o.FieldId == f.Id).Count(o => o.IsAbove);
+
+            bool isLowCoverage  = coveragePct < 50.0;
+            bool isHighPressure = totalObs > medianObs && totalObs > 0;
+
+            if (!isLowCoverage) return null; // only surface under-scouted fields
+
+            string riskLevel = isHighPressure && breachCount > 0 ? "Critical"
+                             : isHighPressure                    ? "High"
+                             : "Low";
+
+            // Top pest
+            string topPest = obsData
+                .Where(o => o.FieldId == f.Id)
+                .GroupBy(o => o.PestName)
+                .OrderByDescending(g => g.Sum(o => o.Count ?? 0))
+                .Select(g => g.Key)
+                .FirstOrDefault() ?? "None";
+
+            return (object?)new
+            {
+                fieldId           = f.Id,
+                fieldName         = f.FieldName,
+                farmName          = f.FarmName,
+                sessionsThisMonth,
+                targetSessions    = TARGET_SESSIONS,
+                coveragePct       = Math.Round(coveragePct, 1),
+                totalObsInPeriod  = totalObs,
+                breachCount,
+                topPest,
+                isHighPressure,
+                riskLevel,
+                blindSpot         = isHighPressure,
+                message           = isHighPressure
+                    ? $"Only {sessionsThisMonth}/{TARGET_SESSIONS} sessions this month but high pest pressure detected ({totalObs} observations). This is an intelligence blind spot."
+                    : $"Only {sessionsThisMonth}/{TARGET_SESSIONS} sessions this month. Increase scouting frequency to meet coverage target.",
+            };
+        })
+        .Where(z => z != null)
+        .OrderBy(z =>
+        {
+            string r = (string)((dynamic)z!).riskLevel;
+            return r == "Critical" ? 0 : r == "High" ? 1 : 2;
+        })
+        .ThenByDescending(z => ((dynamic)z!).totalObsInPeriod)
+        .ToList<object>();
+
+        var summary = new
+        {
+            totalUnderScouted = zones.Count,
+            criticalBlindSpots = zones.Count(z => (string)((dynamic)z!).riskLevel == "Critical"),
+            highRisk           = zones.Count(z => (string)((dynamic)z!).riskLevel == "High"),
+            low                = zones.Count(z => (string)((dynamic)z!).riskLevel == "Low"),
+        };
+
+        return Ok(ApiResponse<object>.Ok(new { zones, summary }));
+    }
+
     // ── Math helpers ────────────────────────────────────────────────────────
 
     private static DateTime Monday(DateTime d)

@@ -17,6 +17,7 @@ const navItems = [
     { id: 'reports',       icon: '📈', label: 'Analytics',              path: '/analytics' },
     { id: 'intelligence',  icon: '🧭', label: 'Spread & Movement',      path: '/intelligence' },
     { id: 'predictive',    icon: '📈', label: 'Population Forecast',    path: '/predictive' },
+    { id: 'actionable',    icon: '🎯', label: 'Actionable',               path: '/actionable' },
   ]},
   { section: 'Reference', items: [
     { id: 'pests', icon: '🦗', label: 'Pest Catalogue', path: '/pests' },

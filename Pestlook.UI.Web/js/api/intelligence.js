@@ -63,3 +63,10 @@ export const getWeatherRisk = f => get(`/intelligence/weather-risk${buildParams(
 
 // ── I10 · Trap Saturation Prediction ─────────────────────────────────────────
 export const getTrapSaturation = f => get(`/intelligence/trap-saturation${buildParams(f)}`);
+
+// ── Actionable Recommendations ────────────────────────────────────────────────
+export const getSprayTiming            = f => get(`/intelligence/spray-timing${buildParams(f)}`);
+export const getScoutPriority          = f => get(`/intelligence/scout-priority${buildParams(f)}`);
+export const getTreatmentEffectiveness = f => get(`/intelligence/treatment-effectiveness${buildParams(f)}`);
+export const getOverdueAlerts          = f => get(`/intelligence/overdue-alerts${buildParams(f)}`);
+export const getUnderscoutedZones      = f => get(`/intelligence/underscouted-zones${buildParams(f)}`);

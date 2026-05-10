@@ -1,0 +1,121 @@
+import { escapeHtml } from '../../utils/helpers.js';
+import { emptyState }  from '../reports/utils.js';
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   A3 — Treatment Effectiveness Scoring
+   data = {
+     scores: [{ pestId, pestName, fieldId, fieldName, farmName, threshold,
+       breachCount, preBreachAvg, postBreachAvg, percentChange,
+       effectiveness, dataQuality }],
+     summary: { total, effective, partial, ineffective, insufficient }
+   }
+───────────────────────────────────────────────────────────────────────────── */
+
+const EFF_COL = {
+  'Effective':            '#27ae60',
+  'Partially Effective':  '#e67e22',
+  'Ineffective':          '#c0392b',
+  'Insufficient Data':    '#7f8c8d',
+};
+const EFF_ICON = {
+  'Effective':            '✅',
+  'Partially Effective':  '⚠️',
+  'Ineffective':          '❌',
+  'Insufficient Data':    '❓',
+};
+
+export async function renderTreatmentEffectiveness(el, data) {
+  const { scores = [], summary = {} } = data;
+
+  if (!scores.length) {
+    el.innerHTML = emptyState('📊', 'No effectiveness data', 'No threshold breaches found for the selected period. This analysis requires at least one breach event with scouting sessions both before and after it.');
+    return;
+  }
+
+  const kpi = (label, value, colour, sub = '') => `
+    <div class="card card-p" style="flex:1;min-width:120px;">
+      <div style="font-size:0.72rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;">${label}</div>
+      <div style="font-size:1.7rem;font-weight:700;color:${colour};">${value}</div>
+      ${sub ? `<div style="font-size:0.75rem;color:var(--text-dim);margin-top:3px;">${sub}</div>` : ''}
+    </div>`;
+
+  const kpis = `
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;">
+      ${kpi('Total Analysed',    summary.total        ?? 0, 'var(--text)')}
+      ${kpi('Effective',         summary.effective    ?? 0, '#27ae60', '≥50% reduction')}
+      ${kpi('Partially Effective', summary.partial    ?? 0, '#e67e22', '20–49% reduction')}
+      ${kpi('Ineffective',       summary.ineffective  ?? 0, '#c0392b', '<20% reduction')}
+      ${kpi('Insufficient Data', summary.insufficient ?? 0, '#7f8c8d', 'no follow-up sessions')}
+    </div>`;
+
+  const rows = scores.map(s => {
+    const col  = EFF_COL[s.effectiveness]  ?? 'var(--text)';
+    const icon = EFF_ICON[s.effectiveness] ?? '?';
+    const pctCol = s.percentChange <= -50 ? '#27ae60'
+                 : s.percentChange <= -20 ? '#e67e22'
+                 : s.percentChange <= 0   ? '#f39c12'
+                 : '#c0392b';
+
+    // Visual before/after bar
+    const maxVal    = Math.max(s.preBreachAvg, s.postBreachAvg, s.threshold, 1);
+    const preW      = Math.min(100, s.preBreachAvg  / maxVal * 100);
+    const postW     = Math.min(100, s.postBreachAvg / maxVal * 100);
+    const threshW   = Math.min(100, s.threshold     / maxVal * 100);
+
+    return `
+      <div class="card card-p" style="border-left:4px solid ${col};margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div style="font-weight:700;color:var(--text);font-size:0.95rem;">${icon} ${escapeHtml(s.pestName)}</div>
+            <div style="font-size:0.8rem;color:var(--text-dim);">${escapeHtml(s.fieldName)} — ${escapeHtml(s.farmName ?? '')}</div>
+          </div>
+          <div style="text-align:right;">
+            <span style="padding:4px 12px;border-radius:20px;font-size:0.75rem;font-weight:700;background:${col}22;color:${col};">${s.effectiveness}</span>
+            <div style="font-size:0.78rem;color:var(--text-dim);margin-top:4px;">${s.breachCount} breach${s.breachCount === 1 ? '' : 'es'} recorded</div>
+          </div>
+        </div>
+
+        <!-- Before / After comparison bars -->
+        <div style="margin:12px 0;">
+          <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;">Before vs After Breach</div>
+          <div style="margin-bottom:6px;">
+            <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-dim);margin-bottom:3px;">
+              <span>Pre-breach avg</span><span><strong>${s.preBreachAvg.toLocaleString()}</strong></span>
+            </div>
+            <div style="height:10px;background:var(--border);border-radius:5px;overflow:hidden;">
+              <div style="height:100%;width:${preW}%;background:#3498db;border-radius:5px;"></div>
+            </div>
+          </div>
+          <div style="margin-bottom:6px;">
+            <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-dim);margin-bottom:3px;">
+              <span>Post-breach avg</span><span><strong>${s.postBreachAvg.toLocaleString()}</strong></span>
+            </div>
+            <div style="height:10px;background:var(--border);border-radius:5px;overflow:hidden;">
+              <div style="height:100%;width:${postW}%;background:${col};border-radius:5px;"></div>
+            </div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-dim);margin-bottom:3px;">
+              <span>Action threshold</span><span><strong>${s.threshold.toLocaleString()}</strong></span>
+            </div>
+            <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;">
+              <div style="height:100%;width:${threshW}%;background:#e74c3c;border-radius:2px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:0.82rem;margin-bottom:8px;">
+          <span style="color:var(--text-dim);">Change: <strong style="color:${pctCol};">${s.percentChange > 0 ? '+' : ''}${s.percentChange.toFixed(1)}%</strong></span>
+        </div>
+
+        <div style="font-size:0.75rem;color:var(--text-dim);font-style:italic;">${escapeHtml(s.dataQuality)}</div>
+      </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">
+      For each pest × field combination with a threshold breach, this tab compares average pest counts in the two scouting sessions before the breach versus the two sessions after. A ≥50% reduction is scored <strong>Effective</strong>; 20–49% is <strong>Partially Effective</strong>; less than 20% is <strong>Ineffective</strong>.
+    </div>
+    ${kpis}
+    <div>${rows}</div>`;
+}
