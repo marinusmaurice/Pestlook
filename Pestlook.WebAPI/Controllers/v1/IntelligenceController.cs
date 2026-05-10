@@ -854,7 +854,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         var (start, end) = ResolveRange(from, to, 365);
         minFarms = Math.Clamp(minFarms, 2, 20);
 
-        // ── 1. Load weekly observation totals per pest × farm ─────────────
+        // ── 1. Aggregate weekly totals per pest × farm in SQL ────────────────
         // NOTE: farmId is intentionally NOT applied here — cross-farm analysis
         // requires all farms' data. It is used below to post-filter results to
         // outbreaks that include the selected farm as a participant.
@@ -865,14 +865,24 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
                      && o.PestId.HasValue
                      && o.Session!.FarmId.HasValue
                      && (!pestId.HasValue || o.PestId == pestId))
-            .Select(o => new {
-                PestId    = o.PestId!.Value,
-                PestName  = o.Pest!.CommonName,
-                FarmId    = o.Session!.FarmId!.Value,
-                FarmName  = o.Session!.Farm!.Name,
-                Count     = o.Count!.Value,
-                Threshold = o.ThresholdCount,
-                At        = o.Session!.CompletedAt!.Value,
+            .GroupBy(o => new
+            {
+                PestId   = o.PestId!.Value,
+                PestName = o.Pest!.CommonName,
+                FarmId   = o.Session!.FarmId!.Value,
+                FarmName = o.Session!.Farm!.Name,
+                // Week index from epoch — groups all obs in the same Monday-Sunday bucket
+                WeekIndex = o.Session!.CompletedAt!.Value.DayOfYear / 7 + o.Session!.CompletedAt!.Value.Year * 54,
+            })
+            .Select(g => new
+            {
+                g.Key.PestId,
+                g.Key.PestName,
+                g.Key.FarmId,
+                g.Key.FarmName,
+                WeekStart    = g.Min(o => o.Session!.CompletedAt!.Value),
+                WeeklyCount  = g.Sum(o => o.Count!.Value),
+                MaxThreshold = g.Max(o => o.ThresholdCount),
             })
             .ToListAsync();
 
@@ -882,7 +892,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
                 summary   = new { totalOutbreakPests = 0, regionalOutbreaks = 0, peakFarmCount = 0, peakPestName = (string?)null },
             }));
 
-        // ── 2. Group into weekly buckets per pest × farm ──────────────────
+        // ── 2. Build spike detection per pest × farm from the aggregated weekly rows ──
         var byPest = raw
             .GroupBy(r => new { r.PestId, r.PestName })
             .Select(pg =>
@@ -890,21 +900,19 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
                 var pestId2   = pg.Key.PestId;
                 var pestName  = pg.Key.PestName;
 
-                // Farm-level weekly series
+                // Farm-level weekly series — already summed, just normalise the WeekStart to Monday
                 var byFarm = pg
                     .GroupBy(r => new { r.FarmId, r.FarmName })
                     .Select(fg =>
                     {
                         var farmId2   = fg.Key.FarmId;
                         var farmName  = fg.Key.FarmName;
-                        var threshold = fg.Max(r => r.Threshold) ?? 0;
+                        var threshold = fg.Max(r => r.MaxThreshold) ?? 0;
 
                         var weekly = fg
-                            .GroupBy(r => Monday(r.At))
-                            .Select(wg => new {
-                                WeekStart = wg.Key,
-                                Count     = wg.Sum(r => r.Count),
-                            })
+                            .Select(r => new { WeekStart = Monday(r.WeekStart), Count = r.WeeklyCount })
+                            .GroupBy(r => r.WeekStart) // collapse any same-week duplicates from WeekIndex boundary
+                            .Select(wg => new { WeekStart = wg.Key, Count = wg.Sum(r => r.Count) })
                             .OrderBy(w => w.WeekStart)
                             .ToList();
 
@@ -1329,13 +1337,19 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         if (farmId.HasValue)  obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
         if (fieldId.HasValue) obsQ = obsQ.Where(o => o.Session.FieldId == fieldId);
 
+        // Pre-aggregate weekly totals per field in SQL — only first/last week values needed for growth rate
         var obs = await obsQ
-            .Select(o => new
+            .GroupBy(o => new
             {
-                FieldId     = o.Session.FieldId!.Value,
-                o.Count,
-                CompletedAt = o.Session.CompletedAt!.Value,
-                o.ThresholdCount,
+                FieldId   = o.Session.FieldId!.Value,
+                WeekIndex = o.Session.CompletedAt!.Value.DayOfYear / 7,
+            })
+            .Select(g => new
+            {
+                g.Key.FieldId,
+                g.Key.WeekIndex,
+                WeekTotal    = g.Sum(o => o.Count ?? 0),
+                WeekStart    = g.Min(o => o.Session.CompletedAt!.Value),
             })
             .ToListAsync(ct);
 
@@ -1346,25 +1360,19 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
             .Select(fg =>
             {
                 var lastSession = fg.OrderByDescending(s => s.CompletedAt).First();
-                var fieldObs    = obs.Where(o => o.FieldId == fg.Key).ToList();
+                var fieldWeeks  = obs.Where(o => o.FieldId == fg.Key)
+                                     .OrderBy(o => o.WeekIndex)
+                                     .ToList();
 
                 int daysSinceLast = (today - lastSession.CompletedAt.Date).Days;
                 int baseInterval  = 7; // default weekly
 
                 double growthRate = 0;
-                if (fieldObs.Count >= 2)
+                if (fieldWeeks.Count >= 2)
                 {
-                    var weekly = fieldObs
-                        .GroupBy(o => Monday(o.CompletedAt))
-                        .OrderBy(g => g.Key)
-                        .Select(wg => (double)wg.Sum(o => o.Count ?? 0))
-                        .ToList();
-
-                    if (weekly.Count >= 2)
-                    {
-                        double first = weekly[0], last = weekly[^1];
-                        growthRate = first > 0 ? (last - first) / first : last > 0 ? 1 : 0;
-                    }
+                    var weekly = fieldWeeks.Select(w => (double)w.WeekTotal).ToList();
+                    double first = weekly[0], last = weekly[^1];
+                    growthRate = first > 0 ? (last - first) / first : last > 0 ? 1 : 0;
                 }
 
                 // Adjust interval by growth rate
@@ -1451,17 +1459,24 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         if (farmId.HasValue)  obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
         if (fieldId.HasValue) obsQ = obsQ.Where(o => o.Session.FieldId == fieldId);
 
-        var obs = await obsQ
-            .Select(o => new
+        // Aggregate in SQL — one row per pest × calendar-month, not one row per observation
+        var monthlyTotals = await obsQ
+            .GroupBy(o => new
             {
                 o.PestId,
-                PestName    = o.Pest!.CommonName,
-                o.Count,
-                CompletedAt = o.Session.CompletedAt!.Value,
+                PestName = o.Pest!.CommonName,
+                Month    = o.Session.CompletedAt!.Value.Month,
+            })
+            .Select(g => new
+            {
+                g.Key.PestId,
+                g.Key.PestName,
+                g.Key.Month,
+                Total = g.Sum(o => o.Count ?? 0),
             })
             .ToListAsync(ct);
 
-        if (obs.Count == 0)
+        if (monthlyTotals.Count == 0)
             return Ok(ApiResponse<object>.Ok(new { calendar = Array.Empty<object>(), peakPests = Array.Empty<object>() }));
 
         var now         = DateTime.UtcNow;
@@ -1469,18 +1484,16 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
             .Select(i => new DateTime(now.Year, now.Month, 1).AddMonths(i))
             .ToList();
 
-        // Build monthly profiles per pest from historical data
-        var byPest = obs
-            .GroupBy(o => (o.PestId, o.PestName))
+        // Build monthly profiles per pest from the already-aggregated data
+        var byPest = monthlyTotals
+            .GroupBy(r => (r.PestId, r.PestName))
             .Select(pg =>
             {
                 var pestId2   = pg.Key.PestId;
                 var pestName  = pg.Key.PestName;
 
-                // Monthly totals per calendar month (1–12)
-                var byMonth = pg
-                    .GroupBy(o => o.CompletedAt.Month)
-                    .ToDictionary(mg => mg.Key, mg => (double)mg.Sum(o => o.Count ?? 0));
+                // Monthly totals per calendar month (1–12) — already summed by SQL
+                var byMonth = pg.ToDictionary(r => r.Month, r => (double)r.Total);
 
                 // Forecast each of the next 6 months
                 var forecasts6 = next6Months.Select(m => new
@@ -2447,30 +2460,40 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
             })
             .ToListAsync(ct);
 
-        // ── 3. Pest pressure per field in the selected period ────────────────
-        var obsQ = db.SessionObservations
+        // ── 3. Pest pressure per field — aggregated in SQL ───────────────────
+        var obsBaseQ = db.SessionObservations
             .Where(o => !o.IsUnknownPest && o.PestId != null && o.Count > 0
                      && o.Session.CompletedAt >= start && o.Session.CompletedAt <= end
                      && o.Session.FieldId != null);
 
-        if (farmId.HasValue) obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
+        if (farmId.HasValue) obsBaseQ = obsBaseQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
 
-        var obsData = await obsQ
-            .Select(o => new
+        // Total obs + breach count per field — one SQL GROUP BY
+        var fieldObsSummary = await obsBaseQ
+            .GroupBy(o => o.Session.FieldId!.Value)
+            .Select(g => new
             {
-                FieldId  = o.Session.FieldId!.Value,
-                PestName = o.Pest!.CommonName,
-                o.Count,
-                o.ThresholdCount,
-                IsAbove  = o.Count > (o.ThresholdCount ?? int.MaxValue),
+                FieldId     = g.Key,
+                TotalObs    = g.Sum(o => o.Count ?? 0),
+                BreachCount = g.Count(o => o.ThresholdCount != null && o.Count > o.ThresholdCount),
             })
             .ToListAsync(ct);
 
-        // Compute median total obs across all fields for "high pressure" threshold
-        var obsByField = obsData
-            .GroupBy(o => o.FieldId)
-            .ToDictionary(g => g.Key, g => g.Sum(o => o.Count ?? 0));
+        // Top pest per field — one SQL GROUP BY, pick max per field in memory (small result set)
+        var pestByField = await obsBaseQ
+            .Where(o => o.PestId != null)
+            .GroupBy(o => new { FieldId = o.Session.FieldId!.Value, PestName = o.Pest!.CommonName })
+            .Select(g => new { g.Key.FieldId, g.Key.PestName, Total = g.Sum(o => o.Count ?? 0) })
+            .ToListAsync(ct);
 
+        var topPestMap = pestByField
+            .GroupBy(x => x.FieldId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.Total).First().PestName);
+
+        var obsByField = fieldObsSummary.ToDictionary(x => x.FieldId, x => x.TotalObs);
+        var breachByField = fieldObsSummary.ToDictionary(x => x.FieldId, x => x.BreachCount);
+
+        // Compute median total obs across all fields for "high pressure" threshold
         double medianObs = obsByField.Any()
             ? obsByField.Values.OrderBy(v => v).Skip(obsByField.Count / 2).First()
             : 0;
@@ -2483,7 +2506,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
             double coveragePct    = Math.Min(100.0, sessionsThisMonth / (double)TARGET_SESSIONS * 100.0);
 
             int totalObs    = obsByField.GetValueOrDefault(f.Id, 0);
-            int breachCount = obsData.Where(o => o.FieldId == f.Id).Count(o => o.IsAbove);
+            int breachCount = breachByField.GetValueOrDefault(f.Id, 0);
 
             bool isLowCoverage  = coveragePct < 50.0;
             bool isHighPressure = totalObs > medianObs && totalObs > 0;
@@ -2494,13 +2517,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
                              : isHighPressure                    ? "High"
                              : "Low";
 
-            // Top pest
-            string topPest = obsData
-                .Where(o => o.FieldId == f.Id)
-                .GroupBy(o => o.PestName)
-                .OrderByDescending(g => g.Sum(o => o.Count ?? 0))
-                .Select(g => g.Key)
-                .FirstOrDefault() ?? "None";
+            string topPest = topPestMap.TryGetValue(f.Id, out var tp) ? tp : "None";
 
             return (object?)new
             {
@@ -2539,6 +2556,494 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         };
 
         return Ok(ApiResponse<object>.Ok(new { zones, summary }));
+    }
+
+    // ── E1 · Environmental — Temperature × Pest Activity Index ──────────────
+
+    /// <summary>
+    /// Computes per-pest temperature sensitivity coefficients: Pearson correlation,
+    /// slope (counts per °C), optimal temperature range, and a heat-map of average
+    /// count per 5°C temperature bucket.  Uses only sessions where TemperatureCelsius
+    /// was recorded. Does NOT require a live weather feed.
+    /// </summary>
+    [HttpGet("temperature-activity")]
+    public async Task<IActionResult> GetTemperatureActivity(
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to,
+        [FromQuery] Guid?     farmId,
+        [FromQuery] Guid?     fieldId,
+        [FromQuery] Guid?     pestId,
+        CancellationToken ct = default)
+    {
+        var (start, end) = ResolveRange(from, to, 365);
+
+        var obsQ = db.SessionObservations
+            .Where(o => !o.IsUnknownPest && o.PestId != null && o.Count > 0
+                     && o.Session.CompletedAt >= start && o.Session.CompletedAt <= end
+                     && o.Session.TemperatureCelsius != null);
+
+        if (farmId.HasValue)  obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
+        if (fieldId.HasValue) obsQ = obsQ.Where(o => o.Session.FieldId == fieldId);
+        if (pestId.HasValue)  obsQ = obsQ.Where(o => o.PestId == pestId);
+
+        var obs = await obsQ
+            .Select(o => new
+            {
+                o.PestId,
+                PestName    = o.Pest!.CommonName,
+                o.Count,
+                Temp        = o.Session.TemperatureCelsius!.Value,
+                CompletedAt = o.Session.CompletedAt!.Value,
+            })
+            .ToListAsync(ct);
+
+        if (obs.Count == 0)
+            return Ok(ApiResponse<object>.Ok(new
+            {
+                pests   = Array.Empty<object>(),
+                heatMap = Array.Empty<object>(),
+                summary = new { totalPests = 0, tempSensitive = 0, coldFavoring = 0, dataPoints = 0 },
+            }));
+
+        var pests2 = obs
+            .GroupBy(o => (o.PestId, o.PestName))
+            .Select(pg =>
+            {
+                var pestId2  = pg.Key.PestId;
+                var pestName = pg.Key.PestName;
+                var pts      = pg.Select(o => (Temp: o.Temp, Count: (double)(o.Count ?? 0))).ToList();
+
+                if (pts.Count < 3) return (object?)null;
+
+                int    n     = pts.Count;
+                double xMean = pts.Average(p => p.Temp);
+                double yMean = pts.Average(p => p.Count);
+                double ssXX  = pts.Sum(p => Math.Pow(p.Temp - xMean, 2));
+                double ssXY  = pts.Sum(p => (p.Temp - xMean) * (p.Count - yMean));
+                double ssYY  = pts.Sum(p => Math.Pow(p.Count - yMean, 2));
+                double slope = ssXX > 0 ? ssXY / ssXX : 0;
+                double r     = ssXX > 0 && ssYY > 0 ? ssXY / Math.Sqrt(ssXX * ssYY) : 0;
+
+                // 5°C buckets
+                var buckets = pts
+                    .GroupBy(p => (int)(p.Temp / 5) * 5)
+                    .OrderBy(g => g.Key)
+                    .Select(g => new
+                    {
+                        bucket       = g.Key,
+                        tempRange    = $"{g.Key}–{g.Key + 5}°C",
+                        avgCount     = Math.Round(g.Average(p => p.Count), 1),
+                        observations = g.Count(),
+                    })
+                    .ToList<object>();
+
+                // Peak temp bucket
+                var peakBucket = pts
+                    .GroupBy(p => (int)(p.Temp / 5) * 5)
+                    .OrderByDescending(g => g.Average(p => p.Count))
+                    .First();
+                string optimalRange = $"{peakBucket.Key}–{peakBucket.Key + 5}°C";
+
+                string influence = Math.Abs(r) < 0.2 ? "None"
+                                 : r > 0             ? "Warm-Favoring"
+                                                     : "Cold-Favoring";
+
+                string sensitivity = Math.Abs(r) >= 0.6 ? "Strong"
+                                   : Math.Abs(r) >= 0.35 ? "Moderate"
+                                   : "Weak";
+
+                return (object?)new
+                {
+                    pestId       = pestId2,
+                    pestName,
+                    dataPoints   = n,
+                    correlation  = Math.Round(r, 3),
+                    slopePerDegC = Math.Round(slope, 3),
+                    optimalTempRange = optimalRange,
+                    influence,
+                    sensitivity,
+                    avgCount     = Math.Round(yMean, 1),
+                    avgTemp      = Math.Round(xMean, 1),
+                    buckets,
+                };
+            })
+            .Where(p => p != null)
+            .OrderByDescending(p => Math.Abs((double)((dynamic)p!).correlation))
+            .ToList<object>();
+
+        // Global heat map: all pests combined — avg count per temp bucket
+        var globalHeatMap = obs
+            .GroupBy(o => (int)(o.Temp / 5) * 5)
+            .OrderBy(g => g.Key)
+            .Select(g => new
+            {
+                bucket       = g.Key,
+                tempRange    = $"{g.Key}–{g.Key + 5}°C",
+                avgCount     = Math.Round(g.Average(o => (double)(o.Count ?? 0)), 1),
+                observations = g.Count(),
+                pestCount    = g.Select(o => o.PestId).Distinct().Count(),
+            })
+            .ToList<object>();
+
+        var summary = new
+        {
+            totalPests   = pests2.Count,
+            tempSensitive = pests2.Count(p => (string)((dynamic)p!).influence == "Warm-Favoring"),
+            coldFavoring  = pests2.Count(p => (string)((dynamic)p!).influence == "Cold-Favoring"),
+            dataPoints   = obs.Count,
+            overallAvgTemp = Math.Round(obs.Average(o => o.Temp), 1),
+        };
+
+        return Ok(ApiResponse<object>.Ok(new { pests = pests2, heatMap = globalHeatMap, summary }));
+    }
+
+    // ── E2 · Environmental — Rainfall Lag Effect ─────────────────────────────
+
+    /// <summary>
+    /// Detects whether pest populations tend to spike 7–14 days after a detectable
+    /// "wet event" — approximated as a week where the average session temperature
+    /// dropped ≥ 3°C below the preceding 4-week rolling average (a cold-snap proxy
+    /// commonly associated with rainfall in temperate climates).
+    ///
+    /// Returns per-pest lag correlation scores plus a timeline of detected wet events
+    /// and subsequent pest responses.  A note is included prompting users to connect
+    /// a weather feed (e.g. OpenWeatherMap) for precise rainfall data.
+    /// </summary>
+    [HttpGet("rainfall-lag")]
+    public async Task<IActionResult> GetRainfallLag(
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to,
+        [FromQuery] Guid?     farmId,
+        [FromQuery] Guid?     fieldId,
+        [FromQuery] Guid?     pestId,
+        CancellationToken ct = default)
+    {
+        var (start, end) = ResolveRange(from, to, 365);
+
+        // Pull weekly average temperature per session week
+        var sessQ = db.ScoutingSessions
+            .Where(s => s.CompletedAt >= start && s.CompletedAt <= end
+                     && s.TemperatureCelsius != null && s.DeletedAt == null);
+
+        if (farmId.HasValue)  sessQ = sessQ.Where(s => s.FarmId == farmId || s.Field!.FarmId == farmId);
+        if (fieldId.HasValue) sessQ = sessQ.Where(s => s.FieldId == fieldId);
+
+        // Pull obs for pest count signal
+        var obsQ = db.SessionObservations
+            .Where(o => !o.IsUnknownPest && o.PestId != null && o.Count > 0
+                     && o.Session.CompletedAt >= start && o.Session.CompletedAt <= end
+                     && o.Session.TemperatureCelsius != null);
+
+        if (farmId.HasValue)  obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
+        if (fieldId.HasValue) obsQ = obsQ.Where(o => o.Session.FieldId == fieldId);
+        if (pestId.HasValue)  obsQ = obsQ.Where(o => o.PestId == pestId);
+
+        // Pre-aggregate in SQL: weekly avg temp
+        var weeklyTemps = await sessQ
+            .GroupBy(s => s.CompletedAt!.Value.DayOfYear / 7 + s.CompletedAt!.Value.Year * 54)
+            .Select(g => new
+            {
+                WeekIndex = g.Key,
+                WeekStart = g.Min(s => s.CompletedAt!.Value),
+                AvgTemp   = g.Average(s => s.TemperatureCelsius!.Value),
+                Sessions  = g.Count(),
+            })
+            .OrderBy(g => g.WeekIndex)
+            .ToListAsync(ct);
+
+        // Pre-aggregate in SQL: weekly total count per pest
+        var weeklyObs = await obsQ
+            .GroupBy(o => new
+            {
+                o.PestId,
+                PestName  = o.Pest!.CommonName,
+                WeekIndex = o.Session.CompletedAt!.Value.DayOfYear / 7 + o.Session.CompletedAt!.Value.Year * 54,
+            })
+            .Select(g => new
+            {
+                g.Key.PestId,
+                g.Key.PestName,
+                g.Key.WeekIndex,
+                WeekStart  = g.Min(o => o.Session.CompletedAt!.Value),
+                WeeklyCount = g.Sum(o => o.Count ?? 0),
+            })
+            .ToListAsync(ct);
+
+        if (weeklyTemps.Count < 4 || weeklyObs.Count == 0)
+            return Ok(ApiResponse<object>.Ok(new
+            {
+                wetEvents = Array.Empty<object>(),
+                pests     = Array.Empty<object>(),
+                summary   = new { wetEventsFound = 0, pestsAnalysed = 0, dataNote = "Insufficient data. At least 4 weeks of temperature-recorded sessions required." },
+            }));
+
+        // Detect wet events: weekly temp drops ≥ 3°C below 4-week rolling average
+        var wetEvents = new List<(int WeekIndex, DateTime WeekStart, double TempDrop)>();
+        for (int i = 4; i < weeklyTemps.Count; i++)
+        {
+            double rolling4Avg = weeklyTemps.Skip(i - 4).Take(4).Average(w => w.AvgTemp);
+            double drop        = rolling4Avg - weeklyTemps[i].AvgTemp;
+            if (drop >= 3.0)
+                wetEvents.Add((weeklyTemps[i].WeekIndex, Monday(weeklyTemps[i].WeekStart), drop));
+        }
+
+        var pestWeekMap = weeklyObs
+            .GroupBy(o => (o.PestId, o.PestName))
+            .ToDictionary(
+                g => g.Key,
+                g => g.ToDictionary(o => o.WeekIndex, o => o.WeeklyCount));
+
+        // Lag lookup: index → week index map
+        var weekIndexByPos = weeklyTemps.Select((w, i) => (w.WeekIndex, Pos: i)).ToDictionary(x => x.WeekIndex, x => x.Pos);
+
+        var pestResults = pestWeekMap
+            .Select(kv =>
+            {
+                var (pid, pname) = kv.Key;
+                var countByWeek  = kv.Value;
+
+                if (wetEvents.Count == 0) return (object?)null;
+
+                // For each wet event, find the max count spike in the 7–21 day window after
+                var lagMatches = wetEvents.Select(we =>
+                {
+                    // Weeks 1–3 after the wet event
+                    var lagCounts = Enumerable.Range(1, 3).Select(lag =>
+                    {
+                        var targetIdx = weeklyTemps
+                            .Skip(weekIndexByPos.GetValueOrDefault(we.WeekIndex, 0) + lag)
+                            .FirstOrDefault();
+                        if (targetIdx == null) return 0;
+                        return countByWeek.GetValueOrDefault(targetIdx.WeekIndex, 0);
+                    }).ToList();
+
+                    // Baseline: avg count in 2 weeks before event
+                    var baselineCounts = Enumerable.Range(1, 2).Select(lag =>
+                    {
+                        int pos = weekIndexByPos.GetValueOrDefault(we.WeekIndex, 0) - lag;
+                        if (pos < 0) return 0;
+                        return countByWeek.GetValueOrDefault(weeklyTemps[pos].WeekIndex, 0);
+                    }).ToList();
+
+                    int peakLag     = lagCounts.IndexOf(lagCounts.Max()) + 1; // 1, 2, or 3 weeks
+                    int peakCount   = lagCounts.Max();
+                    double baseline = baselineCounts.Any() ? baselineCounts.Average() : 0;
+                    double spike    = baseline > 0 ? (peakCount - baseline) / baseline * 100.0 : peakCount > 0 ? 100.0 : 0;
+
+                    return new { we.WeekStart, we.TempDrop, peakLag, peakCount, baseline = (int)baseline, spikePct = Math.Round(spike, 1) };
+                }).ToList();
+
+                int eventsWithSpike = lagMatches.Count(m => m.spikePct > 20);
+                double avgLagWeeks  = lagMatches.Where(m => m.spikePct > 20).Select(m => (double)m.peakLag).DefaultIfEmpty(0).Average();
+                double avgSpike     = lagMatches.Where(m => m.spikePct > 20).Select(m => m.spikePct).DefaultIfEmpty(0).Average();
+
+                string lagConfidence = eventsWithSpike >= 3 && avgSpike > 50 ? "Strong"
+                                     : eventsWithSpike >= 2                   ? "Moderate"
+                                     : eventsWithSpike == 1                   ? "Weak"
+                                     : "None";
+
+                return (object?)new
+                {
+                    pestId          = pid,
+                    pestName        = pname,
+                    wetEventsTotal  = wetEvents.Count,
+                    eventsWithSpike,
+                    lagConfidence,
+                    avgLagWeeks     = Math.Round(avgLagWeeks, 1),
+                    avgLagDays      = (int)Math.Round(avgLagWeeks * 7),
+                    avgSpikePct     = Math.Round(avgSpike, 1),
+                    lagDetail       = lagMatches.Cast<object>().ToList(),
+                };
+            })
+            .Where(p => p != null)
+            .OrderByDescending(p => ((dynamic)p!).lagConfidence == "Strong" ? 3
+                                  : ((dynamic)p!).lagConfidence == "Moderate" ? 2
+                                  : ((dynamic)p!).lagConfidence == "Weak" ? 1 : 0)
+            .ThenByDescending(p => ((dynamic)p!).avgSpikePct)
+            .ToList<object>();
+
+        var wetEventList = wetEvents
+            .Select(we => new { weekStart = we.WeekStart.ToString("yyyy-MM-dd"), tempDrop = Math.Round(we.TempDrop, 1) })
+            .ToList<object>();
+
+        var summary2 = new
+        {
+            wetEventsFound  = wetEvents.Count,
+            pestsAnalysed   = pestResults.Count,
+            strongLag       = pestResults.Count(p => (string)((dynamic)p!).lagConfidence == "Strong"),
+            moderateLag     = pestResults.Count(p => (string)((dynamic)p!).lagConfidence == "Moderate"),
+            dataNote        = "Wet events are approximated as weeks where avg session temperature dropped ≥3°C below the 4-week rolling average. Connect an OpenWeatherMap feed for precise rainfall data.",
+        };
+
+        return Ok(ApiResponse<object>.Ok(new { wetEvents = wetEventList, pests = pestResults, summary = summary2 }));
+    }
+
+    // ── E3 · Environmental — Drought Stress Correlation ──────────────────────
+
+    /// <summary>
+    /// Identifies drought periods — rolling 30-day windows where the average session
+    /// temperature was more than 2°C above the long-term mean — and correlates them
+    /// with elevated pest breach rates. Pests that breach significantly more often
+    /// during hot/dry periods are flagged as drought-stress indicators.
+    /// </summary>
+    [HttpGet("drought-stress")]
+    public async Task<IActionResult> GetDroughtStress(
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to,
+        [FromQuery] Guid?     farmId,
+        [FromQuery] Guid?     fieldId,
+        [FromQuery] Guid?     pestId,
+        CancellationToken ct = default)
+    {
+        var (start, end) = ResolveRange(from, to, 365);
+
+        var obsQ = db.SessionObservations
+            .Where(o => !o.IsUnknownPest && o.PestId != null
+                     && o.ThresholdCount != null && o.ThresholdCount > 0
+                     && o.Session.CompletedAt >= start && o.Session.CompletedAt <= end
+                     && o.Session.TemperatureCelsius != null
+                     && o.Session.FieldId != null);
+
+        if (farmId.HasValue)  obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
+        if (fieldId.HasValue) obsQ = obsQ.Where(o => o.Session.FieldId == fieldId);
+        if (pestId.HasValue)  obsQ = obsQ.Where(o => o.PestId == pestId);
+
+        // Aggregate in SQL: per session-date + pest — total count, threshold, avg temp
+        var sessionAgg = await obsQ
+            .GroupBy(o => new
+            {
+                o.PestId,
+                PestName    = o.Pest!.CommonName,
+                SessionDate = o.Session.CompletedAt!.Value.Date,
+                Temp        = o.Session.TemperatureCelsius!.Value,
+            })
+            .Select(g => new
+            {
+                g.Key.PestId,
+                g.Key.PestName,
+                g.Key.SessionDate,
+                g.Key.Temp,
+                TotalCount    = g.Sum(o => o.Count ?? 0),
+                MaxThreshold  = g.Max(o => o.ThresholdCount) ?? 0,
+                IsAbove       = g.Sum(o => o.Count ?? 0) > (g.Max(o => o.ThresholdCount) ?? 0),
+            })
+            .ToListAsync(ct);
+
+        if (sessionAgg.Count == 0)
+            return Ok(ApiResponse<object>.Ok(new
+            {
+                droughtPeriods = Array.Empty<object>(),
+                pests          = Array.Empty<object>(),
+                summary        = new { droughtDays = 0, normalDays = 0, pestsAnalysed = 0, dataNote = "No temperature-recorded sessions with threshold data found." },
+            }));
+
+        // Global long-term mean temperature
+        double longTermMean = sessionAgg.Select(s => s.Temp).Average();
+
+        // Classify each session date as drought (> 2°C above LTM) or normal
+        var dateTemps = sessionAgg
+            .GroupBy(s => s.SessionDate)
+            .ToDictionary(g => g.Key, g => g.Average(s => s.Temp));
+
+        // 30-day rolling drought flag: a date is "drought" if the avg temp over
+        // its surrounding 30-day window (±15 days) exceeds LTM + 2°C
+        var droughtDates = new HashSet<DateTime>();
+        var sortedDates   = dateTemps.Keys.OrderBy(d => d).ToList();
+        foreach (var d in sortedDates)
+        {
+            var window30 = dateTemps
+                .Where(kv => Math.Abs((kv.Key - d).TotalDays) <= 15)
+                .Select(kv => kv.Value)
+                .ToList();
+            if (window30.Count >= 3 && window30.Average() > longTermMean + 2.0)
+                droughtDates.Add(d);
+        }
+
+        int droughtDayCount = droughtDates.Count;
+        int normalDayCount  = sortedDates.Count - droughtDayCount;
+
+        // Per-pest: breach rate during drought vs normal periods
+        var pestStats = sessionAgg
+            .GroupBy(s => (s.PestId, s.PestName))
+            .Select(pg =>
+            {
+                var droughtSess = pg.Where(s => droughtDates.Contains(s.SessionDate)).ToList();
+                var normalSess  = pg.Where(s => !droughtDates.Contains(s.SessionDate)).ToList();
+
+                int droughtBreaches = droughtSess.Count(s => s.IsAbove);
+                int normalBreaches  = normalSess.Count(s => s.IsAbove);
+
+                double droughtBreachRate = droughtSess.Count > 0 ? (double)droughtBreaches / droughtSess.Count * 100.0 : 0;
+                double normalBreachRate  = normalSess.Count  > 0 ? (double)normalBreaches  / normalSess.Count  * 100.0 : 0;
+
+                double avgCountDrought = droughtSess.Any() ? droughtSess.Average(s => (double)s.TotalCount) : 0;
+                double avgCountNormal  = normalSess.Any()  ? normalSess.Average(s => (double)s.TotalCount)  : 0;
+
+                double droughtBias = normalBreachRate > 0
+                    ? (droughtBreachRate - normalBreachRate) / normalBreachRate * 100.0
+                    : droughtBreachRate > 0 ? 100.0 : 0.0;
+
+                string stressLink = droughtBias >= 50 && droughtBreaches >= 3 ? "Strong"
+                                  : droughtBias >= 20 && droughtBreaches >= 2 ? "Moderate"
+                                  : droughtBias >= 5                           ? "Weak"
+                                  : "None";
+
+                return (object?)new
+                {
+                    pestId              = pg.Key.PestId,
+                    pestName            = pg.Key.PestName,
+                    droughtSessions     = droughtSess.Count,
+                    normalSessions      = normalSess.Count,
+                    droughtBreaches,
+                    normalBreaches,
+                    droughtBreachRate   = Math.Round(droughtBreachRate, 1),
+                    normalBreachRate    = Math.Round(normalBreachRate, 1),
+                    avgCountDrought     = Math.Round(avgCountDrought, 1),
+                    avgCountNormal      = Math.Round(avgCountNormal, 1),
+                    droughtBiasPct      = Math.Round(droughtBias, 1),
+                    stressLink,
+                };
+            })
+            .Where(p => p != null)
+            .OrderByDescending(p => ((dynamic)p!).stressLink == "Strong" ? 3
+                                  : ((dynamic)p!).stressLink == "Moderate" ? 2
+                                  : ((dynamic)p!).stressLink == "Weak" ? 1 : 0)
+            .ThenByDescending(p => ((dynamic)p!).droughtBiasPct)
+            .ToList<object>();
+
+        // Drought period ranges (contiguous drought dates)
+        var droughtPeriods = new List<object>();
+        DateTime? periodStart = null;
+        DateTime? periodEnd   = null;
+        foreach (var d in sortedDates)
+        {
+            bool isDrought = droughtDates.Contains(d);
+            if (isDrought)
+            {
+                periodStart ??= d;
+                periodEnd    = d;
+            }
+            else if (periodStart.HasValue)
+            {
+                droughtPeriods.Add(new { start = periodStart.Value.ToString("yyyy-MM-dd"), end = periodEnd!.Value.ToString("yyyy-MM-dd"), days = (int)(periodEnd.Value - periodStart.Value).TotalDays + 1 });
+                periodStart = null;
+            }
+        }
+        if (periodStart.HasValue)
+            droughtPeriods.Add(new { start = periodStart.Value.ToString("yyyy-MM-dd"), end = periodEnd!.Value.ToString("yyyy-MM-dd"), days = (int)(periodEnd!.Value - periodStart.Value).TotalDays + 1 });
+
+        var summary3 = new
+        {
+            droughtDays     = droughtDayCount,
+            normalDays      = normalDayCount,
+            longTermMeanTemp = Math.Round(longTermMean, 1),
+            droughtThreshold = Math.Round(longTermMean + 2.0, 1),
+            pestsAnalysed   = pestStats.Count,
+            droughtStress   = pestStats.Count(p => (string)((dynamic)p!).stressLink is "Strong" or "Moderate"),
+            dataNote        = "Drought is approximated as 30-day windows where the average session temperature exceeds the long-term mean by ≥ 2°C. Connect a weather/soil-moisture feed for precision.",
+        };
+
+        return Ok(ApiResponse<object>.Ok(new { droughtPeriods, pests = pestStats, summary = summary3 }));
     }
 
     // ── Math helpers ────────────────────────────────────────────────────────

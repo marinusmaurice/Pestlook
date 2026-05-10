@@ -3,6 +3,147 @@ import { escapeHtml } from '../utils/helpers.js';
 // ── Inline SVG Diagrams (keyed by section id) ─────────────────────────────────
 const SVG = {
 
+  'env-temp': `
+  <div style="margin:16px 0 20px;padding:16px;background:#1a2820;border-radius:10px;overflow:hidden;">
+    <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#4ade80;margin-bottom:12px;">Temperature × Pest Activity — Chart Anatomy</div>
+    <svg viewBox="0 0 460 190" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:460px;display:block;">
+      <defs><style>text{font-family:Inter,sans-serif;}</style></defs>
+      <rect width="460" height="190" rx="8" fill="#1a2e22"/>
+      <!-- Axes -->
+      <line x1="44" y1="18" x2="44"  y2="150" stroke="#3a5040" stroke-width="1"/>
+      <line x1="44" y1="150" x2="448" y2="150" stroke="#3a5040" stroke-width="1"/>
+      <!-- Y label -->
+      <text x="38" y="150" text-anchor="end" fill="#475569" font-size="7">0</text>
+      <text x="38" y="110" text-anchor="end" fill="#475569" font-size="7">25</text>
+      <text x="38" y="70"  text-anchor="end" fill="#475569" font-size="7">50</text>
+      <text x="38" y="30"  text-anchor="end" fill="#475569" font-size="7">75</text>
+      <!-- H-grid -->
+      <line x1="44" y1="110" x2="448" y2="110" stroke="#243428" stroke-width="0.8"/>
+      <line x1="44" y1="70"  x2="448" y2="70"  stroke="#243428" stroke-width="0.8"/>
+      <line x1="44" y1="30"  x2="448" y2="30"  stroke="#243428" stroke-width="0.8"/>
+      <!-- X-axis temp bands -->
+      <text x="78"  y="163" text-anchor="middle" fill="#475569" font-size="7">10–15°C</text>
+      <text x="142" y="163" text-anchor="middle" fill="#475569" font-size="7">15–20°C</text>
+      <text x="206" y="163" text-anchor="middle" fill="#475569" font-size="7">20–25°C</text>
+      <text x="270" y="163" text-anchor="middle" fill="#475569" font-size="7">25–30°C</text>
+      <text x="334" y="163" text-anchor="middle" fill="#475569" font-size="7">30–35°C</text>
+      <text x="398" y="163" text-anchor="middle" fill="#475569" font-size="7">35–40°C</text>
+      <!-- Bars — rising warm-favoring pest -->
+      <rect x="52"  y="138" width="50" height="12" rx="2" fill="#c0392b88"/>
+      <rect x="116" y="126" width="50" height="24" rx="2" fill="#c0392b88"/>
+      <rect x="180" y="108" width="50" height="42" rx="2" fill="#c0392b88"/>
+      <rect x="244" y="88"  width="50" height="62" rx="2" fill="#c0392b88"/>
+      <rect x="308" y="66"  width="50" height="84" rx="2" fill="#c0392b88"/>
+      <rect x="372" y="46"  width="50" height="104" rx="2" fill="#c0392b88"/>
+      <!-- OLS trend line -->
+      <line x1="77"  y1="144" x2="397" y2="48" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="5,3"/>
+      <!-- Annotations -->
+      <rect x="290" y="20" width="130" height="36" rx="5" fill="#243428" stroke="#3a5040" stroke-width="0.8"/>
+      <text x="298" y="33" fill="#94a3b8" font-size="7">Warm-Favoring · r = +0.87</text>
+      <text x="298" y="44" fill="#fde68a" font-size="7">Slope: +4.2 per °C</text>
+      <text x="298" y="55" fill="#fca5a5" font-size="7">Optimal: 35–40°C</text>
+      <!-- Legend -->
+      <rect x="48"  y="172" width="12" height="8" rx="2" fill="#c0392b88"/>
+      <text x="64"  y="179" fill="#fca5a5" font-size="7">Avg count per temp band</text>
+      <line x1="190" y1="176" x2="206" y2="176" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <text x="210" y="179" fill="#fde68a" font-size="7">OLS trend (slope)</text>
+    </svg>
+  </div>`,
+
+  'env-rainfall': `
+  <div style="margin:16px 0 20px;padding:16px;background:#1a2820;border-radius:10px;overflow:hidden;">
+    <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#4ade80;margin-bottom:12px;">Rainfall Lag — Wet Event → Pest Spike Timeline</div>
+    <svg viewBox="0 0 460 190" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:460px;display:block;">
+      <defs><style>text{font-family:Inter,sans-serif;}</style></defs>
+      <rect width="460" height="190" rx="8" fill="#1a2e22"/>
+      <!-- Week labels -->
+      <text x="58"  y="16" text-anchor="middle" fill="#475569" font-size="7">Wk 1</text>
+      <text x="114" y="16" text-anchor="middle" fill="#475569" font-size="7">Wk 2</text>
+      <text x="170" y="16" text-anchor="middle" fill="#475569" font-size="7">Wk 3</text>
+      <text x="226" y="16" text-anchor="middle" fill="#475569" font-size="7">Wk 4</text>
+      <text x="282" y="16" text-anchor="middle" fill="#475569" font-size="7">Wk 5</text>
+      <text x="338" y="16" text-anchor="middle" fill="#475569" font-size="7">Wk 6</text>
+      <text x="394" y="16" text-anchor="middle" fill="#475569" font-size="7">Wk 7</text>
+      <!-- Temperature line (rolling avg) -->
+      <polyline points="34,50 90,52 146,51 202,68 258,85 314,55 370,53 426,52" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
+      <!-- Wet event marker — Wk 4 temp drop -->
+      <line x1="202" y1="20" x2="202" y2="150" stroke="#2980b9" stroke-width="1" stroke-dasharray="4,3"/>
+      <rect x="168" y="64" width="68" height="16" rx="4" fill="#2980b920" stroke="#2980b944"/>
+      <text x="202" y="75" text-anchor="middle" fill="#93c5fd" font-size="7" font-weight="700">💧 Wet Event −4.1°C</text>
+      <!-- Pest count bars — spike at Wk 6 (2 weeks after wet event) -->
+      <rect x="34"  y="122" width="42" height="18" rx="2" fill="#c0392b66"/>
+      <rect x="90"  y="118" width="42" height="22" rx="2" fill="#c0392b66"/>
+      <rect x="146" y="120" width="42" height="20" rx="2" fill="#c0392b66"/>
+      <rect x="202" y="116" width="42" height="24" rx="2" fill="#c0392b66"/>
+      <rect x="258" y="100" width="42" height="40" rx="2" fill="#c0392b"/>
+      <rect x="314" y="88"  width="42" height="52" rx="2" fill="#c0392b"/>
+      <rect x="370" y="110" width="42" height="30" rx="2" fill="#c0392b66"/>
+      <!-- Axis -->
+      <line x1="26" y1="140" x2="448" y2="140" stroke="#3a5040" stroke-width="1"/>
+      <!-- Spike annotation -->
+      <line x1="335" y1="86" x2="335" y2="66" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,2"/>
+      <rect x="298" y="54" width="78" height="14" rx="3" fill="#78350f"/>
+      <text x="337" y="64" text-anchor="middle" fill="#fde68a" font-size="7" font-weight="700">+68% spike · Lag 2 wks</text>
+      <!-- Lag arrow -->
+      <line x1="224" y1="132" x2="258" y2="132" stroke="#4ade80" stroke-width="1.2" marker-end="url(#arr)"/>
+      <text x="241" y="145" text-anchor="middle" fill="#4ade80" font-size="6.5">14 day lag</text>
+      <!-- Legend -->
+      <line x1="30" y1="175" x2="46" y2="175" stroke="#3b82f6" stroke-width="1.5"/>
+      <text x="50"  y="178" fill="#93c5fd" font-size="7">Rolling avg temp</text>
+      <rect x="140" y="171" width="12" height="8" rx="2" fill="#c0392b"/>
+      <text x="156" y="178" fill="#fca5a5" font-size="7">Weekly pest count</text>
+      <rect x="256" y="171" width="12" height="8" rx="2" fill="#2980b920" stroke="#2980b944"/>
+      <text x="272" y="178" fill="#93c5fd" font-size="7">Wet event</text>
+    </svg>
+  </div>`,
+
+  'env-drought': `
+  <div style="margin:16px 0 20px;padding:16px;background:#1a2820;border-radius:10px;overflow:hidden;">
+    <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#4ade80;margin-bottom:12px;">Drought Stress — Breach Rate Comparison</div>
+    <svg viewBox="0 0 460 180" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:460px;display:block;">
+      <defs><style>text{font-family:Inter,sans-serif;}</style></defs>
+      <rect width="460" height="180" rx="8" fill="#1a2e22"/>
+      <!-- Title labels -->
+      <text x="165" y="22" text-anchor="middle" fill="#f87171" font-size="8" font-weight="700">☀ Drought Periods</text>
+      <text x="355" y="22" text-anchor="middle" fill="#4ade80" font-size="8" font-weight="700">🌤 Normal Conditions</text>
+      <!-- Long-term mean line -->
+      <line x1="30" y1="90" x2="430" y2="90" stroke="#475569" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="434" y="93" fill="#64748b" font-size="7">LTM</text>
+      <!-- Drought breach rate bars (left group) -->
+      <text x="56"  y="37" text-anchor="middle" fill="#94a3b8" font-size="7">Aphids</text>
+      <rect x="34"  y="40" width="44" height="85" rx="3" fill="#c0392b"/>
+      <text x="56"  y="136" text-anchor="middle" fill="#fca5a5" font-size="7">72%</text>
+      <text x="120" y="37" text-anchor="middle" fill="#94a3b8" font-size="7">Whitefly</text>
+      <rect x="98"  y="66" width="44" height="59" rx="3" fill="#e67e22"/>
+      <text x="120" y="136" text-anchor="middle" fill="#fed7aa" font-size="7">49%</text>
+      <text x="184" y="37" text-anchor="middle" fill="#94a3b8" font-size="7">Cutworm</text>
+      <rect x="162" y="53" width="44" height="72" rx="3" fill="#c0392b"/>
+      <text x="184" y="136" text-anchor="middle" fill="#fca5a5" font-size="7">60%</text>
+      <!-- Normal breach rate bars (right group) -->
+      <text x="312" y="37" text-anchor="middle" fill="#94a3b8" font-size="7">Aphids</text>
+      <rect x="290" y="99" width="44" height="26" rx="3" fill="#27ae60"/>
+      <text x="312" y="136" text-anchor="middle" fill="#86efac" font-size="7">22%</text>
+      <text x="376" y="37" text-anchor="middle" fill="#94a3b8" font-size="7">Whitefly</text>
+      <rect x="354" y="104" width="44" height="21" rx="3" fill="#27ae60"/>
+      <text x="376" y="136" text-anchor="middle" fill="#86efac" font-size="7">18%</text>
+      <!-- Divider -->
+      <line x1="250" y1="30" x2="250" y2="145" stroke="#3a5040" stroke-width="1.2" stroke-dasharray="5,3"/>
+      <!-- Bias annotation -->
+      <rect x="260" y="60" width="82" height="28" rx="5" fill="#243428" stroke="#3a5040" stroke-width="0.8"/>
+      <text x="301" y="73" text-anchor="middle" fill="#fde68a" font-size="7">Aphids drought bias</text>
+      <text x="301" y="83" text-anchor="middle" fill="#fca5a5" font-size="8" font-weight="700">+227% breach rate</text>
+      <!-- Axis -->
+      <line x1="30" y1="125" x2="430" y2="125" stroke="#3a5040" stroke-width="1"/>
+      <!-- Legend -->
+      <rect x="30"  y="155" width="12" height="8" rx="2" fill="#c0392b"/>
+      <text x="46"  y="162" fill="#fca5a5" font-size="7">Strong drought stress</text>
+      <rect x="165" y="155" width="12" height="8" rx="2" fill="#e67e22"/>
+      <text x="181" y="162" fill="#fed7aa" font-size="7">Moderate</text>
+      <rect x="260" y="155" width="12" height="8" rx="2" fill="#27ae60"/>
+      <text x="276" y="162" fill="#86efac" font-size="7">Normal breach rate</text>
+    </svg>
+  </div>`,
+
   dashboard: `
   <div style="margin:16px 0 20px;padding:16px;background:#1a2820;border-radius:10px;overflow:hidden;">
     <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#4ade80;margin-bottom:12px;">Dashboard Layout</div>
@@ -1328,6 +1469,138 @@ const GROUPS = [
       },
     ],
   },
+  {
+    id:    'environmental',
+    icon:  '🌡',
+    title: 'Environmental Intelligence',
+    intro: 'The Environmental Correlation Intelligence section identifies how ambient conditions — temperature, rainfall events, and drought periods — drive pest population pressure on your farms. All analysis is derived from temperatures your scouts already log during scouting sessions; no external weather service is required.',
+    sections: [
+      {
+        id:    'env-temp',
+        icon:  '🌡',
+        title: 'Temperature × Pest Activity Index',
+        intro: 'For every pest species with sufficient scouting data, this tab computes a Pearson correlation coefficient between ambient temperature and observed pest count, fits a linear slope (extra pests per °C), and shows the historical count broken into 5°C temperature bands. Use it to anticipate which pests will surge when a heat wave arrives — or which cool-season pests to watch during colder weeks.',
+        items: [
+          {
+            heading: 'KPI Cards',
+            body: '<strong>Pests Analysed</strong> — pest species with at least 3 temperature-linked observations in the selected period. <strong>Warm-Favoring</strong> — pests whose Pearson r is ≥ +0.2 (higher counts in warmer sessions). <strong>Cold-Favoring</strong> — pests whose Pearson r is ≤ −0.2 (higher counts in cooler sessions). <strong>Avg Temp (period)</strong> — the mean temperature across all temperature-recorded sessions in the date range, shown with total data-point count.',
+          },
+          {
+            heading: 'Warm-Favoring vs Cold-Favoring badge',
+            body: '<span style="color:#c0392b;font-weight:600;">Warm-Favoring</span> means warmer temperatures are associated with higher pest counts — a summer peak species. Expect pressure to rise during heat waves and fall during cold spells. <span style="color:#2980b9;font-weight:600;">Cold-Favoring</span> means cooler conditions drive higher counts — common in aphids and some mite species. Monitor these closely during cool, wet periods. <span style="color:#7f8c8d;font-weight:600;">None</span> means no clear linear relationship was detected; temperature alone is not a reliable predictor for this pest.',
+          },
+          {
+            heading: 'Pearson r column',
+            body: 'A value between −1.0 and +1.0. Values above +0.5 indicate a strong positive relationship (much warmer = many more pests). Values below −0.5 indicate a strong negative relationship. Values between −0.2 and +0.2 are classified as None. As a practical rule: r > 0.5 or r < −0.5 represents a relationship worth acting on in your scouting schedule.',
+          },
+          {
+            heading: 'Slope per °C column',
+            body: 'How many additional (or fewer) pests the model expects for every 1°C increase in ambient temperature. For example, a slope of +4.2 means every extra degree Celsius is associated with 4 more pests per observation. A slope of −3.1 means every extra degree Celsius is associated with 3 fewer pests — a cool-season species. Only practically meaningful when Temperature Influence is Warm-Favoring or Cold-Favoring.',
+          },
+          {
+            heading: 'Optimal Temperature Range column',
+            body: 'The 5°C temperature band in which this pest\'s historically highest average counts were recorded, derived from the band that produced the highest mean observation count. Use this to anticipate pressure peaks when weather forecasts show temperatures entering this range.',
+          },
+          {
+            heading: 'Count by Temperature Band bars',
+            body: 'Each pest card shows a series of horizontal bars — one per 5°C band — showing the average observed count when sessions occurred in that temperature range. The bar width is proportional to the highest-count band. This profile is more useful than the raw slope figure because it shows the actual distribution rather than a linear approximation.',
+          },
+          {
+            heading: 'Global Temperature Heat Map',
+            body: 'The table at the bottom aggregates all pests combined. It shows the average observation count, the number of sessions, and the number of distinct pest species recorded in each 5°C band across your entire farm. A band with a dramatically higher average count is the highest-risk temperature window across your whole pest community — consider increasing scouting frequency when the forecast enters that band.',
+          },
+          {
+            heading: 'Data requirements',
+            body: 'Temperature is recorded per scouting session (not per observation). If scouts do not log temperature, this tab will show no data. Ensure scouts record ambient air temperature when starting or completing each session. A minimum of 3 temperature-linked observations is required per pest for the correlation to be computed.',
+          },
+          {
+            heading: 'Limitations',
+            body: 'A linear Pearson correlation assumes a straight-line relationship between temperature and count. In reality, many pests have a parabolic response (activity peaks at an optimal temperature and falls on either side). The slope and r value capture the dominant trend but may understate risk at the extreme ends of the temperature range. Use the band bars for a more realistic picture of the full temperature response curve.',
+          },
+        ],
+      },
+      {
+        id:    'env-rainfall',
+        icon:  '🌧',
+        title: 'Rainfall Lag Effect',
+        intro: 'Many pest populations spike 7–21 days after significant rainfall — eggs hatch, larvae become active, or fungal-host plant stress conditions emerge following wet weather. Because Pestlook does not integrate a rainfall feed, the system approximates wet events as weeks where the average session temperature drops ≥ 3°C below the 4-week rolling average (a temperature drop typically accompanies rain systems). It then checks whether pest counts rose in the 1–3 weeks following each event.',
+        items: [
+          {
+            heading: 'KPI Cards',
+            body: '<strong>Wet Events Detected</strong> — the number of weeks in the selected period where the rolling-average temperature proxy identified a significant cool/wet event. <strong>Pests Analysed</strong> — pests with enough weekly count data to compare before and after each event. <strong>Strong Lag Signal</strong> — pests where 3 or more wet events were each followed by a count spike of more than 50%. <strong>Moderate Lag Signal</strong> — pests with 2 or more spiked events.',
+          },
+          {
+            heading: 'Data note banner',
+            body: 'The amber information banner below the KPI cards explains the proxy method being used. It is important context: this is a temperature-based approximation, not actual rainfall data. The accuracy of wet-event detection depends on how consistently scouts record temperature. Consider this tab a directional signal rather than a precise rainfall correlation.',
+          },
+          {
+            heading: 'Wet Event pills',
+            body: 'The blue pills show each detected wet event — the week start date and the size of the temperature drop in °C. A drop of 4°C or more is a stronger rainfall proxy than a marginal 3°C drop. Events with larger drops are more likely to represent genuine rainfall, although a sudden cold front without rain can produce a similar temperature signature.',
+          },
+          {
+            heading: 'Lag confidence badge',
+            body: '<span style="color:#c0392b;font-weight:600;">🔴 Strong</span> — 3 or more wet events were followed by a spike > 50% above the 2-week baseline. Plan extra scouting visits in the 2–3 weeks following any future wet event for this pest. <span style="color:#e67e22;font-weight:600;">🟠 Moderate</span> — 2 events with a spike. Worth monitoring. <span style="color:#f1c40f;font-weight:600;">🟡 Weak</span> — only 1 event showed a spike. Could be coincidence; gather more data. <span style="color:#7f8c8d;font-weight:600;">⬜ None</span> — no consistent post-wet spike detected for this pest.',
+          },
+          {
+            heading: 'Avg Lag and Avg Spike fields',
+            body: '<strong>Avg lag</strong> is the average number of weeks (and days) between the wet event and the peak pest count in the following 3 weeks, calculated from events that did produce a spike. <strong>Avg spike</strong> is the percentage increase above the 2-week baseline count at that lag peak. A large average spike with a short lag (1 week, 7 days) means you have very little time to respond after a wet event — increase inspection frequency immediately rather than waiting for the next scheduled visit.',
+          },
+          {
+            heading: 'Lag Detail table',
+            body: 'Shows up to 5 of the most significant events for each pest: the wet event week, the temperature drop, which lag week had the peak, the baseline count (2-week average before the event), the peak count, and the spike percentage. Rows where spikePct > 50 are highlighted in red. This table lets you verify that the overall lag signal is consistent rather than driven by a single outlier event.',
+          },
+          {
+            heading: 'Connecting to real rainfall data',
+            body: 'The lag detection is more accurate when scouts log temperatures consistently. For farm-specific precision, consider adding actual rainfall recording (in mm) to the session form — a future enhancement described in the intelligence roadmap. An OpenWeatherMap integration would allow the system to use real precipitation data rather than the temperature proxy.',
+          },
+        ],
+      },
+      {
+        id:    'env-drought',
+        icon:  '☀',
+        title: 'Drought Stress Correlation',
+        intro: 'Identifies whether pest threshold breach rates are elevated during drought conditions — defined as 30-day windows where the average session temperature exceeds the long-term session mean by more than 2°C. Many pest species exploit plants weakened by heat or water stress. This tab calculates a separate breach rate for drought and normal periods per pest and flags significant differences.',
+        items: [
+          {
+            heading: 'KPI Cards',
+            body: '<strong>Drought Days</strong> — the number of distinct session dates in the selected period that fell within a detected drought window (avg temp > LTM + 2°C). <strong>Normal Days</strong> — session dates within the long-term mean range. <strong>Long-Term Mean</strong> — the average temperature across all temperature-recorded sessions in the date range, used as the baseline. <strong>Drought-Stressed</strong> — the number of pest species showing a statistically meaningful elevation in breach rate during drought conditions.',
+          },
+          {
+            heading: 'Long-Term Mean temperature',
+            body: 'This is calculated from all sessions in the selected date range that have temperature recorded. It is not a fixed climate value — it is your farm\'s own session-temperature average. A farm in a tropical region will have a naturally higher LTM than one in a temperate climate. The drought threshold (LTM + 2°C) is therefore automatically calibrated to your local conditions.',
+          },
+          {
+            heading: 'Drought Period pills',
+            body: 'The red pills list each detected drought period — the start date, end date, and number of days. A single sustained drought shows as one long pill. Multiple shorter hot spells appear as separate pills. Short drought windows (fewer than 5 days) may produce unreliable breach-rate estimates because sample sizes are small — treat those results with caution.',
+          },
+          {
+            heading: 'Breach Rate During Drought bar',
+            body: 'The red bar shows the percentage of session-days in drought conditions where this pest exceeded its action threshold. A 72% drought breach rate means nearly three-quarters of scout visits during hot periods found pest counts above the threshold.',
+          },
+          {
+            heading: 'Breach Rate in Normal Conditions bar',
+            body: 'The green bar is the equivalent figure for non-drought sessions. The contrast between the red and green bars is the key visual signal. If both bars are similar, temperature is not elevating breach risk. If the red bar is substantially taller, you have a drought-stress species.',
+          },
+          {
+            heading: 'Drought Bias percentage',
+            body: 'The relative increase in breach rate during drought vs normal: (drought rate − normal rate) ÷ normal rate × 100. A drought bias of +150% means the pest breaches its threshold 2.5× more often during hot periods. A negative drought bias means the pest is actually less active during drought — possibly a cool-season species.',
+          },
+          {
+            heading: 'Strong / Moderate / Weak / None stress link',
+            body: '<span style="color:#c0392b;font-weight:600;">Strong</span> — drought bias ≥ 50% AND at least 3 drought breaches recorded. <span style="color:#e67e22;font-weight:600;">Moderate</span> — bias ≥ 20% with at least 2 breaches. <span style="color:#f1c40f;font-weight:600;">Weak</span> — bias ≥ 5% but not yet statistically convincing. <span style="color:#7f8c8d;font-weight:600;">None</span> — no meaningful elevation. For Strong-linked pests, proactively increase scouting frequency during forecast hot periods, even before a breach is recorded.',
+          },
+          {
+            heading: 'Avg Count (Drought vs Normal)',
+            body: 'The average raw pest count recorded per session during drought and normal periods respectively. This complements the breach rate by showing the magnitude of the count change, not just whether it crossed the threshold. A pest with avg count 80 in drought vs 20 in normal conditions is a critical drought risk even if the threshold is set high enough that neither value triggers a breach.',
+          },
+          {
+            heading: 'Data requirements',
+            body: 'Both drought and normal periods need at least 2 session-dates with threshold data for the breach rates to be meaningful. If your farm has only scouted during one temperature regime (e.g. only winter sessions recorded), the comparison will be unreliable. Widen the date range to capture both hot and cooler periods for best results.',
+          },
+        ],
+      },
+    ],
+  },
 ];
 
 // ── FAQ content shown on the last section of every group ─────────────────────
@@ -1359,6 +1632,13 @@ const FAQ = {
     { q: 'Treatment Effectiveness shows Insufficient Data for all entries.', a: 'The effectiveness score requires at least one completed scouting session after the threshold breach. If scouts have not returned to the field after a breach, no post-breach data is available. Ensure follow-up sessions are completed and observations recorded.' },
     { q: 'All my overdue alerts disappeared after I added a session.', a: 'As soon as a completed session is recorded on the breached field (even if it contains no observations), the breach is considered followed up and the alert is removed. This is correct behaviour — the alert exists to prompt a visit, not to track treatment.' },
     { q: 'The Blind Spots page shows fields I have visited this month.', a: 'Coverage is counted against the 4-session monthly target. If you have visited a field once or twice, it may still be flagged as under-scouted (below 50% = fewer than 2 sessions). Increase visit frequency to clear the flag.' },
+  ],
+  environmental: [
+    { q: 'The Temperature Activity tab shows no pests.', a: 'Scouts must record a temperature value in the session details for observations to appear here. If no sessions have temperature logged in the selected date range, no correlation can be computed. Remind scouts to enter ambient temperature when starting or completing every session.' },
+    { q: 'A pest I know is temperature-sensitive shows "None" for correlation.', a: 'The system needs at least 3 temperature-linked observations per pest. If the pest has few records, or if all sessions occurred in a very narrow temperature range (e.g. a single season), the correlation cannot be detected. Widen the date range to capture more seasonal variation.' },
+    { q: 'No wet events appear on the Rainfall Lag tab even though it has rained recently.', a: 'Wet events are approximated as temperature drops ≥ 3°C below the 4-week rolling average. If scouts have not been recording temperatures, or if rain occurred without a significant temperature drop (e.g. a warm tropical downpour), the proxy will not detect it. Consistent temperature recording across all sessions is essential for this tab to work.' },
+    { q: 'The Drought Stress tab shows 0 drought days.', a: 'No session-dates in the selected period had an average temperature more than 2°C above the long-term session mean. Either the date range does not include a hot period, or scouts only scouted during cooler parts of the year. Try widening the date range to cover a full annual cycle including any summer months.' },
+    { q: 'A pest shows a negative drought bias — is that an error?', a: 'A negative drought bias means the pest breaches its threshold less often during hot/dry periods than in cooler conditions. This is expected for cool-season pests (e.g. certain aphid species) that are suppressed by heat. It is not an error — it confirms the pest is Cold-Favoring.' },
   ],
 };
 

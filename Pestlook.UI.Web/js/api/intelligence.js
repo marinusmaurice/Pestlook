@@ -70,3 +70,8 @@ export const getScoutPriority          = f => get(`/intelligence/scout-priority$
 export const getTreatmentEffectiveness = f => get(`/intelligence/treatment-effectiveness${buildParams(f)}`);
 export const getOverdueAlerts          = f => get(`/intelligence/overdue-alerts${buildParams(f)}`);
 export const getUnderscoutedZones      = f => get(`/intelligence/underscouted-zones${buildParams(f)}`);
+
+// ── Environmental Correlation Intelligence ────────────────────────────────────
+export const getTemperatureActivity = f => get(`/intelligence/temperature-activity${buildParams(f)}`);
+export const getRainfallLag         = f => get(`/intelligence/rainfall-lag${buildParams(f)}`);
+export const getDroughtStress       = f => get(`/intelligence/drought-stress${buildParams(f)}`);
