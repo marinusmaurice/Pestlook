@@ -103,13 +103,10 @@ const SVG = {
     <svg viewBox="0 0 460 180" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:460px;display:block;">
       <defs><style>text{font-family:Inter,sans-serif;}</style></defs>
       <rect width="460" height="180" rx="8" fill="#1a2e22"/>
-      <!-- Title labels -->
       <text x="165" y="22" text-anchor="middle" fill="#f87171" font-size="8" font-weight="700">☀ Drought Periods</text>
       <text x="355" y="22" text-anchor="middle" fill="#4ade80" font-size="8" font-weight="700">🌤 Normal Conditions</text>
-      <!-- Long-term mean line -->
       <line x1="30" y1="90" x2="430" y2="90" stroke="#475569" stroke-width="1" stroke-dasharray="4,3"/>
       <text x="434" y="93" fill="#64748b" font-size="7">LTM</text>
-      <!-- Drought breach rate bars (left group) -->
       <text x="56"  y="37" text-anchor="middle" fill="#94a3b8" font-size="7">Aphids</text>
       <rect x="34"  y="40" width="44" height="85" rx="3" fill="#c0392b"/>
       <text x="56"  y="136" text-anchor="middle" fill="#fca5a5" font-size="7">72%</text>
@@ -119,28 +116,107 @@ const SVG = {
       <text x="184" y="37" text-anchor="middle" fill="#94a3b8" font-size="7">Cutworm</text>
       <rect x="162" y="53" width="44" height="72" rx="3" fill="#c0392b"/>
       <text x="184" y="136" text-anchor="middle" fill="#fca5a5" font-size="7">60%</text>
-      <!-- Normal breach rate bars (right group) -->
       <text x="312" y="37" text-anchor="middle" fill="#94a3b8" font-size="7">Aphids</text>
       <rect x="290" y="99" width="44" height="26" rx="3" fill="#27ae60"/>
       <text x="312" y="136" text-anchor="middle" fill="#86efac" font-size="7">22%</text>
       <text x="376" y="37" text-anchor="middle" fill="#94a3b8" font-size="7">Whitefly</text>
       <rect x="354" y="104" width="44" height="21" rx="3" fill="#27ae60"/>
       <text x="376" y="136" text-anchor="middle" fill="#86efac" font-size="7">18%</text>
-      <!-- Divider -->
       <line x1="250" y1="30" x2="250" y2="145" stroke="#3a5040" stroke-width="1.2" stroke-dasharray="5,3"/>
-      <!-- Bias annotation -->
       <rect x="260" y="60" width="82" height="28" rx="5" fill="#243428" stroke="#3a5040" stroke-width="0.8"/>
       <text x="301" y="73" text-anchor="middle" fill="#fde68a" font-size="7">Aphids drought bias</text>
       <text x="301" y="83" text-anchor="middle" fill="#fca5a5" font-size="8" font-weight="700">+227% breach rate</text>
-      <!-- Axis -->
       <line x1="30" y1="125" x2="430" y2="125" stroke="#3a5040" stroke-width="1"/>
-      <!-- Legend -->
       <rect x="30"  y="155" width="12" height="8" rx="2" fill="#c0392b"/>
       <text x="46"  y="162" fill="#fca5a5" font-size="7">Strong drought stress</text>
       <rect x="165" y="155" width="12" height="8" rx="2" fill="#e67e22"/>
       <text x="181" y="162" fill="#fed7aa" font-size="7">Moderate</text>
       <rect x="260" y="155" width="12" height="8" rx="2" fill="#27ae60"/>
       <text x="276" y="162" fill="#86efac" font-size="7">Normal breach rate</text>
+    </svg>
+  </div>`,
+
+  'cont-zones': `
+  <div style="margin:16px 0 20px;padding:16px;background:#1a2820;border-radius:10px;overflow:hidden;">
+    <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#4ade80;margin-bottom:12px;">Containment Zone — Spread Vector & Perimeter</div>
+    <svg viewBox="0 0 460 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:460px;display:block;">
+      <defs><style>text{font-family:Inter,sans-serif;}</style></defs>
+      <rect width="460" height="200" rx="8" fill="#1a2e22"/>
+      <!-- Farm cluster -->
+      <circle cx="120" cy="130" r="14" fill="#c0392b44" stroke="#c0392b" stroke-width="1.5"/>
+      <text x="120" y="134" text-anchor="middle" fill="#fca5a5" font-size="8" font-weight="700">F1</text>
+      <circle cx="175" cy="100" r="14" fill="#c0392b44" stroke="#c0392b" stroke-width="1.5"/>
+      <text x="175" y="104" text-anchor="middle" fill="#fca5a5" font-size="8" font-weight="700">F2</text>
+      <circle cx="230" cy="80" r="14" fill="#c0392b44" stroke="#c0392b" stroke-width="1.5"/>
+      <text x="230" y="84" text-anchor="middle" fill="#fca5a5" font-size="8" font-weight="700">F3</text>
+      <!-- Spread vector arrow -->
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#f59e0b"/>
+        </marker>
+      </defs>
+      <line x1="120" y1="130" x2="290" y2="50" stroke="#f59e0b" stroke-width="2" marker-end="url(#arr)" stroke-dasharray="6,3"/>
+      <text x="205" y="95" fill="#fde68a" font-size="7" transform="rotate(-25,205,95)">Spread → NE · 2.4 km/wk</text>
+      <!-- Current front -->
+      <circle cx="230" cy="80" r="18" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <text x="230" y="60" text-anchor="middle" fill="#fde68a" font-size="7">Current front</text>
+      <!-- Perimeter radius -->
+      <circle cx="230" cy="80" r="70" fill="none" stroke="#c0392b" stroke-width="1.2" stroke-dasharray="6,4" opacity="0.6"/>
+      <text x="300" y="155" fill="#f87171" font-size="7">Perimeter (5 km)</text>
+      <!-- Unaffected farms in path -->
+      <circle cx="310" cy="55" r="14" fill="#f59e0b22" stroke="#f59e0b" stroke-width="1.5"/>
+      <text x="310" y="59" text-anchor="middle" fill="#fde68a" font-size="7.5" font-weight="700">🚨 F4</text>
+      <circle cx="360" cy="90" r="14" fill="#e67e2222" stroke="#e67e22" stroke-width="1.5"/>
+      <text x="360" y="94" text-anchor="middle" fill="#fed7aa" font-size="7.5">👁 F5</text>
+      <!-- Labels -->
+      <text x="18" y="18" fill="#4ade80" font-size="8" font-weight="700">🔴 Inside zone (affected)</text>
+      <text x="18" y="30" fill="#fde68a" font-size="8" font-weight="700">🚨 High urgency (in spread path)</text>
+      <text x="18" y="42" fill="#fed7aa" font-size="8" font-weight="700">👁 Monitor (nearby, off-axis)</text>
+    </svg>
+  </div>`,
+
+  'cont-resistance': `
+  <div style="margin:16px 0 20px;padding:16px;background:#1a2820;border-radius:10px;overflow:hidden;">
+    <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#4ade80;margin-bottom:12px;">Resistance Pattern — Multi-year Breach Rate Trend</div>
+    <svg viewBox="0 0 460 185" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:460px;display:block;">
+      <defs><style>text{font-family:Inter,sans-serif;}</style></defs>
+      <rect width="460" height="185" rx="8" fill="#1a2e22"/>
+      <!-- Axes -->
+      <line x1="44" y1="18" x2="44"  y2="148" stroke="#3a5040" stroke-width="1"/>
+      <line x1="44" y1="148" x2="448" y2="148" stroke="#3a5040" stroke-width="1"/>
+      <text x="38" y="148" text-anchor="end" fill="#475569" font-size="7">0%</text>
+      <text x="38" y="108" text-anchor="end" fill="#475569" font-size="7">25%</text>
+      <text x="38" y="68"  text-anchor="end" fill="#475569" font-size="7">50%</text>
+      <text x="38" y="28"  text-anchor="end" fill="#475569" font-size="7">75%</text>
+      <line x1="44" y1="108" x2="448" y2="108" stroke="#243428" stroke-width="0.8"/>
+      <line x1="44" y1="68"  x2="448" y2="68"  stroke="#243428" stroke-width="0.8"/>
+      <!-- Year labels -->
+      <text x="120" y="162" text-anchor="middle" fill="#475569" font-size="7">2022</text>
+      <text x="220" y="162" text-anchor="middle" fill="#475569" font-size="7">2023</text>
+      <text x="320" y="162" text-anchor="middle" fill="#475569" font-size="7">2024</text>
+      <text x="420" y="162" text-anchor="middle" fill="#475569" font-size="7">2025</text>
+      <!-- Bars — worsening trend -->
+      <rect x="96"  y="128" width="50" height="20" rx="3" fill="#27ae60"/>
+      <text x="121" y="124" text-anchor="middle" fill="#86efac" font-size="7">15%</text>
+      <rect x="196" y="108" width="50" height="40" rx="3" fill="#e67e22"/>
+      <text x="221" y="104" text-anchor="middle" fill="#fed7aa" font-size="7">31%</text>
+      <rect x="296" y="88"  width="50" height="60" rx="3" fill="#c0392b"/>
+      <text x="321" y="84"  text-anchor="middle" fill="#fca5a5" font-size="7">47%</text>
+      <rect x="396" y="60"  width="50" height="88" rx="3" fill="#c0392b"/>
+      <text x="421" y="56"  text-anchor="middle" fill="#fca5a5" font-size="7">68%</text>
+      <!-- Trend line -->
+      <line x1="121" y1="138" x2="421" y2="104" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="5,3"/>
+      <!-- Annotation -->
+      <rect x="130" y="30" width="110" height="26" rx="5" fill="#3b1010" stroke="#c0392b44" stroke-width="0.8"/>
+      <text x="185" y="43" text-anchor="middle" fill="#fca5a5" font-size="7">Worsening trend · +53 pp</text>
+      <text x="185" y="53" text-anchor="middle" fill="#fde68a" font-size="7">⚠ Likely Resistance Risk</text>
+      <!-- Legend -->
+      <rect x="48" y="170" width="12" height="8" rx="2" fill="#27ae60"/>
+      <text x="64" y="177" fill="#86efac" font-size="7">Improving year</text>
+      <rect x="160" y="170" width="12" height="8" rx="2" fill="#c0392b"/>
+      <text x="176" y="177" fill="#fca5a5" font-size="7">High breach rate</text>
+      <line x1="270" y1="174" x2="286" y2="174" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <text x="290" y="177" fill="#fde68a" font-size="7">OLS trend</text>
     </svg>
   </div>`,
 
@@ -1601,6 +1677,158 @@ const GROUPS = [
       },
     ],
   },
+  {
+    id:    'containment',
+    icon:  '🛡',
+    title: 'Containment Intelligence',
+    intro: 'The Containment Intelligence group helps you move from observation to action. It analyses where a pest is spreading, which farms are in its path, where it entered your operation, whether it is potentially resistant to your current control methods, and which newly detected species represent a genuine new introduction versus a routine new-to-field find. These four tabs are designed to be used together after any significant outbreak: start with Entry Point Analysis to understand where the pest came from, then check Containment Zones to see where it is heading, use Quarantine Flags to assess novelty, and finally run Resistance Patterns to evaluate whether your control programme is working over time.',
+    sections: [
+      {
+        id:    'cont-zones',
+        icon:  '🛡',
+        title: 'Containment Zone Recommendation',
+        intro: 'When a pest is spreading across multiple fields, this tab calculates a spread vector (direction and speed in km/week) from the weekly GPS centroids of all observations. It then projects a containment perimeter ahead of the current infestation front — identifying unaffected farms that are directly in the pest\'s path so you can intensify scouting and apply preventive measures before the pest arrives.',
+        items: [
+          {
+            heading: 'KPI Cards',
+            body: '<strong>Pests Spreading</strong> — the number of pest species for which a measurable spread vector was computed (requires at least 2 weeks of observations across different locations). <strong>Perimeter Zones</strong> — the total number of unaffected farms classified as High urgency — directly in the spread path. <strong>Inside Zone</strong> — the total number of fields already confirmed affected across all pests.',
+          },
+          {
+            heading: 'Spread direction badge and arrow',
+            body: 'The large directional icon (↗, →, ↓, etc.) and compass bearing show the computed direction of movement. This is derived by comparing the GPS centroid of observations in the earliest week against the centroid of the most recent week. The bearing is the great-circle heading from the first centroid to the last. The km/wk figure is the total distance divided by the number of weeks observed.',
+          },
+          {
+            heading: 'Info bar — perimeter radius, bearing, current front',
+            body: 'The grey info bar below the pest header shows three computed values. <strong>Perimeter radius</strong> — the search radius used to find candidate farms; it is set to 2× the average weekly spread distance, with a floor of 5 km to account for slow-moving or static infestations. <strong>Bearing</strong> — the spread direction in degrees (0° = North, 90° = East). <strong>Front at</strong> — the field name of the most recent weekly centroid; this is the leading edge of the known infestation.',
+          },
+          {
+            heading: 'Affected Fields — Inside Zone table',
+            body: 'The left-hand table lists every field that has already been observed with this pest during the selected date range. Columns: <strong>Field</strong>, <strong>Farm</strong>, <strong>First Seen</strong> (date of earliest observation), <strong>Peak Count</strong> (highest single-session count). Use this table to review whether all affected fields have received follow-up sessions and treatment decisions.',
+          },
+          {
+            heading: 'Containment Perimeter table — 🚨 High vs 👁 Monitor',
+            body: '<strong>🚨 High urgency</strong> — the farm is within the perimeter radius AND lies within ±60° of the spread bearing. These farms are directly in the pest\'s projected path. Schedule an inspection within the next scouting cycle and consider applying preventive measures on crop boundaries facing the infestation. <strong>👁 Monitor</strong> — the farm is within the perimeter radius but off-axis. It is less likely to be next but warrants additional vigilance. Columns show distance from the current front and the bearing from the front to that farm.',
+          },
+          {
+            heading: 'No perimeter farms shown',
+            body: 'If the perimeter list is empty, either all nearby farms are already affected (shown in the Inside Zone table) or no tenant farms have GPS coordinates set within range. Go to the Farms page and set GPS coordinates for all farms. Without coordinates, the system cannot calculate distances or identify which farms lie in the spread path.',
+          },
+          {
+            heading: 'Data requirements',
+            body: 'A spread vector requires GPS coordinates on farms and at least 2 distinct weekly observation buckets for the same pest. The vector is computed from session-level GPS (using the farm or field GPS coordinates attached to each session). If all sessions for a pest occurred in the same week, no vector can be computed and the pest will not appear on this tab.',
+          },
+        ],
+      },
+      {
+        id:    'cont-quarantine',
+        icon:  '🔬',
+        title: 'Quarantine Field Flag',
+        intro: 'This tab detects pest species that were recorded for the first time within the selected date range — either for the first time ever across your entire tenant (New to tenant) or for the first time on a specific field (New to field). Genuine new introductions require faster response than a pest simply spreading within a known population.',
+        items: [
+          {
+            heading: 'KPI Cards',
+            body: '<strong>New Introductions</strong> — total flags raised in the selected period. <strong>New to Tenant</strong> — the most critical category: a species that has never been recorded anywhere in your organisation before this period. <strong>New to Field</strong> — the species is known to your organisation but this is the first record on this specific field. <strong>Non-catalogued</strong> — flags involving a pest that is not part of the standard system pest library (tenant-defined pests), which may indicate a truly novel or exotic species.',
+          },
+          {
+            heading: 'Data note banner',
+            body: 'The banner below the KPI cards explains the detection logic: a flag is raised whenever a pest\'s first-ever observation on a field (or across the whole tenant) falls within the selected date range. Widening the range to include the full current season will give the most complete picture.',
+          },
+          {
+            heading: 'Risk level badges — High / Elevated / Standard',
+            body: '<span style="color:#c0392b;font-weight:600;">High</span> — the pest has never been recorded anywhere in your organisation (New to tenant). These require immediate attention, potential authority notification, and intensive perimeter monitoring. <span style="color:#e67e22;font-weight:600;">Elevated</span> — the pest is known to your organisation but is non-catalogued (tenant-defined), suggesting it may not be well understood. <span style="color:#7f8c8d;font-weight:600;">Standard</span> — new to this specific field but it is a well-known system pest already recorded on other fields. Still warrants increased scouting frequency.',
+          },
+          {
+            heading: 'Non-catalogued badge',
+            body: 'A yellow Non-catalogued badge appears alongside flags for pests that were created by your organisation rather than pulled from the built-in species library. These are pests without a validated species profile. If a cluster of unknown or non-catalogued pests appears in the same area around the same time, treat this as a potential exotic species introduction and consider sending a specimen to an identification service.',
+          },
+          {
+            heading: 'Recommendation panel',
+            body: 'Each flag card includes a tailored recommendation at the bottom. High-risk (new to tenant) flags prompt reporting to the local agricultural authority. New-to-field flags prompt comparison with neighbouring fields using the Entry Point Analysis tab. Follow these recommendations as part of your standard outbreak response procedure.',
+          },
+          {
+            heading: 'Nothing shown on this tab',
+            body: 'If no flags appear, no pest was recorded for the first time on any field within the selected date range. Shorten or widen the date range if you expected to see a recent new detection. Note that re-appearances of a pest after a season of absence are not flagged — the system uses the all-time first-seen date, not the most-recent-season first-seen date.',
+          },
+        ],
+      },
+      {
+        id:    'cont-entry',
+        icon:  '🔍',
+        title: 'Entry Point Analysis',
+        intro: 'Entry Point Analysis works backwards from your observation data to identify the most likely field and farm where each pest was first introduced. It then classifies the origin farm\'s position relative to your farm cluster to suggest whether the pest entered via a perimeter boundary (peripheral entry) or through internal movement such as shared equipment or plant material (central entry).',
+        items: [
+          {
+            heading: 'KPI Cards',
+            body: '<strong>Pests Analysed</strong> — number of pest species with at least 2 affected fields, enabling an origin to be distinguished from downstream spread. <strong>Peripheral Entries</strong> — pests whose origin farm is farther from the tenant cluster centre than the median farm-to-centroid distance. These likely entered via a farm boundary, road, irrigation channel, or neighbouring property. <strong>Central Entries</strong> — origin farm is within the cluster; internal vectors (equipment, workers, transplants) are more probable. <strong>GPS Not Set</strong> — pests whose origin farm has no GPS coordinates, making vector classification impossible.',
+          },
+          {
+            heading: 'Entry Vector badge — Peripheral / Central / GPS Unknown',
+            body: '<span style="color:#c0392b;font-weight:600;">🔴 Peripheral Entry</span> — the origin farm is on the outer edge of your farm cluster. Inspect boundary hedges, roads, irrigation inlets, and neighbouring property boundaries for the likely entry route. Consider perimeter trapping on this and adjacent farms. <span style="color:#2980b9;font-weight:600;">🔵 Central Cluster</span> — the pest first appeared in a centrally located farm. This is more consistent with internal spread via shared equipment, workers, or contaminated plant material. Review hygiene protocols. <span style="color:#7f8c8d;font-weight:600;">⬜ GPS Unknown</span> — set GPS on the farm via the Farms page to enable classification.',
+          },
+          {
+            heading: 'Origin distance from cluster centre',
+            body: 'The grey info bar shows how far the origin farm is from the geometric centre of all your GPS-equipped farms, alongside the median farm-to-centroid distance. The peripherality threshold is the median: farms beyond the median distance are classified as peripheral. This is a relative measure — it adapts to your specific farm layout rather than using a fixed km cutoff.',
+          },
+          {
+            heading: 'Entry Point Note',
+            body: 'The coloured recommendation panel explains the classification in plain language and suggests practical containment steps. Peripheral entries recommend perimeter trapping and checking boundary vectors. Central entries recommend reviewing internal farm hygiene and equipment-sharing practices. GPS-unknown entries prompt coordinate entry.',
+          },
+          {
+            heading: 'Spread Chain',
+            body: 'The numbered timeline below the recommendation shows every affected field, ordered by first detection date. Field 1 is the origin (red circle). Subsequent fields show how many days after the origin they were first detected. A rapid chain (all fields within a few days) suggests fast active spread or a widespread simultaneous introduction. A slow chain (weeks between steps) suggests gradual field-by-field movement.',
+          },
+          {
+            heading: 'Only 1 field in the chain',
+            body: 'If a pest appears in only one field, there is no spread chain to analyse and it will not appear on this tab. Use the Quarantine Flags tab to assess whether this is a new introduction, and the Containment Zones tab to model where it might spread if counts continue to rise.',
+          },
+          {
+            heading: 'Data requirements',
+            body: 'GPS coordinates must be set on farms for the peripheral/central classification to work. The origin detection itself (earliest field) works without GPS. Set coordinates on the Farms page. The cluster centroid is calculated from all GPS-equipped farms in your tenant — adding more farm coordinates improves the accuracy of the peripherality scoring.',
+          },
+        ],
+      },
+      {
+        id:    'cont-resistance',
+        icon:  '🧬',
+        title: 'Resistance Pattern Detection',
+        intro: 'Resistance Pattern Detection identifies field × pest combinations where threshold breaches have recurred across multiple calendar years. Recurring breaches on the same field, for the same pest, season after season — especially at an increasing rate — may indicate that the current control programme is no longer effective, either due to pesticide resistance or persistent environmental conditions that are not being addressed.',
+        items: [
+          {
+            heading: 'KPI Cards',
+            body: '<strong>Patterns Found</strong> — total field × pest combinations that breached their threshold in at least 2 distinct calendar years within the selected range. <strong>Likely Resistance</strong> — combinations with 3 or more breach years and a Worsening or Stable trend, or 2 breach years with a Worsening trend. <strong>Possible Resistance</strong> — 2 breach years with any trend. The years-analysed figure shows the span of the date range used.',
+          },
+          {
+            heading: 'Resistance Risk badge — Likely / Possible / Monitor',
+            body: '<span style="color:#c0392b;font-weight:600;">Likely</span> — this combination should be treated as a probable resistance case. Rotate mode-of-action immediately. Do not apply the same product group again until resistance testing or a full-season break has been completed. <span style="color:#e67e22;font-weight:600;">Possible</span> — two breach years observed. Could be seasonal variation or resistance beginning to develop. Evaluate whether the same control method was used each year and consider alternating. <span style="color:#7f8c8d;font-weight:600;">Monitor</span> — insufficient data to classify; continue observation.',
+          },
+          {
+            heading: 'Trend badge — Worsening / Stable / Improving',
+            body: '<span style="color:#c0392b;font-weight:600;">📈 Worsening</span> — the breach rate in the most recent year is at least 15 percentage points higher than in the first breach year. The rate change figure shows exactly how many percentage points the breach rate has increased. <span style="color:#27ae60;font-weight:600;">📉 Improving</span> — the breach rate has dropped by ≥ 15 pp, suggesting the current programme may be working. <span style="color:#e67e22;font-weight:600;">➡️ Stable</span> — breach rate is consistent year-on-year, indicating neither improvement nor deterioration.',
+          },
+          {
+            heading: 'Breach Rate by Season bar chart',
+            body: 'Each year in the pattern is shown as a horizontal bar. The bar width is proportional to the breach rate that year (as a percentage of total sessions). Bars are colour-coded: green below 30%, amber 30–59%, red 60% and above. A pattern of progressively wider, redder bars is the clearest visual signal of a resistance problem.',
+          },
+          {
+            heading: 'Recommendation panel',
+            body: 'Likely Resistance patterns show a recommendation to rotate mode-of-action, conduct resistance testing if available, and consider biocontrol or cultural controls. Possible Resistance patterns suggest evaluating current treatment effectiveness and alternating control methods. Review these recommendations with your agronomist before the next treatment window.',
+          },
+          {
+            heading: 'No treatment records required',
+            body: 'This analysis does not require treatment events to be logged in Pestlook. It is based entirely on whether the pest count exceeded the configured threshold in each session. This means it will flag recurring breaches even if no treatment was ever applied — which is itself a signal worth investigating.',
+          },
+          {
+            heading: 'Nothing shown on this tab',
+            body: 'Patterns require breach data across at least 2 distinct calendar years. The default date range for this tab is 2 years. If your data spans less than 2 years, or if thresholds have not been configured for your pests, no patterns will be detected. Set action thresholds on each pest via the Pests page and widen the date range if needed.',
+          },
+          {
+            heading: 'Data requirements',
+            body: 'Action thresholds (ThresholdCount) must be configured on observations for the breach detection to work. Sessions must be linked to a specific field (not just a farm-level session). The date range should cover at least 24 months to capture two full seasons — use the date pickers at the top of the page to adjust.',
+          },
+        ],
+      },
+    ],
+  },
 ];
 
 // ── FAQ content shown on the last section of every group ─────────────────────
@@ -1639,6 +1867,14 @@ const FAQ = {
     { q: 'No wet events appear on the Rainfall Lag tab even though it has rained recently.', a: 'Wet events are approximated as temperature drops ≥ 3°C below the 4-week rolling average. If scouts have not been recording temperatures, or if rain occurred without a significant temperature drop (e.g. a warm tropical downpour), the proxy will not detect it. Consistent temperature recording across all sessions is essential for this tab to work.' },
     { q: 'The Drought Stress tab shows 0 drought days.', a: 'No session-dates in the selected period had an average temperature more than 2°C above the long-term session mean. Either the date range does not include a hot period, or scouts only scouted during cooler parts of the year. Try widening the date range to cover a full annual cycle including any summer months.' },
     { q: 'A pest shows a negative drought bias — is that an error?', a: 'A negative drought bias means the pest breaches its threshold less often during hot/dry periods than in cooler conditions. This is expected for cool-season pests (e.g. certain aphid species) that are suppressed by heat. It is not an error — it confirms the pest is Cold-Favoring.' },
+  ],
+  containment: [
+    { q: 'Containment Zones shows no pests with spread vectors.', a: 'A spread vector requires at least 2 distinct weekly observation buckets for the same pest across different GPS-tagged locations. If all observations for a pest occurred in the same week, or if no farms have GPS coordinates set, no vector can be computed. Go to the Farms page and set GPS coordinates, then widen the date range to cover at least 2–3 weeks of observations.' },
+    { q: 'The Quarantine Flags tab shows nothing in a period where I know we saw a new pest.', a: 'Quarantine Flags only triggers when the first-ever observation on a field falls within the selected date range. If the pest was first recorded before the range start — even once — it will not be flagged again. Use the full-season date range to capture all first-detection events in the current season, or use All Time to see every first-detection ever recorded.' },
+    { q: 'Entry Point Analysis shows "GPS Unknown" for all pests.', a: 'The peripheral vs central entry classification requires GPS coordinates on farms. Open the Farms page, select each farm, and enter its latitude and longitude. Once all farms have coordinates, the analysis will classify entries based on each farm\'s position relative to your farm cluster centroid. The spread chain (field order) will still display even without GPS.' },
+    { q: 'Resistance Patterns shows no patterns even though I know we have had repeated breaches.', a: 'Patterns require threshold breaches in at least 2 distinct calendar years. Check that: (1) the date range covers at least 24 months — use the date pickers to extend it; (2) action thresholds are configured on your pests (set via the Pests page); (3) sessions are linked to specific fields rather than just a farm. If all three conditions are met, widen the range further.' },
+    { q: 'A field shows Likely Resistance but we recently rotated our pesticide programme.', a: 'The analysis is based on historical breach rates and cannot yet see the effect of a recent change. After one full season of data with the new programme, re-run this tab. If the most recent year shows a falling breach rate, the trend will shift to Improving and the risk level will be reassessed. The system is purely observation-based — it does not require you to log treatment events.' },
+    { q: 'The spread perimeter shows a farm as High urgency but it is on a completely different crop.', a: 'The containment perimeter is geometry-based — it identifies farms that are geographically in the spread path regardless of crop type. Crop type does not currently modify the urgency classification. Review the farm manually: if the pest is host-specific and the perimeter farm grows a non-host crop, you can deprioritise it, but still schedule a scouting visit to confirm no alternative hosts are present.' },
   ],
 };
 

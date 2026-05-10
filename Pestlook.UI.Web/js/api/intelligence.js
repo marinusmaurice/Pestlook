@@ -75,3 +75,9 @@ export const getUnderscoutedZones      = f => get(`/intelligence/underscouted-zo
 export const getTemperatureActivity = f => get(`/intelligence/temperature-activity${buildParams(f)}`);
 export const getRainfallLag         = f => get(`/intelligence/rainfall-lag${buildParams(f)}`);
 export const getDroughtStress       = f => get(`/intelligence/drought-stress${buildParams(f)}`);
+
+// ── Containment Intelligence ──────────────────────────────────────────────────
+export const getContainmentZones   = f => get(`/intelligence/containment-zones${buildParams(f)}`);
+export const getQuarantineFlags    = f => get(`/intelligence/quarantine-flags${buildParams(f)}`);
+export const getEntryPointAnalysis = f => get(`/intelligence/entry-point-analysis${buildParams(f)}`);
+export const getResistancePatterns = f => get(`/intelligence/resistance-patterns${buildParams(f)}`);
