@@ -35,6 +35,12 @@ let _container  = null;
 export async function renderPests(container) {
   _container = container;
 
+  // Reset state on every visit so filters don't persist across navigation
+  state.search   = '';
+  state.category = '';
+  state.sortBy   = 'name';
+  state.sortDesc = false;
+
   const prevCssText = container.style.cssText;
   container._cleanup = () => { container.style.cssText = prevCssText; };
   container.style.cssText = 'display:flex;flex-direction:column;overflow:hidden;height:100%;';
