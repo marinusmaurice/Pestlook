@@ -155,8 +155,8 @@ public class ApiClient
     public Task<ApiResult<List<SessionResponse>>> GetSessionsAsync()
         => GetAsync<List<SessionResponse>>("scouting-sessions");
 
-    public Task<ApiResult<List<SessionResponse>>> GetPlannedSessionsAsync()
-        => GetAsync<List<SessionResponse>>("scouting-sessions/planned");
+    public Task<ApiResult<List<SessionResponse>>> GetPlannedSessionsAsync(bool includeCompleted = false)
+        => GetAsync<List<SessionResponse>>($"scouting-sessions/planned?includeCompleted={includeCompleted.ToString().ToLowerInvariant()}");
 
     public Task<ApiResult<SessionResponse>> StartSessionAsync(Guid? fieldId = null, Guid? farmId = null, string? weather = null, string? notes = null, double? temperatureCelsius = null)
         => PostAsync<SessionResponse>("scouting-sessions", new { fieldId, farmId, weatherConditions = weather, temperatureCelsius, notes });

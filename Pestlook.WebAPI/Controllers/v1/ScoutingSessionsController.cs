@@ -102,12 +102,13 @@ public sealed class ScoutingSessionsController(
     }
 
     /// <summary>All planned sessions with full observation lists — one call replaces N+1 mobile sync pattern.</summary>
+    /// <param name="includeCompleted">When false (default) completed sessions are excluded — used by mobile sync to avoid pulling read-only history.</param>
     [HttpGet("planned")]
     [ProducesResponseType(typeof(ApiResponse<List<ScoutingSessionResponse>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetPlanned(CancellationToken ct)
+    public async Task<IActionResult> GetPlanned([FromQuery] bool includeCompleted = true, CancellationToken ct = default)
     {
         var projected = await db.ScoutingSessions
-            .Where(ss => ss.IsPlanned)
+            .Where(ss => ss.IsPlanned && (includeCompleted || ss.CompletedAt == null))
             .OrderBy(ss => ss.ScheduledDate)
             .Select(ss => new
             {
