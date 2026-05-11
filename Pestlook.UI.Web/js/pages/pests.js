@@ -18,105 +18,223 @@ const categoryEmojis = {
 
 const captureModeColors = { 0: 'amber', 1: 'blue' };
 
+// ── Grid state ────────────────────────────────────────────────────────────────
+
+const state = {
+  search:   '',
+  category: '',
+  sortBy:   'name',
+  sortDesc: false,
+};
+
+let _allPests   = [];
+let _container  = null;
+
+// ── Entry point ───────────────────────────────────────────────────────────────
+
 export async function renderPests(container) {
+  _container = container;
+
+  const prevCssText = container.style.cssText;
+  container._cleanup = () => { container.style.cssText = prevCssText; };
+  container.style.cssText = 'display:flex;flex-direction:column;overflow:hidden;height:100%;';
+
+  const categoryOptions = Object.entries(PestCategoryValues)
+    .map(([name, val]) => `<option value="${val}">${name}</option>`)
+    .join('');
 
   container.innerHTML = `
-    <div class="section-head" style="margin-bottom:20px;">
+    <div class="section-head" style="margin-bottom:16px;flex-shrink:0;">
       <div>
-        <div style="font-family:'Fraunces',serif;font-size:1.4rem;font-weight:700;color:var(--text);letter-spacing:-0.02em;">Pest Catalogue</div>
-        <div style="font-size:0.82rem;color:var(--text-dim);">Species reference for your tenant</div>
+        <div class="page-heading">Pest Catalogue</div>
+        <div class="page-desc">Species reference for your tenant</div>
       </div>
       <button class="btn-primary" id="addPestBtn">＋ Add Pest</button>
     </div>
-    <div id="pests-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;">
-      <div class="skeleton-block" style="height:140px;border-radius:14px;"></div>
-      <div class="skeleton-block" style="height:140px;border-radius:14px;"></div>
-      <div class="skeleton-block" style="height:140px;border-radius:14px;"></div>
+    <div class="card" style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);">
+        <input type="text" id="pestSearch" class="input-field"
+          placeholder="Search name or scientific name…"
+          style="margin:0;flex:1;min-width:160px;max-width:280px;padding:6px 10px;font-size:0.8rem;" />
+        <select id="pestCategory" class="input-field" style="margin:0;padding:6px 10px;font-size:0.8rem;width:auto;">
+          <option value="">All categories</option>
+          ${categoryOptions}
+        </select>
+      </div>
+      <div id="pestsTable" style="overflow-x:auto;overflow-y:auto;flex:1;min-height:0;">
+        <div class="card-p"><div class="skeleton skeleton-card" style="height:300px;"></div></div>
+      </div>
+      <div id="pestCount" style="padding:10px 14px;border-top:1px solid var(--border);font-size:0.8rem;color:var(--text-dim);flex-shrink:0;"></div>
     </div>
   `;
 
-  document.getElementById('addPestBtn').addEventListener('click', () => openCreatePestModal(container));
+  document.getElementById('addPestBtn').addEventListener('click', () => openCreatePestModal());
 
-  await loadPests(container);
+  let _debounce;
+  document.getElementById('pestSearch').addEventListener('input', e => {
+    clearTimeout(_debounce);
+    _debounce = setTimeout(() => { state.search = e.target.value.trim(); renderTable(); }, 250);
+  });
+
+  document.getElementById('pestCategory').addEventListener('change', e => {
+    state.category = e.target.value;
+    renderTable();
+  });
+
+  await loadPests();
 }
 
-async function loadPests(container) {
-  const grid = container.querySelector('#pests-grid');
+// ── Data fetch ────────────────────────────────────────────────────────────────
+
+async function loadPests() {
+  const tableEl = document.getElementById('pestsTable');
+  if (!tableEl) return;
+  tableEl.innerHTML = `<div class="card-p"><div class="skeleton skeleton-card" style="height:200px;"></div></div>`;
   try {
     const res = await getPests();
-    const pests = res.data || [];
-
-    if (pests.length === 0) {
-      grid.innerHTML = `
-        <div style="grid-column:1/-1;text-align:center;padding:60px 20px;">
-          <div style="font-size:3rem;margin-bottom:12px;">🦗</div>
-          <div style="font-family:'Fraunces',serif;font-size:1.1rem;color:var(--text);margin-bottom:6px;">No pests yet</div>
-          <div style="font-size:0.82rem;color:var(--text-dim);">Add your first pest species to get started</div>
-        </div>
-      `;
-      return;
-    }
-
-    grid.innerHTML = pests.map(p => pestCard(p)).join('');
-
-    grid.querySelectorAll('[data-edit-pest]').forEach(btn => {
-      const pest = pests.find(p => p.id === btn.dataset.editPest);
-      if (pest) btn.addEventListener('click', e => { e.stopPropagation(); openEditPestModal(pest, container); });
-    });
-
-    grid.querySelectorAll('[data-delete-pest]').forEach(btn => {
-      btn.addEventListener('click', async e => {
-        e.stopPropagation();
-        if (!confirm('Delete this pest?')) return;
-        try {
-          await deletePest(btn.dataset.deletePest);
-          showToast('Pest deleted.');
-          await loadPests(container);
-        } catch (err) {
-          showToast(err.message || 'Failed to delete pest', 'error');
-        }
-      });
-    });
+    _allPests = res.data || [];
+    renderTable();
   } catch (err) {
-    grid.innerHTML = `<div style="grid-column:1/-1;color:var(--red);padding:20px;">Failed to load pests: ${escapeHtml(err.message)}</div>`;
+    tableEl.innerHTML = `<div class="card-p empty-state"><div class="empty-icon">⚠</div><h3>Error</h3><p>${escapeHtml(err.message)}</p></div>`;
+    showToast('Failed to load pests: ' + err.message, 'error');
   }
 }
 
-function pestCard(p) {
-  const catVal = typeof p.category === 'string' ? (PestCategoryValues[p.category] ?? p.category) : p.category;
-  const capVal = typeof p.defaultCaptureMode === 'string' ? (CaptureModeValues[p.defaultCaptureMode] ?? p.defaultCaptureMode) : p.defaultCaptureMode;
-  const catColor = categoryColors[catVal] || 'gray';
-  const emoji = categoryEmojis[catVal] || '❓';
-  const catName = PestCategory[catVal] || p.category || 'Unknown';
-  const capName = CaptureMode[capVal] || p.defaultCaptureMode || 'Count';
-  const capColor = captureModeColors[capVal] || 'gray';
-  const isSystem = p.isSystemPest;
+// ── Table renderer ────────────────────────────────────────────────────────────
 
-  return `
-    <div class="pest-card" data-pest-id="${p.id}">
-      <div class="pest-icon" style="background:rgba(${catColor === 'red' ? '224,96,96' : catColor === 'amber' ? '240,168,64' : catColor === 'green' ? '109,222,132' : catColor === 'blue' ? '96,168,224' : '112,128,96'},0.12);border:1px solid rgba(${catColor === 'red' ? '224,96,96' : catColor === 'amber' ? '240,168,64' : catColor === 'green' ? '109,222,132' : catColor === 'blue' ? '96,168,224' : '112,128,96'},0.2);">
-        ${emoji}
-      </div>
-      <div style="flex:1;">
-        <div style="font-weight:600;color:var(--text);margin-bottom:2px;">${escapeHtml(p.commonName)}</div>
-        <div style="font-size:0.72rem;color:var(--text-dim);font-style:italic;margin-bottom:8px;">${escapeHtml(p.scientificName || '')}</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          ${tag(catName, catColor)}
-          ${tag(capName, capColor)}
-          ${tag(isSystem ? 'System' : 'Custom', isSystem ? 'gray' : 'amber')}
-        </div>
-        ${p.thresholdCount != null && capVal !== CaptureModeValues.Presence ? `<div style="font-size:0.68rem;color:var(--text-dim);margin-top:6px;">Threshold: ${p.thresholdCount}</div>` : ''}
-        ${!isSystem ? `
-        <div style="display:flex;gap:6px;margin-top:10px;">
-          <button class="btn-outline" style="padding:3px 10px;font-size:0.72rem;" data-edit-pest="${p.id}">Edit</button>
-          <button class="btn-outline" style="padding:3px 10px;font-size:0.72rem;color:var(--red);border-color:var(--red);" data-delete-pest="${p.id}">Delete</button>
-        </div>` : ''}
-      </div>
-    </div>
-  `;
+function thBtn(label, key) {
+  const active = state.sortBy === key;
+  const arrow  = active ? (state.sortDesc ? ' ▼' : ' ▲') : '';
+  return `<th style="cursor:pointer;user-select:none;white-space:nowrap;" data-sort="${key}">${label}${arrow}</th>`;
 }
 
-function openCreatePestModal(container) {
+function renderTable() {
+  const tableEl = document.getElementById('pestsTable');
+  const countEl = document.getElementById('pestCount');
+  if (!tableEl) return;
+
+  // Filter
+  let pests = _allPests.filter(p => {
+    if (state.category !== '') {
+      const catVal = typeof p.category === 'string' ? (PestCategoryValues[p.category] ?? p.category) : p.category;
+      if (String(catVal) !== state.category) return false;
+    }
+    if (state.search) {
+      const q = state.search.toLowerCase();
+      if (!(p.commonName || '').toLowerCase().includes(q) &&
+          !(p.scientificName || '').toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+
+  // Sort
+  pests = pests.slice().sort((a, b) => {
+    let av, bv;
+    if (state.sortBy === 'name')       { av = (a.commonName || '').toLowerCase(); bv = (b.commonName || '').toLowerCase(); }
+    else if (state.sortBy === 'sci')   { av = (a.scientificName || '').toLowerCase(); bv = (b.scientificName || '').toLowerCase(); }
+    else if (state.sortBy === 'cat')   { av = a.category; bv = b.category; }
+    else if (state.sortBy === 'cap')   { av = a.defaultCaptureMode; bv = b.defaultCaptureMode; }
+    else if (state.sortBy === 'thresh'){ av = a.thresholdCount ?? -1; bv = b.thresholdCount ?? -1; }
+    else if (state.sortBy === 'type')  { av = a.isSystemPest ? 1 : 0; bv = b.isSystemPest ? 1 : 0; }
+    else { av = 0; bv = 0; }
+    if (av < bv) return state.sortDesc ? 1 : -1;
+    if (av > bv) return state.sortDesc ? -1 : 1;
+    return 0;
+  });
+
+  if (pests.length === 0) {
+    tableEl.innerHTML = `<div class="empty-state"><div class="empty-icon">🦗</div><h3>No pests found</h3><p>${_allPests.length === 0 ? 'Add your first pest species to get started' : 'Try adjusting your search or filter'}</p></div>`;
+    if (countEl) countEl.textContent = '';
+    return;
+  }
+
+  let rows = '';
+  for (const p of pests) {
+    const catVal  = typeof p.category === 'string' ? (PestCategoryValues[p.category] ?? p.category) : p.category;
+    const capVal  = typeof p.defaultCaptureMode === 'string' ? (CaptureModeValues[p.defaultCaptureMode] ?? p.defaultCaptureMode) : p.defaultCaptureMode;
+    const catColor = categoryColors[catVal] || 'gray';
+    const emoji    = categoryEmojis[catVal] || '❓';
+    const catName  = PestCategory[catVal] || p.category || 'Unknown';
+    const capName  = CaptureMode[capVal]  || p.defaultCaptureMode || 'Count';
+    const capColor = captureModeColors[capVal] || 'gray';
+    const isSystem = p.isSystemPest;
+
+    const threshold = p.thresholdCount != null && capVal !== CaptureModeValues.Presence
+      ? p.thresholdCount
+      : '<span style="color:var(--text-dim);">—</span>';
+
+    const actions = !isSystem ? `
+      <button class="btn-outline" style="padding:4px 10px;font-size:0.75rem;" data-edit-pest="${p.id}">Edit</button>
+      <button class="btn-outline" style="padding:4px 10px;font-size:0.75rem;color:var(--red);border-color:var(--red);" data-delete-pest="${p.id}">Delete</button>
+    ` : '';
+
+    rows += `
+      <tr>
+        <td>
+          <span style="font-size:1.2rem;margin-right:8px;">${emoji}</span>
+          <span style="font-weight:600;color:var(--text);">${escapeHtml(p.commonName)}</span>
+        </td>
+        <td style="font-size:0.8rem;color:var(--text-dim);font-style:italic;">${escapeHtml(p.scientificName || '—')}</td>
+        <td>${tag(catName, catColor)}</td>
+        <td>${tag(capName, capColor)}</td>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;">${threshold}</td>
+        <td>${tag(isSystem ? 'System' : 'Custom', isSystem ? 'gray' : 'amber')}</td>
+        <td style="white-space:nowrap;">${actions}</td>
+      </tr>
+    `;
+  }
+
+  tableEl.innerHTML = `
+    <table class="data-table" style="width:100%;min-width:640px;">
+      <thead style="position:sticky;top:0;z-index:1;background:var(--surface);">
+        <tr>
+          ${thBtn('Common Name',    'name')}
+          ${thBtn('Scientific Name','sci')}
+          ${thBtn('Category',       'cat')}
+          ${thBtn('Capture Mode',   'cap')}
+          ${thBtn('Threshold',      'thresh')}
+          ${thBtn('Type',           'type')}
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+
+  if (countEl) countEl.textContent = `${pests.length} of ${_allPests.length} species`;
+
+  // Sort click handlers
+  tableEl.querySelectorAll('th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => {
+      const key = th.dataset.sort;
+      if (state.sortBy === key) state.sortDesc = !state.sortDesc;
+      else { state.sortBy = key; state.sortDesc = false; }
+      renderTable();
+    });
+  });
+
+  // Action handlers
+  tableEl.querySelectorAll('[data-edit-pest]').forEach(btn => {
+    const pest = pests.find(p => p.id === btn.dataset.editPest);
+    if (pest) btn.addEventListener('click', e => { e.stopPropagation(); openEditPestModal(pest); });
+  });
+
+  tableEl.querySelectorAll('[data-delete-pest]').forEach(btn => {
+    btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      if (!confirm('Delete this pest?')) return;
+      try {
+        await deletePest(btn.dataset.deletePest);
+        showToast('Pest deleted.');
+        await loadPests();
+      } catch (err) {
+        showToast(err.message || 'Failed to delete pest', 'error');
+      }
+    });
+  });
+}
+
+function openCreatePestModal() {
   const categoryOptions = Object.entries(PestCategoryValues)
     .map(([name, val]) => `<option value="${val}">${name}</option>`)
     .join('');
@@ -205,7 +323,7 @@ function openCreatePestModal(container) {
       });
       closeModal();
       showToast('Pest added successfully');
-      await loadPests(container);
+      await loadPests();
     } catch (err) {
       showToast(err.message || 'Failed to add pest', 'error');
       btn.disabled = false;
@@ -214,7 +332,7 @@ function openCreatePestModal(container) {
   });
 }
 
-function openEditPestModal(pest, container) {
+function openEditPestModal(pest) {
   const categoryOptions = Object.entries(PestCategoryValues)
     .map(([name, val]) => `<option value="${val}" ${name === pest.category || val === pest.category ? 'selected' : ''}>${name}</option>`)
     .join('');
@@ -303,7 +421,7 @@ function openEditPestModal(pest, container) {
       });
       closeModal();
       showToast('Pest updated successfully');
-      await loadPests(container);
+      await loadPests();
     } catch (err) {
       showToast(err.message || 'Failed to update pest', 'error');
       btn.disabled = false;
