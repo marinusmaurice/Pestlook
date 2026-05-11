@@ -1,0 +1,74 @@
+@* Reusable weather-condition slider. Bind to Value (string label) via ValueChanged. *@
+
+<div class="wx-slider-wrap">
+    <div class="wx-slider-display">
+        <span class="wx-slider-icon">@Current.Icon</span>
+        <span class="wx-slider-name">@Current.Name</span>
+    </div>
+    <div class="wx-slider-track-wrap">
+        <input type="range"
+               class="wx-slider-input"
+               min="0" max="@(States.Length - 1)"
+               step="1"
+               value="@_index"
+               style="background: @TrackGradient"
+               @oninput="OnSlide" />
+        <div class="wx-slider-stops">
+            @for (int i = 0; i < States.Length; i++)
+            {
+                var idx = i;
+                <span class="wx-slider-stop @(idx == _index ? "active" : "")"
+                      title="@States[idx].Name">
+                    @States[idx].Icon
+                </span>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    public record WeatherState(string Name, string Icon, string Color);
+
+    public static readonly WeatherState[] States =
+    [
+        new("Sunny",           "☀️",  "#FFD700"),
+        new("Mostly Sunny",    "🌤️",  "#FFCC44"),
+        new("Partly Cloudy",   "⛅",  "#F0C060"),
+        new("Scattered Clouds","🌥️",  "#C8B88A"),
+        new("Cloudy",          "☁️",  "#A0A0B0"),
+        new("Overcast",        "🌫️",  "#808090"),
+        new("Light Drizzle",   "🌦️",  "#6090C0"),
+        new("Rain",            "🌧️",  "#4878B0"),
+        new("Heavy Rain",      "⛈️",  "#305898"),
+        new("Thunderstorm",    "🌩️",  "#1A2C6E"),
+    ];
+
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+
+    private int _index;
+
+    private WeatherState Current => States[_index];
+
+    // Gradient from sunny-gold through blue-grey to storm-navy
+    private string TrackGradient =>
+        $"linear-gradient(to right, #FFD700, #F0C060, #A0A0B0, #4878B0, #1A2C6E)";
+
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrEmpty(Value))
+        {
+            var match = Array.FindIndex(States, s => s.Name.Equals(Value, StringComparison.OrdinalIgnoreCase));
+            if (match >= 0) _index = match;
+        }
+    }
+
+    private async Task OnSlide(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var idx))
+        {
+            _index = idx;
+            await ValueChanged.InvokeAsync(Current.Name);
+        }
+    }
+}

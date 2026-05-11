@@ -93,8 +93,8 @@
                                     <div style="font-size:10px;color:var(--text-dim);">Observations</div>
                                 </div>
                                 <div class="sess-stat">
-                                    <div style="font-size:16px;font-weight:600;">@(s.WeatherCondition ?? "—")</div>
-                                    <div style="font-size:10px;color:var(--text-dim);">Weather</div>
+                                    <div style="font-size:16px;font-weight:600;">@WeatherIcon(s.WeatherCondition)</div>
+                                    <div style="font-size:10px;color:var(--text-dim);">@(s.WeatherCondition ?? "—")</div>
                                 </div>
                             </div>
                         </div>
@@ -226,6 +226,9 @@
     private void OnSyncProgress(string msg) { syncStatus = msg; InvokeAsync(StateHasChanged); }
     private void OnSyncCompleted() { syncing = false; syncError = null; _ = InvokeAsync(LoadData); }
     private void OnSyncError(string msg) { syncing = false; syncError = msg; _ = InvokeAsync(StateHasChanged); }
+
+    private static string WeatherIcon(string? condition) =>
+        Pestlook.UI.Mobile.Components.Shared.WeatherSlider.States.FirstOrDefault(s => s.Name.Equals(condition, StringComparison.OrdinalIgnoreCase))?.Icon ?? "—";
 
     public void Dispose()
     {

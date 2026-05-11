@@ -78,12 +78,7 @@
             {
                 <div class="cd" style="margin:4px 10px;padding:10px 12px;">
                     <div style="font-size:12px;font-weight:600;color:var(--text-dim);margin-bottom:8px;">Weather condition</div>
-                    <div class="wx-row">
-                        <button class="wx-btn @(editWeather == "Sunny"  ? "on" : "")" @onclick='() => SaveWeatherField("Sunny")'><span class="wx-icon">☀️</span><span class="wx-lbl">Sunny</span></button>
-                        <button class="wx-btn @(editWeather == "Cloudy" ? "on" : "")" @onclick='() => SaveWeatherField("Cloudy")'><span class="wx-icon">☁️</span><span class="wx-lbl">Cloudy</span></button>
-                        <button class="wx-btn @(editWeather == "Rainy"  ? "on" : "")" @onclick='() => SaveWeatherField("Rainy")'><span class="wx-icon">🌧️</span><span class="wx-lbl">Rainy</span></button>
-                        <button class="wx-btn @(editWeather == "Windy"  ? "on" : "")" @onclick='() => SaveWeatherField("Windy")'><span class="wx-icon">💨</span><span class="wx-lbl">Windy</span></button>
-                    </div>
+                    <WeatherSlider Value="@editWeather" ValueChanged="@(v => { SaveWeatherField(v); })" />
                     <div style="font-size:12px;font-weight:600;color:var(--text-dim);margin:10px 0 6px;">Temperature (@TempUnit°)</div>
                     <div style="display:flex;align-items:center;gap:14px;">
                         <button class="cb" style="width:44px;height:44px;font-size:22px;" @onclick="DecrementTemperature">−</button>
@@ -316,7 +311,11 @@
     {
         var parts = new List<string>();
         if (!string.IsNullOrEmpty(session?.WeatherCondition))
-            parts.Add(session.WeatherCondition);
+        {
+            var state = Pestlook.UI.Mobile.Components.Shared.WeatherSlider.States
+                .FirstOrDefault(s => s.Name.Equals(session.WeatherCondition, StringComparison.OrdinalIgnoreCase));
+            parts.Add(state is not null ? $"{state.Icon} {state.Name}" : session.WeatherCondition);
+        }
         if (session?.Temperature is not 0)
         {
             if (TempUnit == "F")

@@ -150,13 +150,26 @@ select.pk-select{width:100%;background:var(--surface2);border:.5px solid var(--b
 /* ── chip row ── */
 .chip-row{display:flex;gap:5px;padding:4px 10px 6px;border-bottom:.5px solid var(--border);overflow-x:auto;flex-shrink:0;}
 
-/* ── weather buttons ── */
+/* ── weather buttons (legacy, kept for any remaining references) ── */
 .wx-row{display:flex;gap:8px;padding:6px 10px;}
 .wx-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 6px;background:var(--surface2);border:.5px solid var(--border);border-radius:10px;cursor:pointer;font-family:inherit;}
 .wx-btn.on{background:rgba(109,222,132,.12);border-color:rgba(109,222,132,.35);}
 .wx-icon{font-size:24px;}
 .wx-lbl{font-size:10px;color:var(--text-dim);}
 .wx-btn.on .wx-lbl{color:var(--green);font-weight:600;}
+
+/* ── weather slider ── */
+.wx-slider-wrap{padding:6px 12px 10px;}
+.wx-slider-display{display:flex;align-items:center;gap:10px;justify-content:center;padding:10px 0 8px;}
+.wx-slider-icon{font-size:36px;line-height:1;transition:all .2s ease;}
+.wx-slider-name{font-size:14px;font-weight:600;color:var(--text);min-width:120px;}
+.wx-slider-track-wrap{position:relative;padding-bottom:28px;}
+.wx-slider-input{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;}
+.wx-slider-input::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:22px;height:22px;border-radius:50%;background:var(--surface);border:2px solid rgba(255,255,255,.6);box-shadow:0 1px 6px rgba(0,0,0,.4);cursor:pointer;transition:transform .15s ease;}
+.wx-slider-input:active::-webkit-slider-thumb{transform:scale(1.25);}
+.wx-slider-stops{position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:space-between;pointer-events:none;}
+.wx-slider-stop{font-size:14px;opacity:.45;transition:opacity .2s,transform .2s;line-height:1;}
+.wx-slider-stop.active{opacity:1;transform:scale(1.3);}
 
 /* ── session meta strip ── */
 .meta-strip{display:flex;gap:10px;align-items:center;padding:8px 12px;border-bottom:.5px solid var(--border);flex-shrink:0;background:var(--surface);}

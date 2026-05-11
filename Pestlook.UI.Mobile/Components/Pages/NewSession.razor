@@ -66,20 +66,7 @@
 
         <!-- Weather condition -->
         <div class="sl">Weather condition</div>
-        <div class="wx-row">
-            <button class="wx-btn @(weather == "Sunny" ? "on" : "")" @onclick='() => weather = "Sunny"'>
-                <span class="wx-icon">☀️</span><span class="wx-lbl">Sunny</span>
-            </button>
-            <button class="wx-btn @(weather == "Cloudy" ? "on" : "")" @onclick='() => weather = "Cloudy"'>
-                <span class="wx-icon">☁️</span><span class="wx-lbl">Cloudy</span>
-            </button>
-            <button class="wx-btn @(weather == "Rainy" ? "on" : "")" @onclick='() => weather = "Rainy"'>
-                <span class="wx-icon">🌧️</span><span class="wx-lbl">Rainy</span>
-            </button>
-            <button class="wx-btn @(weather == "Windy" ? "on" : "")" @onclick='() => weather = "Windy"'>
-                <span class="wx-icon">💨</span><span class="wx-lbl">Windy</span>
-            </button>
-        </div>
+        <WeatherSlider Value="@weather" ValueChanged="@(v => { weather = v; })" />
 
         <!-- Temperature -->
         <div class="sl">Temperature (@TempUnitLabel)</div>

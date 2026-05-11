@@ -141,11 +141,17 @@ function renderTable(paged, tableEl, pagEl) {
     else if (s.isPlanned) statusTag = tag('📋 Planned', 'amber');
     else statusTag = tag('—', 'gray');
 
+    const weatherIconMap = {
+      'Sunny': '☀️', 'Mostly Sunny': '🌤️', 'Partly Cloudy': '⛅', 'Scattered Clouds': '🌥️',
+      'Cloudy': '☁️', 'Overcast': '🌫️', 'Light Drizzle': '🌦️', 'Rain': '🌧️',
+      'Heavy Rain': '⛈️', 'Thunderstorm': '🌩️',
+    };
+    const weatherIcon = s.weatherConditions ? (weatherIconMap[s.weatherConditions] ?? '') : '';
     const weatherParts = [
-      s.weatherConditions ? escapeHtml(s.weatherConditions) : null,
+      s.weatherConditions ? `${weatherIcon} ${escapeHtml(s.weatherConditions)}`.trim() : null,
       s.temperatureCelsius != null ? formatTemperature(s.temperatureCelsius, unit) : null,
     ].filter(Boolean);
-    const weatherDisplay = weatherParts.length ? weatherParts.join(', ') : '—';
+    const weatherDisplay = weatherParts.length ? weatherParts.join(' · ') : '—';
 
     const trapCount   = s.trapObservationCount  || 0;
     const obsCount    = s.adHocObservationCount || 0;
