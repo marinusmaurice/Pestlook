@@ -27,8 +27,8 @@ export async function renderScoutPriority(el, data) {
     return;
   }
 
-  const kpi = (label, value, colour, sub = '') => `
-    <div class="card card-p" style="flex:1;min-width:120px;">
+  const kpi = (label, value, colour, sub = '', tooltip = '') => `
+    <div class="card card-p" style="flex:1;min-width:120px;cursor:default;" ${tooltip ? `title="${tooltip}"` : ''}>
       <div style="font-size:0.72rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;">${label}</div>
       <div style="font-size:1.7rem;font-weight:700;color:${colour};">${value}</div>
       ${sub ? `<div style="font-size:0.75rem;color:var(--text-dim);margin-top:3px;">${sub}</div>` : ''}
@@ -36,11 +36,11 @@ export async function renderScoutPriority(el, data) {
 
   const kpis = `
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;">
-      ${kpi('Total Fields',  summary.totalFields ?? 0, 'var(--text)')}
-      ${kpi('Critical',      summary.critical    ?? 0, '#c0392b', 'visit today')}
-      ${kpi('High',          summary.high        ?? 0, '#e67e22', 'visit this week')}
-      ${kpi('Medium',        summary.medium      ?? 0, '#f39c12')}
-      ${kpi('Low',           summary.low         ?? 0, '#27ae60')}
+      ${kpi('Total Fields',  summary.totalFields ?? 0, 'var(--text)',  '', 'Total number of fields evaluated for scouting priority in the selected period.')}
+      ${kpi('Critical',      summary.critical    ?? 0, '#c0392b', 'visit today',      'Fields where pest counts have exceeded the alert threshold — immediate scouting visit required today.')}
+      ${kpi('High',          summary.high        ?? 0, '#e67e22', 'visit this week',  'Fields approaching threshold levels — a scouting visit is recommended within the current week.')}
+      ${kpi('Medium',        summary.medium      ?? 0, '#f39c12',  '',                'Fields with elevated but below-threshold pest activity — schedule a visit in the coming weeks.')}
+      ${kpi('Low',           summary.low         ?? 0, '#27ae60',  '',                'Fields with low or stable pest counts — routine monitoring schedule is sufficient.')}
     </div>`;
 
   // Score breakdown bar

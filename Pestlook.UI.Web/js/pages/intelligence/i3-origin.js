@@ -196,19 +196,23 @@ export async function renderOriginDetection(el, data) {
   el.innerHTML = `
     <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Works backwards through the observation record to identify the <strong>first field to report each pest</strong>, then builds a chronological spread chain showing how many days later the pest reached each subsequent field and how far it travelled. An outbreak confidence score is assigned based on whether the origin count was above threshold and how quickly the pest reached a second field.</div>
     ${kpiGrid([
-      kpiCard('Pests Traced',      origins.length,    'species with traceable origin data'),
+      kpiCard('Pests Traced',      origins.length,    'species with traceable origin data', '',
+        'Number of distinct pest species for which an origin field (the first field to report the pest) could be identified from historical observation records.'),
       kpiCard('Multi-field Outbreaks', multiField,
-        'pests that spread to 2+ fields', multiField > 0 ? C.amber : ''),
+        'pests that spread to 2+ fields', multiField > 0 ? C.amber : '',
+        'Count of pest species that were observed in two or more fields, indicating the pest spread beyond its initial origin point.'),
       fastest
         ? kpiCard('Fastest Spread',
             `${fastest.daysToSecondField} day${fastest.daysToSecondField !== 1 ? 's' : ''}`,
-            `${escapeHtml(fastest.pestName)} reached a second field`, C.red)
-        : kpiCard('Fastest Spread', '—', 'no multi-field outbreaks detected'),
+            `${escapeHtml(fastest.pestName)} reached a second field`, C.red,
+            'The shortest time recorded between a pest first appearing in its origin field and then being detected in a second field.')
+        : kpiCard('Fastest Spread', '—', 'no multi-field outbreaks detected', '', ''),
       farthest
         ? kpiCard('Farthest Spread',
             `${farthest.maxSpreadDistanceKm} km`,
-            `${escapeHtml(farthest.pestName)} — furthest field from origin`)
-        : kpiCard('Farthest Spread', '—', 'no GPS data for distance'),
+            `${escapeHtml(farthest.pestName)} — furthest field from origin`, '', 
+            'The greatest straight-line distance (km) between a pest\'s origin field and any other field where that pest was subsequently observed.')
+        : kpiCard('Farthest Spread', '—', 'no GPS data for distance', '', 'Requires GPS coordinates on monitoring points to calculate spread distance.'),
     ])}
 
     <!-- Pest selector -->

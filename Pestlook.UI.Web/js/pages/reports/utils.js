@@ -188,9 +188,9 @@ export function kpiGrid(cards) {
   return `<div class="stat-grid" style="margin-bottom:16px;">${cards.join('')}</div>`;
 }
 
-export function kpiCard(label, value, sub = '', color = '') {
+export function kpiCard(label, value, sub = '', color = '', tooltip = '') {
   return `
-    <div class="stat-card">
+    <div class="stat-card" ${tooltip ? `title="${tooltip}"` : ''} style="cursor:default;">
       <div class="stat-label">${label}</div>
       <div class="stat-value" style="${color ? `color:${color};` : ''}">${value}</div>
       ${sub ? `<div class="stat-delta">${sub}</div>` : ''}

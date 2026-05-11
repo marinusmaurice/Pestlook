@@ -34,8 +34,8 @@ export async function renderSprayTiming(el, data) {
   }
 
   // KPI cards
-  const kpi = (label, value, colour, sub = '') => `
-    <div class="card card-p" style="flex:1;min-width:130px;">
+  const kpi = (label, value, colour, sub = '', tooltip = '') => `
+    <div class="card card-p" style="flex:1;min-width:130px;cursor:default;" ${tooltip ? `title="${tooltip}"` : ''}>
       <div style="font-size:0.72rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;">${label}</div>
       <div style="font-size:1.7rem;font-weight:700;color:${colour};">${value}</div>
       ${sub ? `<div style="font-size:0.75rem;color:var(--text-dim);margin-top:3px;">${sub}</div>` : ''}
@@ -43,10 +43,10 @@ export async function renderSprayTiming(el, data) {
 
   const kpis = `
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;">
-      ${kpi('Total Tracked',  summary.total   ?? 0, 'var(--text)')}
-      ${kpi('Urgent / Immediate', summary.urgent ?? 0, '#c0392b', 'act within 14 days')}
-      ${kpi('Upcoming',       summary.upcoming ?? 0, '#e67e22', 'act within 6 weeks')}
-      ${kpi('Monitor',        summary.monitor  ?? 0, '#27ae60', 'rising but not imminent')}
+      ${kpi('Total Tracked',  summary.total   ?? 0, 'var(--text)',  '', 'Total number of pest-field combinations being monitored for spray timing recommendations.')}
+      ${kpi('Urgent / Immediate', summary.urgent ?? 0, '#c0392b', 'act within 14 days', 'Pest populations growing fast enough that intervention is recommended within the next 14 days to prevent threshold breach.')}
+      ${kpi('Upcoming',       summary.upcoming ?? 0, '#e67e22', 'act within 6 weeks',  'Populations on a rising trend projected to reach action levels within approximately 6 weeks.')}
+      ${kpi('Monitor',        summary.monitor  ?? 0, '#27ae60', 'rising but not imminent', 'Populations that are increasing but remain well below the action threshold — continue monitoring.')}
     </div>`;
 
   const rows = recommendations.map(r => {

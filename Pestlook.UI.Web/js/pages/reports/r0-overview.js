@@ -40,14 +40,19 @@ export function renderOverview(el, data, lookups) {
     ${kpiGrid([
       kpiCard('Threshold Breaches', kpis.thresholdBreaches ?? 0,
         '',
-        (kpis.thresholdBreaches ?? 0) > 0 ? C.red : ''),
+        (kpis.thresholdBreaches ?? 0) > 0 ? C.red : '',
+        'Number of observations where the recorded pest count exceeded the configured alert threshold for that monitoring point.'),
       kpiCard('Session Compliance', compRate + '%',
         `${kpis.completedSessions ?? 0} of ${kpis.totalSessions ?? 0} completed`,
-        compRate < 80 ? C.amber : C.green),
+        compRate < 80 ? C.amber : C.green,
+        'Percentage of scouting sessions that were fully completed (marked as done) out of all sessions started in the selected period.'),
       kpiCard('Active Traps', activeTraps,
-        `${disabledTraps} disabled`),
+        `${disabledTraps} disabled`,
+        '',
+        'Number of monitoring traps currently enabled and collecting data. Disabled traps are excluded from active scouting.'),
       kpiCard('Total Observations', (kpis.totalObservations ?? 0).toLocaleString(),
-        `vs prev period: ${trendHtml}`, C.green),
+        `vs prev period: ${trendHtml}`, C.green,
+        'Sum of all individual pest counts recorded across every observation in the selected date range and filters.'),
     ])}
     <div class="two-col" style="margin-bottom:16px;">
       ${chartCard('Weekly pest count trend', 'c-trend', 200, 'Total observations per week in the selected period')}
