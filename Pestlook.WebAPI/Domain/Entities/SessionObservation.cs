@@ -45,7 +45,7 @@ public sealed class SessionObservation : IHasTenant, IAuditableByUser
     public LifeStage? LifeStage { get; set; }
 
     public int SortOrder { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
 
     /// <summary>JSON array of photo URLs captured during this observation.</summary>
     public string? PhotoUrlsJson { get; set; }

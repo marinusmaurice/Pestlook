@@ -11,5 +11,5 @@ public sealed class ExceptionLog
     public string? RequestPath { get; set; }
     public string? RequestMethod { get; set; }
     public int StatusCode { get; set; }
-    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public DateTime Timestamp { get; set; } = DateTime.Now;
 }

@@ -78,7 +78,7 @@ public sealed class FarmsController(
         farm.Longitude = request.Longitude;
         farm.BoundaryGeoJson = request.BoundaryGeoJson;
         farm.IsActive = request.IsActive;
-        farm.UpdatedAt = DateTime.UtcNow;
+        farm.UpdatedAt = DateTime.Now;
         await db.SaveChangesAsync(ct);
 
         return Ok(ApiResponse<FarmResponse>.Ok(mapper.Map<FarmResponse>(farm)));
@@ -96,7 +96,7 @@ public sealed class FarmsController(
 
         if (farm is null) return NotFound(ApiResponse<object>.Fail("Farm not found."));
 
-        var now = DateTime.UtcNow;
+        var now = DateTime.Now;
         var fieldIds = farm.Fields.Select(f => f.Id).ToList();
 
         foreach (var field in farm.Fields)

@@ -190,7 +190,7 @@ public class SyncService
                 WeatherCondition = !string.IsNullOrEmpty(detail.WeatherConditions) ? detail.WeatherConditions : existing?.WeatherCondition,
                 Temperature      = detail.TemperatureCelsius.HasValue ? (int)detail.TemperatureCelsius.Value : (existing?.Temperature ?? 0),
                 Notes            = detail.Notes ?? existing?.Notes,
-                StartedAt        = detail.StartedAt ?? existing?.StartedAt ?? DateTime.UtcNow,
+                StartedAt        = detail.StartedAt ?? existing?.StartedAt ?? DateTime.Now,
                 CompletedAt      = isLocallyCompleted ? existing!.CompletedAt : detail.CompletedAt,
                 SyncedAt         = existing?.SyncedAt
             });
@@ -323,7 +323,7 @@ public class SyncService
                 session.Notes,
                 session.StartedAt != default ? session.StartedAt : null);
             session.Status   = SessionStatus.Synced;
-            session.SyncedAt = DateTime.UtcNow;
+            session.SyncedAt = DateTime.Now;
             await _db.SaveSessionAsync(session);
         }
     }
@@ -373,7 +373,7 @@ public class SyncService
                     session.Notes,
                     session.StartedAt != default ? session.StartedAt : null);
                 session.Status   = SessionStatus.Synced;
-                session.SyncedAt = DateTime.UtcNow;
+                session.SyncedAt = DateTime.Now;
                 await _db.SaveSessionAsync(session);
             }
         }

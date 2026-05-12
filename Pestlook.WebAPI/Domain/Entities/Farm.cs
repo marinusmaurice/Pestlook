@@ -12,8 +12,8 @@ public sealed class Farm : IHasTenant, IAuditableByUser
     /// <summary>GeoJSON polygon representing the farm boundary.</summary>
     public string? BoundaryGeoJson { get; set; }
     public bool IsActive { get; set; } = true;
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;
     public DateTime? DeletedAt { get; set; }
 
     public string? CreatedByUserId { get; set; }

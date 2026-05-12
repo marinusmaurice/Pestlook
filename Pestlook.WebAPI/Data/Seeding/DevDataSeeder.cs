@@ -30,7 +30,7 @@ public static class DevDataSeeder
             IsActive             = true,
             SubscriptionPlan     = SubscriptionPlan.Basic,
             MonitoringPointQuota = 100,
-            CreatedAt            = DateTime.UtcNow
+            CreatedAt            = DateTime.Now
         };
         db.Tenants.Add(tenant);
         await db.SaveChangesAsync();
@@ -108,7 +108,7 @@ public static class DevDataSeeder
     // ─────────────────────────────────────────────────────────────────────────
     private static List<Pest> BuildPests(Guid tenantId, string userId)
     {
-        var now = DateTime.UtcNow;
+        var now = DateTime.Now;
 
         // (CommonName, ScientificName, Category, CaptureMode, ThresholdCount)
         var data = new (string Common, string? Scientific, PestCategory Cat, CaptureMode Mode, int? Threshold)[]
@@ -194,7 +194,7 @@ public static class DevDataSeeder
     // ─────────────────────────────────────────────────────────────────────────
     private static List<Farm> BuildFarms(Guid tenantId, string userId)
     {
-        var now = DateTime.UtcNow;
+        var now = DateTime.Now;
 
         var data = new (string Name, string Address, double Lat, double Lon)[]
         {
@@ -225,7 +225,7 @@ public static class DevDataSeeder
     // ─────────────────────────────────────────────────────────────────────────
     private static List<Field> BuildFields(Guid tenantId, string userId, List<Farm> farms)
     {
-        var now  = DateTime.UtcNow;
+        var now  = DateTime.Now;
         var list = new List<Field>();
 
         var fieldTemplates = new (string Name, string Crop, double Area, string Season)[]
@@ -275,7 +275,7 @@ public static class DevDataSeeder
 
     private static List<Trap> BuildTraps(Guid tenantId, string userId, List<Farm> farms, List<Field> fields, Random rng)
     {
-        var now      = DateTime.UtcNow;
+        var now      = DateTime.Now;
         var list     = new List<Trap>();
         var farmById = farms.ToDictionary(f => f.Id);
 
@@ -331,7 +331,7 @@ public static class DevDataSeeder
     {
         var list       = new List<ScoutingSession>(farms.Count * SessionsPerFarm);
         var conditions = new[] { "Sunny", "Partly Cloudy", "Overcast", "Light Rain", "Windy" };
-        var baseDate   = DateTime.UtcNow.AddYears(-2);
+        var baseDate   = DateTime.Now.AddYears(-2);
         const int spanDays = 730; // 2 years
 
         foreach (var farm in farms)

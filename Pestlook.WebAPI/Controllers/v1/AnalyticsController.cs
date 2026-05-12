@@ -26,8 +26,8 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
     private static (DateTime From, DateTime To) ResolveRange(
         string? dateRange, DateTime? from, DateTime? to)
     {
-        var end   = to?.ToUniversalTime()   ?? DateTime.UtcNow;
-        if (from.HasValue) return (from.Value.ToUniversalTime(), end);
+        var end   = to   ?? DateTime.Now;
+        if (from.HasValue) return (from.Value, end);
 
         var start = dateRange switch
         {
@@ -283,7 +283,7 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
             .OrderByDescending(x => x.BreachCount)
             .ToList();
 
-        var eightWeeksAgo = DateTime.UtcNow.AddDays(-56);
+        var eightWeeksAgo = DateTime.Now.AddDays(-56);
         var weeklyTrend = await db.SessionObservations
             .Where(o => !o.IsUnknownPest
                      && o.ThresholdCount != null
@@ -393,7 +393,7 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         CancellationToken ct = default)
     {
         var (start, end) = ResolveRange(dateRange, from, to);
-        var now = DateTime.UtcNow;
+        var now = DateTime.Now;
 
         var sessQ = db.ScoutingSessions
             .Where(ss => (ss.CompletedAt ?? ss.StartedAt ?? ss.ScheduledDate) >= start
@@ -626,7 +626,7 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
             .Select(g => new { TrapType = g.Key, TotalCatches = g.Sum(o => o.Count ?? 0) })
             .ToListAsync(ct);
 
-        var now = DateTime.UtcNow;
+        var now = DateTime.Now;
         var statMap = obsStats.ToDictionary(x => x.TrapId);
 
         var result = traps.Select(t =>
@@ -668,7 +668,7 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         CancellationToken ct = default)
     {
         var (start, end) = ResolveRange(dateRange, from, to);
-        var now = DateTime.UtcNow;
+        var now = DateTime.Now;
 
         var sessQ = db.ScoutingSessions
             .Where(ss => (ss.CompletedAt ?? ss.StartedAt ?? ss.ScheduledDate) >= start
@@ -787,7 +787,7 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         CancellationToken ct = default)
     {
         // Always last 18 months
-        var cutoff = DateTime.UtcNow.AddMonths(-18);
+        var cutoff = DateTime.Now.AddMonths(-18);
 
         var sessQ = db.ScoutingSessions
             .Where(ss => ss.CompletedAt >= cutoff);
@@ -905,7 +905,7 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
             IsPriority = (i.Count ?? 0) >= 5 || i.HasPhotos,
         });
 
-        var eightWeeksAgo = DateTime.UtcNow.AddDays(-56);
+        var eightWeeksAgo = DateTime.Now.AddDays(-56);
         var weeklyTrend = items
             .Where(i => i.CompletedAt >= eightWeeksAgo)
             .GroupBy(i =>
@@ -929,8 +929,8 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         [FromQuery] string? scoutId,
         CancellationToken ct = default)
     {
-        var now        = DateTime.UtcNow;
-        var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var now        = DateTime.Now;
+        var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0);
         const int TargetPerMonth = 4;
 
         var fieldsQ = db.Fields.AsQueryable();

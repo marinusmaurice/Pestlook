@@ -188,11 +188,11 @@ public sealed class ScoutingSessionsControllerTests(TestWebApplicationFactory fa
     [Fact]
     public async Task Complete_CompletedAtShouldBeApproximatelyNow()
     {
-        var before = DateTime.UtcNow.AddSeconds(-5);
+        var before = DateTime.Now.AddSeconds(-5);
         var id = await StartSessionAsync(null, null);
         await _admin.PatchAsJsonAsync($"/api/v1/scouting-sessions/{id}/complete",
             new CompleteScoutingSessionRequest(null, null, null, null));
-        var after = DateTime.UtcNow.AddSeconds(5);
+        var after = DateTime.Now.AddSeconds(5);
 
         var resp = await _admin.GetAsync($"/api/v1/scouting-sessions/{id}");
         var body = await resp.Content.ReadFromJsonAsync<ApiResponse<ScoutingSessionResponse>>();

@@ -10,7 +10,7 @@ public sealed class RequestResponseLoggingMiddleware(
     {
         var sw = Stopwatch.StartNew();
         var requestId = context.TraceIdentifier;
-        var requestStart = DateTimeOffset.UtcNow;
+        var requestStart = DateTimeOffset.Now;
 
         logger.LogInformation(
             "→ {Method} {Path} | TraceId: {TraceId} | IP: {Ip}",

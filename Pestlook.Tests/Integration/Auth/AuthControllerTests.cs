@@ -34,8 +34,8 @@ public sealed class AuthControllerTests(TestWebApplicationFactory factory)
         body.Data.Should().NotBeNull();
         body.Data!.AccessToken.Should().NotBeNullOrEmpty();
         body.Data.RefreshToken.Should().NotBeNullOrEmpty();
-        body.Data.AccessTokenExpiry.Should().BeAfter(DateTime.UtcNow);
-        body.Data.RefreshTokenExpiry.Should().BeAfter(DateTime.UtcNow);
+        body.Data.AccessTokenExpiry.Should().BeAfter(DateTime.Now);
+        body.Data.RefreshTokenExpiry.Should().BeAfter(DateTime.Now);
     }
 
     [Theory]

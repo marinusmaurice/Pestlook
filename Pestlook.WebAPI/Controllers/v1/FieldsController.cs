@@ -84,7 +84,7 @@ public sealed class FieldsController(
         field.CropType = request.CropType;
         field.Season = request.Season;
         field.IsActive = request.IsActive;
-        field.UpdatedAt = DateTime.UtcNow;
+        field.UpdatedAt = DateTime.Now;
         await db.SaveChangesAsync(ct);
 
         return Ok(ApiResponse<FieldResponse>.Ok(mapper.Map<FieldResponse>(field)));
@@ -99,7 +99,7 @@ public sealed class FieldsController(
         var field = await db.Fields.FirstOrDefaultAsync(f => f.Id == id, ct);
         if (field is null) return NotFound(ApiResponse<object>.Fail("Field not found."));
 
-        field.DeletedAt = DateTime.UtcNow;
+        field.DeletedAt = DateTime.Now;
         await db.SaveChangesAsync(ct);
         return NoContent();
     }

@@ -64,7 +64,7 @@ public sealed class TrapTypesController(
 
         trapType.Name = request.Name;
         trapType.Description = request.Description;
-        trapType.UpdatedAt = DateTime.UtcNow;
+        trapType.UpdatedAt = DateTime.Now;
         await db.SaveChangesAsync(ct);
 
         return Ok(ApiResponse<TrapTypeResponse>.Ok(mapper.Map<TrapTypeResponse>(trapType)));
@@ -79,7 +79,7 @@ public sealed class TrapTypesController(
         var trapType = await db.TrapTypes.FirstOrDefaultAsync(t => t.Id == id, ct);
         if (trapType is null) return NotFound(ApiResponse<object>.Fail("Trap type not found."));
 
-        trapType.DeletedAt = DateTime.UtcNow;
+        trapType.DeletedAt = DateTime.Now;
         await db.SaveChangesAsync(ct);
         return NoContent();
     }

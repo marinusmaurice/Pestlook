@@ -58,7 +58,7 @@ public sealed class BillingSnapshotsController(
         if (year < 2000 || year > 2100 || month < 1 || month > 12)
             return BadRequest(ApiResponse<object>.Fail("Invalid year or month."));
 
-        var billingMonth = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var billingMonth = new DateTime(year, month, 1, 0, 0, 0);
 
         var alreadyExists = await db.BillingSnapshots
             .AnyAsync(b => b.TenantId == tenantContext.TenantId.Value && b.BillingMonth == billingMonth, ct);

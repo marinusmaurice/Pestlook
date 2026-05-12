@@ -205,7 +205,7 @@ public sealed class ScoutingSessionsController(
             TenantId = tenantContext.TenantId.Value,
             ScouterId = currentUserService.UserId!,
             IsPlanned = false,
-            StartedAt = DateTime.UtcNow,
+            StartedAt = DateTime.Now,
             FieldId = request.FieldId,
             WeatherConditions = request.WeatherConditions,
             TemperatureCelsius = request.TemperatureCelsius,
@@ -536,7 +536,7 @@ public sealed class ScoutingSessionsController(
         if (session is null) return NotFound(ApiResponse<object>.Fail("Scouting session not found."));
         if (session.CompletedAt.HasValue) return BadRequest(ApiResponse<object>.Fail("Session already completed."));
 
-        session.CompletedAt = DateTime.UtcNow;
+        session.CompletedAt = DateTime.Now;
         if (request.StartedAt.HasValue && session.StartedAt is null) session.StartedAt = request.StartedAt;
         if (request.WeatherConditions is not null) session.WeatherConditions = request.WeatherConditions;
         if (request.TemperatureCelsius is not null) session.TemperatureCelsius = request.TemperatureCelsius;
@@ -709,7 +709,7 @@ public sealed class ScoutingSessionsController(
         page     = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 5, 100);
 
-        var now = DateTime.UtcNow;
+        var now = DateTime.Now;
 
         var q = db.ScoutingSessions.AsQueryable();
 

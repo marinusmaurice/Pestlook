@@ -16,7 +16,7 @@ public sealed class Pest : IHasTenant, IAuditableByUser
     public bool IsSystemPest { get; set; }
     /// <summary>Economic action threshold — e.g., >5 count triggers an alert.</summary>
     public int? ThresholdCount { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
     public DateTime? DeletedAt { get; set; }
 
     public string? CreatedByUserId { get; set; }

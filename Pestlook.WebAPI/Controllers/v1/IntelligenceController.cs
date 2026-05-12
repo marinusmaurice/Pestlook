@@ -17,8 +17,8 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
 
     private static (DateTime From, DateTime To) ResolveRange(DateTime? from, DateTime? to, int defaultDays = 180)
     {
-        var end   = to?.ToUniversalTime()   ?? DateTime.UtcNow;
-        var start = from?.ToUniversalTime() ?? end.AddDays(-defaultDays);
+        var end   = to   ?? DateTime.Now;
+        var start = from ?? end.AddDays(-defaultDays);
         return (start, end);
     }
 
@@ -725,7 +725,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         var fieldMap       = allFields.ToDictionary(f => f.FieldId);
 
         // ── 4. Group breaches by pest × field ─────────────────────────────
-        var now    = DateTime.UtcNow;
+        var now    = DateTime.Now;
         var alerts = breachObs
             .GroupBy(o => new { o.PestId, o.FieldId })
             .Select(g =>
@@ -1362,7 +1362,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
                 g => g.Key,
                 g => g.OrderBy(o => o.WeekIndex).Select(o => o.WeekTotal).ToList());
 
-        var today = DateTime.UtcNow.Date;
+        var today = DateTime.Now.Date;
 
         var recommendations = sessions
             .GroupBy(s => s.FieldId)
@@ -1456,7 +1456,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         [FromQuery] Guid? fieldId,
         CancellationToken ct = default)
     {
-        var end   = DateTime.UtcNow;
+        var end   = DateTime.Now;
         var start = end.AddMonths(-18);
 
         var obsQ = db.SessionObservations
@@ -1485,7 +1485,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         if (monthlyTotals.Count == 0)
             return Ok(ApiResponse<object>.Ok(new { calendar = Array.Empty<object>(), peakPests = Array.Empty<object>() }));
 
-        var now         = DateTime.UtcNow;
+        var now         = DateTime.Now;
         var next6Months = Enumerable.Range(0, 6)
             .Select(i => new DateTime(now.Year, now.Month, 1).AddMonths(i))
             .ToList();
@@ -1971,9 +1971,9 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         CancellationToken ct = default)
     {
         var (start, end) = ResolveRange(from, to, 180);
-        var today = DateTime.UtcNow.Date;
+        var today = DateTime.Now.Date;
 
-        // ── 1. Observation trend per field ───────────────────────────────────
+        // ── 1. Observation trend per field
         var obsQ = db.SessionObservations
             .Where(o => !o.IsUnknownPest && o.PestId != null && o.Count > 0
                      && o.Session.CompletedAt >= start && o.Session.CompletedAt <= end
@@ -2313,9 +2313,9 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         CancellationToken ct = default)
     {
         var (start, end) = ResolveRange(from, to, 90);
-        var now = DateTime.UtcNow;
+        var now = DateTime.Now;
 
-        // ── 1. All threshold breaches in period ──────────────────────────────
+        // ── 1. All threshold breaches in period
         var obsQ = db.SessionObservations
             .Where(o => !o.IsUnknownPest && o.PestId != null
                      && o.Count != null && o.ThresholdCount != null && o.ThresholdCount > 0
@@ -2439,7 +2439,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         CancellationToken ct = default)
     {
         var (start, end) = ResolveRange(from, to, 90);
-        var monthStart   = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var monthStart   = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1, 0, 0, 0);
 
         // ── 1. Sessions this month per field ─────────────────────────────────
         var sessQ = db.ScoutingSessions
@@ -3379,7 +3379,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
             fieldMetaMap.TryGetValue(r.FieldId, out var fm);
 
             bool newToTenant = !notNewToTenantSet.Contains(r.PestId);
-            int  daysSince   = (int)(DateTime.UtcNow - r.MinDate).TotalDays;
+            int  daysSince   = (int)(DateTime.Now - r.MinDate).TotalDays;
 
             string introType = newToTenant ? "New to tenant" : "New to field";
             string riskLevel = newToTenant                   ? "High"

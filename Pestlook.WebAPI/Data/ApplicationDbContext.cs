@@ -132,7 +132,7 @@ public sealed class ApplicationDbContext(
              .HasFilter("[DeletedAt] IS NULL");
             e.HasQueryFilter(t => t.DeletedAt == null);
 
-            var seedDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            var seedDate = new DateTime(2025, 1, 1, 0, 0, 0);
             e.HasData(
                 new TrapType { Id = Guid.Parse("a0000000-0000-0000-0000-000000000001"), Name = "Delta Trap", Description = "Triangular tent-shaped trap with a sticky inner surface, typically baited with pheromone lures to attract and capture moths.", CreatedAt = seedDate },
                 new TrapType { Id = Guid.Parse("a0000000-0000-0000-0000-000000000002"), Name = "Bucket Trap", Description = "Container-style trap with a funnel lid; pests fall into the bucket and cannot escape, often used with pheromones or kill strips.", CreatedAt = seedDate },

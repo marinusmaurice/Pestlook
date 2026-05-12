@@ -69,9 +69,9 @@ public sealed class AuthController(
     [HttpPost("revoke")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Revoke([FromBody] string refreshToken, CancellationToken ct)
+    public async Task<IActionResult> Revoke([FromBody] RevokeTokenRequest request, CancellationToken ct)
     {
-        await authService.RevokeTokenAsync(refreshToken, IpAddress, ct);
+        await authService.RevokeTokenAsync(request.RefreshToken, IpAddress, ct);
         return NoContent();
     }
 

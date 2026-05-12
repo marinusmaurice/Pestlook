@@ -287,7 +287,7 @@ public class ApiClient
 
     private async Task EnsureTokenAsync()
     {
-        if (_tokenExpiry > DateTime.UtcNow.AddMinutes(1) || string.IsNullOrEmpty(_refreshToken))
+        if (_tokenExpiry > DateTime.Now.AddMinutes(1) || string.IsNullOrEmpty(_refreshToken))
             return;
         try
         {

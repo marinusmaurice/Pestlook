@@ -136,7 +136,7 @@ public sealed class AuthService(
         if (!user.IsActive)
             throw new UnauthorizedAccessException("Account is disabled.");
 
-        if (user.LockedUntil.HasValue && user.LockedUntil > DateTime.UtcNow)
+        if (user.LockedUntil.HasValue && user.LockedUntil > DateTime.Now)
             throw new UnauthorizedAccessException($"Account locked until {user.LockedUntil:u}. Try again later.");
 
         var passwordValid = await userManager.CheckPasswordAsync(user, request.Password);
@@ -145,7 +145,7 @@ public sealed class AuthService(
             user.FailedLoginAttempts++;
             if (user.FailedLoginAttempts >= MaxFailedAttempts)
             {
-                user.LockedUntil = DateTime.UtcNow.Add(LockDuration);
+                user.LockedUntil = DateTime.Now.Add(LockDuration);
                 logger.LogWarning("User {Email} locked after {Count} failed attempts", user.Email, user.FailedLoginAttempts);
             }
             await userManager.UpdateAsync(user);
@@ -182,13 +182,13 @@ public sealed class AuthService(
             throw new UnauthorizedAccessException("Refresh token is invalid or expired.");
 
         // Rotate: revoke old, issue new
-        storedToken.RevokedAt = DateTime.UtcNow;
+        storedToken.RevokedAt = DateTime.Now;
         var newRefreshToken = BuildRefreshToken(user, ipAddress);
         storedToken.ReplacedByToken = newRefreshToken.Token;
         db.RefreshTokens.Add(newRefreshToken);
 
         // Remove tokens older than double the expiry window to keep the table clean
-        var cutoff = DateTime.UtcNow.AddDays(-(_jwt.RefreshTokenExpiryDays * 2));
+        var cutoff = DateTime.Now.AddDays(-(_jwt.RefreshTokenExpiryDays * 2));
         var stale = user.RefreshTokens.Where(rt => rt.CreatedAt < cutoff).ToList();
         db.RefreshTokens.RemoveRange(stale);
 
@@ -196,7 +196,7 @@ public sealed class AuthService(
 
         var roles = await userManager.GetRolesAsync(user);
         var accessToken = tokenService.GenerateAccessToken(user, roles);
-        var accessExpiry = DateTime.UtcNow.AddMinutes(_jwt.AccessTokenExpiryMinutes);
+        var accessExpiry = DateTime.Now.AddMinutes(_jwt.AccessTokenExpiryMinutes);
 
         return new TokenResponse(accessToken, newRefreshToken.Token, accessExpiry, newRefreshToken.ExpiresAt);
     }
@@ -211,7 +211,7 @@ public sealed class AuthService(
         if (!token.IsActive)
             throw new InvalidOperationException("Token is already revoked or expired.");
 
-        token.RevokedAt = DateTime.UtcNow;
+        token.RevokedAt = DateTime.Now;
         await db.SaveChangesAsync(ct);
 
         logger.LogInformation("Refresh token revoked for user {UserId} from {Ip}", token.UserId, ipAddress);
@@ -226,7 +226,7 @@ public sealed class AuthService(
         db.RefreshTokens.Add(refreshToken);
         await db.SaveChangesAsync(ct);
 
-        var accessExpiry = DateTime.UtcNow.AddMinutes(_jwt.AccessTokenExpiryMinutes);
+        var accessExpiry = DateTime.Now.AddMinutes(_jwt.AccessTokenExpiryMinutes);
         return new TokenResponse(accessToken, refreshToken.Token, accessExpiry, refreshToken.ExpiresAt);
     }
 
@@ -235,7 +235,7 @@ public sealed class AuthService(
         UserId = user.Id,
         TenantId = user.TenantId,
         Token = tokenService.GenerateRefreshToken(),
-        ExpiresAt = DateTime.UtcNow.AddDays(_jwt.RefreshTokenExpiryDays),
+        ExpiresAt = DateTime.Now.AddDays(_jwt.RefreshTokenExpiryDays),
         CreatedByIp = ipAddress
     };
 }
