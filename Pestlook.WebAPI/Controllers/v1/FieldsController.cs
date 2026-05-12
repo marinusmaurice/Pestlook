@@ -52,13 +52,14 @@ public sealed class FieldsController(
         var farmExists = await db.Farms.AnyAsync(f => f.Id == request.FarmId, ct);
         if (!farmExists) return BadRequest(ApiResponse<object>.Fail("Farm not found."));
 
+        var autoArea = GeoJsonUtils.ComputeAreaHectares(request.GeoBoundary);
         var field = new Field
         {
             TenantId = tenantContext.TenantId.Value,
             FarmId = request.FarmId,
             Name = request.Name,
             GeoBoundary = request.GeoBoundary,
-            AreaHectares = request.AreaHectares,
+            AreaHectares = autoArea ?? request.AreaHectares,
             CropType = request.CropType,
             Season = request.Season
         };
@@ -80,7 +81,7 @@ public sealed class FieldsController(
 
         field.Name = request.Name;
         field.GeoBoundary = request.GeoBoundary;
-        field.AreaHectares = request.AreaHectares;
+        field.AreaHectares = GeoJsonUtils.ComputeAreaHectares(request.GeoBoundary) ?? request.AreaHectares;
         field.CropType = request.CropType;
         field.Season = request.Season;
         field.IsActive = request.IsActive;

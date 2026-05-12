@@ -8,6 +8,10 @@ export function getFarm(id) {
   return get(`/farms/${id}`);
 }
 
+export function getFarmGeoJson(id) {
+  return get(`/farms/${id}/geojson`);
+}
+
 export function createFarm(request) {
   return post('/farms', request);
 }

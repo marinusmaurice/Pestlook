@@ -8,6 +8,7 @@ using Pestlook.WebAPI.Domain.Entities;
 using Pestlook.WebAPI.DTOs.Common;
 using Pestlook.WebAPI.DTOs.Farms;
 using Pestlook.WebAPI.Infrastructure;
+using System.Text.Json;
 
 namespace Pestlook.WebAPI.Controllers.v1;
 
@@ -56,6 +57,13 @@ public sealed class FarmsController(
             Longitude = request.Longitude,
             BoundaryGeoJson = request.BoundaryGeoJson
         };
+
+        // Auto-derive centre-point from boundary when explicit lat/lng not provided
+        if (farm.Latitude is null && farm.Longitude is null && request.BoundaryGeoJson is not null)
+        {
+            var centroid = GeoJsonUtils.ComputeCentroid(request.BoundaryGeoJson);
+            if (centroid.HasValue) { farm.Longitude = centroid.Value.Lon; farm.Latitude = centroid.Value.Lat; }
+        }
         db.Farms.Add(farm);
         await db.SaveChangesAsync(ct);
 
@@ -78,10 +86,84 @@ public sealed class FarmsController(
         farm.Longitude = request.Longitude;
         farm.BoundaryGeoJson = request.BoundaryGeoJson;
         farm.IsActive = request.IsActive;
+
+        // Keep centre-point in sync with boundary centroid when lat/lng cleared
+        if (farm.Latitude is null && farm.Longitude is null && request.BoundaryGeoJson is not null)
+        {
+            var centroid = GeoJsonUtils.ComputeCentroid(request.BoundaryGeoJson);
+            if (centroid.HasValue) { farm.Longitude = centroid.Value.Lon; farm.Latitude = centroid.Value.Lat; }
+        }
+
         farm.UpdatedAt = DateTime.Now;
         await db.SaveChangesAsync(ct);
 
         return Ok(ApiResponse<FarmResponse>.Ok(mapper.Map<FarmResponse>(farm)));
+    }
+
+    /// <summary>
+    /// Returns a GeoJSON FeatureCollection containing the farm boundary and all its field boundaries.
+    /// Suitable for rendering directly in Leaflet / MapLibre / any GIS client.
+    /// </summary>
+    [HttpGet("{id:guid}/geojson")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetGeoJson(Guid id, CancellationToken ct)
+    {
+        var farm = await db.Farms
+            .Include(f => f.Fields.Where(fi => fi.DeletedAt == null))
+            .FirstOrDefaultAsync(f => f.Id == id, ct);
+
+        if (farm is null) return NotFound(ApiResponse<object>.Fail("Farm not found."));
+
+        var features = new List<object>();
+
+        // Farm boundary feature
+        if (!string.IsNullOrWhiteSpace(farm.BoundaryGeoJson))
+        {
+            try
+            {
+                var geom = JsonSerializer.Deserialize<JsonElement>(farm.BoundaryGeoJson);
+                features.Add(new
+                {
+                    type       = "Feature",
+                    properties = new { type = "farm", id = farm.Id, name = farm.Name },
+                    geometry   = geom
+                });
+            }
+            catch { /* ignore malformed geometry */ }
+        }
+
+        // Field boundary features
+        foreach (var field in farm.Fields)
+        {
+            if (string.IsNullOrWhiteSpace(field.GeoBoundary)) continue;
+            try
+            {
+                var geom = JsonSerializer.Deserialize<JsonElement>(field.GeoBoundary);
+                features.Add(new
+                {
+                    type       = "Feature",
+                    properties = new
+                    {
+                        type         = "field",
+                        id           = field.Id,
+                        name         = field.Name,
+                        cropType     = field.CropType,
+                        areaHectares = field.AreaHectares
+                    },
+                    geometry = geom
+                });
+            }
+            catch { /* ignore malformed geometry */ }
+        }
+
+        var featureCollection = new
+        {
+            type     = "FeatureCollection",
+            features
+        };
+
+        return Ok(featureCollection);
     }
 
     [HttpDelete("{id:guid}")]
