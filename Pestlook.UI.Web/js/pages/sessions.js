@@ -362,8 +362,8 @@ async function showPlannedSessionModal(existing = null) {
         </select>
       </div>
       <div>
-        <label class="input-label">Scheduled Date <span style="color:var(--red);">*</span></label>
-        <input class="input-field" type="date" id="sessionDate" value="${existing?.scheduledDate ? existing.scheduledDate.substring(0, 10) : ''}">
+        <label class="input-label">Scheduled Date & Time <span style="color:var(--red);">*</span></label>
+        <input class="input-field" type="datetime-local" id="sessionDate" value="${existing?.scheduledDate ? existing.scheduledDate.substring(0, 16) : ''}">
       </div>
       <div>
         <label class="input-label">Notes (optional)</label>
@@ -396,12 +396,14 @@ async function showPlannedSessionModal(existing = null) {
     const farmId = document.getElementById('sessionFarm').value || null;
     const fieldId = document.getElementById('sessionField').value || null;
     const scouterId = document.getElementById('sessionScout').value || null;
-    const scheduledDate = document.getElementById('sessionDate').value || null;
+    const scheduledDateRaw = document.getElementById('sessionDate').value || null;
+    // datetime-local gives "YYYY-MM-DDTHH:mm" — append seconds so the API parses it as a full DateTime
+    const scheduledDate = scheduledDateRaw ? scheduledDateRaw + ':00' : null;
 
     if (!farmId)        { showToast('Please select a farm.', 'error'); return; }
     if (!fieldId)       { showToast('Please select a field.', 'error'); return; }
     if (!scouterId)     { showToast('Please assign a scout.', 'error'); return; }
-    if (!scheduledDate) { showToast('Please select a scheduled date.', 'error'); return; }
+    if (!scheduledDate) { showToast('Please select a scheduled date and time.', 'error'); return; }
 
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>';
