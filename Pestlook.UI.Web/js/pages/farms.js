@@ -155,13 +155,13 @@ async function openFarmFields(farm, farmIdx) {
   const listPanel   = document.getElementById('farms-list-panel');
   const fieldsPanel = document.getElementById('farms-fields-panel');
   listPanel.style.display   = 'none';
-  fieldsPanel.style.display = 'block';
+  fieldsPanel.style.display = 'flex';
+  fieldsPanel.style.flexDirection = 'column';
+  fieldsPanel.style.height  = '100%';
   fieldsPanel.innerHTML = `<div class="skeleton skeleton-card" style="height:300px;margin-bottom:16px;"></div>`;
 
   try {
-    const [fieldsRes] = await Promise.all([
-      getFields(farm.id),
-    ]);
+    const [fieldsRes] = await Promise.all([getFields(farm.id)]);
     renderFieldsPanel(farm, farmIdx, fieldsRes.data || []);
   } catch (err) {
     showToast('Failed to load fields: ' + err.message, 'error');
@@ -175,158 +175,269 @@ function closeFarmFields() {
 }
 
 function renderFieldsPanel(farm, farmIdx, fields) {
-  const emoji      = farmEmojis[farmIdx % farmEmojis.length];
-  const farmHa     = parseFloat(farm.areaHectares) || 0;
-  const haDisplay  = farmHa > 0 ? (farmHa % 1 === 0 ? String(farmHa) : farmHa.toFixed(2)) : '—';
-  const fieldsHaSum = fields.reduce((s, f) => s + (parseFloat(f.areaHectares) || 0), 0);
+  const farmHa          = parseFloat(farm.areaHectares) || 0;
+  const haDisplay       = farmHa > 0 ? (farmHa % 1 === 0 ? String(farmHa) : farmHa.toFixed(2)) : '—';
+  const fieldsHaSum     = fields.reduce((s, f) => s + (parseFloat(f.areaHectares) || 0), 0);
   const fieldsHaDisplay = fieldsHaSum > 0 ? (fieldsHaSum % 1 === 0 ? String(fieldsHaSum) : fieldsHaSum.toFixed(2)) : '—';
-  const panel      = document.getElementById('farms-fields-panel');
+  const panel           = document.getElementById('farms-fields-panel');
 
-  let fieldsHtml = '';
-  if (fields.length === 0) {
-    fieldsHtml = `
-      <div style="padding:48px;text-align:center;">
-        <div style="font-size:2.5rem;margin-bottom:10px;">🌱</div>
-        <div style="font-size:0.9rem;color:var(--text-dim);">No fields yet. Add the first field to this farm.</div>
-      </div>`;
-  } else {
-    fieldsHtml = `<table class="data-table">
-      <thead>
-        <tr>
-          <th>Field Name</th><th>Status</th><th>Crop Type</th><th>Season</th>
-          <th>Area (ha)</th><th>Created</th>
-          <th style="text-align:right;">Actions</th>
-        </tr>
-      </thead>
-      <tbody>`;
-    for (const f of fields) {
-      fieldsHtml += `
-        <tr>
-          <td><div style="font-weight:600;color:var(--text);">${escapeHtml(f.name)}</div></td>
-          <td>${f.isActive !== false ? tag('Active', 'green') : tag('Inactive', 'red')}</td>
-          <td>${f.cropType
-            ? `<span class="tag tag-green" style="font-size:0.72rem;">${escapeHtml(f.cropType)}</span>`
-            : '<span style="color:var(--text-dim);font-size:0.8rem;">—</span>'}</td>
-          <td style="font-size:0.82rem;color:var(--text-mid);">${escapeHtml(f.season || '—')}</td>
-          <td>
-            <span style="font-family:'Fraunces',serif;font-weight:700;font-size:1.05rem;color:var(--amber);">${f.areaHectares != null ? f.areaHectares : '—'}</span>
-            ${f.areaHectares != null ? '<span style="font-size:0.7rem;color:var(--text-dim);margin-left:2px;">ha</span>' : ''}
-          </td>
-          <td style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--text-dim);">${formatDate(f.createdAt)}</td>
-          <td style="text-align:right;">
-            <div style="display:flex;gap:6px;justify-content:flex-end;align-items:center;">
-              ${f.geoBoundary ? `<button data-map-field="${f.id}" style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:5px 9px;color:var(--text-mid);font-size:0.75rem;cursor:pointer;font-family:inherit;" title="View / edit boundary">🗺</button>` : ''}
-              <button data-edit-field="${f.id}" style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:5px 11px;color:var(--text-mid);font-size:0.75rem;cursor:pointer;font-family:inherit;">✏ Edit</button>
-              <button data-delete-field="${f.id}" style="background:rgba(224,96,96,0.08);border:1px solid rgba(224,96,96,0.2);border-radius:7px;padding:5px 11px;color:var(--red);font-size:0.75rem;cursor:pointer;font-family:inherit;">🗑 Delete</button>
-            </div>
+  // ── state ──────────────────────────────────────────────────────────────────
+  let sortCol  = 'name';
+  let sortDesc = false;
+  let search   = '';
+  let page     = 1;
+  let pageSize = 25;
 
-        </tr>`;
-    }
-    fieldsHtml += `</tbody></table>`;
+  // ── helpers ────────────────────────────────────────────────────────────────
+  function thBtn(label, key) {
+    const active = sortCol === key;
+    const arrow  = active ? (sortDesc ? ' ▼' : ' ▲') : '';
+    return `<th style="cursor:pointer;user-select:none;white-space:nowrap;" data-sort="${key}">${label}${arrow}</th>`;
   }
 
+  function getFiltered() {
+    let rows = [...fields];
+    if (search) {
+      const q = search.toLowerCase();
+      rows = rows.filter(f =>
+        (f.name     || '').toLowerCase().includes(q) ||
+        (f.cropType || '').toLowerCase().includes(q) ||
+        (f.season   || '').toLowerCase().includes(q));
+    }
+    rows.sort((a, b) => {
+      let av = a[sortCol], bv = b[sortCol];
+      if (sortCol === 'isActive')     { av = a.isActive ? 1 : 0; bv = b.isActive ? 1 : 0; }
+      if (sortCol === 'areaHectares') { av = parseFloat(av) || 0; bv = parseFloat(bv) || 0; }
+      if (av == null) av = ''; if (bv == null) bv = '';
+      const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+      return sortDesc ? -cmp : cmp;
+    });
+    return rows;
+  }
+
+  function buildRows(rows) {
+    if (rows.length === 0)
+      return `<tr><td colspan="7" style="padding:40px;text-align:center;color:var(--text-dim);">No fields match your search.</td></tr>`;
+
+    const start = (page - 1) * pageSize;
+    const slice = rows.slice(start, start + pageSize);
+
+    return slice.map(f => {
+      const colorDot = f.boundaryColor
+        ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${f.boundaryColor};border:1px solid var(--border);margin-right:6px;flex-shrink:0;"></span>`
+        : '';
+      return `
+        <tr>
+          <td><div style="font-weight:600;color:var(--text);display:flex;align-items:center;">${colorDot}${escapeHtml(f.name)}</div></td>
+          <td>${f.isActive !== false ? tag('Active', 'green') : tag('Inactive', 'red')}</td>
+          <td>${f.cropType ? tag(escapeHtml(f.cropType), 'green') : '<span style="color:var(--text-dim);">—</span>'}</td>
+          <td style="font-size:0.82rem;color:var(--text-mid);">${escapeHtml(f.season || '—')}</td>
+          <td>
+            <span style="font-family:'Fraunces',serif;font-weight:700;font-size:1.05rem;color:var(--amber);">${f.areaHectares != null ? parseFloat(f.areaHectares).toFixed(4) : '—'}</span>
+            ${f.areaHectares != null ? '<span style="font-size:0.7rem;color:var(--text-dim);margin-left:2px;">ha</span>' : ''}
+          </td>
+          <td style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--text-dim);white-space:nowrap;">${formatDate(f.createdAt)}</td>
+          <td style="white-space:nowrap;text-align:right;">
+            <div style="display:inline-flex;gap:6px;align-items:center;">
+              ${f.geoBoundary ? `<button class="btn-outline" style="padding:4px 8px;font-size:0.75rem;" data-map-field="${f.id}" title="View / edit boundary">🗺</button>` : ''}
+              <button class="btn-outline" style="padding:4px 10px;font-size:0.75rem;" data-edit-field="${f.id}">✏ Edit</button>
+              <button class="btn-outline" style="padding:4px 10px;font-size:0.75rem;color:var(--red);border-color:var(--red);" data-delete-field="${f.id}">Delete</button>
+            </div>
+          </td>
+        </tr>`;
+    }).join('');
+  }
+
+  function renderPagination(filtered) {
+    const pagEl = document.getElementById('fieldsPagination');
+    if (!pagEl) return;
+    const totalCount = filtered.length;
+    const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+    const start = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
+    const end   = Math.min(page * pageSize, totalCount);
+    pagEl.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;
+                  padding:10px 14px;border-top:1px solid var(--border);font-size:0.8rem;color:var(--text-dim);">
+        <span>${start}–${end} of ${totalCount} field${totalCount !== 1 ? 's' : ''}</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button class="btn-outline pg-btn" data-action="prev" style="padding:4px 10px;" ${page <= 1 ? 'disabled' : ''}>‹ Prev</button>
+          <span style="font-size:0.78rem;">Page
+            <input type="number" class="input-field pg-input" value="${page}" min="1" max="${totalPages}"
+              style="width:52px;padding:3px 6px;font-size:0.78rem;margin:0 4px;display:inline-block;" />
+            of ${totalPages}
+          </span>
+          <button class="btn-outline pg-btn" data-action="next" style="padding:4px 10px;" ${page >= totalPages ? 'disabled' : ''}>Next ›</button>
+          <select class="input-field pg-size" style="margin:0;padding:4px 8px;font-size:0.78rem;width:auto;">
+            ${[10, 25, 50, 100].map(n => `<option value="${n}"${n === pageSize ? ' selected' : ''}>${n} / page</option>`).join('')}
+          </select>
+        </div>
+      </div>`;
+
+    pagEl.querySelectorAll('.pg-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (btn.dataset.action === 'prev' && page > 1)          { page--; refresh(); }
+        if (btn.dataset.action === 'next' && page < totalPages) { page++; refresh(); }
+      });
+    });
+    pagEl.querySelector('.pg-input').addEventListener('change', e => {
+      const v = parseInt(e.target.value, 10);
+      if (!isNaN(v) && v >= 1 && v <= totalPages) { page = v; refresh(); }
+    });
+    pagEl.querySelector('.pg-size').addEventListener('change', e => {
+      pageSize = parseInt(e.target.value, 10);
+      page = 1;
+      refresh();
+    });
+  }
+
+  function refresh() {
+    const filtered = getFiltered();
+    const tbody = document.getElementById('fieldsTableBody');
+    if (tbody) tbody.innerHTML = buildRows(filtered);
+    renderPagination(filtered);
+    bindRowEvents();
+    // update summary label
+    const foot = document.getElementById('fieldsFooter');
+    if (foot) foot.textContent = search
+      ? `${filtered.length} of ${fields.length} field${fields.length !== 1 ? 's' : ''} shown`
+      : `${fields.length} field${fields.length !== 1 ? 's' : ''} · farm ${haDisplay} ha · fields ${fieldsHaDisplay} ha`;
+  }
+
+  function bindRowEvents() {
+    panel.querySelectorAll('[data-map-field]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const field = fields.find(f => f.id === btn.dataset.mapField);
+        if (!field) return;
+        const backgroundLayers = farm.boundaryGeoJson
+          ? [{ name: farm.name, geoJson: farm.boundaryGeoJson, color: '#6aaf7a' }]
+          : [];
+        openBoundaryMap({
+          title:           `Boundary – ${field.name}`,
+          existingGeoJson: field.geoBoundary,
+          centerLat:       farm.latitude,
+          centerLng:       farm.longitude,
+          polygonColor:    field.boundaryColor || '#f0b840',
+          backgroundLayers,
+          onConfirm: async ({ geoJson, areaHectares }) => {
+            try {
+              await updateField(field.id, {
+                name: field.name, cropType: field.cropType, season: field.season,
+                isActive: field.isActive, geoBoundary: geoJson, areaHectares,
+                boundaryColor: field.boundaryColor || null,
+                latitude: field.latitude || null, longitude: field.longitude || null,
+              });
+              showToast('Field boundary updated!', 'success');
+              await openFarmFields(farm, farmIdx);
+            } catch (err) { showToast(err.message, 'error'); }
+          },
+        });
+      });
+    });
+    panel.querySelectorAll('[data-edit-field]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const field = fields.find(f => f.id === btn.dataset.editField);
+        if (field) showFieldModal(field, farm, farmIdx);
+      });
+    });
+    panel.querySelectorAll('[data-delete-field]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const field = fields.find(f => f.id === btn.dataset.deleteField);
+        if (field) showDeleteFieldConfirm(field, farm, farmIdx);
+      });
+    });
+  }
+
+  // ── initial filtered set for first render ──────────────────────────────────
+  const initialFiltered = getFiltered();
+
+  // ── shell ──────────────────────────────────────────────────────────────────
   panel.innerHTML = `
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">
-      <button id="backToFarmsBtn" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text-mid);font-size:0.8rem;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;">← Back to Farms</button>
-      <span style="color:var(--text-dim);font-size:0.8rem;">/</span>
-      <span style="font-size:0.85rem;color:var(--text);font-weight:500;">${escapeHtml(farm.name)}</span>
-      <span style="color:var(--text-dim);font-size:0.8rem;">/</span>
-      <span style="font-size:0.85rem;color:var(--green);">Fields</span>
-    </div>
-
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:20px;">
-      <div style="font-size:2.2rem;">${emoji}</div>
-      <div style="flex:1;">
-        <div style="font-family:'Fraunces',serif;font-weight:700;font-size:1.1rem;color:var(--text);">${escapeHtml(farm.name)}</div>
-        <div style="font-size:0.78rem;color:var(--text-dim);margin-top:2px;">📍 ${escapeHtml(farm.address || 'No address')}</div>
+    <div class="section-head" style="margin-bottom:16px;flex-shrink:0;">
+      <div>
+        <div class="page-heading">${escapeHtml(farm.name)} — Fields</div>
+        <div class="page-desc">
+          <span style="cursor:pointer;color:var(--green);" id="backToFarmsBtn">← Farms</span>
+          &nbsp;/&nbsp; ${escapeHtml(farm.name)} &nbsp;/&nbsp; Fields
+        </div>
       </div>
-      <div style="display:flex;gap:20px;align-items:center;">
-        <div style="text-align:center;">
-          <div style="font-family:'Fraunces',serif;font-weight:700;font-size:1.5rem;color:var(--green);">${fields.length}</div>
-          <div style="font-size:0.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;">Fields</div>
-        </div>
-        <div style="text-align:center;">
-          <div style="font-family:'Fraunces',serif;font-weight:700;font-size:1.5rem;color:var(--amber);">${haDisplay}</div>
-          <div style="font-size:0.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;">Farm Ha</div>
-        </div>
-        <div style="text-align:center;">
-          <div style="font-family:'Fraunces',serif;font-weight:700;font-size:1.5rem;color:var(--amber);">${fieldsHaDisplay}</div>
-          <div style="font-size:0.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;">Fields Ha</div>
-        </div>
-        <div style="display:flex;gap:8px;">
-          <button id="editFarmBannerBtn" class="btn-outline" style="padding:5px 12px;font-size:0.78rem;">✏️ Edit Farm</button>
-        </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button id="editFarmBannerBtn" class="btn-outline" style="font-size:0.8rem;">✏️ Edit Farm</button>
+        <button class="btn-primary" id="addFieldPanelBtn">＋ Add Field</button>
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-p" style="border-bottom:1px solid var(--border);">
-        <div class="section-head" style="margin-bottom:0;">
-          <div>
-            <div class="section-title">Fields</div>
-            <div class="section-sub">${fields.length} field${fields.length !== 1 ? 's' : ''} · farm ${haDisplay} ha · fields ${fieldsHaDisplay} ha</div>
-          </div>
-          <button class="btn-primary" id="addFieldPanelBtn">＋ Add Field</button>
-        </div>
+    <div class="card" id="fieldsTableCard"
+         style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;">
+
+      <!-- filter bar -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+                  padding:10px 14px;border-bottom:1px solid var(--border);flex-shrink:0;">
+        <input type="search" id="fieldsSearch" class="input-field"
+               placeholder="Search fields…"
+               style="margin:0;min-width:160px;max-width:280px;padding:6px 10px;font-size:0.8rem;" />
+        <span id="fieldsFooter" style="font-size:0.78rem;color:var(--text-dim);">
+          ${fields.length} field${fields.length !== 1 ? 's' : ''} · farm ${haDisplay} ha · fields ${fieldsHaDisplay} ha
+        </span>
       </div>
-      <div style="overflow-x:auto;">${fieldsHtml}</div>
+
+      <!-- scrollable table -->
+      <div style="overflow-x:auto;overflow-y:auto;flex:1;min-height:0;">
+        ${fields.length === 0
+          ? `<div style="padding:60px;text-align:center;">
+               <div style="font-size:2.5rem;margin-bottom:10px;">🌱</div>
+               <div style="font-size:0.9rem;color:var(--text-dim);">No fields yet. Add the first field to this farm.</div>
+             </div>`
+          : `<table class="data-table" style="width:100%;min-width:700px;">
+               <thead style="position:sticky;top:0;z-index:1;background:var(--surface);">
+                 <tr>
+                   ${thBtn('Field Name',  'name')}
+                   ${thBtn('Status',      'isActive')}
+                   ${thBtn('Crop Type',   'cropType')}
+                   ${thBtn('Season',      'season')}
+                   ${thBtn('Area (ha)',   'areaHectares')}
+                   ${thBtn('Created',     'createdAt')}
+                   <th style="text-align:right;">Actions</th>
+                 </tr>
+               </thead>
+               <tbody id="fieldsTableBody">${buildRows(initialFiltered)}</tbody>
+             </table>`}
+      </div>
+
+      <!-- pagination -->
+      <div id="fieldsPagination" style="flex-shrink:0;"></div>
     </div>
   `;
 
+  // ── wire up static events ──────────────────────────────────────────────────
   document.getElementById('backToFarmsBtn').addEventListener('click', closeFarmFields);
   document.getElementById('editFarmBannerBtn').addEventListener('click', () => showEditFarmModal(farm, farmIdx));
   document.getElementById('addFieldPanelBtn').addEventListener('click', () => showFieldModal(null, farm, farmIdx));
 
-  panel.querySelectorAll('[data-map-field]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const field = fields.find(f => f.id === btn.dataset.mapField);
-      if (!field) return;
-      const backgroundLayers = farm.boundaryGeoJson
-        ? [{ name: farm.name, geoJson: farm.boundaryGeoJson, color: '#6aaf7a' }]
-        : [];
-      openBoundaryMap({
-        title:           `Boundary – ${field.name}`,
-        existingGeoJson: field.geoBoundary,
-        centerLat:       farm.latitude,
-        centerLng:       farm.longitude,
-        polygonColor:    field.boundaryColor || '#f0b840',
-        backgroundLayers,
-        onConfirm: async ({ geoJson, areaHectares }) => {
-          try {
-            await updateField(field.id, {
-              name:          field.name,
-              cropType:      field.cropType,
-              season:        field.season,
-              isActive:      field.isActive,
-              geoBoundary:   geoJson,
-              areaHectares,
-              boundaryColor: field.boundaryColor || null,
-              latitude:      field.latitude  || null,
-              longitude:     field.longitude || null,
-            });
-            showToast('Field boundary updated!', 'success');
-            await openFarmFields(farm, farmIdx);
-          } catch (err) {
-            showToast(err.message, 'error');
-          }
-        },
-      });
-    });
+  let _debounce;
+  document.getElementById('fieldsSearch').addEventListener('input', e => {
+    clearTimeout(_debounce);
+    _debounce = setTimeout(() => { search = e.target.value.trim(); page = 1; refresh(); }, 250);
   });
 
-  panel.querySelectorAll('[data-edit-field]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const field = fields.find(f => f.id === btn.dataset.editField);
-      if (field) showFieldModal(field, farm, farmIdx);
+  panel.querySelector('table')?.addEventListener('click', e => {
+    const th = e.target.closest('[data-sort]');
+    if (!th) return;
+    const col = th.dataset.sort;
+    sortDesc = sortCol === col ? !sortDesc : false;
+    sortCol  = col;
+    page = 1;
+    panel.querySelectorAll('[data-sort]').forEach(h => {
+      const active = h.dataset.sort === sortCol;
+      const label  = h.textContent.replace(/ [▲▼]$/, '');
+      h.textContent = label + (active ? (sortDesc ? ' ▼' : ' ▲') : '');
     });
+    refresh();
   });
 
-  panel.querySelectorAll('[data-delete-field]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const field = fields.find(f => f.id === btn.dataset.deleteField);
-      if (field) showDeleteFieldConfirm(field, farm, farmIdx);
-    });
-  });
+  if (fields.length > 0) {
+    renderPagination(initialFiltered);
+    bindRowEvents();
+  }
 }
 
 // ── Field modals ──────────────────────────────────────────────
