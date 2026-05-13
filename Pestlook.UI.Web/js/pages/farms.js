@@ -327,109 +327,120 @@ function renderFieldsPanel(farm, farmIdx, fields) {
 // ── Field modals ──────────────────────────────────────────────
 function showFieldModal(field, farm, farmIdx) {
   const isEdit = field !== null;
-  const form   = document.createElement('div');
 
-  // Track drawn GeoJSON independently of the text hidden state
-  let _drawnGeoJson  = isEdit ? (field.geoBoundary || null) : null;
-  let _drawnAreaHa   = isEdit ? (field.areaHectares ?? null) : null;
-
-  const hasBoundary = !!_drawnGeoJson;
-
-  form.innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-      <div style="grid-column:1/-1;">
-        <label class="input-label">Field Name <span style="color:var(--red);">*</span></label>
-        <input class="input-field" type="text" id="fldName" placeholder="e.g. North Maize Block" value="${isEdit ? escapeHtml(field.name) : ''}">
-      </div>
-      <div>
-        <label class="input-label">Crop Type</label>
-        <input class="input-field" type="text" id="fldCrop" placeholder="e.g. Maize, Wheat" value="${isEdit ? escapeHtml(field.cropType || '') : ''}">
-      </div>
-      <div>
-        <label class="input-label">Season</label>
-        <input class="input-field" type="text" id="fldSeason" placeholder="e.g. Summer 2025/26" value="${isEdit ? escapeHtml(field.season || '') : ''}">
-      </div>
-      <div>
-        <label class="input-label">Area (hectares)</label>
-        <input class="input-field" type="number" step="0.01" min="0" id="fldArea"
-               placeholder="Auto-calculated from boundary"
-               value="${isEdit && field.areaHectares != null ? field.areaHectares : ''}">
-      </div>
-      <div style="display:flex;flex-direction:column;justify-content:flex-end;">
-        <label class="input-label">Field Boundary</label>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <button type="button" class="btn-outline" id="drawFieldBoundaryBtn"
-                  style="flex:1;padding:6px 10px;font-size:0.78rem;justify-content:center;">
-            🗺 ${hasBoundary ? 'Edit Boundary' : 'Draw Boundary'}
-          </button>
-          <span id="fldBoundaryStatus" style="font-size:0.72rem;color:${hasBoundary ? 'var(--green)' : 'var(--text-dim)'};">
-            ${hasBoundary ? '✓ Boundary set' : 'None'}
-          </span>
-        </div>
-      </div>
-      ${isEdit ? `<div style="grid-column:1/-1;display:flex;align-items:center;gap:10px;">
-        <label class="input-label" style="margin-bottom:0;">Status</label>
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.82rem;color:var(--text-mid);">
-          <input type="checkbox" id="fldActive" ${field.isActive !== false ? 'checked' : ''}> Active
-        </label>
-      </div>` : ''}
-      <div style="grid-column:1/-1;display:flex;gap:10px;margin-top:6px;">
-        <button class="btn-outline" style="flex:1;" id="cancelFld">Cancel</button>
-        <button class="btn-primary" style="flex:2;justify-content:center;" id="saveFld">${isEdit ? '💾 Save Changes' : '🌱 Create Field'}</button>
-      </div>
-    </div>
-  `;
-
-  openModal({
-    title:    isEdit ? 'Edit Field' : 'Add Field',
-    subtitle: isEdit ? 'Update field details' : 'New crop field for this farm',
-    content:  form,
-  });
-  setTimeout(() => document.getElementById('fldName')?.focus(), 100);
-
-  // Build background layers: other fields of same farm (read-only context)
   const backgroundLayers = [];
-  // (Fields list not available here without another fetch, so we pass empty;
-  //  the farm boundary is shown if available.)
   if (farm.boundaryGeoJson) {
     backgroundLayers.push({ name: farm.name, geoJson: farm.boundaryGeoJson, color: '#6aaf7a' });
   }
 
-  document.getElementById('drawFieldBoundaryBtn').addEventListener('click', () => {
-    closeModal();
-    openBoundaryMap({
-      title:            isEdit ? `Edit Boundary – ${field.name}` : 'Draw Field Boundary',
-      existingGeoJson:  _drawnGeoJson,
-      centerLat:        farm.latitude,
-      centerLng:        farm.longitude,
-      backgroundLayers,
-      onConfirm: ({ geoJson, areaHectares }) => {
-        _drawnGeoJson = geoJson;
-        _drawnAreaHa  = areaHectares;
-        // Re-open modal with updated values
-        const currentName   = document.getElementById('fldName')?.value   ?? (isEdit ? field.name : '');
-        const currentCrop   = document.getElementById('fldCrop')?.value   ?? (isEdit ? field.cropType   || '' : '');
-        const currentSeason = document.getElementById('fldSeason')?.value ?? (isEdit ? field.season     || '' : '');
-        const syntheticField = isEdit
-          ? { ...field, name: currentName, cropType: currentCrop, season: currentSeason,
-              geoBoundary: geoJson, areaHectares }
-          : null;
-        showFieldModal(syntheticField ?? { name: currentName, cropType: currentCrop, season: currentSeason },
-                       farm, farmIdx);
-        // Patch area after re-open
-        setTimeout(() => {
-          const areaInp = document.getElementById('fldArea');
-          if (areaInp) areaInp.value = areaHectares.toFixed(2);
-          const statusEl = document.getElementById('fldBoundaryStatus');
-          if (statusEl) { statusEl.textContent = '✓ Boundary set'; statusEl.style.color = 'var(--green)'; }
-          const btn = document.getElementById('drawFieldBoundaryBtn');
-          if (btn) btn.textContent = '🗺 Edit Boundary';
-        }, 50);
-      },
+  const ov = document.querySelector('.modal-overlay') || (() => {
+    const el = document.createElement('div');
+    el.className = 'modal-overlay';
+    el.style.zIndex = '9999';
+    document.body.appendChild(el);
+    return el;
+  })();
+
+  ov.innerHTML = '';
+  const box = document.createElement('div');
+  box.className = 'modal-box modal-map';
+
+  box.innerHTML = `
+    <div class="modal-map-header">
+      <div>
+        <div style="font-family:'Fraunces',serif;font-size:1.2rem;font-weight:700;color:#fff;">${isEdit ? 'Edit Field' : 'Add Field'}</div>
+        <div style="font-size:0.78rem;color:var(--text-dim);margin-top:2px;">${isEdit ? 'Update field details' : 'New crop field for this farm'}</div>
+      </div>
+      <button id="fldCloseBtn" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;width:32px;height:32px;cursor:pointer;color:var(--text-dim);font-size:1rem;display:flex;align-items:center;justify-content:center;">×</button>
+    </div>
+    <div class="modal-map-body">
+      <div class="modal-map-form">
+        <div>
+          <label class="input-label">Field Name <span style="color:var(--red);">*</span></label>
+          <input class="input-field" type="text" id="fldName" placeholder="e.g. North Maize Block" value="${isEdit ? escapeHtml(field.name) : ''}">
+        </div>
+        <div>
+          <label class="input-label">Crop Type</label>
+          <input class="input-field" type="text" id="fldCrop" placeholder="e.g. Maize, Wheat" value="${isEdit ? escapeHtml(field.cropType || '') : ''}">
+        </div>
+        <div>
+          <label class="input-label">Season</label>
+          <input class="input-field" type="text" id="fldSeason" placeholder="e.g. Summer 2025/26" value="${isEdit ? escapeHtml(field.season || '') : ''}">
+        </div>
+        <div>
+          <label class="input-label">Area (hectares)</label>
+          <input class="input-field" type="number" step="0.01" min="0" id="fldArea"
+                 placeholder="Auto-calculated from boundary"
+                 value="${isEdit && field.areaHectares != null ? field.areaHectares : ''}">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <label class="input-label">Latitude</label>
+            <input class="input-field" type="number" step="any" id="fldLat"
+                   placeholder="-33.9321"
+                   value="${isEdit && field.latitude != null ? field.latitude : ''}">
+          </div>
+          <div>
+            <label class="input-label">Longitude</label>
+            <input class="input-field" type="number" step="any" id="fldLng"
+                   placeholder="18.8602"
+                   value="${isEdit && field.longitude != null ? field.longitude : ''}">
+          </div>
+        </div>
+        ${isEdit ? `<div style="display:flex;align-items:center;gap:10px;">
+          <label class="input-label" style="margin-bottom:0;">Status</label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.82rem;color:var(--text-mid);">
+            <input type="checkbox" id="fldActive" ${field.isActive !== false ? 'checked' : ''}> Active
+          </label>
+        </div>` : ''}
+        <div style="flex:1;"></div>
+        <div style="display:flex;gap:10px;margin-top:6px;">
+          <button class="btn-outline" style="flex:1;" id="cancelFld">Cancel</button>
+          <button class="btn-primary" style="flex:2;justify-content:center;" id="saveFld">${isEdit ? '💾 Save Changes' : '🌱 Create Field'}</button>
+        </div>
+      </div>
+      <div class="modal-map-canvas" id="fieldMapCanvas"></div>
+    </div>
+  `;
+
+  ov.appendChild(box);
+  ov.classList.add('open');
+
+  setTimeout(() => document.getElementById('fldName')?.focus(), 100);
+
+  let inlineBm = null;
+
+  requestAnimationFrame(() => {
+    const canvas = document.getElementById('fieldMapCanvas');
+    if (canvas) {
+      inlineBm = createInlineBoundaryMap(canvas, {
+        existingGeoJson:  isEdit ? (field.geoBoundary || null) : null,
+        centerLat:        isEdit ? (field.latitude  || farm.latitude)  : farm.latitude,
+        centerLng:        isEdit ? (field.longitude || farm.longitude) : farm.longitude,
+        backgroundLayers,
+      });
+    }
+  });
+
+  // Re-centre when lat/lng inputs change
+  ['fldLat', 'fldLng'].forEach(id => {
+    document.getElementById(id)?.addEventListener('change', () => {
+      const lat = parseFloat(document.getElementById('fldLat').value);
+      const lng = parseFloat(document.getElementById('fldLng').value);
+      if (lat && lng && inlineBm) inlineBm.setCenter(lat, lng);
     });
   });
 
-  document.getElementById('cancelFld').addEventListener('click', closeModal);
+  function destroyAndClose() {
+    inlineBm?.destroy();
+    inlineBm = null;
+    ov.classList.remove('open');
+    ov.innerHTML = '';
+  }
+
+  document.getElementById('fldCloseBtn').addEventListener('click', destroyAndClose);
+  document.getElementById('cancelFld').addEventListener('click', destroyAndClose);
+
   document.getElementById('saveFld').addEventListener('click', async () => {
     const btn  = document.getElementById('saveFld');
     const name = document.getElementById('fldName').value.trim();
@@ -440,17 +451,32 @@ function showFieldModal(field, farm, farmIdx) {
       setTimeout(() => inp.style.borderColor = '', 1500);
       return;
     }
+
+    let lat = parseFloat(document.getElementById('fldLat').value) || null;
+    let lng = parseFloat(document.getElementById('fldLng').value) || null;
+    // auto-calculate centre from drawn boundary when lat/lng are empty
+    if ((!lat || !lng) && inlineBm) {
+      const centroid = inlineBm.getCentroid();
+      if (centroid) { lat = centroid.lat; lng = centroid.lng; }
+    }
+
     const manualArea = parseFloat(document.getElementById('fldArea').value) || null;
+    const boundaryGeoJson = inlineBm ? inlineBm.getGeoJson() : (isEdit ? (field.geoBoundary || null) : null);
+    const areaHa = inlineBm ? inlineBm.getAreaHa() || null : null;
+
     const payload = {
       name,
       cropType:     document.getElementById('fldCrop').value.trim()   || null,
-      areaHectares: _drawnAreaHa ?? manualArea,
+      areaHectares: areaHa ?? manualArea,
+      latitude:     lat,
+      longitude:    lng,
       season:       document.getElementById('fldSeason').value.trim() || null,
-      geoBoundary:  _drawnGeoJson,
+      geoBoundary:  boundaryGeoJson,
     };
     if (isEdit) {
       payload.isActive = document.getElementById('fldActive').checked;
     }
+
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>';
     try {
@@ -461,7 +487,7 @@ function showFieldModal(field, farm, farmIdx) {
         await createField({ farmId: farm.id, ...payload });
         showToast('Field created!', 'success');
       }
-      closeModal();
+      destroyAndClose();
       await openFarmFields(farm, farmIdx);
     } catch (err) {
       showToast(err.message, 'error');

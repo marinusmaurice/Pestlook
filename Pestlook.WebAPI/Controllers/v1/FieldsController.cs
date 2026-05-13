@@ -60,6 +60,8 @@ public sealed class FieldsController(
             Name = request.Name,
             GeoBoundary = request.GeoBoundary,
             AreaHectares = autoArea ?? request.AreaHectares,
+            Latitude = request.Latitude,
+            Longitude = request.Longitude,
             CropType = request.CropType,
             Season = request.Season
         };
@@ -82,6 +84,8 @@ public sealed class FieldsController(
         field.Name = request.Name;
         field.GeoBoundary = request.GeoBoundary;
         field.AreaHectares = GeoJsonUtils.ComputeAreaHectares(request.GeoBoundary) ?? request.AreaHectares;
+        field.Latitude = request.Latitude;
+        field.Longitude = request.Longitude;
         field.CropType = request.CropType;
         field.Season = request.Season;
         field.IsActive = request.IsActive;
