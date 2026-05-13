@@ -57,15 +57,29 @@ export function openBoundaryMap({
   _destroyOverlay();
   _activePolyColor = polygonColor;
 
+  // ── semi-transparent backdrop ─────────────────────────────────────────────
   _overlay = document.createElement('div');
   _overlay.id = 'boundary-map-overlay';
   _overlay.style.cssText = `
     position:fixed;inset:0;z-index:10000;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(0,0,0,0.65);backdrop-filter:blur(3px);
+  `;
+  // click on backdrop closes the map
+  _overlay.addEventListener('click', e => { if (e.target === _overlay) _destroyOverlay(); });
+
+  // ── modal dialog ──────────────────────────────────────────────────────────
+  const _dialog = document.createElement('div');
+  _dialog.style.cssText = `
     display:flex;flex-direction:column;
-    background:var(--bg,#0f1510);
+    width:min(1100px,95vw);height:min(700px,90vh);
+    background:var(--surface,#1a211c);
+    border:1px solid var(--border,#2c3830);
+    border-radius:14px;overflow:hidden;
+    box-shadow:0 24px 80px rgba(0,0,0,0.6);
   `;
 
-  _overlay.innerHTML = `
+  _dialog.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;
                 padding:12px 16px;background:var(--surface,#1a211c);
                 border-bottom:1px solid var(--border,#2c3830);flex-shrink:0;">
@@ -112,9 +126,10 @@ export function openBoundaryMap({
         </button>
       </div>
     </div>
-    <div id="bm-map" style="flex:1;"></div>
+    <div id="bm-map" style="flex:1;min-height:0;"></div>
   `;
 
+  _overlay.appendChild(_dialog);
   document.body.appendChild(_overlay);
 
   requestAnimationFrame(() => _initMap({
@@ -188,6 +203,11 @@ function _initMap({ existingGeoJson, centerLat, centerLng, backgroundLayers, onC
   });
 
   document.getElementById('bm-cancel').addEventListener('click', _destroyOverlay);
+
+  // Escape key closes the map
+  const _escHandler = e => { if (e.key === 'Escape') _destroyOverlay(); };
+  document.addEventListener('keydown', _escHandler);
+  _overlay._escHandler = _escHandler; // store for cleanup in _destroyOverlay
 
   document.getElementById('bm-confirm').addEventListener('click', () => {
     if (_vertices.length < 3) {
@@ -433,6 +453,7 @@ function _destroyOverlay() {
   _cursorMarker = null;
   _activePolyColor = null;
   if (_map) { _map.remove(); _map = null; }
+  if (_overlay?._escHandler) document.removeEventListener('keydown', _overlay._escHandler);
   _overlay?.remove();
   _overlay = null;
 }
