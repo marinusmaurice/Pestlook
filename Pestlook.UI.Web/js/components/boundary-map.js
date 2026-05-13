@@ -34,6 +34,7 @@ const DEFAULT_CENTER = [-28.5, 24.5];
 const DEFAULT_ZOOM   = 5;
 
 const POLY_STYLE   = { color: '#3aad5a', weight: 2.5, fillOpacity: 0.2, fillColor: '#3aad5a' };
+let   _activePolyColor = null; // overridden per openBoundaryMap call
 const VERTEX_STYLE = {
   radius: 7, color: '#3aad5a', weight: 2,
   fillColor: '#fff', fillOpacity: 1,
@@ -50,9 +51,11 @@ export function openBoundaryMap({
   centerLat        = null,
   centerLng        = null,
   backgroundLayers = [],
+  polygonColor     = null,
   onConfirm        = () => {},
 } = {}) {
   _destroyOverlay();
+  _activePolyColor = polygonColor;
 
   _overlay = document.createElement('div');
   _overlay.id = 'boundary-map-overlay';
@@ -367,7 +370,10 @@ function _refreshMidpoints(L) {
 function _renderPolygon(L) {
   if (_polygon) { _map.removeLayer(_polygon); _polygon = null; }
   if (_vertices.length < 2) return;
-  _polygon = L.polygon(_vertices, POLY_STYLE).addTo(_map);
+  const style = _activePolyColor
+    ? { ...POLY_STYLE, color: _activePolyColor, fillColor: _activePolyColor }
+    : POLY_STYLE;
+  _polygon = L.polygon(_vertices, style).addTo(_map);
 }
 
 function _clearDrawing(L) {
@@ -425,6 +431,7 @@ function _destroyOverlay() {
   _polygon = null;
   _previewLine = null;
   _cursorMarker = null;
+  _activePolyColor = null;
   if (_map) { _map.remove(); _map = null; }
   _overlay?.remove();
   _overlay = null;

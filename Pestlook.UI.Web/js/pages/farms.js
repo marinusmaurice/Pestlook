@@ -175,10 +175,12 @@ function closeFarmFields() {
 }
 
 function renderFieldsPanel(farm, farmIdx, fields) {
-  const emoji     = farmEmojis[farmIdx % farmEmojis.length];
-  const farmHa    = parseFloat(farm.areaHectares) || 0;
-  const haDisplay = farmHa > 0 ? (farmHa % 1 === 0 ? String(farmHa) : farmHa.toFixed(2)) : '—';
-  const panel     = document.getElementById('farms-fields-panel');
+  const emoji      = farmEmojis[farmIdx % farmEmojis.length];
+  const farmHa     = parseFloat(farm.areaHectares) || 0;
+  const haDisplay  = farmHa > 0 ? (farmHa % 1 === 0 ? String(farmHa) : farmHa.toFixed(2)) : '—';
+  const fieldsHaSum = fields.reduce((s, f) => s + (parseFloat(f.areaHectares) || 0), 0);
+  const fieldsHaDisplay = fieldsHaSum > 0 ? (fieldsHaSum % 1 === 0 ? String(fieldsHaSum) : fieldsHaSum.toFixed(2)) : '—';
+  const panel      = document.getElementById('farms-fields-panel');
 
   let fieldsHtml = '';
   if (fields.length === 0) {
@@ -245,7 +247,11 @@ function renderFieldsPanel(farm, farmIdx, fields) {
         </div>
         <div style="text-align:center;">
           <div style="font-family:'Fraunces',serif;font-weight:700;font-size:1.5rem;color:var(--amber);">${haDisplay}</div>
-          <div style="font-size:0.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;">Total ha</div>
+          <div style="font-size:0.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;">Farm Ha</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-family:'Fraunces',serif;font-weight:700;font-size:1.5rem;color:var(--amber);">${fieldsHaDisplay}</div>
+          <div style="font-size:0.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.07em;">Fields Ha</div>
         </div>
         <div style="display:flex;gap:8px;">
           <button id="editFarmBannerBtn" class="btn-outline" style="padding:5px 12px;font-size:0.78rem;">✏️ Edit Farm</button>
@@ -258,7 +264,7 @@ function renderFieldsPanel(farm, farmIdx, fields) {
         <div class="section-head" style="margin-bottom:0;">
           <div>
             <div class="section-title">Fields</div>
-            <div class="section-sub">${fields.length} field${fields.length !== 1 ? 's' : ''} · ${haDisplay} ha total</div>
+            <div class="section-sub">${fields.length} field${fields.length !== 1 ? 's' : ''} · farm ${haDisplay} ha · fields ${fieldsHaDisplay} ha</div>
           </div>
           <button class="btn-primary" id="addFieldPanelBtn">＋ Add Field</button>
         </div>
@@ -283,16 +289,20 @@ function renderFieldsPanel(farm, farmIdx, fields) {
         existingGeoJson: field.geoBoundary,
         centerLat:       farm.latitude,
         centerLng:       farm.longitude,
+        polygonColor:    field.boundaryColor || '#f0b840',
         backgroundLayers,
         onConfirm: async ({ geoJson, areaHectares }) => {
           try {
             await updateField(field.id, {
-              name:         field.name,
-              cropType:     field.cropType,
-              season:       field.season,
-              isActive:     field.isActive,
-              geoBoundary:  geoJson,
+              name:          field.name,
+              cropType:      field.cropType,
+              season:        field.season,
+              isActive:      field.isActive,
+              geoBoundary:   geoJson,
               areaHectares,
+              boundaryColor: field.boundaryColor || null,
+              latitude:      field.latitude  || null,
+              longitude:     field.longitude || null,
             });
             showToast('Field boundary updated!', 'success');
             await openFarmFields(farm, farmIdx);
