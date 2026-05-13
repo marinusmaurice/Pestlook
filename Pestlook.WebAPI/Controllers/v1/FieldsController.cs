@@ -58,9 +58,10 @@ public sealed class FieldsController(
             TenantId = tenantContext.TenantId.Value,
             FarmId = request.FarmId,
             Name = request.Name,
-            GeoBoundary = request.GeoBoundary,
+            GeoBoundary  = request.GeoBoundary,
             AreaHectares = autoArea ?? request.AreaHectares,
-            Latitude = request.Latitude,
+            BoundaryColor = request.BoundaryColor,
+            Latitude  = request.Latitude,
             Longitude = request.Longitude,
             CropType = request.CropType,
             Season = request.Season
@@ -82,9 +83,10 @@ public sealed class FieldsController(
         if (field is null) return NotFound(ApiResponse<object>.Fail("Field not found."));
 
         field.Name = request.Name;
-        field.GeoBoundary = request.GeoBoundary;
-        field.AreaHectares = GeoJsonUtils.ComputeAreaHectares(request.GeoBoundary) ?? request.AreaHectares;
-        field.Latitude = request.Latitude;
+        field.GeoBoundary  = request.GeoBoundary;
+        field.AreaHectares  = GeoJsonUtils.ComputeAreaHectares(request.GeoBoundary) ?? request.AreaHectares;
+        field.BoundaryColor = request.BoundaryColor;
+        field.Latitude  = request.Latitude;
         field.Longitude = request.Longitude;
         field.CropType = request.CropType;
         field.Season = request.Season;

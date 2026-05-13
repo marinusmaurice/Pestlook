@@ -9,6 +9,7 @@ public sealed class Field : IHasTenant, IAuditableByUser
     public string Name { get; set; } = string.Empty;
     public string? GeoBoundary { get; set; }
     public double? AreaHectares { get; set; }
+    public string? BoundaryColor { get; set; }
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
     public string? CropType { get; set; }

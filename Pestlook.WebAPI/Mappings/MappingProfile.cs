@@ -32,12 +32,13 @@ public sealed class MappingProfile : Profile
             .ConstructUsing((src, _) => new FarmResponse(
                 src.Id, src.TenantId, src.Name, src.Address,
                 src.Latitude, src.Longitude, src.BoundaryGeoJson,
+                src.AreaHectares, src.BoundaryColor,
                 src.IsActive, src.CreatedAt, src.UpdatedAt));
 
         CreateMap<Field, FieldResponse>()
             .ConstructUsing((src, _) => new FieldResponse(
                 src.Id, src.FarmId, src.TenantId, src.Name, src.GeoBoundary,
-                src.AreaHectares, src.Latitude, src.Longitude, src.CropType, src.Season, src.IsActive,
+                src.AreaHectares, src.BoundaryColor, src.Latitude, src.Longitude, src.CropType, src.Season, src.IsActive,
                 src.CreatedAt, src.UpdatedAt));
 
         CreateMap<TrapType, TrapTypeResponse>()

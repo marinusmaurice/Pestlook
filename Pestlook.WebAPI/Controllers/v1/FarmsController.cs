@@ -55,7 +55,9 @@ public sealed class FarmsController(
             Address = request.Address,
             Latitude = request.Latitude,
             Longitude = request.Longitude,
-            BoundaryGeoJson = request.BoundaryGeoJson
+            BoundaryGeoJson = request.BoundaryGeoJson,
+            AreaHectares = GeoJsonUtils.ComputeAreaHectares(request.BoundaryGeoJson),
+            BoundaryColor = request.BoundaryColor
         };
 
         // Auto-derive centre-point from boundary when explicit lat/lng not provided
@@ -85,6 +87,8 @@ public sealed class FarmsController(
         farm.Latitude = request.Latitude;
         farm.Longitude = request.Longitude;
         farm.BoundaryGeoJson = request.BoundaryGeoJson;
+        farm.AreaHectares = GeoJsonUtils.ComputeAreaHectares(request.BoundaryGeoJson);
+        farm.BoundaryColor = request.BoundaryColor;
         farm.IsActive = request.IsActive;
 
         // Keep centre-point in sync with boundary centroid when lat/lng cleared

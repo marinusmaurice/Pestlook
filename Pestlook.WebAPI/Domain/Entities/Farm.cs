@@ -11,6 +11,10 @@ public sealed class Farm : IHasTenant, IAuditableByUser
     public double? Longitude { get; set; }
     /// <summary>GeoJSON polygon representing the farm boundary.</summary>
     public string? BoundaryGeoJson { get; set; }
+    /// <summary>Geodesic area of the farm boundary in hectares.</summary>
+    public double? AreaHectares { get; set; }
+    /// <summary>Hex colour used to render the farm boundary on maps (e.g. "#3aad5a").</summary>
+    public string? BoundaryColor { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.Now;
     public DateTime UpdatedAt { get; set; } = DateTime.Now;

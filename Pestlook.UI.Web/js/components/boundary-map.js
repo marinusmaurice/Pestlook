@@ -454,9 +454,15 @@ export function createInlineBoundaryMap(containerEl, {
   centerLat        = null,
   centerLng        = null,
   backgroundLayers = [],
+  polygonColor     = '#3aad5a',
 } = {}) {
   const L = window.L;
   if (!L) { containerEl.textContent = 'Leaflet not loaded.'; return null; }
+
+  let _polyColor = polygonColor;
+  function polyStyle() {
+    return { color: _polyColor, weight: 2.5, fillOpacity: 0.2, fillColor: _polyColor };
+  }
 
   // ── isolated state ────────────────────────────────────────────────────────
   let iMode           = 'idle';
@@ -520,7 +526,7 @@ export function createInlineBoundaryMap(containerEl, {
   function renderPolygon() {
     if (iPolygon) { map.removeLayer(iPolygon); iPolygon = null; }
     if (iVertices.length < 2) return;
-    iPolygon = L.polygon(iVertices, POLY_STYLE).addTo(map);
+    iPolygon = L.polygon(iVertices, polyStyle()).addTo(map);
   }
 
   function clearPreviewMarkers() {

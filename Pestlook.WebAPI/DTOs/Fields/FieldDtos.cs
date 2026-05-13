@@ -5,6 +5,7 @@ public sealed record CreateFieldRequest(
     string Name,
     string? GeoBoundary,
     double? AreaHectares,
+    string? BoundaryColor,
     double? Latitude,
     double? Longitude,
     string? CropType,
@@ -14,6 +15,7 @@ public sealed record UpdateFieldRequest(
     string Name,
     string? GeoBoundary,
     double? AreaHectares,
+    string? BoundaryColor,
     double? Latitude,
     double? Longitude,
     string? CropType,
@@ -27,6 +29,7 @@ public sealed record FieldResponse(
     string Name,
     string? GeoBoundary,
     double? AreaHectares,
+    string? BoundaryColor,
     double? Latitude,
     double? Longitude,
     string? CropType,
@@ -35,5 +38,5 @@ public sealed record FieldResponse(
     DateTime CreatedAt,
     DateTime UpdatedAt)
 {
-    public FieldResponse() : this(default, default, default, string.Empty, default, default, default, default, default, default, true, default, default) { }
+    public FieldResponse() : this(default, default, default, string.Empty, default, default, default, default, default, default, default, true, default, default) { }
 }

@@ -54,9 +54,9 @@ function renderFarmGrid(farms, fields) {
     const farmFields = fields.filter(f => f.farmId === farm.id);
     const c     = farmColors[i % farmColors.length];
     const emoji = farmEmojis[i % farmEmojis.length];
-    const totalHa = farmFields.reduce((s, f) => s + (parseFloat(f.areaHectares) || 0), 0);
-    const haText  = totalHa > 0
-      ? (totalHa % 1 === 0 ? totalHa : totalHa.toFixed(1)) + ' ha'
+    const farmHa  = parseFloat(farm.areaHectares) || 0;
+    const haText  = farmHa > 0
+      ? (farmHa % 1 === 0 ? farmHa : farmHa.toFixed(2)) + ' ha'
       : '';
     const crop = farmFields[0]?.cropType || '';
 
@@ -112,7 +112,7 @@ function renderFarmGrid(farms, fields) {
       const farmFields = fields.filter(f => f.farmId === farm.id);
       const backgroundLayers = farmFields
         .filter(f => f.geoBoundary)
-        .map(f => ({ name: f.name, geoJson: f.geoBoundary, color: '#f0b840' }));
+        .map(f => ({ name: f.name, geoJson: f.geoBoundary, color: f.boundaryColor || '#f0b840' }));
       openBoundaryMap({
         title:           `Map – ${farm.name}`,
         existingGeoJson: farm.boundaryGeoJson,
@@ -176,8 +176,8 @@ function closeFarmFields() {
 
 function renderFieldsPanel(farm, farmIdx, fields) {
   const emoji     = farmEmojis[farmIdx % farmEmojis.length];
-  const totalHa   = fields.reduce((s, f) => s + (parseFloat(f.areaHectares) || 0), 0);
-  const haDisplay = totalHa % 1 === 0 ? totalHa : totalHa.toFixed(1);
+  const farmHa    = parseFloat(farm.areaHectares) || 0;
+  const haDisplay = farmHa > 0 ? (farmHa % 1 === 0 ? String(farmHa) : farmHa.toFixed(2)) : '—';
   const panel     = document.getElementById('farms-fields-panel');
 
   let fieldsHtml = '';
@@ -192,7 +192,7 @@ function renderFieldsPanel(farm, farmIdx, fields) {
       <thead>
         <tr>
           <th>Field Name</th><th>Status</th><th>Crop Type</th><th>Season</th>
-          <th>Area (ha)</th><th>Geo Boundary</th><th>Created</th>
+          <th>Area (ha)</th><th>Created</th>
           <th style="text-align:right;">Actions</th>
         </tr>
       </thead>
@@ -209,11 +209,6 @@ function renderFieldsPanel(farm, farmIdx, fields) {
           <td>
             <span style="font-family:'Fraunces',serif;font-weight:700;font-size:1.05rem;color:var(--amber);">${f.areaHectares != null ? f.areaHectares : '—'}</span>
             ${f.areaHectares != null ? '<span style="font-size:0.7rem;color:var(--text-dim);margin-left:2px;">ha</span>' : ''}
-          </td>
-          <td style="font-size:0.78rem;color:var(--text-dim);font-family:'JetBrains Mono',monospace;">
-            ${f.geoBoundary
-              ? `<span style="color:var(--blue);">✓</span> ${escapeHtml(f.geoBoundary)}`
-              : '<span style="color:var(--text-dim);">—</span>'}
           </td>
           <td style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--text-dim);">${formatDate(f.createdAt)}</td>
           <td style="text-align:right;">
@@ -393,6 +388,14 @@ function showFieldModal(field, farm, farmIdx) {
             <input type="checkbox" id="fldActive" ${field.isActive !== false ? 'checked' : ''}> Active
           </label>
         </div>` : ''}
+        <div>
+          <label class="input-label">Boundary Colour</label>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <input type="color" id="fldBoundaryColor" value="${isEdit ? (field.boundaryColor || '#f0b840') : '#f0b840'}"
+                   style="width:36px;height:32px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);cursor:pointer;padding:2px;">
+            <span style="font-size:0.75rem;color:var(--text-dim);">Colour used to draw the field boundary on the map</span>
+          </div>
+        </div>
         <div style="flex:1;"></div>
         <div style="display:flex;gap:10px;margin-top:6px;">
           <button class="btn-outline" style="flex:1;" id="cancelFld">Cancel</button>
@@ -418,6 +421,11 @@ function showFieldModal(field, farm, farmIdx) {
         centerLat:        isEdit ? (field.latitude  || farm.latitude)  : farm.latitude,
         centerLng:        isEdit ? (field.longitude || farm.longitude) : farm.longitude,
         backgroundLayers,
+        polygonColor:     isEdit ? (field.boundaryColor || '#f0b840') : '#f0b840',
+      });
+      // update polygon colour live when picker changes
+      document.getElementById('fldBoundaryColor')?.addEventListener('input', e => {
+        inlineBm?.setColor(e.target.value);
       });
     }
   });
@@ -466,12 +474,13 @@ function showFieldModal(field, farm, farmIdx) {
 
     const payload = {
       name,
-      cropType:     document.getElementById('fldCrop').value.trim()   || null,
-      areaHectares: areaHa ?? manualArea,
-      latitude:     lat,
-      longitude:    lng,
-      season:       document.getElementById('fldSeason').value.trim() || null,
-      geoBoundary:  boundaryGeoJson,
+      cropType:      document.getElementById('fldCrop').value.trim()   || null,
+      areaHectares:  areaHa ?? manualArea,
+      boundaryColor: document.getElementById('fldBoundaryColor').value || null,
+      latitude:      lat,
+      longitude:     lng,
+      season:        document.getElementById('fldSeason').value.trim() || null,
+      geoBoundary:   boundaryGeoJson,
     };
     if (isEdit) {
       payload.isActive = document.getElementById('fldActive').checked;
@@ -574,6 +583,14 @@ function showEditFarmModal(farm, farmIdx) {
             <input type="checkbox" id="editFarmActive" ${farm.isActive !== false ? 'checked' : ''}> Active
           </label>
         </div>
+        <div>
+          <label class="input-label">Boundary Colour</label>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <input type="color" id="editFarmBoundaryColor" value="${farm.boundaryColor || '#3aad5a'}"
+                   style="width:36px;height:32px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);cursor:pointer;padding:2px;">
+            <span style="font-size:0.75rem;color:var(--text-dim);">Colour used to draw the farm boundary on the map</span>
+          </div>
+        </div>
         <div style="flex:1;"></div>
         <div style="display:flex;gap:10px;margin-top:6px;">
           <button class="btn-outline" style="flex:1;" id="cancelEditFarm">Cancel</button>
@@ -610,6 +627,10 @@ function showEditFarmModal(farm, farmIdx) {
         existingGeoJson:  farm.boundaryGeoJson || null,
         centerLat:        farm.latitude,
         centerLng:        farm.longitude,
+        polygonColor:     farm.boundaryColor || '#3aad5a',
+      });
+      document.getElementById('editFarmBoundaryColor')?.addEventListener('input', e => {
+        inlineBm?.setColor(e.target.value);
       });
     }
   });
@@ -641,6 +662,7 @@ function showEditFarmModal(farm, farmIdx) {
     let   newLng     = parseFloat(document.getElementById('editFarmLng').value) || null;
     const newActive  = document.getElementById('editFarmActive').checked;
     const newBoundary = inlineBm ? inlineBm.getGeoJson() : (farm.boundaryGeoJson || null);
+    const newColor    = document.getElementById('editFarmBoundaryColor').value || null;
     // auto-calculate centre from drawn boundary when lat/lng are empty
     if ((!newLat || !newLng) && inlineBm) {
       const centroid = inlineBm.getCentroid();
@@ -653,13 +675,14 @@ function showEditFarmModal(farm, farmIdx) {
         name: newName, address: newAddress,
         latitude: newLat, longitude: newLng,
         boundaryGeoJson: newBoundary,
+        boundaryColor: newColor,
         isActive: newActive,
       });
       destroyAndClose();
       showToast('Farm updated!', 'success');
       const updatedFarm = { ...farm, name: newName, address: newAddress,
                             latitude: newLat, longitude: newLng,
-                            boundaryGeoJson: newBoundary, isActive: newActive };
+                            boundaryGeoJson: newBoundary, boundaryColor: newColor, isActive: newActive };
       const inFieldsPanel = document.getElementById('farms-fields-panel')?.style.display !== 'none';
       if (inFieldsPanel && farmIdx !== undefined) {
         await openFarmFields(updatedFarm, farmIdx);
@@ -715,6 +738,14 @@ function showCreateFarmModal() {
             <input class="input-field" type="number" step="any" id="farmLng" placeholder="18.8602">
           </div>
         </div>
+        <div>
+          <label class="input-label">Boundary Colour</label>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <input type="color" id="farmBoundaryColor" value="#3aad5a"
+                   style="width:36px;height:32px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);cursor:pointer;padding:2px;">
+            <span style="font-size:0.75rem;color:var(--text-dim);">Colour used to draw the farm boundary on the map</span>
+          </div>
+        </div>
         <div style="flex:1;"></div>
         <div style="display:flex;gap:10px;margin-top:6px;">
           <button class="btn-outline" style="flex:1;" id="cancelFarm">Cancel</button>
@@ -739,6 +770,10 @@ function showCreateFarmModal() {
         existingGeoJson: null,
         centerLat: null,
         centerLng: null,
+        polygonColor: '#3aad5a',
+      });
+      document.getElementById('farmBoundaryColor')?.addEventListener('input', e => {
+        inlineBm?.setColor(e.target.value);
       });
     }
   });
@@ -790,6 +825,7 @@ function showCreateFarmModal() {
         latitude:        lat,
         longitude:       lng,
         boundaryGeoJson: inlineBm ? inlineBm.getGeoJson() : null,
+        boundaryColor:   document.getElementById('farmBoundaryColor').value || null,
       });
       destroyAndClose();
       showToast('Farm created!', 'success');
