@@ -88,18 +88,18 @@ export async function renderReports(container) {
   filters.scoutId = '';
 
   container.innerHTML = `
-    <div class="section-head" style="margin-bottom:16px;">
+    <div class="section-head" style="margin-bottom:16px;flex-shrink:0;">
       <div>
         <div class="page-heading">Analytics</div>
         <div class="page-desc">Insights across your farms, traps, sessions and scouts</div>
       </div>
     </div>
-    <div style="overflow-x:auto;margin-bottom:14px;padding-bottom:4px;">
+    <div style="overflow-x:auto;margin-bottom:14px;padding-bottom:4px;flex-shrink:0;">
       <div style="display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;width:fit-content;">
         ${TABS.map(t => `<button class="tab-btn${t.id === 'dash' ? ' active' : ''}" data-tab="${t.id}" style="white-space:nowrap;">${t.label}</button>`).join('')}
       </div>
     </div>
-    <div id="rpt-filters" style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;">
+    <div id="rpt-filters" style="margin-bottom:16px;flex-shrink:0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;">
       <span style="font-size:0.72rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-right:4px;">Filter</span>
       <label style="font-size:0.8rem;color:var(--text-dim);display:flex;align-items:center;gap:6px;">
         From
@@ -120,7 +120,7 @@ export async function renderReports(container) {
       </select>
       <button id="rpt-clear" class="btn-outline" style="padding:6px 12px;font-size:0.8rem;">✕ Clear</button>
     </div>
-    <div id="rpt-body">
+    <div id="rpt-body" style="flex-shrink:0;">
       <div class="card card-p"><div class="skeleton skeleton-card" style="height:300px;"></div></div>
     </div>
   `;
@@ -171,6 +171,7 @@ export async function renderReports(container) {
     function rerender() {
       destroyCharts();
       const activeTab = container.querySelector('[data-tab].active')?.dataset?.tab || 'dash';
+      container.scrollTop = 0;
       showTab(activeTab, lookups, container);
     }
 
@@ -204,6 +205,7 @@ export async function renderReports(container) {
         destroyCharts();
         container.querySelectorAll('[data-tab]').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+        container.scrollTop = 0;
         showTab(btn.dataset.tab, lookups, container);
       });
     });
