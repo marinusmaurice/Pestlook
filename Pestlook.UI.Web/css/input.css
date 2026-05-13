@@ -766,6 +766,72 @@ body {
   max-height: 90vh;
   overflow-y: auto;
 }
+/* Wide split layout for forms with an embedded map */
+.modal-box.modal-map {
+  width: 1105px;
+  max-width: 97vw;
+  height: 90vh;
+  max-height: 95vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+.modal-map .modal-map-header {
+  padding: 7px 24px 5px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.modal-map .modal-map-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.modal-map .modal-map-form {
+  width: 340px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  padding: 20px 24px;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.modal-map .modal-map-canvas {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+/* inline boundary-map toolbar buttons */
+.ibm-btn {
+  background: var(--surface2, #222d24);
+  border: 1px solid var(--border, #2c3830);
+  border-radius: 7px;
+  padding: 4px 10px;
+  color: var(--text-mid, #a8bfac);
+  font-size: 0.72rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+.ibm-btn:disabled { opacity: 0.4; cursor: default; }
+.ibm-btn-active {
+  background: rgba(58,173,90,0.18);
+  border-color: var(--green, #3aad5a);
+  color: var(--green, #3aad5a);
+  box-shadow: 0 0 0 2px rgba(58,173,90,0.35);
+  font-weight: 600;
+}
+.ibm-btn-danger {
+  background: rgba(224,96,96,0.08);
+  border-color: rgba(224,96,96,0.2);
+  color: var(--red, #e06060);
+}
 @keyframes modalIn {
   from { opacity: 0; transform: scale(0.95) translateY(8px); }
   to   { opacity: 1; transform: scale(1) translateY(0); }

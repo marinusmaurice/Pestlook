@@ -10,11 +10,11 @@ function ensureOverlay() {
   return overlay;
 }
 
-export function openModal({ title, subtitle, content, onClose }) {
+export function openModal({ title, subtitle, content, onClose, extraClass }) {
   const ov = ensureOverlay();
 
   ov.innerHTML = `
-    <div class="modal-box">
+    <div class="modal-box${extraClass ? ' ' + extraClass : ''}">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
         <div>
           <div style="font-family:'Fraunces',serif;font-size:1.2rem;font-weight:700;color:#fff;">${title}</div>

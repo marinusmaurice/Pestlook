@@ -77,12 +77,6 @@ export function openBoundaryMap({
         </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
-        <button id="bm-layer-toggle"
-                style="background:var(--surface2,#222d24);border:1px solid var(--border,#2c3830);
-                       border-radius:7px;padding:5px 11px;color:var(--text-mid,#a8bfac);
-                       font-size:0.75rem;cursor:pointer;font-family:inherit;">
-          🛰 Satellite
-        </button>
         <button id="bm-draw-btn"
                 style="background:rgba(58,173,90,0.12);border:1px solid rgba(58,173,90,0.4);
                        border-radius:7px;padding:5px 11px;color:var(--green,#3aad5a);
@@ -139,22 +133,16 @@ function _initMap({ existingGeoJson, centerLat, centerLng, backgroundLayers, onC
     'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     { attribution: '© OpenStreetMap contributors', maxZoom: 22 },
   );
-  const satLayer = L.tileLayer(
-    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    { attribution: 'Tiles © Esri', maxZoom: 22 },
-  );
 
   const center = (centerLat && centerLng) ? [centerLat, centerLng] : DEFAULT_CENTER;
 
   _map = L.map('bm-map', {
     center,
     zoom: (centerLat && centerLng) ? 14 : DEFAULT_ZOOM,
-    layers: [satLayer],
+    layers: [osmLayer],
     zoomControl: true,
     doubleClickZoom: false,  // we use dblclick to close polygons
   });
-
-  let usingSat = true;
 
   // ── background (read-only) layers ─────────────────────────────────────────
   for (const bg of backgroundLayers) {
@@ -186,19 +174,6 @@ function _initMap({ existingGeoJson, centerLat, centerLng, backgroundLayers, onC
   _updateAreaLabel();
 
   // ── toolbar ────────────────────────────────────────────────────────────────
-  document.getElementById('bm-layer-toggle').addEventListener('click', () => {
-    if (usingSat) {
-      _map.removeLayer(satLayer);
-      _map.addLayer(osmLayer);
-      document.getElementById('bm-layer-toggle').textContent = '🗺 OSM';
-    } else {
-      _map.removeLayer(osmLayer);
-      _map.addLayer(satLayer);
-      document.getElementById('bm-layer-toggle').textContent = '🛰 Satellite';
-    }
-    usingSat = !usingSat;
-  });
-
   document.getElementById('bm-draw-btn').addEventListener('click', () => _setMode('drawing', L));
   document.getElementById('bm-edit-btn').addEventListener('click', () => _setMode('editing', L));
 
@@ -324,7 +299,7 @@ function _renderEditHandles(L) {
 
   // Vertex handles
   _vertices.forEach((latlng, idx) => {
-    const m = L.circleMarker(latlng, { ...VERTEX_STYLE, interactive: true }).addTo(_map);
+    const m = L.circleMarker(latlng, { ...VERTEX_STYLE, interactive: true, bubblingMouseEvents: false }).addTo(_map);
 
     m.on('mousedown', (e) => {
       L.DomEvent.stop(e);
@@ -426,9 +401,20 @@ function _updateAreaLabel(hint) {
 }
 
 function _computeHa(L, vertices) {
-  if (!L || !L.GeometryUtil || vertices.length < 3) return 0;
-  const areaSqM = L.GeometryUtil.geodesicArea(vertices);
-  return areaSqM / 10_000;
+  if (vertices.length < 3) return 0;
+  const R = 6371008.8;
+  const toRad = d => d * Math.PI / 180;
+  let area = 0;
+  const n = vertices.length;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    const xi = toRad(vertices[i].lng);
+    const yi = toRad(vertices[i].lat);
+    const xj = toRad(vertices[j].lng);
+    const yj = toRad(vertices[j].lat);
+    area += (xj - xi) * (2 + Math.sin(yi) + Math.sin(yj));
+  }
+  return Math.abs(area * R * R / 2) / 10_000;
 }
 
 function _destroyOverlay() {
@@ -442,4 +428,323 @@ function _destroyOverlay() {
   if (_map) { _map.remove(); _map = null; }
   _overlay?.remove();
   _overlay = null;
+}
+
+// ── Inline (embedded) boundary map ───────────────────────────────────────────
+/**
+ * Mount a Leaflet map inside `containerEl` for drawing / editing a polygon.
+ *
+ * Returns a controller:
+ *   {
+ *     getGeoJson()     → string | null   current polygon as GeoJSON string
+ *     getAreaHa()      → number          area in hectares (0 if no polygon)
+ *     destroy()                          remove the map and free resources
+ *     setCenter(lat,lng)                 re-centre the map
+ *   }
+ *
+ * Usage:
+ *   const bm = createInlineBoundaryMap(el, {
+ *     existingGeoJson, centerLat, centerLng, backgroundLayers,
+ *   });
+ *   // later:
+ *   const geoJson = bm.getGeoJson();
+ */
+export function createInlineBoundaryMap(containerEl, {
+  existingGeoJson  = null,
+  centerLat        = null,
+  centerLng        = null,
+  backgroundLayers = [],
+} = {}) {
+  const L = window.L;
+  if (!L) { containerEl.textContent = 'Leaflet not loaded.'; return null; }
+
+  // ── isolated state ────────────────────────────────────────────────────────
+  let iMode           = 'idle';
+  let iVertices       = [];
+  let iPreviewMarkers = [];
+  let iPolygon        = null;
+  let iPreviewLine    = null;
+  let iCursorMarker   = null;
+  let iClickH = null, iDblH = null, iMoveH = null;
+
+  let iFinishing  = false; // guard: ignore the click that fires alongside dblclick
+
+  // ── build toolbar HTML inside container ───────────────────────────────────
+  containerEl.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;
+                padding:7px 10px;background:var(--surface2,#222d24);
+                border-bottom:1px solid var(--border,#2c3830);border-radius:8px 8px 0 0;flex-shrink:0;">
+      <div id="ibm-area-label" style="font-size:0.72rem;color:var(--text-dim,#7a9480);">
+        Click on the map to start drawing, double-click to finish
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <button id="ibm-draw-btn"     class="ibm-btn ibm-btn-active">✏ Draw</button>
+        <button id="ibm-edit-btn"     class="ibm-btn" disabled>⬡ Edit</button>
+        <button id="ibm-clear"        class="ibm-btn ibm-btn-danger">🗑 Clear</button>
+      </div>
+    </div>
+    <div id="ibm-map" style="flex:1;min-height:0;border-radius:0 0 8px 8px;"></div>
+  `;
+
+  // ── helpers that close over isolated state ────────────────────────────────
+  function updateAreaLabel(hint) {
+    const el = containerEl.querySelector('#ibm-area-label');
+    if (!el) return;
+    if (hint) { el.textContent = hint; return; }
+    if (iVertices.length < 3) {
+      el.textContent = 'Click to place points — double-click to finish';
+      return;
+    }
+    const ha = computeHa(iVertices);
+    el.innerHTML = `<span style="color:var(--green,#3aad5a);font-weight:600;">${ha.toFixed(2)} ha</span> — drag vertices to reshape, right-click a vertex to delete`;
+  }
+
+  function computeHa(verts) {
+    if (verts.length < 3) return 0;
+    // Spherical excess (WGS-84 mean radius) — no plugin required
+    const R = 6371008.8; // metres
+    const toRad = d => d * Math.PI / 180;
+    let area = 0;
+    const n = verts.length;
+    for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n;
+      const xi = toRad(verts[i].lng);
+      const yi = toRad(verts[i].lat);
+      const xj = toRad(verts[j].lng);
+      const yj = toRad(verts[j].lat);
+      area += (xj - xi) * (2 + Math.sin(yi) + Math.sin(yj));
+    }
+    return Math.abs(area * R * R / 2) / 10_000;
+  }
+
+  function renderPolygon() {
+    if (iPolygon) { map.removeLayer(iPolygon); iPolygon = null; }
+    if (iVertices.length < 2) return;
+    iPolygon = L.polygon(iVertices, POLY_STYLE).addTo(map);
+  }
+
+  function clearPreviewMarkers() {
+    iPreviewMarkers.forEach(m => map.removeLayer(m));
+    iPreviewMarkers = [];
+  }
+
+  function clearDrawing() {
+    if (iPolygon) { map.removeLayer(iPolygon); iPolygon = null; }
+    clearPreviewMarkers();
+    iVertices = [];
+  }
+
+  function unbindMapEvents() {
+    if (iClickH)  { map.off('click', iClickH);      iClickH  = null; }
+    if (iDblH)    { map.off('dblclick', iDblH);     iDblH    = null; }
+    if (iMoveH)   { map.off('mousemove', iMoveH);   iMoveH   = null; }
+  }
+
+  function refreshMidpoints() {
+    const vc = iVertices.length;
+    while (iPreviewMarkers.length > vc) {
+      map.removeLayer(iPreviewMarkers.pop());
+    }
+    iVertices.forEach((latlng, idx) => {
+      const next = iVertices[(idx + 1) % iVertices.length];
+      const mid  = L.latLng((latlng.lat + next.lat) / 2, (latlng.lng + next.lng) / 2);
+      const mp   = L.circleMarker(mid, { ...MIDPOINT_STYLE, interactive: true }).addTo(map);
+      mp.on('click', (e) => {
+        L.DomEvent.stop(e);
+        iVertices.splice(idx + 1, 0, mid);
+        renderPolygon();
+        renderEditHandles();
+        updateAreaLabel();
+      });
+      iPreviewMarkers.push(mp);
+    });
+  }
+
+  function renderEditHandles() {
+    clearPreviewMarkers();
+    if (iVertices.length < 3) return;
+    iVertices.forEach((latlng, idx) => {
+      const m = L.circleMarker(latlng, { ...VERTEX_STYLE, interactive: true, bubblingMouseEvents: false }).addTo(map);
+      m.on('mousedown', (e) => {
+        L.DomEvent.stop(e);
+        map.dragging.disable();
+        const onMove = (me) => {
+          iVertices[idx] = me.latlng;
+          m.setLatLng(me.latlng);
+          renderPolygon();
+          refreshMidpoints();
+          updateAreaLabel();
+        };
+        const onUp = () => {
+          map.dragging.enable();
+          map.off('mousemove', onMove);
+          map.off('mouseup', onUp);
+        };
+        map.on('mousemove', onMove);
+        map.on('mouseup', onUp);
+      });
+      m.on('contextmenu', (e) => {
+        L.DomEvent.stop(e);
+        if (iVertices.length <= 3) return;
+        iVertices.splice(idx, 1);
+        renderPolygon();
+        renderEditHandles();
+        updateAreaLabel();
+      });
+      iPreviewMarkers.push(m);
+    });
+    refreshMidpoints();
+  }
+
+  function setMode(mode) {
+    iMode = mode;
+    unbindMapEvents();
+    clearPreviewMarkers();
+    if (iPreviewLine)   { map.removeLayer(iPreviewLine);   iPreviewLine   = null; }
+    if (iCursorMarker)  { map.removeLayer(iCursorMarker);  iCursorMarker  = null; }
+
+    const drawBtn = containerEl.querySelector('#ibm-draw-btn');
+    const editBtn = containerEl.querySelector('#ibm-edit-btn');
+    const mapEl   = containerEl.querySelector('#ibm-map');
+
+    // use CSS class toggling so ibm-btn-active styles apply (no inline overrides)
+    if (drawBtn) { drawBtn.style.cssText = ''; drawBtn.classList.remove('ibm-btn-active'); }
+    if (editBtn) { editBtn.style.cssText = ''; editBtn.classList.remove('ibm-btn-active'); editBtn.disabled = false; editBtn.style.opacity = '1'; }
+
+    if (mode === 'drawing') {
+      iVertices = [];
+      clearDrawing();
+      if (mapEl) mapEl.style.cursor = 'crosshair';
+      if (drawBtn) drawBtn.classList.add('ibm-btn-active');
+      if (editBtn) { editBtn.disabled = true; editBtn.style.opacity = '0.4'; }
+      updateAreaLabel('Click to place points — double-click to finish');
+
+      iMoveH = (e) => {
+        if (iVertices.length === 0) return;
+        const pts = [...iVertices, e.latlng];
+        if (iPreviewLine) iPreviewLine.setLatLngs(pts);
+        else iPreviewLine = L.polyline(pts, { color: '#3aad5a', weight: 2, dashArray: '6 4' }).addTo(map);
+        if (iCursorMarker) iCursorMarker.setLatLng(e.latlng);
+        else iCursorMarker = L.circleMarker(e.latlng, { ...VERTEX_STYLE, radius: 5 }).addTo(map);
+      };
+      iClickH = (e) => {
+        if (e.originalEvent._ibmMarkerClick) return;
+        if (iFinishing) return;
+        iVertices.push(e.latlng);
+        // add vertex handle
+        const m = L.circleMarker(e.latlng, { ...VERTEX_STYLE, interactive: true }).addTo(map);
+        const vidx = iVertices.length - 1;
+        m.on('click', (ce) => {
+          ce.originalEvent._ibmMarkerClick = true;
+          if (vidx === 0 && iVertices.length >= 3) {
+            if (iPreviewLine)  { map.removeLayer(iPreviewLine);  iPreviewLine  = null; }
+            if (iCursorMarker) { map.removeLayer(iCursorMarker); iCursorMarker = null; }
+            setMode('editing');
+          }
+        });
+        iPreviewMarkers.push(m);
+        if (iVertices.length >= 2) renderPolygon();
+        updateAreaLabel();
+      };
+      iDblH = () => {
+        if (iVertices.length < 3) return;
+        iFinishing = true;
+        if (iPreviewLine)  { map.removeLayer(iPreviewLine);  iPreviewLine  = null; }
+        if (iCursorMarker) { map.removeLayer(iCursorMarker); iCursorMarker = null; }
+        // remove the last vertex added by the click that fires just before dblclick
+        iVertices.pop();
+        setMode('editing');
+        setTimeout(() => { iFinishing = false; }, 50);
+      };
+      map.on('click', iClickH);
+      map.on('dblclick', iDblH);
+      map.on('mousemove', iMoveH);
+
+    } else if (mode === 'editing') {
+      if (mapEl) mapEl.style.cursor = '';
+      if (editBtn) editBtn.classList.add('ibm-btn-active');
+      renderEditHandles();
+      updateAreaLabel();
+    }
+  }
+
+  // ── init map ──────────────────────────────────────────────────────────────
+  const osmLayer = L.tileLayer(
+    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    { attribution: '© OpenStreetMap contributors', maxZoom: 22 },
+  );
+
+  const center = (centerLat && centerLng) ? [centerLat, centerLng] : DEFAULT_CENTER;
+  const map = L.map(containerEl.querySelector('#ibm-map'), {
+    center,
+    zoom: (centerLat && centerLng) ? 14 : DEFAULT_ZOOM,
+    layers: [osmLayer],
+    zoomControl: true,
+    doubleClickZoom: false,
+  });
+
+  // prevent the map's default contextmenu from swallowing right-clicks on markers
+  map.on('contextmenu', (e) => { L.DomEvent.stop(e); });
+
+  for (const bg of backgroundLayers) {
+    if (!bg.geoJson) continue;
+    try {
+      L.geoJSON(JSON.parse(bg.geoJson), {
+        style: { color: bg.color || '#6aaf7a', weight: 2, fillOpacity: 0.15, dashArray: '5 4' },
+      }).bindTooltip(bg.name || '', { permanent: false, direction: 'center' }).addTo(map);
+    } catch { /* skip */ }
+  }
+
+  if (existingGeoJson) {
+    try {
+      const parsed = JSON.parse(existingGeoJson);
+      const ring = parsed.coordinates[0];
+      iVertices = ring.slice(0, -1).map(([lng, lat]) => L.latLng(lat, lng));
+      renderPolygon();
+      map.fitBounds(iPolygon.getBounds(), { padding: [40, 40] });
+      setMode('editing');
+    } catch { setMode('drawing'); }
+  } else {
+    setMode('drawing');
+  }
+
+  // toolbar events
+  containerEl.querySelector('#ibm-draw-btn').addEventListener('click', () => setMode('drawing'));
+  containerEl.querySelector('#ibm-edit-btn').addEventListener('click', () => setMode('editing'));
+  containerEl.querySelector('#ibm-clear').addEventListener('click', () => {
+    if (!confirm('Clear the drawn boundary?')) return;
+    clearDrawing();
+    setMode('drawing');
+    updateAreaLabel();
+  });
+
+  // ── public controller ─────────────────────────────────────────────────────
+  return {
+    getGeoJson() {
+      if (iVertices.length < 3) return null;
+      const coords = iVertices.map(ll => [ll.lng, ll.lat]);
+      coords.push(coords[0]);
+      return JSON.stringify({ type: 'Polygon', coordinates: [coords] });
+    },
+    getAreaHa() {
+      return computeHa(iVertices);
+    },
+    getCentroid() {
+      if (iVertices.length < 3) return null;
+      let lat = 0, lng = 0;
+      for (const v of iVertices) { lat += v.lat; lng += v.lng; }
+      return { lat: lat / iVertices.length, lng: lng / iVertices.length };
+    },
+    setCenter(lat, lng) {
+      if (lat && lng) map.setView([lat, lng], 14);
+    },
+    invalidateSize() {
+      map.invalidateSize();
+    },
+    destroy() {
+      unbindMapEvents();
+      map.remove();
+      containerEl.innerHTML = '';
+    },
+  };
 }

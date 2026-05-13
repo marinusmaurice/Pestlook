@@ -4,7 +4,7 @@ import { openModal, closeModal } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
 import { tag } from '../components/tag.js';
 import { escapeHtml, formatDate } from '../utils/helpers.js';
-import { openBoundaryMap } from '../components/boundary-map.js';
+import { openBoundaryMap, createInlineBoundaryMap } from '../components/boundary-map.js';
 
 export async function renderFarms(container) {
   _container = container;
@@ -510,101 +510,130 @@ function showDeleteFieldConfirm(field, farm, farmIdx) {
 
 // ── Farm modals ───────────────────────────────────────────────
 function showEditFarmModal(farm, farmIdx) {
-  let _drawnBoundary = farm.boundaryGeoJson || null;
-
   const form = document.createElement('div');
+  form.className = 'modal-map';
+  form.style.cssText = 'display:flex;flex-direction:column;width:100%;height:100%;';
+
   form.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:14px;">
+    <div class="modal-map-header">
       <div>
-        <label class="input-label">Farm Name</label>
-        <input class="input-field" type="text" id="editFarmName" value="${escapeHtml(farm.name)}" required>
+        <div style="font-family:'Fraunces',serif;font-size:1.2rem;font-weight:700;color:#fff;">Edit Farm</div>
+        <div style="font-size:0.78rem;color:var(--text-dim);margin-top:2px;">Update farm details</div>
       </div>
-      <div>
-        <label class="input-label">Address</label>
-        <input class="input-field" type="text" id="editFarmAddress" value="${escapeHtml(farm.address || '')}">
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <button id="editFarmCloseBtn" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;width:32px;height:32px;cursor:pointer;color:var(--text-dim);font-size:1rem;display:flex;align-items:center;justify-content:center;">×</button>
+    </div>
+    <div class="modal-map-body">
+      <div class="modal-map-form">
         <div>
-          <label class="input-label">Latitude</label>
-          <input class="input-field" type="number" step="any" id="editFarmLat" value="${farm.latitude ?? ''}">
+          <label class="input-label">Farm Name</label>
+          <input class="input-field" type="text" id="editFarmName" value="${escapeHtml(farm.name)}" required>
         </div>
         <div>
-          <label class="input-label">Longitude</label>
-          <input class="input-field" type="number" step="any" id="editFarmLng" value="${farm.longitude ?? ''}">
+          <label class="input-label">Address</label>
+          <input class="input-field" type="text" id="editFarmAddress" value="${escapeHtml(farm.address || '')}">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <label class="input-label">Latitude</label>
+            <input class="input-field" type="number" step="any" id="editFarmLat" value="${farm.latitude ?? ''}">
+          </div>
+          <div>
+            <label class="input-label">Longitude</label>
+            <input class="input-field" type="number" step="any" id="editFarmLng" value="${farm.longitude ?? ''}">
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <label class="input-label" style="margin-bottom:0;">Status</label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.82rem;color:var(--text-mid);">
+            <input type="checkbox" id="editFarmActive" ${farm.isActive !== false ? 'checked' : ''}> Active
+          </label>
+        </div>
+        <div style="flex:1;"></div>
+        <div style="display:flex;gap:10px;margin-top:6px;">
+          <button class="btn-outline" style="flex:1;" id="cancelEditFarm">Cancel</button>
+          <button class="btn-primary" style="flex:2;justify-content:center;" id="saveEditFarm">💾 Save Changes</button>
         </div>
       </div>
-      <div>
-        <label class="input-label">Farm Boundary</label>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <button type="button" class="btn-outline" id="drawFarmBoundaryBtn"
-                  style="flex:1;padding:6px 10px;font-size:0.78rem;justify-content:center;">
-            🗺 ${_drawnBoundary ? 'Edit Farm Boundary' : 'Draw Farm Boundary'}
-          </button>
-          <span id="editFarmBoundaryStatus"
-                style="font-size:0.72rem;color:${_drawnBoundary ? 'var(--green)' : 'var(--text-dim)'};">
-            ${_drawnBoundary ? '✓ Boundary set' : 'None'}
-          </span>
-        </div>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px;">
-        <label class="input-label" style="margin-bottom:0;">Status</label>
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.82rem;color:var(--text-mid);">
-          <input type="checkbox" id="editFarmActive" ${farm.isActive !== false ? 'checked' : ''}> Active
-        </label>
-      </div>
-      <div style="display:flex;gap:10px;margin-top:6px;">
-        <button class="btn-outline" style="flex:1;" id="cancelEditFarm">Cancel</button>
-        <button class="btn-primary" style="flex:2;justify-content:center;" id="saveEditFarm">💾 Save Changes</button>
-      </div>
+      <div class="modal-map-canvas" id="editFarmMapCanvas"></div>
     </div>
   `;
 
-  openModal({ title: 'Edit Farm', subtitle: 'Update farm details', content: form });
+  // Use a raw overlay so we control the box class ourselves
+  const ov = document.querySelector('.modal-overlay') || (() => {
+    const el = document.createElement('div');
+    el.className = 'modal-overlay';
+    el.style.zIndex = '9999';
+    document.body.appendChild(el);
+    return el;
+  })();
 
-  document.getElementById('drawFarmBoundaryBtn').addEventListener('click', () => {
-    const lat = parseFloat(document.getElementById('editFarmLat').value) || farm.latitude;
-    const lng = parseFloat(document.getElementById('editFarmLng').value) || farm.longitude;
-    closeModal();
-    openBoundaryMap({
-      title:           `Farm Boundary – ${farm.name}`,
-      existingGeoJson: _drawnBoundary,
-      centerLat:       lat,
-      centerLng:       lng,
-      onConfirm: ({ geoJson }) => {
-        _drawnBoundary = geoJson;
-        showEditFarmModal({ ...farm, boundaryGeoJson: geoJson }, farmIdx);
-        setTimeout(() => {
-          const s = document.getElementById('editFarmBoundaryStatus');
-          if (s) { s.textContent = '✓ Boundary set'; s.style.color = 'var(--green)'; }
-          const b = document.getElementById('drawFarmBoundaryBtn');
-          if (b) b.textContent = '🗺 Edit Farm Boundary';
-        }, 50);
-      },
+  ov.innerHTML = '';
+  const box = document.createElement('div');
+  box.className = 'modal-box modal-map';
+  box.appendChild(form);
+  ov.appendChild(box);
+  ov.classList.add('open');
+
+  let inlineBm = null;
+
+  // Mount map after DOM is visible
+  requestAnimationFrame(() => {
+    const canvas = document.getElementById('editFarmMapCanvas');
+    if (canvas) {
+      inlineBm = createInlineBoundaryMap(canvas, {
+        existingGeoJson:  farm.boundaryGeoJson || null,
+        centerLat:        farm.latitude,
+        centerLng:        farm.longitude,
+      });
+    }
+  });
+
+  // Re-centre when lat/lng inputs change
+  ['editFarmLat', 'editFarmLng'].forEach(id => {
+    document.getElementById(id)?.addEventListener('change', () => {
+      const lat = parseFloat(document.getElementById('editFarmLat').value);
+      const lng = parseFloat(document.getElementById('editFarmLng').value);
+      if (lat && lng && inlineBm) inlineBm.setCenter(lat, lng);
     });
   });
 
-  document.getElementById('cancelEditFarm').addEventListener('click', closeModal);
+  function destroyAndClose() {
+    inlineBm?.destroy();
+    inlineBm = null;
+    ov.classList.remove('open');
+    ov.innerHTML = '';
+  }
+
+  document.getElementById('editFarmCloseBtn').addEventListener('click', destroyAndClose);
+  document.getElementById('cancelEditFarm').addEventListener('click', destroyAndClose);
+
   document.getElementById('saveEditFarm').addEventListener('click', async () => {
     const btn        = document.getElementById('saveEditFarm');
     const newName    = document.getElementById('editFarmName').value.trim();
     const newAddress = document.getElementById('editFarmAddress').value.trim() || null;
-    const newLat     = parseFloat(document.getElementById('editFarmLat').value) || null;
-    const newLng     = parseFloat(document.getElementById('editFarmLng').value) || null;
+    let   newLat     = parseFloat(document.getElementById('editFarmLat').value) || null;
+    let   newLng     = parseFloat(document.getElementById('editFarmLng').value) || null;
     const newActive  = document.getElementById('editFarmActive').checked;
+    const newBoundary = inlineBm ? inlineBm.getGeoJson() : (farm.boundaryGeoJson || null);
+    // auto-calculate centre from drawn boundary when lat/lng are empty
+    if ((!newLat || !newLng) && inlineBm) {
+      const centroid = inlineBm.getCentroid();
+      if (centroid) { newLat = centroid.lat; newLng = centroid.lng; }
+    }
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>';
     try {
       await updateFarm(farm.id, {
         name: newName, address: newAddress,
         latitude: newLat, longitude: newLng,
-        boundaryGeoJson: _drawnBoundary,
+        boundaryGeoJson: newBoundary,
         isActive: newActive,
       });
-      closeModal();
+      destroyAndClose();
       showToast('Farm updated!', 'success');
       const updatedFarm = { ...farm, name: newName, address: newAddress,
                             latitude: newLat, longitude: newLng,
-                            boundaryGeoJson: _drawnBoundary, isActive: newActive };
+                            boundaryGeoJson: newBoundary, isActive: newActive };
       const inFieldsPanel = document.getElementById('farms-fields-panel')?.style.display !== 'none';
       if (inFieldsPanel && farmIdx !== undefined) {
         await openFarmFields(updatedFarm, farmIdx);
@@ -619,100 +648,124 @@ function showEditFarmModal(farm, farmIdx) {
   });
 }
 
-function showCreateFarmModal(prefill = {}) {
-  let _drawnBoundary = prefill.boundaryGeoJson || null;
+function showCreateFarmModal() {
+  const ov = document.querySelector('.modal-overlay') || (() => {
+    const el = document.createElement('div');
+    el.className = 'modal-overlay';
+    el.style.zIndex = '9999';
+    document.body.appendChild(el);
+    return el;
+  })();
 
-  const form = document.createElement('div');
-  form.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:14px;">
+  ov.innerHTML = '';
+  const box = document.createElement('div');
+  box.className = 'modal-box modal-map';
+
+  box.innerHTML = `
+    <div class="modal-map-header">
       <div>
-        <label class="input-label">Farm Name</label>
-        <input class="input-field" type="text" id="farmName" placeholder="e.g. Sunrise Farm" required
-               value="${escapeHtml(prefill.name || '')}">
+        <div style="font-family:'Fraunces',serif;font-size:1.2rem;font-weight:700;color:#fff;">Add New Farm</div>
+        <div style="font-size:0.78rem;color:var(--text-dim);margin-top:2px;">Register a new farm property</div>
       </div>
-      <div>
-        <label class="input-label">Address</label>
-        <input class="input-field" type="text" id="farmAddress" placeholder="e.g. Stellenbosch, Western Cape"
-               value="${escapeHtml(prefill.address || '')}">
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <button id="createFarmCloseBtn" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;width:32px;height:32px;cursor:pointer;color:var(--text-dim);font-size:1rem;display:flex;align-items:center;justify-content:center;">×</button>
+    </div>
+    <div class="modal-map-body">
+      <div class="modal-map-form">
         <div>
-          <label class="input-label">Latitude</label>
-          <input class="input-field" type="number" step="any" id="farmLat" placeholder="-33.9321"
-                 value="${prefill.latitude ?? ''}">
+          <label class="input-label">Farm Name <span style="color:var(--red);">*</span></label>
+          <input class="input-field" type="text" id="farmName" placeholder="e.g. Sunrise Farm" required>
         </div>
         <div>
-          <label class="input-label">Longitude</label>
-          <input class="input-field" type="number" step="any" id="farmLng" placeholder="18.8602"
-                 value="${prefill.longitude ?? ''}">
+          <label class="input-label">Address</label>
+          <input class="input-field" type="text" id="farmAddress" placeholder="e.g. Stellenbosch, Western Cape">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <label class="input-label">Latitude</label>
+            <input class="input-field" type="number" step="any" id="farmLat" placeholder="-33.9321">
+          </div>
+          <div>
+            <label class="input-label">Longitude</label>
+            <input class="input-field" type="number" step="any" id="farmLng" placeholder="18.8602">
+          </div>
+        </div>
+        <div style="flex:1;"></div>
+        <div style="display:flex;gap:10px;margin-top:6px;">
+          <button class="btn-outline" style="flex:1;" id="cancelFarm">Cancel</button>
+          <button class="btn-primary" style="flex:2;justify-content:center;" id="saveFarm">🌾 Create Farm</button>
         </div>
       </div>
-      <div>
-        <label class="input-label">Farm Boundary <span style="color:var(--text-dim);font-size:0.7rem;">(optional)</span></label>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <button type="button" class="btn-outline" id="drawNewFarmBoundaryBtn"
-                  style="flex:1;padding:6px 10px;font-size:0.78rem;justify-content:center;">
-            🗺 ${_drawnBoundary ? 'Edit Farm Boundary' : 'Draw Farm Boundary'}
-          </button>
-          <span id="newFarmBoundaryStatus"
-                style="font-size:0.72rem;color:${_drawnBoundary ? 'var(--green)' : 'var(--text-dim)'};">
-            ${_drawnBoundary ? '✓ Boundary set' : 'None'}
-          </span>
-        </div>
-      </div>
-      <div style="display:flex;gap:10px;margin-top:6px;">
-        <button class="btn-outline" style="flex:1;" id="cancelFarm">Cancel</button>
-        <button class="btn-primary" style="flex:2;justify-content:center;" id="saveFarm">🌾 Create Farm</button>
-      </div>
+      <div class="modal-map-canvas" id="createFarmMapCanvas"></div>
     </div>
   `;
 
-  openModal({ title: 'Add New Farm', subtitle: 'Register a new farm property', content: form });
+  ov.appendChild(box);
+  ov.classList.add('open');
+
   setTimeout(() => document.getElementById('farmName')?.focus(), 100);
 
-  document.getElementById('drawNewFarmBoundaryBtn').addEventListener('click', () => {
-    const lat = parseFloat(document.getElementById('farmLat').value) || null;
-    const lng = parseFloat(document.getElementById('farmLng').value) || null;
-    const savedPrefill = {
-      name:      document.getElementById('farmName').value,
-      address:   document.getElementById('farmAddress').value,
-      latitude:  lat,
-      longitude: lng,
-      boundaryGeoJson: _drawnBoundary,
-    };
-    closeModal();
-    openBoundaryMap({
-      title:           'Draw Farm Boundary',
-      existingGeoJson: _drawnBoundary,
-      centerLat:       lat,
-      centerLng:       lng,
-      onConfirm: ({ geoJson }) => {
-        _drawnBoundary = geoJson;
-        showCreateFarmModal({ ...savedPrefill, boundaryGeoJson: geoJson });
-        setTimeout(() => {
-          const s = document.getElementById('newFarmBoundaryStatus');
-          if (s) { s.textContent = '✓ Boundary set'; s.style.color = 'var(--green)'; }
-          const b = document.getElementById('drawNewFarmBoundaryBtn');
-          if (b) b.textContent = '🗺 Edit Farm Boundary';
-        }, 50);
-      },
+  let inlineBm = null;
+
+  requestAnimationFrame(() => {
+    const canvas = document.getElementById('createFarmMapCanvas');
+    if (canvas) {
+      inlineBm = createInlineBoundaryMap(canvas, {
+        existingGeoJson: null,
+        centerLat: null,
+        centerLng: null,
+      });
+    }
+  });
+
+  // Re-centre when lat/lng inputs change
+  ['farmLat', 'farmLng'].forEach(id => {
+    document.getElementById(id)?.addEventListener('change', () => {
+      const lat = parseFloat(document.getElementById('farmLat').value);
+      const lng = parseFloat(document.getElementById('farmLng').value);
+      if (lat && lng && inlineBm) inlineBm.setCenter(lat, lng);
     });
   });
 
-  document.getElementById('cancelFarm').addEventListener('click', closeModal);
+  function destroyAndClose() {
+    inlineBm?.destroy();
+    inlineBm = null;
+    ov.classList.remove('open');
+    ov.innerHTML = '';
+  }
+
+  document.getElementById('createFarmCloseBtn').addEventListener('click', destroyAndClose);
+  document.getElementById('cancelFarm').addEventListener('click', destroyAndClose);
+
   document.getElementById('saveFarm').addEventListener('click', async () => {
     const btn = document.getElementById('saveFarm');
+    const name = document.getElementById('farmName').value.trim();
+    if (!name) {
+      const inp = document.getElementById('farmName');
+      inp.style.borderColor = 'var(--red)';
+      inp.focus();
+      setTimeout(() => inp.style.borderColor = '', 1500);
+      return;
+    }
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>';
+
+    let lat = parseFloat(document.getElementById('farmLat').value) || null;
+    let lng = parseFloat(document.getElementById('farmLng').value) || null;
+    // auto-calculate centre from drawn boundary when lat/lng are empty
+    if ((!lat || !lng) && inlineBm) {
+      const centroid = inlineBm.getCentroid();
+      if (centroid) { lat = centroid.lat; lng = centroid.lng; }
+    }
+
     try {
       await createFarm({
-        name:            document.getElementById('farmName').value.trim(),
+        name,
         address:         document.getElementById('farmAddress').value.trim() || null,
-        latitude:        parseFloat(document.getElementById('farmLat').value) || null,
-        longitude:       parseFloat(document.getElementById('farmLng').value) || null,
-        boundaryGeoJson: _drawnBoundary,
+        latitude:        lat,
+        longitude:       lng,
+        boundaryGeoJson: inlineBm ? inlineBm.getGeoJson() : null,
       });
-      closeModal();
+      destroyAndClose();
       showToast('Farm created!', 'success');
       await loadAndRenderGrid();
     } catch (err) {
