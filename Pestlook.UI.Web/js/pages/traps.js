@@ -334,9 +334,11 @@ function buildTrapForm(trap, freshTrapTypes, farms, allFields) {
   const fieldOptions = `<option value="">— Select Field —</option>` +
     farmFields.map(f => `<option value="${f.id}" ${f.id === trap?.fieldId ? 'selected' : ''}>${escapeHtml(f.name)}</option>`).join('');
 
-  const form = document.createElement('div');
-  form.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:14px;">
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'display:flex;flex:1;min-height:0;overflow:hidden;width:100%;';
+  wrapper.innerHTML = `
+    <!-- LEFT: form -->
+    <div class="modal-map-form">
       <div>
         <label class="input-label">Farm <span style="color:var(--red);">*</span></label>
         <select class="input-field" id="trapFarm">${farmOptions}</select>
@@ -358,8 +360,14 @@ function buildTrapForm(trap, freshTrapTypes, farms, allFields) {
         <select class="input-field" id="trapType">${typeOptions}</select>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div><label class="input-label">Latitude</label><input class="input-field" type="number" step="any" id="trapLat" value="${trap?.latitude || ''}"></div>
-        <div><label class="input-label">Longitude</label><input class="input-field" type="number" step="any" id="trapLng" value="${trap?.longitude || ''}"></div>
+        <div>
+          <label class="input-label">Latitude</label>
+          <input class="input-field" type="number" step="any" id="trapLat" value="${trap?.latitude || ''}" placeholder="Click map to set">
+        </div>
+        <div>
+          <label class="input-label">Longitude</label>
+          <input class="input-field" type="number" step="any" id="trapLng" value="${trap?.longitude || ''}" placeholder="Click map to set">
+        </div>
       </div>
       ${trap?.id ? `<div>
         <label class="input-label">Status</label>
@@ -370,30 +378,177 @@ function buildTrapForm(trap, freshTrapTypes, farms, allFields) {
       </div>` : ''}
       <div>
         <label class="input-label">Notes</label>
-        <textarea class="input-field" id="trapNotes" rows="2" placeholder="Optional notes">${escapeHtml(trap?.notes || '')}</textarea>
+        <textarea class="input-field" id="trapNotes" rows="2" style="resize:none;" placeholder="Optional notes">${escapeHtml(trap?.notes || '')}</textarea>
       </div>
-      <div style="display:flex;gap:10px;margin-top:6px;">
+      <div style="display:flex;gap:8px;margin-top:auto;padding-top:8px;">
         <button class="btn-outline" style="flex:1;" id="cancelTrap">Cancel</button>
         <button class="btn-primary" style="flex:2;justify-content:center;" id="saveTrap">💾 ${trap ? 'Update' : 'Create'} Trap</button>
       </div>
     </div>
+
+    <!-- RIGHT: map -->
+    <div class="modal-map-canvas" style="position:relative;display:flex;flex-direction:column;overflow:hidden;">
+      <div id="trapModalMap" style="width:100%;flex:1;min-height:300px;"></div>
+      <div id="trapMapHint" style="position:absolute;bottom:10px;left:50%;transform:translateX(-50%);
+           background:rgba(0,0,0,0.55);color:#fff;font-size:0.72rem;padding:5px 12px;border-radius:20px;
+           pointer-events:none;white-space:nowrap;">
+        Select a farm &amp; field to see its boundary
+      </div>
+    </div>
   `;
 
-  // Wire cascading farm → field
+  // Map state
+  let dialogMap = null;
+  let boundaryLayer = null;
+  let trapMarker = null;
+
+  function getOrInitMap() {
+    if (dialogMap) return dialogMap;
+    const mapEl = document.getElementById('trapModalMap');
+    if (!mapEl || !window.L) return null;
+    dialogMap = L.map('trapModalMap', { zoomControl: true });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(dialogMap);
+
+    // Click sets trap location
+    dialogMap.on('click', (e) => {
+      const lat = Number(e.latlng.lat.toFixed(6));
+      const lng = Number(e.latlng.lng.toFixed(6));
+      const latEl = document.getElementById('trapLat');
+      const lngEl = document.getElementById('trapLng');
+      if (latEl) latEl.value = lat;
+      if (lngEl) lngEl.value = lng;
+      placeTrapMarker(lat, lng);
+    });
+
+    return dialogMap;
+  }
+
+  function placeTrapMarker(lat, lng) {
+    const map = getOrInitMap();
+    if (!map) return;
+    if (trapMarker) {
+      trapMarker.setLatLng([lat, lng]);
+    } else {
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="width:28px;height:28px;border-radius:50% 50% 50% 0;background:#3b82f6;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4);transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;">
+                 <span style="transform:rotate(45deg);font-size:12px;">📍</span>
+               </div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 28],
+        popupAnchor: [0, -28],
+      });
+      trapMarker = L.marker([lat, lng], { icon, draggable: true }).addTo(map);
+      trapMarker.on('dragend', () => {
+        const p = trapMarker.getLatLng();
+        const rLat = Number(p.lat.toFixed(6));
+        const rLng = Number(p.lng.toFixed(6));
+        const latEl = document.getElementById('trapLat');
+        const lngEl = document.getElementById('trapLng');
+        if (latEl) latEl.value = rLat;
+        if (lngEl) lngEl.value = rLng;
+      });
+    }
+  }
+
+  function removeTrapMarker() {
+    if (trapMarker && dialogMap) { dialogMap.removeLayer(trapMarker); trapMarker = null; }
+  }
+
+  function showFieldBoundary(field) {
+    const map = getOrInitMap();
+    if (!map) return;
+    if (boundaryLayer) { map.removeLayer(boundaryLayer); boundaryLayer = null; }
+
+    const hint = document.getElementById('trapMapHint');
+
+    if (!field?.geoBoundary) {
+      // No boundary — center on farm/field lat-lng if available, or default
+      if (field?.latitude && field?.longitude) {
+        map.setView([field.latitude, field.longitude], 15);
+      }
+      if (hint) hint.textContent = 'Click the map to set the trap location';
+      setTimeout(() => map.invalidateSize(), 50);
+      return;
+    }
+
+    try {
+      const geoData = typeof field.geoBoundary === 'string' ? JSON.parse(field.geoBoundary) : field.geoBoundary;
+      boundaryLayer = L.geoJSON(geoData, {
+        style: { color: field.boundaryColor || '#f0b840', weight: 2, fillOpacity: 0.15, interactive: false },
+      }).addTo(map);
+      map.fitBounds(boundaryLayer.getBounds().pad(0.15));
+    } catch {
+      if (hint) hint.textContent = 'Click the map to set the trap location';
+    }
+
+    if (hint) hint.textContent = 'Click the map to set the trap location';
+    setTimeout(() => map.invalidateSize(), 50);
+  }
+
+  // Wire cascading farm → field → boundary
   setTimeout(() => {
     const farmSel  = document.getElementById('trapFarm');
     const fieldSel = document.getElementById('trapField');
-    if (farmSel && fieldSel) {
-      farmSel.addEventListener('change', () => {
-        const fid = farmSel.value;
-        const filtered = fid ? allFields.filter(f => f.farmId === fid) : [];
-        fieldSel.innerHTML = `<option value="">— Select Field —</option>` +
-          filtered.map(f => `<option value="${f.id}">${escapeHtml(f.name)}</option>`).join('');
-      });
+    if (!farmSel || !fieldSel) return;
+
+    function onFieldChange() {
+      const fieldId = fieldSel.value;
+      const field   = allFields.find(f => f.id === fieldId);
+      showFieldBoundary(field || null);
+    }
+
+    farmSel.addEventListener('change', () => {
+      const fid = farmSel.value;
+      const filtered = fid ? allFields.filter(f => f.farmId === fid) : [];
+      fieldSel.innerHTML = `<option value="">— Select Field —</option>` +
+        filtered.map(f => `<option value="${f.id}">${escapeHtml(f.name)}</option>`).join('');
+      onFieldChange();
+    });
+
+    fieldSel.addEventListener('change', onFieldChange);
+
+    // Wire lat/lng inputs → sync marker
+    const latEl = document.getElementById('trapLat');
+    const lngEl = document.getElementById('trapLng');
+    function syncMarkerFromInputs() {
+      const lat = parseFloat(latEl?.value);
+      const lng = parseFloat(lngEl?.value);
+      if (isNaN(lat) || isNaN(lng) || latEl?.value === '' || lngEl?.value === '') {
+        removeTrapMarker();
+        return;
+      }
+      placeTrapMarker(lat, lng);
+    }
+    latEl?.addEventListener('input', syncMarkerFromInputs);
+    lngEl?.addEventListener('input', syncMarkerFromInputs);
+
+    // If editing and already has a field selected, show its boundary + existing marker
+    if (fieldSel.value) {
+      onFieldChange();
+    } else {
+      // Init map so it's ready to interact even without a field
+      setTimeout(() => {
+        const map = getOrInitMap();
+        if (map) {
+          map.setView([0, 0], 2);
+          map.invalidateSize();
+        }
+      }, 80);
+    }
+
+    // If editing and has existing coords, place marker
+    const initLat = parseFloat(latEl?.value);
+    const initLng = parseFloat(lngEl?.value);
+    if (!isNaN(initLat) && !isNaN(initLng)) {
+      setTimeout(() => placeTrapMarker(initLat, initLng), 150);
     }
   }, 0);
 
-  return form;
+  return wrapper;
 }
 
 function getFormValues(isEdit) {
@@ -433,7 +588,7 @@ async function showCreateTrapModal(listContainer, presetCoords = null) {
   const subtitle = presetCoords
     ? `Register a new trap at ${presetCoords.latitude}, ${presetCoords.longitude}`
     : 'Register a new physical trap with optional barcode and GPS';
-  openModal({ title: 'Add Trap', subtitle, content: form });
+  openModal({ title: 'Add Trap', subtitle, content: form, extraClass: 'modal-map' });
 
   document.getElementById('cancelTrap').addEventListener('click', closeModal);
   document.getElementById('saveTrap').addEventListener('click', async () => {
@@ -464,7 +619,7 @@ async function showEditTrapModal(trap, tableEl) {
     getFields().then(r => r.data || []).catch(() => []),
   ]);
   const form = buildTrapForm(trap, freshTrapTypes, farmsRes, fieldsRes);
-  openModal({ title: 'Edit Trap', subtitle: trap.name, content: form });
+  openModal({ title: 'Edit Trap', subtitle: trap.name, content: form, extraClass: 'modal-map' });
 
   document.getElementById('cancelTrap').addEventListener('click', closeModal);
   document.getElementById('saveTrap').addEventListener('click', async () => {
