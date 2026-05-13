@@ -47,6 +47,9 @@ public sealed class SessionObservation : IHasTenant, IAuditableByUser
     public int SortOrder { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
+    /// <summary>The date/time the scout actually recorded the observation on the mobile device.</summary>
+    public DateTime? ObservedAt { get; set; }
+
     /// <summary>JSON array of photo URLs captured during this observation.</summary>
     public string? PhotoUrlsJson { get; set; }
 

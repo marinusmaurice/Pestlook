@@ -154,7 +154,8 @@ public sealed class ScoutingSessionsController(
                     o.PhotoUrlsJson,
                     o.ObservationGroupId,
                     CreatedByName  = o.CreatedBy != null ? o.CreatedBy.FirstName + " " + o.CreatedBy.LastName : null,
-                    UpdatedByName  = o.UpdatedBy != null ? o.UpdatedBy.FirstName + " " + o.UpdatedBy.LastName : null
+                    UpdatedByName  = o.UpdatedBy != null ? o.UpdatedBy.FirstName + " " + o.UpdatedBy.LastName : null,
+                    o.ObservedAt
                 }).ToList()
             })
             .ToListAsync(ct);
@@ -175,7 +176,7 @@ public sealed class ScoutingSessionsController(
                 o.PhotoUrlsJson is not null
                     ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(o.PhotoUrlsJson) ?? []
                     : [],
-                o.ObservationGroupId, o.CreatedByName, o.UpdatedByName)).ToList(),
+                o.ObservationGroupId, o.CreatedByName, o.UpdatedByName, o.ObservedAt)).ToList(),
             p.CreatedByName, p.UpdatedByName)).ToList();
 
         return Ok(ApiResponse<List<ScoutingSessionResponse>>.Ok(sessions));
@@ -616,7 +617,8 @@ public sealed class ScoutingSessionsController(
                 LifeStage = request.LifeStage,
                 PhotoUrlsJson = photoJson,
                 SortOrder = nextSort + 1 + r,
-                ObservationGroupId = groupId
+                ObservationGroupId = groupId,
+                ObservedAt = request.ObservedAt
             };
             db.SessionObservations.Add(obs);
             if (r == 0) firstId = obs.Id;
@@ -668,6 +670,7 @@ public sealed class ScoutingSessionsController(
         obs.Notes = request.Notes;
         obs.LifeStage = request.LifeStage;
         obs.PhotoUrlsJson = request.PhotoUrls is { Count: > 0 } ? JsonSerializer.Serialize(request.PhotoUrls) : null;
+        if (request.ObservedAt.HasValue) obs.ObservedAt = request.ObservedAt;
 
         await db.SaveChangesAsync(ct);
 

@@ -85,6 +85,8 @@ public class LocalObservation
     public int SortOrder { get; set; }
     /// <summary>True when local changes have not yet been pushed to the server.</summary>
     public bool IsDirty { get; set; }
+    /// <summary>The date/time the scout actually recorded the observation on the device. Uploaded to the server on sync.</summary>
+    public DateTime? ObservedAt { get; set; }
 }
 
 // ── Observation Photo ────────────────────────────────────────

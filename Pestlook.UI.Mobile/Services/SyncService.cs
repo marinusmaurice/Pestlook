@@ -248,7 +248,8 @@ public class SyncService
                     IsPlanned           = o.IsPlanned,
                     ObservationGroupId  = o.ObservationGroupId?.ToString(),
                     SortOrder           = o.SortOrder,
-                    IsDirty             = false
+                    IsDirty             = false,
+                    ObservedAt          = o.ObservedAt
                 });
                 saved++;
             }
@@ -394,7 +395,8 @@ public class SyncService
         CapturedLng     = obs.CapturedLng,
         Notes           = obs.Notes,
         LifeStage       = obs.LifeStage switch { 0 => "Egg", 1 => "Larva", 2 => "Nymph", 3 => "Pupa", 4 => "Adult", 5 => "Unknown", _ => null },
-        IsPlanned       = obs.IsPlanned
+        IsPlanned       = obs.IsPlanned,
+        ObservedAt      = obs.ObservedAt
     };
 }
 

@@ -266,7 +266,8 @@
             LifeStage = lifeStage,
             ThresholdCount = captureMode == 0 ? thresholdCount : null,
             IsPlanned = false,
-            IsDirty = true
+            IsDirty = true,
+            ObservedAt = DateTime.Now
         };
         await Db.SaveObservationAsync(localObs);
 

@@ -53,7 +53,8 @@ public sealed record SessionObservationItem(
     List<string>? PhotoUrls,
     Guid? ObservationGroupId = null,
     int RepeatCount = 1,
-    bool IsPlanned = false);
+    bool IsPlanned = false,
+    DateTime? ObservedAt = null);
 
 // ── Responses ─────────────────────────────────────────────────────────────────
 
@@ -105,7 +106,8 @@ public sealed record SessionObservationResponse(
     List<string> PhotoUrls,
     Guid? ObservationGroupId,
     string? CreatedByName,
-    string? UpdatedByName)
+    string? UpdatedByName,
+    DateTime? ObservedAt)
 {
-    public SessionObservationResponse() : this(default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, [], default, default, default) { }
+    public SessionObservationResponse() : this(default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, [], default, default, default, default) { }
 }

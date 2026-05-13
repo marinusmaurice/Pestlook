@@ -109,7 +109,8 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
                     o.PhotoUrlsJson,
                     o.ObservationGroupId,
                     CreatedByName = o.CreatedBy != null ? o.CreatedBy.FirstName + " " + o.CreatedBy.LastName : null,
-                    UpdatedByName = o.UpdatedBy != null ? o.UpdatedBy.FirstName + " " + o.UpdatedBy.LastName : null
+                    UpdatedByName = o.UpdatedBy != null ? o.UpdatedBy.FirstName + " " + o.UpdatedBy.LastName : null,
+                    o.ObservedAt
                 }).ToList()
             })
             .ToListAsync(ct);
@@ -130,7 +131,7 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
                 o.PhotoUrlsJson is not null
                     ? JsonSerializer.Deserialize<List<string>>(o.PhotoUrlsJson) ?? []
                     : [],
-                o.ObservationGroupId, o.CreatedByName, o.UpdatedByName)).ToList(),
+                o.ObservationGroupId, o.CreatedByName, o.UpdatedByName, o.ObservedAt)).ToList(),
             p.CreatedByName, p.UpdatedByName)).ToList();
 
         var paged = new PagedResult<ScoutingSessionResponse>(sessions, totalCount, page, pageSize);

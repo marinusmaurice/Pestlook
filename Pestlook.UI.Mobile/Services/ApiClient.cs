@@ -413,6 +413,7 @@ public class SessionResponse
         [JsonPropertyName("sortOrder")] public int SortOrder { get; set; }
         [JsonPropertyName("photoUrls")] public List<string>? PhotoUrls { get; set; }
         [JsonPropertyName("createdAt")] public DateTime CreatedAt { get; set; }
+        [JsonPropertyName("observedAt")] public DateTime? ObservedAt { get; set; }
         public string DisplayName => IsUnknownPest ? "Unknown pest" : (PestName ?? "\u2014");
     }
 
@@ -430,6 +431,7 @@ public class SessionResponse
         [JsonPropertyName("longitude")] public double? CapturedLng { get; set; }
         [JsonPropertyName("lifeStage")] public string? LifeStage { get; set; }
         [JsonPropertyName("isPlanned")] public bool IsPlanned { get; set; }
+        [JsonPropertyName("observedAt")] public DateTime? ObservedAt { get; set; }
     }
 
     public class PestResponse

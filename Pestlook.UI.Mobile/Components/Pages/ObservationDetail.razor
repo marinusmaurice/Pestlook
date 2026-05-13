@@ -349,6 +349,7 @@
         obs.TrapName = string.IsNullOrEmpty(editTrapId) ? null : traps.FirstOrDefault(t => t.Id == editTrapId)?.Name;
         obs.CapturedLat = editGpsLat;
         obs.CapturedLng = editGpsLng;
+        obs.ObservedAt ??= DateTime.Now;
         obs.IsDirty = true;
         await Db.SaveObservationAsync(obs);
 
