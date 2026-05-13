@@ -68,18 +68,18 @@ function renderFarmGrid(farms, fields) {
         </div>
         <div class="card-p" style="flex:1;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <div style="font-weight:600;color:var(--text);font-size:0.95rem;">${escapeHtml(farm.name)}</div>
+            <div style="display:flex;align-items:baseline;gap:8px;">
+              <div style="font-weight:600;color:var(--text);font-size:0.95rem;">${escapeHtml(farm.name)}</div>
+              ${haText ? `<span style="font-size:0.75rem;color:var(--text-dim);">${haText}</span>` : ''}
+            </div>
             ${farm.isActive !== false ? tag('Active', 'green') : tag('Inactive', 'red')}
           </div>
           <div style="font-size:0.78rem;color:var(--text-dim);margin-bottom:12px;">📍 ${escapeHtml(farm.address || 'No address')}</div>
-          <div style="display:grid;grid-template-columns:1fr;gap:8px;">
-            <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;">
+          <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;display:flex;align-items:center;justify-content:space-between;">
+            <div>
               <div style="font-size:0.65rem;color:var(--text-dim);margin-bottom:2px;text-transform:uppercase;letter-spacing:0.06em;">Fields</div>
               <div style="font-family:'Fraunces',serif;font-weight:700;color:var(--green);font-size:1.2rem;">${farmFields.length}</div>
             </div>
-          </div>
-          <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
-            <span style="font-size:0.75rem;color:var(--text-dim);">${escapeHtml(crop)}${crop && haText ? ' · ' : ''}${haText}</span>
             <span data-manage-farm="${farm.id}" style="font-size:0.72rem;color:var(--green);font-weight:500;cursor:pointer;">Manage fields →</span>
           </div>
         </div>
