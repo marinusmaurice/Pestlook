@@ -450,6 +450,7 @@ public class TrapTypeResponse
     [JsonPropertyName("id")] public Guid Id { get; set; }
     [JsonPropertyName("name")] public string Name { get; set; } = "";
     [JsonPropertyName("description")] public string? Description { get; set; }
+    [JsonPropertyName("isSystemType")] public bool IsSystemType { get; set; }
 }
 
 public class TrapApiResponse

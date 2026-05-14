@@ -42,7 +42,9 @@ public sealed class MappingProfile : Profile
                 src.CreatedAt, src.UpdatedAt));
 
         CreateMap<TrapType, TrapTypeResponse>()
-            .ConstructUsing(_ => new TrapTypeResponse());
+            .ConstructUsing((src, _) => new TrapTypeResponse(
+                src.Id, src.Name, src.Description, src.CreatedAt, src.UpdatedAt,
+                IsSystemType: src.TenantId == null));
 
         CreateMap<Pest, PestResponse>()
             .ConstructUsing(_ => new PestResponse());

@@ -7,6 +7,7 @@ using Pestlook.WebAPI.Data;
 using Pestlook.WebAPI.Domain.Entities;
 using Pestlook.WebAPI.DTOs.Common;
 using Pestlook.WebAPI.DTOs.TrapTypes;
+using Pestlook.WebAPI.Infrastructure;
 
 namespace Pestlook.WebAPI.Controllers.v1;
 
@@ -16,7 +17,8 @@ namespace Pestlook.WebAPI.Controllers.v1;
 [Authorize]
 public sealed class TrapTypesController(
     ApplicationDbContext db,
-    IMapper mapper) : ControllerBase
+    IMapper mapper,
+    ITenantContext tenant) : ControllerBase
 {
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<List<TrapTypeResponse>>), StatusCodes.Status200OK)]
@@ -42,10 +44,17 @@ public sealed class TrapTypesController(
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create([FromBody] CreateTrapTypeRequest request, CancellationToken ct)
     {
-        var duplicate = await db.TrapTypes.AnyAsync(t => t.Name == request.Name, ct);
+        var tenantId = tenant.TenantId;
+        var duplicate = await db.TrapTypes.AnyAsync(
+            t => t.TenantId == tenantId && t.Name == request.Name, ct);
         if (duplicate) return BadRequest(ApiResponse<object>.Fail("A trap type with that name already exists."));
 
-        var trapType = new TrapType { Name = request.Name, Description = request.Description };
+        var trapType = new TrapType
+        {
+            Name = request.Name,
+            Description = request.Description,
+            TenantId = tenantId
+        };
         db.TrapTypes.Add(trapType);
         await db.SaveChangesAsync(ct);
 
@@ -61,6 +70,8 @@ public sealed class TrapTypesController(
     {
         var trapType = await db.TrapTypes.FirstOrDefaultAsync(t => t.Id == id, ct);
         if (trapType is null) return NotFound(ApiResponse<object>.Fail("Trap type not found."));
+        if (trapType.TenantId is null)
+            return BadRequest(ApiResponse<object>.Fail("System trap types cannot be modified."));
 
         trapType.Name = request.Name;
         trapType.Description = request.Description;
@@ -78,6 +89,8 @@ public sealed class TrapTypesController(
     {
         var trapType = await db.TrapTypes.FirstOrDefaultAsync(t => t.Id == id, ct);
         if (trapType is null) return NotFound(ApiResponse<object>.Fail("Trap type not found."));
+        if (trapType.TenantId is null)
+            return BadRequest(ApiResponse<object>.Fail("System trap types cannot be deleted."));
 
         trapType.DeletedAt = DateTime.Now;
         await db.SaveChangesAsync(ct);

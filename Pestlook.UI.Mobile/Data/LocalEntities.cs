@@ -121,6 +121,8 @@ public class CachedTrapType
     public string Id { get; set; } = "";
     public string Name { get; set; } = "";
     public string? Description { get; set; }
+    /// <summary>True for system-wide types (TenantId == null on server); false for tenant-specific types.</summary>
+    public bool IsSystemType { get; set; }
     public DateTime CachedAt { get; set; } = DateTime.Now;
 }
 

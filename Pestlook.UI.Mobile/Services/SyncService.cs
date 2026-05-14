@@ -103,9 +103,10 @@ public class SyncService
         if (trapTypesRes.Success && trapTypesRes.Data is not null)
             await _db.SaveTrapTypesAsync(trapTypesRes.Data.Select(t => new CachedTrapType
             {
-                Id          = t.Id.ToString(),
-                Name        = t.Name,
-                Description = t.Description
+                Id           = t.Id.ToString(),
+                Name         = t.Name,
+                Description  = t.Description,
+                IsSystemType = t.IsSystemType
             }).ToList());
 
         OnProgress?.Invoke("↓ Syncing traps...");

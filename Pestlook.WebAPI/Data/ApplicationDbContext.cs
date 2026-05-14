@@ -128,9 +128,16 @@ public sealed class ApplicationDbContext(
             e.HasKey(t => t.Id);
             e.Property(t => t.Name).HasMaxLength(100).IsRequired();
             e.Property(t => t.Description).HasMaxLength(500);
-            e.HasIndex(t => t.Name).IsUnique()
+            e.HasOne(t => t.Tenant)
+             .WithMany()
+             .HasForeignKey(t => t.TenantId)
+             .IsRequired(false)
+             .OnDelete(DeleteBehavior.Restrict);
+            // Name must be unique within a tenant (nulls treated as system scope by the filtered index)
+            e.HasIndex(t => new { t.TenantId, t.Name })
              .HasFilter("[DeletedAt] IS NULL");
-            e.HasQueryFilter(t => t.DeletedAt == null);
+            e.HasQueryFilter(t => t.DeletedAt == null &&
+                (t.TenantId == null || tenantContext.TenantId == null || t.TenantId == tenantContext.TenantId));
 
             var seedDate = new DateTime(2025, 1, 1, 0, 0, 0);
             e.HasData(
