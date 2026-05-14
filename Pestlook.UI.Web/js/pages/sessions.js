@@ -132,14 +132,19 @@ function renderTable(paged, tableEl, pagEl) {
   let rows = '';
   for (const s of sessions) {
     const isCompleted = !!s.completedAt;
-    const isActive    = !!s.startedAt && !isCompleted;
-    const isPlanned   = s.isPlanned && !s.startedAt && !isCompleted;
 
-    let statusTag;
-    if (isCompleted)  statusTag = tag('✓ Complete', 'blue');
-    else if (isActive) statusTag = tag('● Active', 'green');
-    else if (s.isPlanned) statusTag = tag('📋 Planned', 'amber');
-    else statusTag = tag('—', 'gray');
+    const plannedPill = s.isPlanned
+      ? `<span style="display:inline-block;font-size:0.62rem;font-weight:600;background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.4);border-radius:20px;padding:1px 7px;vertical-align:middle;line-height:1.6;">Planned</span>`
+      : `<span style="display:inline-block;font-size:0.62rem;font-weight:600;background:rgba(148,163,184,0.15);color:#94a3b8;border:1px solid rgba(148,163,184,0.4);border-radius:20px;padding:1px 7px;vertical-align:middle;line-height:1.6;">Unplanned</span>`;
+
+    const completePill = isCompleted
+      ? `<span style="display:inline-block;font-size:0.62rem;font-weight:600;background:rgba(74,222,128,0.15);color:#4ade80;border:1px solid rgba(74,222,128,0.4);border-radius:20px;padding:1px 7px;vertical-align:middle;line-height:1.6;">Complete</span>`
+      : `<span style="display:inline-block;font-size:0.62rem;font-weight:600;background:rgba(248,113,113,0.15);color:#f87171;border:1px solid rgba(248,113,113,0.4);border-radius:20px;padding:1px 7px;vertical-align:middle;line-height:1.6;">Incomplete</span>`;
+
+    const statusTag = `<div style="display:flex;flex-direction:row;gap:4px;flex-wrap:wrap;">${plannedPill}${completePill}</div>`;
+
+    const isActive  = !!s.startedAt && !isCompleted;
+    const isPlanned = s.isPlanned && !s.startedAt && !isCompleted;
 
     const weatherIconMap = {
       'Sunny': '☀️', 'Mostly Sunny': '🌤️', 'Partly Cloudy': '⛅', 'Scattered Clouds': '🌥️',
