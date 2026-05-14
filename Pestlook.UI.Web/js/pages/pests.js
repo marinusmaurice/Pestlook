@@ -200,7 +200,7 @@ function renderTable() {
           ${thBtn('Capture Mode',   'cap')}
           ${thBtn('Threshold',      'thresh')}
           ${thBtn('Type',           'type')}
-          <th></th>
+          <th style="width:1%;white-space:nowrap;"></th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -221,7 +221,7 @@ function renderTable() {
 
   // Action handlers
   tableEl.querySelectorAll('[data-edit-pest]').forEach(btn => {
-    const pest = pests.find(p => p.id === btn.dataset.editPest);
+    const pest = pests.find(p => String(p.id) === btn.dataset.editPest);
     if (pest) btn.addEventListener('click', e => { e.stopPropagation(); openEditPestModal(pest); });
   });
 
