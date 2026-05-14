@@ -13,6 +13,8 @@ public sealed record DashboardStats(
     int TrapCount,
     int EnabledTrapCount,
     int SessionCount,
+    int CompletedSessionCount,
+    int OutstandingSessionCount,
     int ObservationCount);
 
 public sealed record DashboardSession(
@@ -27,7 +29,11 @@ public sealed record DashboardObservation(
     string? PestName,
     bool IsUnknownPest,
     int? Count,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    DateTime? ObservedAt,
+    string? LifeStage,
+    string? FarmName,
+    string? FieldName);
 
 public sealed record DashboardTrap(
     Guid Id,

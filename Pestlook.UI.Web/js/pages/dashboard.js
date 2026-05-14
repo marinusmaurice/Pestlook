@@ -1,6 +1,6 @@
 import { getDashboard } from '../api/dashboard.js';
 import { getUser } from '../utils/storage.js';
-import { greeting, todayFormatted, formatTime, escapeHtml } from '../utils/helpers.js';
+import { greeting, todayFormatted, formatTime, formatDateTime, escapeHtml } from '../utils/helpers.js';
 import { showToast } from '../components/toast.js';
 import { tag } from '../components/tag.js';
 
@@ -34,7 +34,7 @@ export async function renderDashboard(container) {
     const res = await getDashboard();
     const d = res.data;
 
-    renderStats(d.stats.farmCount, d.stats.trapCount, d.stats.enabledTrapCount, d.stats.sessionCount, d.stats.observationCount);
+    renderStats(d.stats.farmCount, d.stats.trapCount, d.stats.enabledTrapCount, d.stats.sessionCount, d.stats.completedSessionCount, d.stats.outstandingSessionCount, d.stats.observationCount);
     renderActiveSessions(d.recentSessions.filter(s => !s.completedAt), d.recentSessions);
     renderActivityFeed(d.recentActivity);
     renderMap(d.traps);
@@ -44,7 +44,7 @@ export async function renderDashboard(container) {
   }
 }
 
-function renderStats(farmCount, trapCount, enabledTrapCount, sessionCount, obsCount) {
+function renderStats(farmCount, trapCount, enabledTrapCount, sessionCount, completedSessionCount, outstandingSessionCount, obsCount) {
   document.getElementById('dashStats').innerHTML = `
     <div class="stat-card" style="--accent-color:rgba(109,222,132,0.08);">
       <div class="stat-label">Active Farms</div>
@@ -59,12 +59,12 @@ function renderStats(farmCount, trapCount, enabledTrapCount, sessionCount, obsCo
     <div class="stat-card" style="--accent-color:rgba(240,168,64,0.08);">
       <div class="stat-label">Total Sessions</div>
       <div class="stat-value" style="color:var(--amber);">${sessionCount}</div>
-      <div class="stat-delta">All scouting sessions</div>
+      <div class="stat-delta"><span style="color:var(--green);">✓ ${completedSessionCount} completed</span> &nbsp;·&nbsp; <span style="color:var(--amber);">⏳ ${outstandingSessionCount} outstanding</span></div>
     </div>
     <div class="stat-card" style="--accent-color:rgba(224,96,96,0.08);">
       <div class="stat-label">Observations</div>
       <div class="stat-value" style="color:var(--red);">${obsCount}</div>
-      <div class="stat-delta">Recorded observations</div>
+      <div class="stat-delta">From completed sessions</div>
     </div>
   `;
 }
@@ -119,12 +119,15 @@ function renderActivityFeed(observations) {
     const isUnknown = obs.isUnknownPest;
     const name = isUnknown ? 'Unknown Pest' : (obs.pestName || 'Unknown');
     const dotColor = (obs.count || 0) > 20 ? 'var(--red)' : isUnknown ? 'var(--amber)' : 'var(--green)';
+    const lifeStageHtml = obs.lifeStage ? ` &nbsp;<span style="font-size:0.7rem;color:var(--text-dim);">${escapeHtml(obs.lifeStage)}</span>` : '';
+    const locationParts = [obs.farmName, obs.fieldName].filter(Boolean).map(s => escapeHtml(s));
+    const locationHtml = locationParts.length ? `<span style="color:var(--text-dim);"> · ${locationParts.join(' / ')}</span>` : '';
     items += `
       <div class="activity-item">
         <div class="activity-dot" style="background:${dotColor};"></div>
         <div>
-          <div style="font-size:0.83rem;color:var(--text);font-weight:500;">${escapeHtml(name)}${obs.count ? ` — <span style="color:var(--amber);">${obs.count} counted</span>` : ''}</div>
-          <div style="font-size:0.68rem;color:var(--text-dim);margin-top:2px;font-family:'JetBrains Mono',monospace;">${formatTime(obs.createdAt)}</div>
+          <div style="font-size:0.83rem;color:var(--text);font-weight:500;">${escapeHtml(name)}${obs.count ? ` — <span style="color:var(--amber);">${obs.count} counted</span>` : ''}${lifeStageHtml}</div>
+          <div style="font-size:0.68rem;color:var(--text-dim);margin-top:2px;font-family:'JetBrains Mono',monospace;">${formatDateTime(obs.observedAt)}${locationHtml}</div>
         </div>
       </div>
     `;
@@ -160,7 +163,7 @@ function renderMap(traps) {
     <div id="dashMapLeaflet" style="height:240px;border-radius:8px;overflow:hidden;"></div>
     <div style="display:flex;gap:12px;font-size:0.65rem;color:var(--text-dim);margin-top:6px;">
       <span><span style="color:var(--green);">●</span> Enabled</span>
-      <span><span style="color:var(--text-dim);">●</span> Disabled</span>
+      <span><span style="color:var(--red);">●</span> Disabled</span>
     </div>
   `;
 
@@ -181,11 +184,11 @@ function renderMap(traps) {
 
   const bounds = [];
   for (const t of located) {
-    const color = t.isEnabled ? '#6dde84' : '#888';
+    const color = t.isEnabled ? '#6dde84' : '#ef4444';
     const marker = L.circleMarker([t.latitude, t.longitude], {
       radius: 7,
       fillColor: color,
-      color: t.isEnabled ? '#3aad54' : '#555',
+      color: t.isEnabled ? '#3aad54' : '#b91c1c',
       weight: 1.5,
       fillOpacity: 0.9,
     }).addTo(map);
@@ -221,7 +224,7 @@ function renderTopPests(topPests) {
   el.innerHTML = `
     <div class="section-head">
       <div class="section-title">Top Observed Pests</div>
-      <div class="section-sub">By total count</div>
+      <div class="section-sub">From completed sessions · last 3 months</div>
     </div>
     ${bars}
   `;

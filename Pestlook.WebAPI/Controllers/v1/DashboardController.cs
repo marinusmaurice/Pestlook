@@ -30,11 +30,15 @@ public sealed class DashboardController(ApplicationDbContext db, ITenantContext 
         // SQL Server from using an index seek; using a direct equality here avoids that.
         var tenantId = tenant.TenantId;
 
-        var farmCount        = await db.Farms.CountAsync(ct);
-        var trapCount        = await db.Traps.CountAsync(ct);
-        var enabledTrapCount = await db.Traps.CountAsync(t => t.IsEnabled, ct);
-        var sessionCount     = await db.ScoutingSessions.CountAsync(ct);
-        var observationCount = await db.SessionObservations.CountAsync(ct);
+        var farmCount             = await db.Farms.CountAsync(ct);
+        var trapCount             = await db.Traps.CountAsync(ct);
+        var enabledTrapCount      = await db.Traps.CountAsync(t => t.IsEnabled, ct);
+        var sessionCount          = await db.ScoutingSessions.CountAsync(ct);
+        var completedSessionCount = await db.ScoutingSessions.CountAsync(ss => ss.CompletedAt != null, ct);
+        var outstandingSessionCount = sessionCount - completedSessionCount;
+        var observationCount      = await db.SessionObservations
+            .Where(o => o.Session.CompletedAt != null)
+            .CountAsync(ct);
 
         var sessions = await db.ScoutingSessions
             .OrderByDescending(ss => ss.CreatedAt)
@@ -52,33 +56,47 @@ public sealed class DashboardController(ApplicationDbContext db, ITenantContext 
         var activity = tenantId.HasValue
             ? await db.SessionObservations
                 .IgnoreQueryFilters()
-                .Where(o => o.TenantId == tenantId.Value)
-                .OrderByDescending(o => o.CreatedAt)
+                .Where(o => o.TenantId == tenantId.Value && o.Session.CompletedAt != null && o.ObservedAt != null)
+                .OrderByDescending(o => o.ObservedAt)
                 .Take(5)
                 .Select(o => new DashboardObservation(
                     o.Id,
                     o.Pest != null ? o.Pest.CommonName : null,
                     o.IsUnknownPest,
                     o.Count,
-                    o.CreatedAt))
+                    o.CreatedAt,
+                    o.ObservedAt,
+                    o.LifeStage != null ? o.LifeStage.ToString() : null,
+                    o.Session.Farm != null ? o.Session.Farm.Name : null,
+                    o.Session.Field != null ? o.Session.Field.Name : null))
                 .ToListAsync(ct)
             : await db.SessionObservations
-                .OrderByDescending(o => o.CreatedAt)
+                .Where(o => o.Session.CompletedAt != null && o.ObservedAt != null)
+                .OrderByDescending(o => o.ObservedAt)
                 .Take(5)
                 .Select(o => new DashboardObservation(
                     o.Id,
                     o.Pest != null ? o.Pest.CommonName : null,
                     o.IsUnknownPest,
                     o.Count,
-                    o.CreatedAt))
+                    o.CreatedAt,
+                    o.ObservedAt,
+                    o.LifeStage != null ? o.LifeStage.ToString() : null,
+                    o.Session.Farm != null ? o.Session.Farm.Name : null,
+                    o.Session.Field != null ? o.Session.Field.Name : null))
                 .ToListAsync(ct);
 
         var traps = await db.Traps
             .Select(t => new DashboardTrap(t.Id, t.Name, t.IsEnabled, t.Latitude, t.Longitude))
             .ToListAsync(ct);
 
+        var threeMonthsAgo = DateTime.Now.AddMonths(-3);
+
         var topPests = await db.SessionObservations
-            .Where(o => !o.IsUnknownPest && o.PestId != null)
+            .Where(o => !o.IsUnknownPest
+                     && o.PestId != null
+                     && o.Session.CompletedAt != null
+                     && o.Session.CompletedAt >= threeMonthsAgo)
             .GroupBy(o => o.PestId)
             .Select(g => new
             {
@@ -93,7 +111,7 @@ public sealed class DashboardController(ApplicationDbContext db, ITenantContext 
                 (x, p) => new DashboardTopPest(p.CommonName, x.TotalCount))
             .ToListAsync(ct);
 
-        var stats    = new DashboardStats(farmCount, trapCount, enabledTrapCount, sessionCount, observationCount);
+        var stats    = new DashboardStats(farmCount, trapCount, enabledTrapCount, sessionCount, completedSessionCount, outstandingSessionCount, observationCount);
         var response = new DashboardResponse(stats, sessions, activity, traps, topPests);
 
         return Ok(ApiResponse<DashboardResponse>.Ok(response));

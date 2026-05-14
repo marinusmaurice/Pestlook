@@ -136,7 +136,7 @@
         highPressure = allPests.Where(p => p.AlertThreshold.HasValue).Take(2).ToList();
 
         // Load observations from the past 7 days for week counts
-        var weekAgo = DateTime.UtcNow.AddDays(-7);
+        var weekAgo = DateTime.Now.AddDays(-7);
         var sessions = await Db.GetSessionsAsync();
         foreach (var s in sessions)
         {

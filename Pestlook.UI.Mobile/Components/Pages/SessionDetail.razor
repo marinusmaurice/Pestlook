@@ -331,8 +331,8 @@
         get
         {
             if (session is null) return "—";
-            var start = session.StartedAt != default ? session.StartedAt : (session.ScheduledDate ?? DateTime.UtcNow);
-            var end = session.CompletedAt ?? DateTime.UtcNow;
+            var start = session.StartedAt != default ? session.StartedAt : (session.ScheduledDate ?? DateTime.Now);
+            var end = session.CompletedAt ?? DateTime.Now;
             var span = end - start;
             return span.TotalHours >= 1 ? $"{(int)span.TotalHours}h {span.Minutes}m" : $"{(int)span.TotalMinutes}m";
         }
@@ -449,7 +449,7 @@
         ending = true;
         StateHasChanged();
         session.Status = SessionStatus.Completed;
-        session.CompletedAt = DateTime.UtcNow;
+        session.CompletedAt = DateTime.Now;
         await Db.SaveSessionAsync(session);
         ending = false;
         showEndDialog = false;
