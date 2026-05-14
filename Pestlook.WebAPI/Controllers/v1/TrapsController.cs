@@ -38,6 +38,71 @@ public sealed class TrapsController(
         return Ok(ApiResponse<List<TrapResponse>>.Ok(traps));
     }
 
+    [HttpGet("paged")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<TrapResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPaged(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        [FromQuery] string? search = null,
+        [FromQuery] string? trapTypeName = null,
+        [FromQuery] bool? enabled = null,
+        [FromQuery] string sortBy = "name",
+        [FromQuery] bool sortDesc = false,
+        CancellationToken ct = default)
+    {
+        page     = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
+        var query = db.Traps.AsQueryable();
+
+        if (enabled.HasValue)
+            query = query.Where(t => t.IsEnabled == enabled.Value);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim().ToLower();
+            query = query.Where(t =>
+                t.Name.ToLower().Contains(s) ||
+                (t.Barcode != null && t.Barcode.ToLower().Contains(s)) ||
+                (t.Field != null && t.Field.Name.ToLower().Contains(s)) ||
+                (t.Field != null && t.Field.Farm != null && t.Field.Farm.Name.ToLower().Contains(s)) ||
+                (t.TrapType != null && t.TrapType.Name.ToLower().Contains(s)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(trapTypeName))
+            query = query.Where(t => t.TrapType != null && t.TrapType.Name == trapTypeName);
+
+        query = (sortBy.ToLower(), sortDesc) switch
+        {
+            ("farm",   false) => query.OrderBy(t => t.Field != null && t.Field.Farm != null ? t.Field.Farm.Name : null).ThenBy(t => t.Name),
+            ("farm",   true)  => query.OrderByDescending(t => t.Field != null && t.Field.Farm != null ? t.Field.Farm.Name : null).ThenBy(t => t.Name),
+            ("field",  false) => query.OrderBy(t => t.Field != null ? t.Field.Name : null).ThenBy(t => t.Name),
+            ("field",  true)  => query.OrderByDescending(t => t.Field != null ? t.Field.Name : null).ThenBy(t => t.Name),
+            ("type",   false) => query.OrderBy(t => t.TrapType != null ? t.TrapType.Name : null).ThenBy(t => t.Name),
+            ("type",   true)  => query.OrderByDescending(t => t.TrapType != null ? t.TrapType.Name : null).ThenBy(t => t.Name),
+            ("status", false) => query.OrderBy(t => t.IsEnabled).ThenBy(t => t.Name),
+            ("status", true)  => query.OrderByDescending(t => t.IsEnabled).ThenBy(t => t.Name),
+            (_,        false) => query.OrderBy(t => t.Name),
+            (_,        true)  => query.OrderByDescending(t => t.Name),
+        };
+
+        var totalCount = await query.CountAsync(ct);
+
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(t => new TrapResponse(
+                t.Id, t.TenantId, t.Name, t.Barcode,
+                t.TrapTypeId, t.TrapType != null ? t.TrapType.Name : null,
+                t.FieldId, t.Field != null ? t.Field.Name : null,
+                t.Field != null && t.Field.Farm != null ? t.Field.Farm.Name : null,
+                t.Latitude, t.Longitude, t.IsEnabled, t.Notes,
+                t.CreatedAt, t.UpdatedAt))
+            .ToListAsync(ct);
+
+        return Ok(ApiResponse<PagedResult<TrapResponse>>.Ok(new PagedResult<TrapResponse>(items, totalCount, page, pageSize)));
+    }
+
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(ApiResponse<TrapResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
