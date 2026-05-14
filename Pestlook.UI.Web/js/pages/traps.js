@@ -320,7 +320,7 @@ async function renderTable(filter) {
     rows = `<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-dim);font-size:0.85rem;">${totalCount === 0 && !listState.search && !listState.filterType ? 'No traps yet. Add one to get started.' : 'No traps match your search.'}</td></tr>`;
   } else {
     for (const t of items) {
-      const statusTag = t.isEnabled ? tag('Enabled', 'green') : tag('Disabled', 'gray');
+      const statusTag = t.isEnabled ? tag('Enabled', 'green') : tag('Disabled', 'red');
       const coords = (t.latitude && t.longitude)
         ? `${Number(t.latitude).toFixed(4)}, ${Number(t.longitude).toFixed(4)}`
         : '—';
