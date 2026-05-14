@@ -52,7 +52,7 @@ export async function renderTraps(container) {
       <button class="btn-primary" id="addTrapBtn">＋ Add Trap</button>
     </div>
     <div class="tab-bar" id="trapTabs" style="margin-bottom:20px;flex-shrink:0;"></div>
-    <div id="trapMapWrap" style="margin-bottom:20px;border-radius:12px;overflow:hidden;border:1px solid var(--border);height:380px;display:none;position:relative;flex-shrink:0;"></div>
+    <div id="trapMapWrap" style="margin-bottom:20px;border-radius:12px;overflow:hidden;border:1px solid var(--border);height:475px;display:none;position:relative;flex-shrink:0;"></div>
     <div class="card" id="trapTable" style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;"><div class="card-p"><div class="skeleton skeleton-card" style="height:300px;"></div></div></div>
   `;
 
@@ -97,6 +97,17 @@ function renderTabs(traps) {
       if (filter === 'map') {
         mapWrap.style.display = 'block';
         if (leafletMap) setTimeout(() => leafletMap.invalidateSize(), 50);
+        // Refresh map with currently filtered traps
+        const enabledParam = listState.activeFilter === 'enabled' ? true
+                           : listState.activeFilter === 'disabled' ? false
+                           : undefined;
+        getTrapsPaged({
+          page: 1, pageSize: 10000,
+          search: listState.search,
+          trapTypeName: listState.filterType,
+          enabled: enabledParam,
+          sortBy: 'name', sortDesc: false,
+        }).then(res => renderMap(res.data?.items || [])).catch(() => {});
       } else {
         mapWrap.style.display = 'none';
         renderTable(filter);
@@ -128,7 +139,7 @@ function renderMap(traps) {
 
   // Create the map container
   mapWrap.innerHTML = `
-    <div id="trapLeafletMap" style="width:100%;height:340px;"></div>
+    <div id="trapLeafletMap" style="width:100%;height:435px;"></div>
     <div style="padding:8px 12px;background:var(--surface);font-size:0.72rem;color:var(--text-dim);display:flex;gap:12px;">
       <span>🟢 Enabled (${locatedTraps.filter(t => t.isEnabled).length})</span>
       <span>🔴 Disabled (${locatedTraps.filter(t => !t.isEnabled).length})</span>
@@ -280,6 +291,21 @@ async function renderTable(filter) {
   const { items, totalCount, page, pageSize, totalPages } = pagedResult;
   listState.totalCount = totalCount;
   listState.totalPages = totalPages;
+
+  // Refresh map with all filtered traps if map tab is visible
+  const isMapVisible = document.getElementById('trapMapWrap')?.style.display === 'block';
+  if (isMapVisible) {
+    try {
+      const allFiltered = await getTrapsPaged({
+        page: 1, pageSize: 10000,
+        search: listState.search,
+        trapTypeName: listState.filterType,
+        enabled: enabledParam,
+        sortBy: 'name', sortDesc: false,
+      });
+      renderMap(allFiltered.data?.items || []);
+    } catch { /* non-critical */ }
+  }
 
   // Sort header helper
   function thBtn(label, key) {
