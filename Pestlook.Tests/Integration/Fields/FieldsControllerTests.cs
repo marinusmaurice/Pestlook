@@ -36,7 +36,7 @@ public sealed class FieldsControllerTests(TestWebApplicationFactory factory) : I
     {
         var req = new HttpRequestMessage(new HttpMethod(method), url);
         if (method is "POST" or "PUT")
-            req.Content = JsonContent.Create(new CreateFieldRequest(Guid.NewGuid(), "X", null, null, null, null));
+            req.Content = JsonContent.Create(new CreateFieldRequest(Guid.NewGuid(), "X", null, null, null, null, null, null, null));
         var resp = await _anon.SendAsync(req);
         resp.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
@@ -105,7 +105,7 @@ public sealed class FieldsControllerTests(TestWebApplicationFactory factory) : I
     [Fact]
     public async Task Create_WithAllFields_ShouldReturn201AndPersistData()
     {
-        var req = new CreateFieldRequest(_farmId, "Full Field", "{}", 12.5, "Wheat", "2025");
+        var req = new CreateFieldRequest(_farmId, "Full Field", "{}", 12.5, null, null, null, "Wheat", "2025");
         var resp = await _admin.PostAsJsonAsync("/api/v1/fields", req);
         resp.StatusCode.Should().Be(HttpStatusCode.Created);
         var body = await resp.Content.ReadFromJsonAsync<ApiResponse<FieldResponse>>();
@@ -121,7 +121,7 @@ public sealed class FieldsControllerTests(TestWebApplicationFactory factory) : I
     public async Task Create_WithNameAndFarmOnly_ShouldReturn201()
     {
         var resp = await _admin.PostAsJsonAsync("/api/v1/fields",
-            new CreateFieldRequest(_farmId, "Minimal Field", null, null, null, null));
+            new CreateFieldRequest(_farmId, "Minimal Field", null, null, null, null, null, null, null));
         resp.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
@@ -129,7 +129,7 @@ public sealed class FieldsControllerTests(TestWebApplicationFactory factory) : I
     public async Task Create_WithNonExistentFarmId_ShouldReturn400()
     {
         var resp = await _admin.PostAsJsonAsync("/api/v1/fields",
-            new CreateFieldRequest(Guid.NewGuid(), "Orphan Field", null, null, null, null));
+            new CreateFieldRequest(Guid.NewGuid(), "Orphan Field", null, null, null, null, null, null, null));
         resp.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
@@ -148,7 +148,7 @@ public sealed class FieldsControllerTests(TestWebApplicationFactory factory) : I
     public async Task Update_WhenExists_ShouldReturn200WithUpdatedFields()
     {
         var resp = await _admin.PutAsJsonAsync($"/api/v1/fields/{_fieldId}",
-            new UpdateFieldRequest("Renamed Field", null, 99.9, "Barley", "2026"));
+            new UpdateFieldRequest("Renamed Field", null, 99.9, null, null, null, "Barley", "2026"));
         resp.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await resp.Content.ReadFromJsonAsync<ApiResponse<FieldResponse>>();
         body!.Data!.Name.Should().Be("Renamed Field");
@@ -160,7 +160,7 @@ public sealed class FieldsControllerTests(TestWebApplicationFactory factory) : I
     public async Task Update_WhenNotFound_ShouldReturn404()
     {
         var resp = await _admin.PutAsJsonAsync($"/api/v1/fields/{Guid.NewGuid()}",
-            new UpdateFieldRequest("X", null, null, null, null));
+            new UpdateFieldRequest("X", null, null, null, null, null, null, null));
         resp.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
@@ -228,7 +228,7 @@ public sealed class FieldsControllerTests(TestWebApplicationFactory factory) : I
     public async Task Create_AsScout_ShouldReturn403()
     {
         var resp = await _scout.PostAsJsonAsync("/api/v1/fields",
-            new CreateFieldRequest(_farmId, "Scout Field", null, null, null, null));
+            new CreateFieldRequest(_farmId, "Scout Field", null, null, null, null, null, null, null));
         resp.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
@@ -236,7 +236,7 @@ public sealed class FieldsControllerTests(TestWebApplicationFactory factory) : I
     public async Task Update_AsScout_ShouldReturn403()
     {
         var resp = await _scout.PutAsJsonAsync($"/api/v1/fields/{_fieldId}",
-            new UpdateFieldRequest("Scout Rename", null, null, null, null));
+            new UpdateFieldRequest("Scout Rename", null, null, null, null, null, null, null));
         resp.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
@@ -252,14 +252,14 @@ public sealed class FieldsControllerTests(TestWebApplicationFactory factory) : I
     private async Task<Guid> CreateFarmAsync(string name)
     {
         var resp = await _admin.PostAsJsonAsync("/api/v1/farms",
-            new CreateFarmRequest(name, null, null, null, null));
+            new CreateFarmRequest(name, null, null, null, null, null));
         return (await resp.Content.ReadFromJsonAsync<ApiResponse<FarmResponse>>())!.Data!.Id;
     }
 
     private async Task<Guid> CreateFieldAsync(string name, Guid farmId)
     {
         var resp = await _admin.PostAsJsonAsync("/api/v1/fields",
-            new CreateFieldRequest(farmId, name, null, null, null, null));
+            new CreateFieldRequest(farmId, name, null, null, null, null, null, null, null));
         return (await resp.Content.ReadFromJsonAsync<ApiResponse<FieldResponse>>())!.Data!.Id;
     }
 

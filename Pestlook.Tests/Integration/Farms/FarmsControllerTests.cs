@@ -20,7 +20,7 @@ public sealed class FarmsControllerTests(TestWebApplicationFactory factory) : IA
     public async Task InitializeAsync()
     {
         var resp = await _admin.PostAsJsonAsync("/api/v1/farms",
-            new CreateFarmRequest("Seeded Farm", "1 Test Road", 51.5, -0.1, null));
+            new CreateFarmRequest("Seeded Farm", "1 Test Road", 51.5, -0.1, null, null));
         _farmId = (await resp.Content.ReadFromJsonAsync<ApiResponse<FarmResponse>>())!.Data!.Id;
     }
 
@@ -37,7 +37,7 @@ public sealed class FarmsControllerTests(TestWebApplicationFactory factory) : IA
     {
         var req = new HttpRequestMessage(new HttpMethod(method), url);
         if (method is "POST" or "PUT")
-            req.Content = JsonContent.Create(new CreateFarmRequest("X", null, null, null, null));
+            req.Content = JsonContent.Create(new CreateFarmRequest("X", null, null, null, null, null));
 
         var resp = await _anon.SendAsync(req);
         resp.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -87,7 +87,7 @@ public sealed class FarmsControllerTests(TestWebApplicationFactory factory) : IA
     [Fact]
     public async Task Create_WithFullData_ShouldReturn201WithAllFieldsPersisted()
     {
-        var req = new CreateFarmRequest("Full Farm", "123 Lane", 52.0, -2.0, "{\"type\":\"Feature\"}");
+        var req = new CreateFarmRequest("Full Farm", "123 Lane", 52.0, -2.0, "{\"type\":\"Feature\"}", null);
         var resp = await _admin.PostAsJsonAsync("/api/v1/farms", req);
         resp.StatusCode.Should().Be(HttpStatusCode.Created);
         var body = await resp.Content.ReadFromJsonAsync<ApiResponse<FarmResponse>>();
@@ -103,7 +103,7 @@ public sealed class FarmsControllerTests(TestWebApplicationFactory factory) : IA
     public async Task Create_WithNameOnly_ShouldReturn201()
     {
         var resp = await _admin.PostAsJsonAsync("/api/v1/farms",
-            new CreateFarmRequest("Minimal Farm", null, null, null, null));
+            new CreateFarmRequest("Minimal Farm", null, null, null, null, null));
         resp.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
@@ -117,7 +117,7 @@ public sealed class FarmsControllerTests(TestWebApplicationFactory factory) : IA
                 TestWebApplicationFactory.DefaultTenantId, ["Admin"]));
 
         var resp = await noTenant.PostAsJsonAsync("/api/v1/farms",
-            new CreateFarmRequest("No Tenant Farm", null, null, null, null));
+            new CreateFarmRequest("No Tenant Farm", null, null, null, null, null));
         resp.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
@@ -127,7 +127,7 @@ public sealed class FarmsControllerTests(TestWebApplicationFactory factory) : IA
     public async Task Update_WhenExists_ShouldReturn200WithUpdatedFields()
     {
         var resp = await _admin.PutAsJsonAsync($"/api/v1/farms/{_farmId}",
-            new UpdateFarmRequest("Renamed Farm", "New Address", 55.0, -5.0, null));
+            new UpdateFarmRequest("Renamed Farm", "New Address", 55.0, -5.0, null, null));
         resp.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await resp.Content.ReadFromJsonAsync<ApiResponse<FarmResponse>>();
         body!.Data!.Name.Should().Be("Renamed Farm");
@@ -138,7 +138,7 @@ public sealed class FarmsControllerTests(TestWebApplicationFactory factory) : IA
     public async Task Update_WhenNotFound_ShouldReturn404()
     {
         var resp = await _admin.PutAsJsonAsync($"/api/v1/farms/{Guid.NewGuid()}",
-            new UpdateFarmRequest("X", null, null, null, null));
+            new UpdateFarmRequest("X", null, null, null, null, null));
         resp.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
@@ -209,7 +209,7 @@ public sealed class FarmsControllerTests(TestWebApplicationFactory factory) : IA
     public async Task Create_AsScout_ShouldReturn403()
     {
         var resp = await _scout.PostAsJsonAsync("/api/v1/farms",
-            new CreateFarmRequest("Scout Farm", null, null, null, null));
+            new CreateFarmRequest("Scout Farm", null, null, null, null, null));
         resp.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
@@ -217,7 +217,7 @@ public sealed class FarmsControllerTests(TestWebApplicationFactory factory) : IA
     public async Task Update_AsScout_ShouldReturn403()
     {
         var resp = await _scout.PutAsJsonAsync($"/api/v1/farms/{_farmId}",
-            new UpdateFarmRequest("Scout Rename", null, null, null, null));
+            new UpdateFarmRequest("Scout Rename", null, null, null, null, null));
         resp.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
@@ -233,7 +233,7 @@ public sealed class FarmsControllerTests(TestWebApplicationFactory factory) : IA
     private async Task<Guid> CreateFarmAsync(string name)
     {
         var resp = await _admin.PostAsJsonAsync("/api/v1/farms",
-            new CreateFarmRequest(name, null, null, null, null));
+            new CreateFarmRequest(name, null, null, null, null, null));
         return (await resp.Content.ReadFromJsonAsync<ApiResponse<FarmResponse>>())!.Data!.Id;
     }
 
