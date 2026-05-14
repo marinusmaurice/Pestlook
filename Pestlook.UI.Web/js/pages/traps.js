@@ -612,9 +612,17 @@ function buildTrapForm(trap, freshTrapTypes, farms, allFields) {
     const hint = document.getElementById('trapMapHint');
 
     if (!field?.geoBoundary) {
-      // No boundary — center on farm/field lat-lng if available, or default
-      if (field?.latitude && field?.longitude) {
+      // No boundary — try trap coords first, then field coords
+      const latEl = document.getElementById('trapLat');
+      const lngEl = document.getElementById('trapLng');
+      const trapLat = parseFloat(latEl?.value);
+      const trapLng = parseFloat(lngEl?.value);
+      if (!isNaN(trapLat) && !isNaN(trapLng)) {
+        map.setView([trapLat, trapLng], 15);
+      } else if (field?.latitude && field?.longitude) {
         map.setView([field.latitude, field.longitude], 15);
+      } else {
+        map.setView([0, 0], 2);
       }
       if (hint) hint.textContent = 'Click the map to set the trap location';
       setTimeout(() => map.invalidateSize(), 50);
@@ -676,13 +684,16 @@ function buildTrapForm(trap, freshTrapTypes, farms, allFields) {
     if (fieldSel.value) {
       onFieldChange();
     } else {
-      // Init map so it's ready to interact even without a field
+      // No field selected — center on existing trap coords if available
       setTimeout(() => {
         const map = getOrInitMap();
-        if (map) {
-          map.setView([0, 0], 2);
-          map.invalidateSize();
-        }
+        if (!map) return;
+        const latEl = document.getElementById('trapLat');
+        const lngEl = document.getElementById('trapLng');
+        const lat = parseFloat(latEl?.value);
+        const lng = parseFloat(lngEl?.value);
+        map.setView(!isNaN(lat) && !isNaN(lng) ? [lat, lng] : [0, 0], !isNaN(lat) ? 15 : 2);
+        map.invalidateSize();
       }, 80);
     }
 
