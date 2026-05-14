@@ -112,7 +112,7 @@ function renderDetail(session, container, params) {
   el.innerHTML = html;
 
   // Render observations table
-  renderObsTable(observations, session, container, params, canEdit);
+  renderObsTable(observations, session, container, params, canEdit, isCompleted);
 
   // Complete button
   const completeBtn = document.getElementById('completeSessionBtn');
@@ -139,7 +139,7 @@ function renderDetail(session, container, params) {
   if (addAdHocBtn) addAdHocBtn.addEventListener('click', () => showObservationModal(session, 'AdHoc', null, container, params));
 }
 
-function renderObsTable(observations, session, container, params, canEdit) {
+function renderObsTable(observations, session, container, params, canEdit, isCompleted) {
   const wrap = document.getElementById('obsTableWrap');
   if (observations.length === 0) {
     wrap.innerHTML = '<div style="text-align:center;padding:30px;font-size:0.85rem;color:var(--text-dim);">No observation items yet.</div>';
@@ -162,6 +162,7 @@ function renderObsTable(observations, session, container, params, canEdit) {
     const notes = o.notes ? escapeHtml(o.notes) : '';
     const createdBy = o.createdByName ? escapeHtml(o.createdByName) : '—';
     const updatedBy = o.updatedByName ? escapeHtml(o.updatedByName) : '—';
+    const observedAt = o.observedAt ? formatDateTime(o.observedAt) : '—';
 
     let actions = '';
     if (canEdit) {
@@ -184,6 +185,7 @@ function renderObsTable(observations, session, container, params, canEdit) {
         <td>${lifeStage}</td>
         <td style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text-dim);">${coords}</td>
         <td style="font-size:0.78rem;color:var(--text-dim);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${notes}">${notes || '—'}</td>
+        ${isCompleted ? `<td style="font-size:0.78rem;color:var(--text-dim);white-space:nowrap;">${observedAt}</td>` : ''}
         <td style="font-size:0.78rem;color:var(--text-dim);">${createdBy}</td>
         <td style="font-size:0.78rem;color:var(--text-dim);">${updatedBy}</td>
         <td style="white-space:nowrap;">${actions}</td>
@@ -196,7 +198,7 @@ function renderObsTable(observations, session, container, params, canEdit) {
       <table class="data-table">
         <thead><tr>
           <th>Type</th><th>Trap</th><th>Pest</th><th>Mode</th>
-          <th>Count</th><th>Threshold</th><th>Present</th><th>Stage</th><th>Coords</th><th>Notes</th><th>Created by</th><th>Updated by</th><th></th>
+          <th>Count</th><th>Threshold</th><th>Present</th><th>Stage</th><th>Coords</th><th>Notes</th>${isCompleted ? '<th>Observed At</th>' : ''}<th>Created by</th><th>Updated by</th><th style="width:1%;white-space:nowrap;"></th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>
