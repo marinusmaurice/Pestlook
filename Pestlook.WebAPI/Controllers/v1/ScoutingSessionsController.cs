@@ -771,11 +771,13 @@ public sealed class ScoutingSessionsController(
         // Status filter — derived logic, applied in-memory
         var filtered = string.IsNullOrEmpty(status) ? allRows : status.ToLower() switch
         {
-            "completed" => allRows.Where(s => s.CompletedAt != null).ToList(),
-            "active"    => allRows.Where(s => s.StartedAt   != null && s.CompletedAt == null).ToList(),
-            "planned"   => allRows.Where(s => s.IsPlanned   && s.StartedAt == null && s.CompletedAt == null && s.ScheduledDate > now).ToList(),
-            "overdue"   => allRows.Where(s => s.IsPlanned   && s.StartedAt == null && s.CompletedAt == null && s.ScheduledDate <= now).ToList(),
-            _           => allRows,
+            "completed"  => allRows.Where(s => s.CompletedAt != null).ToList(),
+            "incomplete" => allRows.Where(s => s.CompletedAt == null).ToList(),
+            "active"     => allRows.Where(s => s.StartedAt   != null && s.CompletedAt == null).ToList(),
+            "planned"    => allRows.Where(s => s.IsPlanned   && s.CompletedAt == null).ToList(),
+            "unplanned"  => allRows.Where(s => !s.IsPlanned).ToList(),
+            "overdue"    => allRows.Where(s => s.IsPlanned   && s.StartedAt == null && s.CompletedAt == null && s.ScheduledDate <= now).ToList(),
+            _            => allRows,
         };
 
         var totalCount = filtered.Count;
