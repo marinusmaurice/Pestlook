@@ -56,11 +56,15 @@ export function renderScoutProductivity(el, data, lookups) {
   el.innerHTML = `
     ${filterBadge(lookups)}
     ${kpiGrid([
-      kpiCard('Active Scouts',    scouts.length,   'Scouts with sessions in period'),
-      kpiCard('Total Sessions',   totalSessions,   ''),
-      kpiCard('Avg / Scout',      avgPerScout,     'Average sessions per scout'),
+      kpiCard('Active Scouts',    scouts.length,   'Scouts with sessions in period', '',
+        'Number of individual scouts (users) who have at least one scouting session recorded within the selected date range and filters.'),
+      kpiCard('Total Sessions',   totalSessions,   '', '',
+        'Total number of scouting sessions attributed to any scout in the selected period, across all farms and fields in scope.'),
+      kpiCard('Avg / Scout',      avgPerScout,     'Average sessions per scout', '',
+        'Average number of sessions per active scout. Calculated as: total sessions ÷ number of scouts with at least one session in the period.'),
       kpiCard('Top Scout',        escapeHtml(topScout?.scouterName ?? '—'),
-        topScout ? `${topScout.totalSessions} sessions` : ''),
+        topScout ? `${topScout.totalSessions} sessions` : '', '',
+        'The scout who completed the most scouting sessions in the selected period. The sub-label shows their total session count.'),
     ])}
     ${chartCard('Weekly completed sessions — top 5 scouts', 'c-scouts-weekly', 220)}
     ${tableCard(

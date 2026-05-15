@@ -4,6 +4,10 @@ module.exports = {
     "./index.html",
     "./js/**/*.js"
   ],
+  safelist: [
+    'has-kpi-tip',
+    'kpi-tip-box',
+  ],
   theme: {
     extend: {
       colors: {

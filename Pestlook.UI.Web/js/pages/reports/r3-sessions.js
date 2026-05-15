@@ -73,13 +73,17 @@ export function renderScoutingSessions(el, data, lookups) {
   el.innerHTML = `
     ${filterBadge(lookups)}
     ${kpiGrid([
-      kpiCard('Total Sessions',    kpis.total      ?? 0, ''),
+      kpiCard('Total Sessions',    kpis.total      ?? 0, '',  '',
+        'Total number of scouting sessions in the selected date range and filter scope, including planned, active, completed, and overdue sessions.'),
       kpiCard('Completion Rate',   (kpis.completionRate ?? 0) + '%',
         `${kpis.completed ?? 0} completed · ${kpis.overdue ?? 0} overdue`,
-        (kpis.overdue ?? 0) > 0 ? C.amber : C.green),
+        (kpis.overdue ?? 0) > 0 ? C.amber : C.green,
+        'Percentage of sessions that were fully completed. Calculated as: completed sessions ÷ total sessions × 100. Sessions still active or planned are excluded from the numerator.'),
       kpiCard('Avg Duration',      (kpis.avgDurationMin ?? 0) + ' min',
-        `Min ${kpis.minDurationMin ?? 0} · Max ${kpis.maxDurationMin ?? 0}`),
-      kpiCard('Active Now',        kpis.active ?? 0, 'Sessions currently in progress'),
+        `Min ${kpis.minDurationMin ?? 0} · Max ${kpis.maxDurationMin ?? 0}`, '',
+        'Average time (in minutes) between session start and completion, taken across all completed sessions in the period. Min and Max show the shortest and longest individual sessions.'),
+      kpiCard('Active Now',        kpis.active ?? 0, 'Sessions currently in progress', '',
+        'Number of sessions that have been started (have a start time) but not yet marked as completed. These are in-progress at the time the report was loaded.'),
     ])}
     ${chartCard('Weekly session activity', 'c-sess-weekly', 200, 'Completed / planned / overdue per week')}
     ${tableCard(

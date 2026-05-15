@@ -1,5 +1,35 @@
 import { escapeHtml } from '../../utils/helpers.js';
 
+/* ── KPI card tooltip (single floating element, fixed-position) ─────────────── */
+let _kpiTipEl = null;
+function _getKpiTip() {
+  if (!_kpiTipEl) {
+    _kpiTipEl = document.createElement('div');
+    _kpiTipEl.className = 'kpi-tip-box';
+    document.body.appendChild(_kpiTipEl);
+  }
+  return _kpiTipEl;
+}
+document.addEventListener('mouseover', e => {
+  const card = e.target.closest('.has-kpi-tip');
+  if (!card) return;
+  const tip = _getKpiTip();
+  tip.textContent = card.dataset.kpiTip || '';
+  const r = card.getBoundingClientRect();
+  tip.classList.add('visible');
+  // position above the card, centred
+  const tipW = Math.min(280, tip.scrollWidth + 28);
+  let left = r.left + r.width / 2 - tipW / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tipW - 8));
+  tip.style.left = left + 'px';
+  tip.style.top  = (r.top - tip.offsetHeight - 8) + 'px';
+});
+document.addEventListener('mouseout', e => {
+  if (!e.target.closest('.has-kpi-tip')) return;
+  if (e.relatedTarget?.closest('.has-kpi-tip')) return;
+  _getKpiTip().classList.remove('visible');
+});
+
 /* ── Chart.js loader ────────────────────────────────────────────────────────── */
 
 let chartJsLoading = null;
@@ -189,8 +219,9 @@ export function kpiGrid(cards) {
 }
 
 export function kpiCard(label, value, sub = '', color = '', tooltip = '') {
+  const tipAttr = tooltip ? ` data-kpi-tip="${tooltip.replace(/"/g, '&quot;')}"` : '';
   return `
-    <div class="stat-card" ${tooltip ? `title="${tooltip}"` : ''} style="cursor:default;">
+    <div class="stat-card${tooltip ? ' has-kpi-tip' : ''}"${tipAttr} style="cursor:default;">
       <div class="stat-label">${label}</div>
       <div class="stat-value" style="${color ? `color:${color};` : ''}">${value}</div>
       ${sub ? `<div class="stat-delta">${sub}</div>` : ''}

@@ -38,10 +38,14 @@ export function renderThresholdAlerts(el, data, lookups) {
   el.innerHTML = `
     ${filterBadge(lookups)}
     ${kpiGrid([
-      kpiCard('Total Breaches',  breaches.length, '', breaches.length > 0 ? C.red : C.green),
-      kpiCard('Critical',        critical, '≥ 2× threshold — act immediately', critical > 0 ? C.red : ''),
-      kpiCard('Warning',         breaches.length - critical, '> threshold — monitor closely', (breaches.length - critical) > 0 ? C.amber : ''),
-      kpiCard('Fields Affected', fieldsAffected, `${farmsAffected} farm${farmsAffected !== 1 ? 's' : ''}`),
+      kpiCard('Total Breaches',  breaches.length, '', breaches.length > 0 ? C.red : C.green,
+        'Total number of observations in the selected period where the recorded pest count exceeded the configured alert threshold for that monitoring point.'),
+      kpiCard('Critical',        critical, '≥ 2× threshold — act immediately', critical > 0 ? C.red : '',
+        'Observations where the count was at least double the threshold value. Calculated as: observed count ≥ 2 × threshold count. These require immediate action.'),
+      kpiCard('Warning',         breaches.length - critical, '> threshold — monitor closely', (breaches.length - critical) > 0 ? C.amber : '',
+        'Breaches that exceeded the threshold but did not reach the critical level (i.e. count < 2 × threshold). These should be closely monitored.'),
+      kpiCard('Fields Affected', fieldsAffected, `${farmsAffected} farm${farmsAffected !== 1 ? 's' : ''}`, '',
+        'Number of distinct fields containing at least one threshold breach in the selected period. The sub-label shows how many farms those fields belong to.'),
     ])}
     ${chartCard('Threshold breaches per week', 'c-alerts-trend', 160, 'Number of breaching observations each week')}
     ${offenderHtml}

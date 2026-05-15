@@ -24,10 +24,14 @@ export function renderTrapPerformance(el, data, lookups) {
   el.innerHTML = `
     ${filterBadge(lookups)}
     ${kpiGrid([
-      kpiCard('Active Traps',   activeTraps,  `${traps.length - activeTraps} disabled`),
-      kpiCard('Total Catches',  totalCatches.toLocaleString(), 'In selected period'),
-      kpiCard('Avg Catch Rate', avgCatchRate, 'catches per check'),
-      kpiCard('Overdue Checks', overdue7, 'Active traps not checked in > 7 days', overdue7 > 0 ? C.red : ''),
+      kpiCard('Active Traps',   activeTraps,  `${traps.length - activeTraps} disabled`, '',
+        'Number of traps currently marked as enabled and actively collecting data. Disabled traps are shown in the sub-label and are excluded from catch-rate calculations.'),
+      kpiCard('Total Catches',  totalCatches.toLocaleString(), 'In selected period', '',
+        'Sum of all catch counts recorded across every active trap in the selected date range. Each trap check contributes its recorded catch count to this total.'),
+      kpiCard('Avg Catch Rate', avgCatchRate, 'catches per check', '',
+        'Average number of catches recorded per trap inspection. Calculated as: total catches ÷ total check events across all traps in the period. Higher values indicate greater pest activity at monitored points.'),
+      kpiCard('Overdue Checks', overdue7, 'Active traps not checked in > 7 days', overdue7 > 0 ? C.red : '',
+        'Number of enabled traps whose last recorded check was more than 7 days ago. These traps may have stale data and should be inspected soon to maintain data quality.'),
     ])}
     <div class="two-col" style="margin-bottom:16px;">
       ${chartCard('Top 10 traps by catches', 'c-traps-bar', 220)}

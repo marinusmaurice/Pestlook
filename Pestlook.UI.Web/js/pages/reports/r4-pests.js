@@ -30,11 +30,15 @@ export function renderTopPests(el, data, lookups) {
   el.innerHTML = `
     ${filterBadge(lookups)}
     ${kpiGrid([
-      kpiCard('Unique Species',     uniqueSpecies, 'Different pest species observed'),
-      kpiCard('Total Observations', totalCount.toLocaleString(), 'Across all fields and sessions'),
-      kpiCard('Above Threshold',    aboveThresh, 'Species with at least one breach', aboveThresh > 0 ? C.red : ''),
+      kpiCard('Unique Species',     uniqueSpecies, 'Different pest species observed', '',
+        'Count of distinct pest species recorded in at least one observation within the selected date range and filters. Each species is counted once regardless of how many times it was observed.'),
+      kpiCard('Total Observations', totalCount.toLocaleString(), 'Across all fields and sessions', '',
+        'Sum of all individual pest count values recorded across every observation in the selected period. If multiple observations recorded the same pest, each count contributes separately to this total.'),
+      kpiCard('Above Threshold',    aboveThresh, 'Species with at least one breach', aboveThresh > 0 ? C.red : '',
+        'Number of pest species that triggered at least one threshold breach during the period. A species is counted here if any single observation of that pest exceeded its configured alert threshold.'),
       kpiCard('Most Widespread',    escapeHtml(mostWide?.pestName ?? '—'),
-        mostWide ? `${mostWide.fieldCount} field${mostWide.fieldCount !== 1 ? 's' : ''}` : ''),
+        mostWide ? `${mostWide.fieldCount} field${mostWide.fieldCount !== 1 ? 's' : ''}` : '', '',
+        'The pest species observed in the greatest number of distinct fields during the selected period. Field count (shown in the sub-label) indicates how broadly this pest is spread across the operation.'),
     ])}
     <div class="two-col" style="margin-bottom:16px;">
       ${chartCard('Top 10 pests by count', 'c-pests-bar', 220)}

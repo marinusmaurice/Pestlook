@@ -44,10 +44,14 @@ export function renderPestPressure(el, data, lookups) {
   el.innerHTML = `
     ${filterBadge(lookups)}
     ${kpiGrid([
-      kpiCard('High Pressure',   highPressure,  'Fields ≥ 66% of peak avg', highPressure > 0 ? C.red   : ''),
-      kpiCard('Medium Pressure', medPressure,   'Fields 33–65% of peak avg', medPressure  > 0 ? C.amber : ''),
-      kpiCard('Low Pressure',    lowPressure,   'Fields < 33% of peak avg', C.green),
-      kpiCard('Total Breaches',  totalBreaches, 'Threshold breaches across all fields', totalBreaches > 0 ? C.red : ''),
+      kpiCard('High Pressure',   highPressure,  'Fields ≥ 66% of peak avg', highPressure > 0 ? C.red   : '',
+        'Fields whose average pest observations per session is ≥ 66% of the highest-performing field in the period. Calculated as: avg obs/session ÷ max avg obs/session across all fields.'),
+      kpiCard('Medium Pressure', medPressure,   'Fields 33–65% of peak avg', medPressure  > 0 ? C.amber : '',
+        'Fields with average pest observations per session between 33% and 65% of the peak field. Indicates moderate activity requiring continued monitoring.'),
+      kpiCard('Low Pressure',    lowPressure,   'Fields < 33% of peak avg', C.green,
+        'Fields with average pest observations per session below 33% of the peak field. These fields are relatively clear based on recent scouting data.'),
+      kpiCard('Total Breaches',  totalBreaches, 'Threshold breaches across all fields', totalBreaches > 0 ? C.red : '',
+        'Sum of all threshold breach events recorded across every field in the selected period. A breach occurs when a single observation\'s pest count exceeds the configured threshold for that monitoring point.'),
     ])}
     ${chartCard('Avg observations per session by field (top 10)', 'c-pressure', 220, 'Higher = more pest activity per visit')}
     <div class="card card-p card-static" style="margin-bottom:16px;">

@@ -507,12 +507,37 @@ body {
   border-radius: 50%;
   background: var(--accent-color, rgba(43,110,79,0.06));
   transform: translate(20px, -20px);
+  pointer-events: none;
+  clip-path: inset(0 0 0 0);
 }
 .stat-label { font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 8px; }
 .stat-value { font-family: 'Fraunces', serif; font-size: 2.2rem; font-weight: 700; line-height: 1; margin-bottom: 6px; }
 .stat-delta { font-size: 0.72rem; color: var(--text-dim); }
 .delta-up { color: var(--green); }
 .delta-down { color: var(--red); }
+
+/* ── KPI card tooltip ── */
+.stat-card.has-kpi-tip { cursor: help; }
+.kpi-tip-box {
+  display: none;
+  position: fixed;
+  background: #1a2e1a;
+  color: #e8f0e8;
+  font-size: 0.65rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  line-height: 1.55;
+  padding: 10px 14px;
+  border-radius: 8px;
+  width: max-content;
+  max-width: 280px;
+  white-space: normal;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.35);
+  z-index: 9999;
+  pointer-events: none;
+}
+.kpi-tip-box.visible { display: block; }
 
 /* ── Tags/Pills ── */
 .tag {
