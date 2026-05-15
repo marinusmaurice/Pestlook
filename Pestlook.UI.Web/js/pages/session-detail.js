@@ -58,7 +58,11 @@ function renderDetail(session, container, params) {
   ].filter(Boolean);
   const weatherDisplay = weatherParts.length ? weatherParts.join(', ') : '—';
 
+  const observations = session.observations || [];
   const canEdit = !isCompleted;
+  const observedCount = isCompleted
+    ? observations.filter(o => o.observedAt).length
+    : session.observationCount;
 
   // ── Header card ──
   let html = `
@@ -83,8 +87,8 @@ function renderDetail(session, container, params) {
           </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
-          <div style="font-family:'Fraunces',serif;font-size:2rem;font-weight:700;color:var(--amber);">${session.observationCount}</div>
-          <div style="font-size:0.78rem;color:var(--text-dim);">pest observations</div>
+          <div style="font-family:'Fraunces',serif;font-size:2rem;font-weight:700;color:var(--amber);">${observedCount}</div>
+          <div style="font-size:0.78rem;color:var(--text-dim);">${isCompleted ? 'Completed observations' : 'Planned observations'}</div>
           ${isActive ? `<button class="btn-primary" style="padding:6px 16px;font-size:0.82rem;" id="completeSessionBtn">✓ Complete Session</button>` : ''}
         </div>
       </div>
@@ -92,7 +96,7 @@ function renderDetail(session, container, params) {
   `;
 
   // ── Observations table ──
-  const observations = session.observations || [];
+  // (observations already declared above)
 
   html += `
     <div class="card">
