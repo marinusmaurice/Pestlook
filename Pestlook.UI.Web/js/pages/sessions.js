@@ -54,9 +54,10 @@ export async function renderSessions(container) {
           style="margin:0;flex:1;min-width:160px;max-width:280px;padding:6px 10px;font-size:0.8rem;" />
         <select id="sessStatus" class="input-field" style="margin:0;padding:6px 10px;font-size:0.8rem;width:auto;">
           <option value="">All statuses</option>
-          <option value="completed">Completed</option>
-          <option value="active">Active</option>
+          <option value="completed">Complete</option>
+          <option value="incomplete">Incomplete</option>
           <option value="planned">Planned</option>
+          <option value="unplanned">Unplanned</option>
           <option value="overdue">Overdue</option>
         </select>
       </div>
