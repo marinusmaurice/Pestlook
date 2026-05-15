@@ -53,10 +53,14 @@ export function renderUnknownPests(el, data, lookups) {
   el.innerHTML = `
     ${filterBadge(lookups)}
     ${kpiGrid([
-      kpiCard('Total Sightings',  kpis.total          ?? 0, '', (kpis.total ?? 0) > 0 ? C.amber : ''),
-      kpiCard('With Photos',      kpis.withPhotos     ?? 0, 'Can be submitted for identification'),
-      kpiCard('With Notes',       kpis.withNotes      ?? 0, 'Scout notes attached'),
-      kpiCard('Fields Affected',  kpis.fieldsAffected ?? 0, ''),
+      kpiCard('Total Sightings',  kpis.total          ?? 0, '', (kpis.total ?? 0) > 0 ? C.amber : '',
+        'Total number of scouting observations recorded as "Unknown" pest within the selected date range and filters.'),
+      kpiCard('With Photos',      kpis.withPhotos     ?? 0, 'Can be submitted for identification', '',
+        'Unknown pest sightings that have at least one photo attached — these can be sent to an agronomist or lab for identification.'),
+      kpiCard('With Notes',       kpis.withNotes      ?? 0, 'Scout notes attached', '',
+        'Unknown sightings where the scout added descriptive notes — useful context for identification even without a photo.'),
+      kpiCard('Fields Affected',  kpis.fieldsAffected ?? 0, '', '',
+        'Number of distinct fields that have at least one unknown pest sighting in the selected period.'),
     ])}
     ${priorityHtml}
     ${chartCard('Unknown pest sightings per week', 'c-unknown-trend', 160)}

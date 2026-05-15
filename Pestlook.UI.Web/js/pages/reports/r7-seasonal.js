@@ -45,10 +45,14 @@ export function renderSeasonalTrends(el, data, lookups) {
   el.innerHTML = `
     ${filterBadge(lookups)}
     ${kpiGrid([
-      kpiCard('Peak Month',        peakMonth, `${peakCount.toLocaleString()} observations`, peakCount > 0 ? C.red : ''),
-      kpiCard('Avg / Month',       avgPerMo.toLocaleString(), 'Average pest observations per month'),
-      kpiCard('Months Tracked',    months.length, 'Up to 18 months of history'),
-      kpiCard('Top Pest (Period)', escapeHtml(topPest), allPest[topPest] ? allPest[topPest].toLocaleString() + ' total' : ''),
+      kpiCard('Peak Month',        peakMonth, `${peakCount.toLocaleString()} observations`, peakCount > 0 ? C.red : '',
+        'The calendar month with the highest total pest observation count within the selected period.'),
+      kpiCard('Avg / Month',       avgPerMo.toLocaleString(), 'Average pest observations per month', '',
+        'Total pest observations divided by the number of months tracked — gives a baseline for what a normal month looks like.'),
+      kpiCard('Months Tracked',    months.length, 'Up to 18 months of history', '',
+        'Number of distinct calendar months included in the seasonal trend data (based on completed scouting sessions).'),
+      kpiCard('Top Pest (Period)', escapeHtml(topPest), allPest[topPest] ? allPest[topPest].toLocaleString() + ' total' : '', '',
+        'The pest species with the highest cumulative observation count across all months in the selected period.'),
     ])}
     ${chartCard('Monthly pest counts vs avg temperature (°C)', 'c-seasonal', 250, 'Pest pressure typically rises with temperature — spot seasonal patterns')}
     ${chartCard('Scouting sessions per month', 'c-sess-monthly', 160)}

@@ -48,10 +48,14 @@ export function renderBilling(el, data, lookups) {
   el.innerHTML = `
     ${filterBadge(lookups)}
     ${kpiGrid([
-      kpiCard('YTD Spend (' + thisYear + ')', fmtAmount(ytdAmt), `${ytd.length} invoices · YoY: ${yoyHtml}`),
-      kpiCard('Latest Invoice', latest ? fmtAmount(latest.amountCents) : '—', `${fmtMonth(latest?.billingMonth)} · vs prev: ${momHtml}`),
-      kpiCard('Monitoring Quota', quota, 'Max active monitoring points'),
-      kpiCard('Active / Quota', `${activeTraps} / ${quota}`, `${quotaPct}% utilised`, quotaColor),
+      kpiCard('YTD Spend (' + thisYear + ')', fmtAmount(ytdAmt), `${ytd.length} invoices · YoY: ${yoyHtml}`, '',
+        `Total amount billed for all invoices in ${thisYear} so far. YoY compares against the same invoices from ${thisYear - 1}.`),
+      kpiCard('Latest Invoice', latest ? fmtAmount(latest.amountCents) : '—', `${fmtMonth(latest?.billingMonth)} · vs prev: ${momHtml}`, '',
+        'The most recent billing snapshot amount. MoM compares it against the previous month\'s invoice.'),
+      kpiCard('Monitoring Quota', quota, 'Max active monitoring points', '',
+        'The maximum number of active trap/monitoring points permitted under your current plan. Estimated as 1.5× last month\'s active point count.'),
+      kpiCard('Active / Quota', `${activeTraps} / ${quota}`, `${quotaPct}% utilised`, quotaColor,
+        `You currently have ${activeTraps} enabled traps out of a quota of ${quota}. At 90%+ you are approaching the plan limit.`),
     ])}
     <div class="card card-p card-static" style="margin-bottom:16px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">

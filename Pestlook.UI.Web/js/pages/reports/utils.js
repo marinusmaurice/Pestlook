@@ -15,14 +15,21 @@ document.addEventListener('mouseover', e => {
   if (!card) return;
   const tip = _getKpiTip();
   tip.textContent = card.dataset.kpiTip || '';
-  const r = card.getBoundingClientRect();
+  // Make visible off-screen first so the browser lays it out and we can read its size
+  tip.style.left = '-9999px';
+  tip.style.top  = '-9999px';
   tip.classList.add('visible');
-  // position above the card, centred
-  const tipW = Math.min(280, tip.scrollWidth + 28);
-  let left = r.left + r.width / 2 - tipW / 2;
-  left = Math.max(8, Math.min(left, window.innerWidth - tipW - 8));
-  tip.style.left = left + 'px';
-  tip.style.top  = (r.top - tip.offsetHeight - 8) + 'px';
+  // After reflow, position correctly above the card centred
+  requestAnimationFrame(() => {
+    const r    = card.getBoundingClientRect();
+    const tipH = tip.offsetHeight;
+    const tipW = tip.offsetWidth;
+    let left = r.left + r.width / 2 - tipW / 2;
+    left = Math.max(8, Math.min(left, window.innerWidth - tipW - 8));
+    const top = r.top - tipH - 8;
+    tip.style.left = left + 'px';
+    tip.style.top  = (top < 8 ? r.bottom + 8 : top) + 'px';
+  });
 });
 document.addEventListener('mouseout', e => {
   if (!e.target.closest('.has-kpi-tip')) return;

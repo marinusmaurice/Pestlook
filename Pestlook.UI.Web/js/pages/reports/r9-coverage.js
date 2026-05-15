@@ -58,10 +58,14 @@ export function renderFieldCoverage(el, data, lookups) {
   el.innerHTML = `
     ${filterBadge(lookups)}
     ${kpiGrid([
-      kpiCard('Fully Covered',     full,    `≥ ${targetPerMonth} sessions this month`, full > 0 ? C.green : ''),
-      kpiCard('Partially Covered', partial, '1–3 sessions this month',                 partial > 0 ? C.amber : ''),
-      kpiCard('Not Scouted',       none,    'Zero sessions this month',                none > 0 ? C.red : ''),
-      kpiCard('Never Scouted',     never,   'No sessions ever recorded',               never > 0 ? C.red : ''),
+      kpiCard('Fully Covered',     full,    `≥ ${targetPerMonth} sessions this month`, full > 0 ? C.green : '',
+        `Fields that have reached or exceeded the target of ${targetPerMonth} scouting sessions in the current calendar month.`),
+      kpiCard('Partially Covered', partial, '1–3 sessions this month',                 partial > 0 ? C.amber : '',
+        `Fields that have at least one session this month but have not yet reached the ${targetPerMonth}-session target — needs attention.`),
+      kpiCard('Not Scouted',       none,    'Zero sessions this month',                none > 0 ? C.red : '',
+        'Fields with no completed scouting sessions at all in the current calendar month — highest priority for scheduling.'),
+      kpiCard('Never Scouted',     never,   'No sessions ever recorded',               never > 0 ? C.red : '',
+        'Fields that have never had a single completed scouting session recorded in the system — consider scheduling an initial baseline scout.'),
     ])}
     ${chartCard("This month's coverage % per field", 'c-coverage', 200, `Target: ${targetPerMonth} sessions per field — showing top 12`)}
     <div class="card card-p card-static" style="margin-bottom:16px;">
