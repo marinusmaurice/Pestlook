@@ -155,8 +155,17 @@ function renderObsTable(observations, session, container, params, canEdit, isCom
     return;
   }
 
+  // Sort by observedAt ascending (same ordering as the scouting map) for consistent numbering
+  const sorted = [...observations].sort((a, b) => {
+    if (a.observedAt && b.observedAt) return new Date(a.observedAt) - new Date(b.observedAt);
+    if (a.observedAt) return -1;
+    if (b.observedAt) return 1;
+    return 0;
+  });
+
   let rows = '';
-  for (const o of observations) {
+  sorted.forEach((o, idx) => {
+    const rowNum = idx + 1;
     const isTrap = o.observationType === 'Trap' || o.observationType === 0;
     const typeTag = isTrap ? tag('🕸️ Trap', 'green') : tag('👁 AdHoc', 'amber');
     const plannedTag = o.isPlanned ? tag('Planned', 'blue') : tag('Unplanned', 'gray');
@@ -184,6 +193,7 @@ function renderObsTable(observations, session, container, params, canEdit, isCom
 
     rows += `
       <tr${rowStyle}>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--text-dim);text-align:center;">${rowNum}</td>
         <td>${typeTag} ${plannedTag}</td>
         <td>${isTrap ? trapName : '—'}</td>
         <td>${pestName}</td>
@@ -200,13 +210,13 @@ function renderObsTable(observations, session, container, params, canEdit, isCom
         <td style="white-space:nowrap;">${actions}</td>
       </tr>
     `;
-  }
+  });
 
   wrap.innerHTML = `
     <div style="overflow-x:auto;">
       <table class="data-table">
         <thead><tr>
-          <th>Type</th><th>Trap</th><th>Pest</th><th>Mode</th>
+          <th style="width:1%;text-align:center;">#</th><th>Type</th><th>Trap</th><th>Pest</th><th>Mode</th>
           <th>Count</th><th>Threshold</th><th>Present</th><th>Stage</th><th>Coords</th><th>Notes</th>${isCompleted ? '<th>Observed At</th>' : ''}<th>Created by</th><th>Updated by</th><th style="width:1%;white-space:nowrap;"></th>
         </tr></thead>
         <tbody>${rows}</tbody>
@@ -245,15 +255,18 @@ function renderObsTable(observations, session, container, params, canEdit, isCom
 /* ── Scouting Map Modal ──────────────────────────────────────────────────────── */
 
 function showScoutingMapModal(session, observations) {
-  // Only observations with GPS coordinates
-  const gpsObs = observations
-    .filter(o => o.latitude != null && o.longitude != null)
-    .sort((a, b) => {
-      if (a.observedAt && b.observedAt) return new Date(a.observedAt) - new Date(b.observedAt);
-      if (a.observedAt) return -1;
-      if (b.observedAt) return 1;
-      return 0;
-    });
+  // Sort ALL observations by observedAt first, assign sequence numbers (1..n),
+  // then keep only those that have GPS — preserving their original sequence number.
+  const sorted = [...observations].sort((a, b) => {
+    if (a.observedAt && b.observedAt) return new Date(a.observedAt) - new Date(b.observedAt);
+    if (a.observedAt) return -1;
+    if (b.observedAt) return 1;
+    return 0;
+  });
+
+  const gpsObs = sorted
+    .map((o, idx) => ({ ...o, _seq: idx + 1 }))
+    .filter(o => o.latitude != null && o.longitude != null);
 
   // Find the field boundary if we have a fieldId
   const field = session.fieldId ? cachedFields.find(f => f.id === session.fieldId) : null;
@@ -349,7 +362,7 @@ function showScoutingMapModal(session, observations) {
 
     // ── Observation markers ────────────────────────────────────────────────
     gpsObs.forEach((o, idx) => {
-      const num    = idx + 1;
+      const num    = o._seq;
       const lat    = Number(o.latitude);
       const lng    = Number(o.longitude);
       const isPresenceMode = o.captureMode === 'Presence' || o.captureMode === 1;
