@@ -33,6 +33,17 @@ let _container = null;
 export async function renderSessions(container) {
   _container = container;
 
+  // Reset filter state every time the page is (re-)entered so stale filters
+  // from a previous visit don't silently persist while the UI shows defaults.
+  state.page    = 1;
+  state.pageSize = 25;
+  state.sortBy  = 'date';
+  state.sortDesc = true;
+  state.status  = '';
+  state.search  = '';
+  state.farmId  = '';
+  state.fieldId = '';
+
   // Lock the content-area scroll so only the grid scrolls internally
   const prevCssText = container.style.cssText;
   container._cleanup = () => { container.style.cssText = prevCssText; };
