@@ -43,6 +43,7 @@ export function renderSidebar(container) {
         <div class="logo-sub">Field Intelligence</div>
       </div>
     </div>
+    <div id="sidebar-nav">
   `;
 
   for (const section of navItems) {
@@ -55,8 +56,10 @@ export function renderSidebar(container) {
         </a>
       `;
     }
-    html += `</div>`;
+    html += `</div>`; // close nav-section
   }
+
+  html += `</div>`; // close #sidebar-nav
 
   html += `
     <div class="sidebar-bottom">

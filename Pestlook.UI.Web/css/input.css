@@ -202,8 +202,17 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  overflow: hidden;
   position: relative;
   z-index: 10;
+}
+
+/* Scrollable nav area between logo and user chip */
+#sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
 }
 
 .logo-wrap {
@@ -288,9 +297,9 @@ body {
 }
 
 .sidebar-bottom {
-  margin-top: auto;
   padding: 12px;
   border-top: 1px solid var(--border);
+  flex-shrink: 0;
 }
 .user-chip {
   display: flex;
