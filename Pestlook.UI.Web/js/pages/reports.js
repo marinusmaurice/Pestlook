@@ -74,7 +74,9 @@ const TAB_RENDERER = {
 export async function renderReports(container) {
 
   let alive = true;
-  container._cleanup = () => { alive = false; };
+  const prevCssText = container.style.cssText;
+  container._cleanup = () => { alive = false; container.style.cssText = prevCssText; };
+  container.style.cssText = 'display:flex;flex-direction:column;overflow:hidden;height:100%;';
 
   const _today    = new Date();
   const _90dAgo   = new Date(_today);
@@ -120,7 +122,7 @@ export async function renderReports(container) {
       </select>
       <button id="rpt-clear" class="btn-outline" style="padding:6px 12px;font-size:0.8rem;">✕ Clear</button>
     </div>
-    <div id="rpt-body" style="flex-shrink:0;">
+    <div id="rpt-body" style="flex:1;min-height:0;overflow-y:auto;padding-right:2px;">
       <div class="card card-p"><div class="skeleton skeleton-card" style="height:300px;"></div></div>
     </div>
   `;
@@ -171,7 +173,7 @@ export async function renderReports(container) {
     function rerender() {
       destroyCharts();
       const activeTab = container.querySelector('[data-tab].active')?.dataset?.tab || 'dash';
-      container.scrollTop = 0;
+      document.getElementById('rpt-body')?.scrollTo(0, 0);
       showTab(activeTab, lookups, container);
     }
 
@@ -205,7 +207,7 @@ export async function renderReports(container) {
         destroyCharts();
         container.querySelectorAll('[data-tab]').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        container.scrollTop = 0;
+        document.getElementById('rpt-body')?.scrollTo(0, 0);
         showTab(btn.dataset.tab, lookups, container);
       });
     });
