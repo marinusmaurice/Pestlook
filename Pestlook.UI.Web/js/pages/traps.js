@@ -116,7 +116,7 @@ function renderTabs(traps) {
   });
 }
 
-function renderMap(traps) {
+async function renderMap(traps) {
   const mapWrap = document.getElementById('trapMapWrap');
   if (!mapWrap) return;
 
@@ -137,10 +137,32 @@ function renderMap(traps) {
     return;
   }
 
+  // Fetch farms and all fields to draw boundaries
+  let allFarms = [];
+  let allFields = [];
+  try {
+    const [farmsRes, fieldsRes] = await Promise.all([getFarms(), getFields()]);
+    allFarms  = farmsRes.data  || [];
+    allFields = fieldsRes.data || [];
+  } catch { /* boundaries are non-critical */ }
+
+  // Only draw farms/fields that are referenced by the displayed traps
+  const relevantFieldIds = new Set(traps.map(t => t.fieldId).filter(Boolean));
+  const relevantFarmNames = new Set(traps.map(t => t.farmName).filter(Boolean));
+  const relevantFields = allFields.filter(f => relevantFieldIds.has(f.id));
+  const relevantFieldFarmIds = new Set(relevantFields.map(f => f.farmId));
+  const relevantFarms  = allFarms.filter(f =>
+    relevantFieldFarmIds.has(f.id) || relevantFarmNames.has(f.name));
+
+  const farmBoundaryCount  = relevantFarms.filter(f => f.boundaryGeoJson).length;
+  const fieldBoundaryCount = relevantFields.filter(f => f.geoBoundary).length;
+
   // Create the map container
   mapWrap.innerHTML = `
     <div id="trapLeafletMap" style="width:100%;height:435px;"></div>
-    <div style="padding:8px 12px;background:var(--surface);font-size:0.72rem;color:var(--text-dim);display:flex;gap:12px;">
+    <div style="padding:8px 12px;background:var(--surface);font-size:0.72rem;color:var(--text-dim);display:flex;gap:12px;flex-wrap:wrap;">
+      ${farmBoundaryCount  ? `<span><span style="display:inline-block;width:10px;height:10px;background:#6aaf7a;border-radius:2px;margin-right:4px;opacity:0.7;"></span>Farms (${farmBoundaryCount})</span>` : ''}
+      ${fieldBoundaryCount ? `<span><span style="display:inline-block;width:10px;height:10px;background:#f0b840;border-radius:2px;margin-right:4px;opacity:0.8;"></span>Fields (${fieldBoundaryCount})</span>` : ''}
       <span>🟢 Enabled (${locatedTraps.filter(t => t.isEnabled).length})</span>
       <span>🔴 Disabled (${locatedTraps.filter(t => !t.isEnabled).length})</span>
       <span style="margin-left:auto;">📍 ${locatedTraps.length} trap(s) on map · Click a pin to highlight its row</span>
@@ -164,6 +186,36 @@ function renderMap(traps) {
     maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
   }).addTo(leafletMap);
+
+  // Draw farm boundaries (behind everything)
+  for (const farm of relevantFarms) {
+    if (!farm.boundaryGeoJson) continue;
+    try {
+      const geoData = typeof farm.boundaryGeoJson === 'string'
+        ? JSON.parse(farm.boundaryGeoJson)
+        : farm.boundaryGeoJson;
+      const color = farm.boundaryColor || '#6aaf7a';
+      L.geoJSON(geoData, {
+        style: { color, weight: 2, fillColor: color, fillOpacity: 0.08, dashArray: '4 4', interactive: false },
+      }).bindTooltip(`🌾 ${farm.name}`, { sticky: true, className: 'leaflet-tooltip' })
+        .addTo(leafletMap);
+    } catch { /* skip invalid GeoJSON */ }
+  }
+
+  // Draw field boundaries (above farms, below pins)
+  for (const field of relevantFields) {
+    if (!field.geoBoundary) continue;
+    try {
+      const geoData = typeof field.geoBoundary === 'string'
+        ? JSON.parse(field.geoBoundary)
+        : field.geoBoundary;
+      const color = field.boundaryColor || '#f0b840';
+      L.geoJSON(geoData, {
+        style: { color, weight: 2, fillColor: color, fillOpacity: 0.18, interactive: false },
+      }).bindTooltip(`🟨 ${field.name}`, { sticky: true, className: 'leaflet-tooltip' })
+        .addTo(leafletMap);
+    } catch { /* skip invalid GeoJSON */ }
+  }
 
   // Custom pin icons
   const enabledIcon = L.divIcon({
