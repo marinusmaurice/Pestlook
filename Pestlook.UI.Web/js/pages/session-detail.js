@@ -89,6 +89,7 @@ function renderDetail(session, container, params) {
         <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
           <div style="font-family:'Fraunces',serif;font-size:2rem;font-weight:700;color:var(--amber);">${observedCount}</div>
           <div style="font-size:0.78rem;color:var(--text-dim);">${isCompleted ? 'Completed observations' : 'Planned observations'}</div>
+          ${isCompleted ? `<button class="btn-outline" style="padding:5px 12px;font-size:0.78rem;margin-top:2px;" id="viewScoutingMapBtn">🗺 View Scouting Map</button>` : ''}
           ${isActive ? `<button class="btn-primary" style="padding:6px 16px;font-size:0.82rem;" id="completeSessionBtn">✓ Complete Session</button>` : ''}
         </div>
       </div>
@@ -141,6 +142,10 @@ function renderDetail(session, container, params) {
   const addAdHocBtn = document.getElementById('addAdHocObs');
   if (addTrapBtn) addTrapBtn.addEventListener('click', () => showObservationModal(session, 'Trap', null, container, params));
   if (addAdHocBtn) addAdHocBtn.addEventListener('click', () => showObservationModal(session, 'AdHoc', null, container, params));
+
+  // Scouting map button (completed sessions)
+  const mapBtn = document.getElementById('viewScoutingMapBtn');
+  if (mapBtn) mapBtn.addEventListener('click', () => showScoutingMapModal(session, observations));
 }
 
 function renderObsTable(observations, session, container, params, canEdit, isCompleted) {
@@ -236,6 +241,195 @@ function renderObsTable(observations, session, container, params, canEdit, isCom
     });
   });
 }
+
+/* ── Scouting Map Modal ──────────────────────────────────────────────────────── */
+
+function showScoutingMapModal(session, observations) {
+  // Only observations with GPS coordinates
+  const gpsObs = observations
+    .filter(o => o.latitude != null && o.longitude != null)
+    .sort((a, b) => {
+      if (a.observedAt && b.observedAt) return new Date(a.observedAt) - new Date(b.observedAt);
+      if (a.observedAt) return -1;
+      if (b.observedAt) return 1;
+      return 0;
+    });
+
+  // Find the field boundary if we have a fieldId
+  const field = session.fieldId ? cachedFields.find(f => f.id === session.fieldId) : null;
+
+  // Build overlay
+  const overlay = document.createElement('div');
+  overlay.id = 'scoutingMapOverlay';
+  overlay.style.cssText = `
+    position:fixed;inset:0;z-index:9000;
+    background:rgba(0,0,0,0.55);
+    display:flex;align-items:center;justify-content:center;
+  `;
+
+  const hasGps = gpsObs.length > 0;
+  const noGpsMsg = !hasGps
+    ? `<div style="text-align:center;padding:24px 0;font-size:0.88rem;color:var(--text-dim);">
+        No GPS coordinates recorded on any observations in this session.
+       </div>`
+    : '';
+
+  overlay.innerHTML = `
+    <div style="
+      background:var(--surface);border:1px solid var(--border);border-radius:14px;
+      width:min(900px,95vw);height:min(680px,92vh);
+      display:flex;flex-direction:column;overflow:hidden;
+      box-shadow:0 24px 60px rgba(0,0,0,0.35);
+    ">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);flex-shrink:0;">
+        <div>
+          <div style="font-weight:700;font-size:1rem;color:var(--text);">🗺 Scouting Route Map</div>
+          <div style="font-size:0.78rem;color:var(--text-dim);margin-top:2px;">
+            Session ${session.id.substring(0,8)} · ${gpsObs.length} GPS point${gpsObs.length !== 1 ? 's' : ''}${field ? ' · ' + escapeHtml(field.name) : ''}
+          </div>
+        </div>
+        <button id="closeScoutingMap" style="
+          background:none;border:none;cursor:pointer;font-size:1.3rem;
+          color:var(--text-dim);padding:4px 8px;border-radius:6px;
+        " title="Close">✕</button>
+      </div>
+      ${noGpsMsg}
+      <div id="scoutingMapLeaflet" style="flex:1;min-height:0;${!hasGps ? 'display:none;' : ''}"></div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  // Close handlers
+  function destroy() {
+    if (_scoutingMap) { _scoutingMap.remove(); _scoutingMap = null; }
+    overlay.remove();
+    document.removeEventListener('keydown', escHandler);
+  }
+  const escHandler = e => { if (e.key === 'Escape') destroy(); };
+  document.addEventListener('keydown', escHandler);
+  overlay.addEventListener('click', e => { if (e.target === overlay) destroy(); });
+  document.getElementById('closeScoutingMap').addEventListener('click', destroy);
+
+  if (!hasGps) return;
+
+  // Wait for next frame so the container has dimensions
+  requestAnimationFrame(() => {
+    const L = window.L;
+    if (!L) { showToast('Map library not available yet — please try again.', 'error'); destroy(); return; }
+
+    const mapEl = document.getElementById('scoutingMapLeaflet');
+    if (!mapEl) return;
+
+    _scoutingMap = L.map(mapEl, { zoomControl: true, scrollWheelZoom: true });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap',
+      maxZoom: 22,
+    }).addTo(_scoutingMap);
+
+    const bounds = [];
+
+    // ── Field boundary ─────────────────────────────────────────────────────
+    if (field?.geoBoundary) {
+      try {
+        const parsed = JSON.parse(field.geoBoundary);
+        const layer = L.geoJSON(parsed, {
+          style: {
+            color: field.boundaryColor || '#2b6e4f',
+            weight: 2.5,
+            fillOpacity: 0.10,
+            dashArray: '6 4',
+          },
+        }).addTo(_scoutingMap);
+        layer.bindTooltip(escapeHtml(field.name), { permanent: false, direction: 'center' });
+        layer.getBounds && bounds.push(...Object.values(layer.getBounds()));
+        try { _scoutingMap.fitBounds(layer.getBounds(), { padding: [40, 40] }); } catch {}
+      } catch { /* ignore invalid GeoJSON */ }
+    }
+
+    // ── Observation markers ────────────────────────────────────────────────
+    gpsObs.forEach((o, idx) => {
+      const num    = idx + 1;
+      const lat    = Number(o.latitude);
+      const lng    = Number(o.longitude);
+      const isPresenceMode = o.captureMode === 'Presence' || o.captureMode === 1;
+      const hasCount       = !isPresenceMode && o.count != null;
+      const exceeded       = hasCount && o.thresholdCount != null && o.count > o.thresholdCount;
+      const bgColor        = exceeded ? '#dc2626' : '#2b6e4f';
+
+      // Numbered circle icon
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="
+          width:28px;height:28px;border-radius:50%;
+          background:${bgColor};color:#fff;
+          display:flex;align-items:center;justify-content:center;
+          font-size:11px;font-weight:700;font-family:sans-serif;
+          border:2px solid #fff;
+          box-shadow:0 2px 6px rgba(0,0,0,0.35);
+        ">${num}</div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+      });
+
+      const pestName   = o.pestName  || (o.isUnknownPest ? 'Unknown pest' : '—');
+      const trapName   = o.trapName  || '—';
+      const lifeStage  = o.lifeStage || '—';
+      const observedAt = o.observedAt ? formatDateTime(o.observedAt) : '—';
+      const notes      = o.notes     ? escapeHtml(o.notes) : '';
+      const isTrap     = o.observationType === 'Trap' || o.observationType === 0;
+
+      // Count / presence row
+      let countRow;
+      if (isPresenceMode) {
+        const presentLabel = o.isPresent === true ? '✓ Present' : o.isPresent === false ? '✗ Absent' : '—';
+        countRow = `<tr><td style="color:#666;padding-right:8px;">Presence</td><td><strong>${presentLabel}</strong></td></tr>`;
+      } else {
+        const countDisplay = o.count != null ? o.count : '—';
+        const thresholdRow = (o.thresholdCount != null)
+          ? ` <span style="color:#999;font-size:0.75rem;">/ ${o.thresholdCount} threshold${exceeded ? '' : ''}</span>${exceeded ? ' <span style="color:#dc2626;font-weight:700;">⚠️ exceeded</span>' : ''}`
+          : '';
+        countRow = `<tr><td style="color:#666;padding-right:8px;">Count</td><td><strong>${countDisplay}</strong>${thresholdRow}</td></tr>`;
+      }
+
+      const popupHtml = `
+        <div style="min-width:200px;font-size:0.82rem;line-height:1.6;">
+          <div style="font-weight:700;font-size:0.9rem;margin-bottom:6px;color:#1a2e1a;">
+            #${num} · ${escapeHtml(pestName)}
+          </div>
+          <table style="border-collapse:collapse;width:100%;">
+            <tr><td style="color:#666;padding-right:8px;">Type</td><td>${isTrap ? '🕸️ Trap' : '👁 AdHoc'}</td></tr>
+            ${isTrap ? `<tr><td style="color:#666;padding-right:8px;">Trap</td><td>${escapeHtml(trapName)}</td></tr>` : ''}
+            ${countRow}
+            <tr><td style="color:#666;padding-right:8px;">Life stage</td><td>${escapeHtml(lifeStage)}</td></tr>
+            <tr><td style="color:#666;padding-right:8px;">Observed at</td><td>${escapeHtml(observedAt)}</td></tr>
+            <tr><td style="color:#666;padding-right:8px;">GPS</td><td style="font-size:0.75rem;">${lat.toFixed(5)}, ${lng.toFixed(5)}</td></tr>
+            ${notes ? `<tr><td style="color:#666;padding-right:8px;vertical-align:top;">Notes</td><td>${notes}</td></tr>` : ''}
+          </table>
+        </div>
+      `;
+
+      L.marker([lat, lng], { icon })
+        .bindPopup(popupHtml, { maxWidth: 280 })
+        .addTo(_scoutingMap);
+
+      bounds.push([lat, lng]);
+    });
+
+    // Fit all points
+    if (bounds.length > 0) {
+      try { _scoutingMap.fitBounds(bounds, { padding: [50, 50] }); } catch {}
+    }
+
+    // Draw a faint polyline connecting the route in order
+    if (gpsObs.length > 1) {
+      const latlngs = gpsObs.map(o => [Number(o.latitude), Number(o.longitude)]);
+      L.polyline(latlngs, { color: '#2b6e4f', weight: 1.5, opacity: 0.5, dashArray: '4 6' }).addTo(_scoutingMap);
+    }
+  });
+}
+
+let _scoutingMap = null;
 
 /* ── Add / Edit single observation modal ────────────────────────────────────── */
 
