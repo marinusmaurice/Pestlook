@@ -81,8 +81,10 @@ export async function renderIntelligence(container) {
   iFilters.pestId  = '';
 
   // ── Shell HTML ────────────────────────────────────────────────────────────
+  container.style.cssText = 'display:flex;flex-direction:column;overflow:hidden;height:100%;';
+
   container.innerHTML = `
-    <div class="section-head" style="margin-bottom:16px;">
+    <div class="section-head" style="margin-bottom:16px;flex-shrink:0;">
       <div>
         <div class="page-heading">🧭 Spread & Movement Intelligence</div>
         <div class="page-desc">Track how pest populations move, where outbreaks originate, and which fields are at risk</div>
@@ -90,7 +92,7 @@ export async function renderIntelligence(container) {
     </div>
 
     <!-- Tab bar -->
-    <div style="overflow-x:auto;margin-bottom:14px;padding-bottom:4px;">
+    <div style="overflow-x:auto;margin-bottom:14px;padding-bottom:4px;flex-shrink:0;">
       <div style="display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;width:fit-content;">
         ${SECTIONS.map((s, i) => `
           <button class="tab-btn${i === 0 ? ' active' : ''}" data-itab="${s.id}" style="white-space:nowrap;">${s.label}</button>
@@ -99,7 +101,7 @@ export async function renderIntelligence(container) {
     </div>
 
     <!-- Shared filters -->
-    <div id="int-filters" style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;">
+    <div id="int-filters" style="margin-bottom:16px;flex-shrink:0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;">
       <span style="font-size:0.72rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-right:4px;">Filter</span>
       <label style="font-size:0.8rem;color:var(--text-dim);display:flex;align-items:center;gap:6px;">
         From <input type="date" id="int-from" class="input-field" style="margin-top:0;width:auto;padding:6px 10px;font-size:0.8rem;" />
@@ -113,7 +115,7 @@ export async function renderIntelligence(container) {
     </div>
 
     <!-- Tab body -->
-    <div id="int-body">
+    <div id="int-body" style="flex:1;overflow-y:auto;min-height:0;">
       <div class="card card-p"><div class="skeleton skeleton-card" style="height:320px;"></div></div>
     </div>
   `;
