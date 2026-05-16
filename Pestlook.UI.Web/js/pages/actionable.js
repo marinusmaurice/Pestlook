@@ -56,7 +56,9 @@ const aFilters = { from: '', to: '', farmId: '', fieldId: '' };
 
 export async function renderActionable(container) {
   let alive = true;
-  container._cleanup = () => { alive = false; };
+  const prevCssText = container.style.cssText;
+  container._cleanup = () => { alive = false; container.style.cssText = prevCssText; };
+  container.style.cssText = 'display:flex;flex-direction:column;overflow:hidden;height:100%;';
 
   const today    = new Date();
   const sixMoAgo = new Date(today);
@@ -70,7 +72,7 @@ export async function renderActionable(container) {
 
   // ── Shell ─────────────────────────────────────────────────────────────────
   container.innerHTML = `
-    <div class="section-head" style="margin-bottom:16px;">
+    <div class="section-head" style="margin-bottom:16px;flex-shrink:0;">
       <div>
         <div class="page-heading">🎯 Actionable Recommendations</div>
         <div class="page-desc">Spray timing, scout prioritisation, treatment effectiveness, overdue alerts, and coverage blind spots</div>
@@ -78,7 +80,7 @@ export async function renderActionable(container) {
     </div>
 
     <!-- Tab bar -->
-    <div style="overflow-x:auto;margin-bottom:14px;padding-bottom:4px;">
+    <div style="overflow-x:auto;margin-bottom:14px;padding-bottom:4px;flex-shrink:0;">
       <div style="display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;width:fit-content;">
         ${SECTIONS.map((s, i) => `
           <button class="tab-btn${i === 0 ? ' active' : ''}" data-atab="${s.id}" style="white-space:nowrap;">${s.label}</button>
@@ -87,7 +89,7 @@ export async function renderActionable(container) {
     </div>
 
     <!-- Shared filters -->
-    <div style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;">
+    <div style="margin-bottom:16px;flex-shrink:0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;">
       <span style="font-size:0.72rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-right:4px;">Filter</span>
       <label style="font-size:0.8rem;color:var(--text-dim);display:flex;align-items:center;gap:6px;">
         From <input type="date" id="af-from" class="input-field" style="margin-top:0;width:auto;padding:6px 10px;font-size:0.8rem;" />
@@ -101,7 +103,7 @@ export async function renderActionable(container) {
     </div>
 
     <!-- Tab body -->
-    <div id="af-body">
+    <div id="af-body" style="flex:1;min-height:0;overflow-y:auto;">
       <div class="card card-p"><div class="skeleton skeleton-card" style="height:320px;"></div></div>
     </div>
   `;

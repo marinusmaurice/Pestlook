@@ -62,19 +62,19 @@ export async function renderSpreadVelocity(el, data) {
   el.innerHTML = `
     <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Measures how actively each pest is spreading field-to-field right now. <strong>Velocity</strong> is the week-over-week change in the number of distinct fields with at least one active observation. A positive velocity means more fields are affected this week than last; negative means the pest is retreating. This remains meaningful for established pests as it tracks seasonal flare-ups and post-treatment recovery.</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;">
-      <div class="card card-p" style="text-align:center;">
+      <div class="card card-p has-kpi-tip" style="text-align:center;" data-kpi-tip="Total number of pest species with enough weekly observation data to calculate a field-to-field spread velocity.">
         <div style="font-size:1.8rem;font-weight:700;">${summary.totalPests ?? 0}</div>
         <div style="font-size:0.78rem;color:var(--text-dim);">Pests Tracked</div>
       </div>
-      <div class="card card-p" style="text-align:center;border-left:3px solid #c0392b;">
+      <div class="card card-p has-kpi-tip" style="text-align:center;border-left:3px solid #c0392b;" data-kpi-tip="Pest species with a positive velocity this week — they are actively colonising new fields. These pests need the most urgent monitoring attention.">
         <div style="font-size:1.8rem;font-weight:700;color:#c0392b;">${summary.activelySpreading ?? 0}</div>
         <div style="font-size:0.78rem;color:var(--text-dim);">Spreading</div>
       </div>
-      <div class="card card-p" style="text-align:center;border-left:3px solid #27ae60;">
+      <div class="card card-p has-kpi-tip" style="text-align:center;border-left:3px solid #27ae60;" data-kpi-tip="Pest species with a negative velocity this week — fewer fields reported them active compared to last week, indicating a retreating population. May reflect successful treatment or seasonal decline.">
         <div style="font-size:1.8rem;font-weight:700;color:#27ae60;">${summary.retreating ?? 0}</div>
         <div style="font-size:0.78rem;color:var(--text-dim);">Retreating</div>
       </div>
-      <div class="card card-p" style="text-align:center;border-left:3px solid #e67e22;">
+      <div class="card card-p has-kpi-tip" style="text-align:center;border-left:3px solid #e67e22;" data-kpi-tip="Pest species with zero velocity this week — the number of active fields has not changed. Contained pests are stable but should continue to be monitored for any renewed spread.">
         <div style="font-size:1.8rem;font-weight:700;color:#e67e22;">${summary.contained ?? 0}</div>
         <div style="font-size:0.78rem;color:var(--text-dim);">Contained / Inactive</div>
       </div>

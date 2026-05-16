@@ -24,8 +24,8 @@ export async function renderQuarantineFlags(el, data) {
     return;
   }
 
-  const kpi = (label, value, colour, sub = '') => `
-    <div class="card card-p" style="flex:1;min-width:130px;">
+  const kpi = (label, value, colour, sub = '', tooltip = '') => `
+    <div class="card card-p${tooltip ? ' has-kpi-tip' : ''}" style="flex:1;min-width:130px;"${tooltip ? ` data-kpi-tip="${tooltip}"` : ''}>
       <div style="font-size:0.72rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;">${label}</div>
       <div style="font-size:1.7rem;font-weight:700;color:${colour};">${value}</div>
       ${sub ? `<div style="font-size:0.75rem;color:var(--text-dim);margin-top:3px;">${sub}</div>` : ''}
@@ -34,10 +34,10 @@ export async function renderQuarantineFlags(el, data) {
   const kpis = `
     <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Flags pest species recorded on a field <strong>for the first time</strong> within the selected date range. A <strong>New to Tenant</strong> flag means the species has never been seen anywhere in your organisation before — these carry the highest risk and may warrant reporting to local agricultural authorities. A <strong>New to Field</strong> flag means the pest is established elsewhere but has now appeared on a new field.</div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
-      ${kpi('New Introductions',   summary.totalFlags         ?? 0, 'var(--text)',  'flags in period')}
-      ${kpi('New to Tenant',       summary.genuineNewSpecies  ?? 0, '#c0392b',     'never seen before — highest risk')}
-      ${kpi('New to Field',        summary.newToField         ?? 0, '#e67e22',     'new on this field only')}
-      ${kpi('Non-catalogued',      summary.nonSystemPests     ?? 0, '#f1c40f',     'tenant-defined pests')}
+      ${kpi('New Introductions',   summary.totalFlags         ?? 0, 'var(--text)',  'flags in period',                   'Total number of pest × field combinations where a pest was recorded on a field for the first time within the selected date range.')}
+      ${kpi('New to Tenant',       summary.genuineNewSpecies  ?? 0, '#c0392b',     'never seen before — highest risk', 'Pest species that have never been recorded anywhere in your organisation before — the highest-risk category; consider notifying local agricultural authorities.')}
+      ${kpi('New to Field',        summary.newToField         ?? 0, '#e67e22',     'new on this field only',            'Pests that exist elsewhere in your tenant but have now appeared on a new field for the first time — indicating local spread rather than external introduction.')}
+      ${kpi('Non-catalogued',      summary.nonSystemPests     ?? 0, '#f1c40f',     'tenant-defined pests',              'Pest species defined at the tenant level rather than the system catalogue — may have limited reference data available.')}
     </div>
     <div style="padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:0.75rem;color:var(--text-dim);margin-bottom:18px;">
       ℹ️ ${escapeHtml(summary.dataNote ?? '')}

@@ -26,19 +26,19 @@ export async function renderBreachProbability(el, data) {
   el.innerHTML = `
     <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">For each pest × field combination, applies OLS regression to project the next session count and computes the probability that the projection exceeds the configured action threshold using a standard normal z-score. <strong>High ≥ 60%</strong>, <strong>Medium 30–59%</strong>, <strong>Low &lt; 30%</strong>. Use this to prioritise monitoring before a breach happens, not after.</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;">
-      <div class="card card-p" style="text-align:center;">
+      <div class="card card-p has-kpi-tip" style="text-align:center;" data-kpi-tip="Total number of pest × field combinations evaluated for breach probability in the selected period.">
         <div style="font-size:1.8rem;font-weight:700;">${summary.total ?? 0}</div>
         <div style="font-size:0.78rem;color:var(--text-dim);">Combinations</div>
       </div>
-      <div class="card card-p" style="text-align:center;border-left:3px solid #c0392b;">
+      <div class="card card-p has-kpi-tip" style="text-align:center;border-left:3px solid #c0392b;" data-kpi-tip="Combinations where the OLS projection shows a 60% or higher probability that the next session count will exceed the configured action threshold. Immediate monitoring is recommended.">
         <div style="font-size:1.8rem;font-weight:700;color:#c0392b;">${summary.highRisk ?? 0}</div>
         <div style="font-size:0.78rem;color:var(--text-dim);">High Risk (&gt;60%)</div>
       </div>
-      <div class="card card-p" style="text-align:center;border-left:3px solid #e67e22;">
+      <div class="card card-p has-kpi-tip" style="text-align:center;border-left:3px solid #e67e22;" data-kpi-tip="Combinations with a 30–59% breach probability — watch closely and plan a scouting visit within the coming week.">
         <div style="font-size:1.8rem;font-weight:700;color:#e67e22;">${summary.mediumRisk ?? 0}</div>
         <div style="font-size:0.78rem;color:var(--text-dim);">Medium Risk</div>
       </div>
-      <div class="card card-p" style="text-align:center;border-left:3px solid #27ae60;">
+      <div class="card card-p has-kpi-tip" style="text-align:center;border-left:3px solid #27ae60;" data-kpi-tip="Combinations with less than 30% breach probability based on current population trends — continue routine monitoring.">
         <div style="font-size:1.8rem;font-weight:700;color:#27ae60;">${summary.lowRisk ?? 0}</div>
         <div style="font-size:0.78rem;color:var(--text-dim);">Low Risk</div>
       </div>

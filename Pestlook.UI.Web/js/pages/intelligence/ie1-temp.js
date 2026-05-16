@@ -25,8 +25,8 @@ export async function renderTemperatureActivity(el, data) {
     return;
   }
 
-  const kpi = (label, value, colour, sub = '') => `
-    <div class="card card-p" style="flex:1;min-width:130px;">
+  const kpi = (label, value, colour, sub = '', tooltip = '') => `
+    <div class="card card-p${tooltip ? ' has-kpi-tip' : ''}" style="flex:1;min-width:130px;"${tooltip ? ` data-kpi-tip="${tooltip}"` : ''}>
       <div style="font-size:0.72rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;">${label}</div>
       <div style="font-size:1.7rem;font-weight:700;color:${colour};">${value}</div>
       ${sub ? `<div style="font-size:0.75rem;color:var(--text-dim);margin-top:3px;">${sub}</div>` : ''}
@@ -35,10 +35,10 @@ export async function renderTemperatureActivity(el, data) {
   const kpis = `
     <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Groups observation counts into 5°C temperature bands to reveal each pest's <strong>optimal temperature range</strong>. Pearson correlation and OLS regression quantify whether the pest responds to temperature: <strong>Warm-Favoring</strong> pests increase in warmer conditions; <strong>Cold-Favoring</strong> pests peak in cooler weather. The global heat map at the bottom shows combined activity of all pests across the temperature spectrum.</div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;">
-      ${kpi('Pests Analysed',   summary.totalPests      ?? 0, 'var(--text)',  'with temperature data')}
-      ${kpi('Warm-Favoring',    summary.tempSensitive   ?? 0, '#c0392b',     'higher counts in warm temps')}
-      ${kpi('Cold-Favoring',    summary.coldFavoring    ?? 0, '#2980b9',     'higher counts in cool temps')}
-      ${kpi('Avg Temp (period)', (summary.overallAvgTemp ?? '—') + '°C', 'var(--accent)', `${summary.dataPoints ?? 0} data points`)}
+      ${kpi('Pests Analysed',   summary.totalPests      ?? 0, 'var(--text)',  'with temperature data',      'Number of pest species with enough temperature-linked session data to calculate a correlation and determine temperature preference.')}
+      ${kpi('Warm-Favoring',    summary.tempSensitive   ?? 0, '#c0392b',     'higher counts in warm temps', 'Pests with a positive temperature correlation — activity and counts tend to increase as temperatures rise. Warm weather periods are a trigger for monitoring these species.')}
+      ${kpi('Cold-Favoring',    summary.coldFavoring    ?? 0, '#2980b9',     'higher counts in cool temps', 'Pests with a negative temperature correlation — they are more active in cooler conditions. Watch these species during cool spells and early spring/autumn periods.')}
+      ${kpi('Avg Temp (period)', (summary.overallAvgTemp ?? '—') + '°C', 'var(--accent)', `${summary.dataPoints ?? 0} data points`, 'The average temperature recorded across all scouting sessions in the selected period, based on session-level temperature fields.')}
     </div>`;
 
   const rows = pests.map(p => {

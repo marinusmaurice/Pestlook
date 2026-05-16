@@ -56,10 +56,14 @@ export async function renderCrossFarmCorrelation(container, data, onMinFarmsChan
 
   // ── KPI row ──────────────────────────────────────────────────────────────
   container.innerHTML = '<div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Detects weeks where the same pest spiked simultaneously across <strong>two or more farms</strong> — a signal of a regional outbreak rather than an isolated farm-level incident. A spike is defined as a week exceeding both the configured action threshold and 1.5× that farm\'s own median weekly count, so detection adapts to each farm\'s normal activity level.</div>' + kpiGrid([
-    kpiCard('Outbreak Pests',     summary.totalOutbreakPests,  'species with multi-farm spikes', '', summary.totalOutbreakPests > 0 ? C.red : ''),
-    kpiCard('Regional Outbreaks', summary.regionalOutbreaks,   '2+ farms same week',             '', summary.regionalOutbreaks  > 0 ? C.red : ''),
-    kpiCard('Peak Farm Count',    summary.peakFarmCount,       summary.peakPestName ?? '',        '', summary.peakFarmCount > 2 ? C.red : C.amber),
-    kpiCard('Min Farms Threshold','configurable below',        'adjust to raise/lower sensitivity','', ''),
+    kpiCard('Outbreak Pests',     summary.totalOutbreakPests,  'species with multi-farm spikes', summary.totalOutbreakPests > 0 ? C.red   : '',
+      'Number of pest species that produced simultaneous spikes across two or more farms in any single week of the selected period.'),
+    kpiCard('Regional Outbreaks', summary.regionalOutbreaks,   '2+ farms same week',             summary.regionalOutbreaks  > 0 ? C.red   : '',
+      'Weeks where a single pest was found spiking on two or more farms at the same time — a pattern indicative of a landscape-level outbreak rather than a localised farm incident.'),
+    kpiCard('Peak Farm Count',    summary.peakFarmCount,       summary.peakPestName ?? '',       summary.peakFarmCount > 2      ? C.red   : C.amber,
+      'The highest number of farms that recorded a simultaneous spike for a single pest in any one week — the peak width of the worst outbreak detected.'),
+    kpiCard('Min Farms Threshold','configurable below',        'adjust to raise/lower sensitivity','',
+      'Minimum number of farms that must spike in the same week for the event to be classified as a regional outbreak. Increase this value to filter out smaller co-occurrences.'),
   ]) + `
 
   <!-- Controls -->

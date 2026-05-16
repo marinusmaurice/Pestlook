@@ -75,16 +75,21 @@ export async function renderForecast(el, data) {
   el.innerHTML = `
     <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Applies ordinary least-squares (OLS) linear regression to weekly observation totals to project pest populations up to 12 weeks ahead. Each forecast includes a 90% confidence interval and a <strong>breach probability</strong> — the share of projected weeks where the upper confidence bound crosses the configured action threshold. Combinations are ranked highest-risk first so you can act before a breach occurs.</div>
     ${kpiGrid([
-      kpiCard('Pests Tracked',   pestCount,  'species with forecast data'),
-      kpiCard('Fields Covered',  fieldCount, 'distinct fields with observations'),
+      kpiCard('Pests Tracked',   pestCount,  'species with forecast data', '',
+        'Number of distinct pest species for which at least one week of observation data exists, enabling a population trend projection.'),
+      kpiCard('Fields Covered',  fieldCount, 'distinct fields with observations', '',
+        'Total number of fields included in the forecast, each analysed independently per pest species.'),
       kpiCard('High Risk',       highRisk,
-        'fields with ≥ 60 % breach probability', highRisk > 0 ? C.red : ''),
+        'fields with ≥ 60 % breach probability', highRisk > 0 ? C.red : '',
+        'Pest × field combinations where the OLS projection shows a 60% or higher probability of exceeding the configured action threshold within the forecast horizon.'),
       fastest
         ? kpiCard('Fastest Rising',
             escapeHtml(fastest.pestName),
             `${escapeHtml(fastest.fieldName)} · ${Math.round(fastest.breachProbability * 100)}% breach risk`,
-            C.red)
-        : kpiCard('Fastest Rising', '—', 'no rising trends detected'),
+            C.red,
+            'The pest × field combination with the highest breach probability among all rising populations — the most urgent case requiring pre-emptive intervention.')
+        : kpiCard('Fastest Rising', '—', 'no rising trends detected', '',
+            'No pest populations are currently on a rising trajectory in the selected period.'),
     ])}
 
     <!-- Controls -->

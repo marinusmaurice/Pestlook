@@ -85,10 +85,14 @@ export async function renderNeighbourRisk(container, data, onRadiusChange) {
 
   // ── KPI row ──────────────────────────────────────────────────────────────
   container.innerHTML = '<div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Identifies fields where a pest <strong>breached its action threshold</strong> in the selected period, then finds all other fields within the configurable search radius. Neighbouring fields that have not been scouted in 7 or more days are flagged as unscouted risk — an intelligence gap next to an active infestation that needs immediate attention.</div>' + kpiGrid([
-    kpiCard('Breached Fields',   summary.breachedFields,    '',                                         '',      summary.breachedFields > 0 ? C.red : ''),
-    kpiCard('At-Risk Neighbours',summary.atRiskFields,      'within radius',                            '',      summary.atRiskFields > 0   ? C.amber : ''),
-    kpiCard('Unscouted Risk',    summary.unscoutedRiskFields,'neighbours not visited in 7+ days',       '',      summary.unscoutedRiskFields > 0 ? C.red : ''),
-    kpiCard('Search Radius',     radiusKm + ' km',          'configurable below',                       '',      C.blue ?? '#3b82f6'),
+    kpiCard('Breached Fields',    summary.breachedFields,     '',                                   summary.breachedFields > 0     ? C.red   : '',
+      'Fields where the observed pest count exceeded the configured action threshold at least once in the selected period.'),
+    kpiCard('At-Risk Neighbours', summary.atRiskFields,       'within radius',                      summary.atRiskFields > 0       ? C.amber : '',
+      'Unaffected fields that fall within the search radius of a breached field — they share proximity to an active infestation and need monitoring.'),
+    kpiCard('Unscouted Risk',     summary.unscoutedRiskFields,'neighbours not visited in 7+ days',  summary.unscoutedRiskFields > 0 ? C.red   : '',
+      'At-risk neighbour fields that have not had a completed scouting session in 7 or more days — an intelligence gap next to a live infestation.'),
+    kpiCard('Search Radius',      radiusKm + ' km',           'configurable below',                 C.blue ?? '#3b82f6',
+      'The radius used to identify neighbouring fields. Increase this value to catch more distant at-risk fields; reduce it for tighter cluster analysis.'),
   ]) + `
   <!-- Controls row -->
   <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:16px;">

@@ -27,19 +27,19 @@ export async function renderWeatherRisk(el, data) {
   const kpis = `
     <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Correlates the temperature recorded on scouting sessions with observed pest counts using Pearson correlation and OLS regression. A <strong>Positive</strong> influence means the pest is more active in warmer conditions; <strong>Negative</strong> means it favours cooler temperatures. The risk index projects each pest's expected count at the current average temperature and compares it to the configured action threshold.</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;">
-      <div class="card card-p" style="text-align:center;">
+      <div class="card card-p has-kpi-tip" style="text-align:center;" data-kpi-tip="Number of pest species for which Pearson correlation and OLS regression could be calculated from temperature-recorded scouting sessions.">
         <div style="font-size:1.8rem;font-weight:700;">${summary.totalPests ?? 0}</div>
         <div style="font-size:0.78rem;color:var(--text-dim);">Pests Analysed</div>
       </div>
-      <div class="card card-p" style="text-align:center;border-left:3px solid #c0392b;">
+      <div class="card card-p has-kpi-tip" style="text-align:center;border-left:3px solid #c0392b;" data-kpi-tip="Pest species where the projected count at the current average temperature equals or exceeds the configured action threshold — current conditions are conducive to a population breach.">
         <div style="font-size:1.8rem;font-weight:700;color:#c0392b;">${summary.highRisk ?? 0}</div>
         <div style="font-size:0.78rem;color:var(--text-dim);">High Risk</div>
       </div>
-      <div class="card card-p" style="text-align:center;border-left:3px solid var(--accent);">
+      <div class="card card-p has-kpi-tip" style="text-align:center;border-left:3px solid var(--accent);" data-kpi-tip="The average temperature recorded across all scouting sessions in the selected period, used to project pest counts using the regression model.">
         <div style="font-size:1.8rem;font-weight:700;">${summary.currentTempAvg ?? '—'}°C</div>
         <div style="font-size:0.78rem;color:var(--text-dim);">Current Avg Temp</div>
       </div>
-      <div class="card card-p" style="text-align:center;">
+      <div class="card card-p has-kpi-tip" style="text-align:center;" data-kpi-tip="Total number of individual session observations used to build the temperature regression models across all analysed pest species.">
         <div style="font-size:1.8rem;font-weight:700;">${summary.dataPoints ?? 0}</div>
         <div style="font-size:0.78rem;color:var(--text-dim);">Data Points</div>
       </div>

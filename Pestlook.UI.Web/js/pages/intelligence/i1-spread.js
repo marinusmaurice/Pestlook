@@ -76,16 +76,21 @@ export async function renderSpreadDirection(el, data, onPestChange) {
       Uses GPS-tagged scouting observations grouped into weekly centroids to visualise how each pest is moving across your fields. A <strong>spread vector</strong> is calculated from the earliest to the latest weekly centroid, giving a compass bearing and estimated velocity in new fields per week. Unaffected fields near the current spread front are highlighted as elevated-risk neighbours.
     </div>
     ${kpiGrid([
-      kpiCard('Pests Tracked', pestsWithVectors, 'species with spread data'),
-      kpiCard('Fields Affected', allFields.length, 'distinct fields with observations'),
+      kpiCard('Pests Tracked', pestsWithVectors, 'species with spread data', '',
+        'Number of pest species for which at least two weekly observation centroids exist, making it possible to compute a direction and velocity of spread.'),
+      kpiCard('Fields Affected', allFields.length, 'distinct fields with observations', '',
+        'Total number of distinct fields that recorded at least one observation for any tracked pest in the selected period.'),
       kpiCard('Neighbour Risk', totalNeighbourRisk,
-        'fields near active spread fronts', totalNeighbourRisk > 0 ? C.amber : ''),
+        'fields near active spread fronts', totalNeighbourRisk > 0 ? C.amber : '',
+        'Unaffected fields that lie directly in the projected spread path of a tracked pest. These fields are at elevated risk and should be prioritised for upcoming scouting visits.'),
       fastestSpreader
         ? kpiCard('Fastest Spreading',
             `${escapeHtml(fastestSpreader.pestName)} ${bearingArrow(fastestSpreader.bearingDeg)}`,
             `${fastestSpreader.velocityFieldsPerWeek} new fields/week · moving ${escapeHtml(fastestSpreader.bearingLabel)}`,
-            C.red)
-        : kpiCard('Fastest Spreading', '—', 'insufficient data'),
+            C.red,
+            'The pest species currently spreading into new fields at the highest rate, measured as new fields per week based on weekly observation centroid movement.')
+        : kpiCard('Fastest Spreading', '—', 'insufficient data', '',
+            'Requires at least two weeks of GPS-tagged observations to calculate a spread rate.'),
     ])}
 
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;">

@@ -27,8 +27,8 @@ export async function renderResistancePatterns(el, data) {
     return;
   }
 
-  const kpi = (label, value, colour, sub = '') => `
-    <div class="card card-p" style="flex:1;min-width:130px;">
+  const kpi = (label, value, colour, sub = '', tooltip = '') => `
+    <div class="card card-p${tooltip ? ' has-kpi-tip' : ''}" style="flex:1;min-width:130px;"${tooltip ? ` data-kpi-tip="${tooltip}"` : ''}>
       <div style="font-size:0.72rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;">${label}</div>
       <div style="font-size:1.7rem;font-weight:700;color:${colour};">${value}</div>
       ${sub ? `<div style="font-size:0.75rem;color:var(--text-dim);margin-top:3px;">${sub}</div>` : ''}
@@ -37,9 +37,9 @@ export async function renderResistancePatterns(el, data) {
   const kpis = `
     <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Flags field × pest combinations where threshold breaches have recurred across <strong>two or more calendar years</strong> without sustained improvement. A worsening breach rate year-on-year is a strong indicator that current control measures are losing effectiveness and that <strong>pesticide resistance testing</strong> or rotation of mode-of-action should be considered. No treatment records are required — the analysis is based entirely on observation counts and configured thresholds.</div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
-      ${kpi('Patterns Found',       summary.totalPatterns      ?? 0, 'var(--text)', `over ${summary.yearsAnalysed ?? '?'} years`)}
-      ${kpi('Likely Resistance',    summary.likelyResistance   ?? 0, '#c0392b',    '3+ breach years / worsening')}
-      ${kpi('Possible Resistance',  summary.possibleResistance ?? 0, '#e67e22',    '2 breach years')}
+      ${kpi('Patterns Found',       summary.totalPatterns      ?? 0, 'var(--text)', `over ${summary.yearsAnalysed ?? '?'} years`, 'Total pest × field combinations with threshold breaches recorded across two or more calendar years, indicating a persistent rather than one-off infestation.')}
+      ${kpi('Likely Resistance',    summary.likelyResistance   ?? 0, '#c0392b',    '3+ breach years / worsening', 'Combinations with breaches in three or more years and/or a worsening year-on-year breach rate — strong evidence that current treatments are losing effectiveness.')}
+      ${kpi('Possible Resistance',  summary.possibleResistance ?? 0, '#e67e22',    '2 breach years',              'Combinations with breaches recorded in exactly two different years — may indicate emerging resistance; review treatment rotation.')}
     </div>
     <div style="padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:0.75rem;color:var(--text-dim);margin-bottom:18px;">
       ℹ️ ${escapeHtml(summary.dataNote ?? '')}

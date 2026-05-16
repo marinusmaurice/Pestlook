@@ -32,8 +32,8 @@ export async function renderTreatmentEffectiveness(el, data) {
     return;
   }
 
-  const kpi = (label, value, colour, sub = '') => `
-    <div class="card card-p" style="flex:1;min-width:120px;">
+  const kpi = (label, value, colour, sub = '', tooltip = '') => `
+    <div class="card card-p${tooltip ? ' has-kpi-tip' : ''}" style="flex:1;min-width:120px;"${tooltip ? ` data-kpi-tip="${tooltip}"` : ''}>
       <div style="font-size:0.72rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;">${label}</div>
       <div style="font-size:1.7rem;font-weight:700;color:${colour};">${value}</div>
       ${sub ? `<div style="font-size:0.75rem;color:var(--text-dim);margin-top:3px;">${sub}</div>` : ''}
@@ -41,11 +41,11 @@ export async function renderTreatmentEffectiveness(el, data) {
 
   const kpis = `
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;">
-      ${kpi('Total Analysed',    summary.total        ?? 0, 'var(--text)')}
-      ${kpi('Effective',         summary.effective    ?? 0, '#27ae60', '≥50% reduction')}
-      ${kpi('Partially Effective', summary.partial    ?? 0, '#e67e22', '20–49% reduction')}
-      ${kpi('Ineffective',       summary.ineffective  ?? 0, '#c0392b', '<20% reduction')}
-      ${kpi('Insufficient Data', summary.insufficient ?? 0, '#7f8c8d', 'no follow-up sessions')}
+      ${kpi('Total Analysed',    summary.total        ?? 0, 'var(--text)', '',     'Total number of pest × field combinations evaluated — each combination must have at least one threshold breach with scouting sessions both before and after it.')}
+      ${kpi('Effective',         summary.effective    ?? 0, '#27ae60', '≥50% reduction',     'Combinations where post-breach average counts fell by 50% or more compared to pre-breach averages — suggesting the applied control was successful.')}
+      ${kpi('Partially Effective', summary.partial    ?? 0, '#e67e22', '20–49% reduction',   'Combinations showing a 20–49% reduction in pest counts after a breach — some improvement but the control may need to be repeated or strengthened.')}
+      ${kpi('Ineffective',       summary.ineffective  ?? 0, '#c0392b', '<20% reduction',     'Combinations where counts declined by less than 20% after a breach — the current treatment approach shows little to no measurable effect.')}
+      ${kpi('Insufficient Data', summary.insufficient ?? 0, '#7f8c8d', 'no follow-up sessions', 'Combinations where a breach was recorded but no scouting session followed within the measurement window, making effectiveness impossible to assess.')}
     </div>`;
 
   const rows = scores.map(s => {

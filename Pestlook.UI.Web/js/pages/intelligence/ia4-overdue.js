@@ -26,8 +26,8 @@ export async function renderOverdueAlerts(el, data) {
     return;
   }
 
-  const kpi = (label, value, colour, sub = '') => `
-    <div class="card card-p" style="flex:1;min-width:120px;">
+  const kpi = (label, value, colour, sub = '', tooltip = '') => `
+    <div class="card card-p${tooltip ? ' has-kpi-tip' : ''}" style="flex:1;min-width:120px;"${tooltip ? ` data-kpi-tip="${tooltip}"` : ''}>
       <div style="font-size:0.72rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;">${label}</div>
       <div style="font-size:1.7rem;font-weight:700;color:${colour};">${value}</div>
       ${sub ? `<div style="font-size:0.75rem;color:var(--text-dim);margin-top:3px;">${sub}</div>` : ''}
@@ -35,10 +35,10 @@ export async function renderOverdueAlerts(el, data) {
 
   const kpis = `
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;">
-      ${kpi('Total Overdue',  summary.total    ?? 0, '#c0392b')}
-      ${kpi('Critical',       summary.critical ?? 0, '#c0392b', 'severe breach, 48h window')}
-      ${kpi('High',           summary.high     ?? 0, '#e67e22', 'overdue >3 days')}
-      ${kpi('Medium',         summary.medium   ?? 0, '#f39c12', 'overdue <3 days')}
+      ${kpi('Total Overdue',  summary.total    ?? 0, '#c0392b', '',                    'Total threshold breach events that have not received a follow-up scouting visit within their required response window.')}
+      ${kpi('Critical',       summary.critical ?? 0, '#c0392b', 'severe breach, 48h window', 'Severe breaches — where the pest count reached 2× the threshold — that have not had a follow-up session within 48 hours. Highest priority.')}
+      ${kpi('High',           summary.high     ?? 0, '#e67e22', 'overdue >3 days',    'Standard threshold breaches that have been outstanding for more than 3 days without a follow-up scouting visit.')}
+      ${kpi('Medium',         summary.medium   ?? 0, '#f39c12', 'overdue <3 days',    'Standard threshold breaches overdue for less than 3 days — still within the early response window but action is required soon.')}
     </div>`;
 
   const rows = alerts.map(a => {

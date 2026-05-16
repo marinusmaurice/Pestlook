@@ -46,22 +46,22 @@ export async function renderDashboard(container) {
 
 function renderStats(farmCount, trapCount, enabledTrapCount, sessionCount, completedSessionCount, outstandingSessionCount, obsCount) {
   document.getElementById('dashStats').innerHTML = `
-    <div class="stat-card" style="--accent-color:rgba(109,222,132,0.08);">
+    <div class="stat-card has-kpi-tip" style="--accent-color:rgba(109,222,132,0.08);" data-kpi-tip="Total number of farms registered in your tenant. Each farm can contain multiple fields and trap locations.">
       <div class="stat-label">Active Farms</div>
       <div class="stat-value" style="color:var(--green);">${farmCount}</div>
       <div class="stat-delta">Across your tenant</div>
     </div>
-    <div class="stat-card" style="--accent-color:rgba(96,168,224,0.08);">
+    <div class="stat-card has-kpi-tip" style="--accent-color:rgba(96,168,224,0.08);" data-kpi-tip="Total traps configured across all farms. The sub-count shows how many are currently enabled and actively contributing to observations.">
       <div class="stat-label">Traps</div>
       <div class="stat-value" style="color:var(--blue);">${trapCount}</div>
       <div class="stat-delta">${enabledTrapCount} enabled</div>
     </div>
-    <div class="stat-card" style="--accent-color:rgba(240,168,64,0.08);">
+    <div class="stat-card has-kpi-tip" style="--accent-color:rgba(240,168,64,0.08);" data-kpi-tip="Total scouting sessions created in your tenant. Completed sessions have a recorded end time; outstanding sessions are still in progress or awaiting completion.">
       <div class="stat-label">Total Sessions</div>
       <div class="stat-value" style="color:var(--amber);">${sessionCount}</div>
       <div class="stat-delta"><span style="color:var(--green);">✓ ${completedSessionCount} completed</span> &nbsp;·&nbsp; <span style="color:var(--amber);">⏳ ${outstandingSessionCount} outstanding</span></div>
     </div>
-    <div class="stat-card" style="--accent-color:rgba(224,96,96,0.08);">
+    <div class="stat-card has-kpi-tip" style="--accent-color:rgba(224,96,96,0.08);" data-kpi-tip="Total pest observations recorded across all completed scouting sessions. Each observation represents a pest count recorded at a specific trap or field location.">
       <div class="stat-label">Observations</div>
       <div class="stat-value" style="color:var(--red);">${obsCount}</div>
       <div class="stat-delta">From completed sessions</div>

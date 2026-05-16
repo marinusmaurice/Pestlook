@@ -28,7 +28,7 @@ export async function renderScoutPriority(el, data) {
   }
 
   const kpi = (label, value, colour, sub = '', tooltip = '') => `
-    <div class="card card-p" style="flex:1;min-width:120px;cursor:default;" ${tooltip ? `title="${tooltip}"` : ''}>
+    <div class="card card-p${tooltip ? ' has-kpi-tip' : ''}" style="flex:1;min-width:120px;cursor:default;"${tooltip ? ` data-kpi-tip="${tooltip}"` : ''}>
       <div style="font-size:0.72rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;">${label}</div>
       <div style="font-size:1.7rem;font-weight:700;color:${colour};">${value}</div>
       ${sub ? `<div style="font-size:0.75rem;color:var(--text-dim);margin-top:3px;">${sub}</div>` : ''}

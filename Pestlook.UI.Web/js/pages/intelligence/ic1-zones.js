@@ -26,8 +26,8 @@ export async function renderContainmentZones(el, data) {
     return;
   }
 
-  const kpi = (label, value, colour, sub = '') => `
-    <div class="card card-p" style="flex:1;min-width:130px;">
+  const kpi = (label, value, colour, sub = '', tooltip = '') => `
+    <div class="card card-p${tooltip ? ' has-kpi-tip' : ''}" style="flex:1;min-width:130px;"${tooltip ? ` data-kpi-tip="${tooltip}"` : ''}>
       <div style="font-size:0.72rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;">${label}</div>
       <div style="font-size:1.7rem;font-weight:700;color:${colour};">${value}</div>
       ${sub ? `<div style="font-size:0.75rem;color:var(--text-dim);margin-top:3px;">${sub}</div>` : ''}
@@ -36,9 +36,9 @@ export async function renderContainmentZones(el, data) {
   const kpis = `
     <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Computes a spread vector (compass bearing and weekly velocity) for each pest from weekly GPS centroids, then identifies unaffected farms within <strong>±60° of the spread bearing</strong> and twice the weekly spread distance. These farms form the recommended <strong>containment perimeter</strong> — the most likely next targets if the outbreak continues unchecked. Farms directly in the spread path are flagged High; nearby off-axis farms are flagged Monitor.</div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;">
-      ${kpi('Pests Spreading',    summary.pestsWithVector   ?? 0, 'var(--text)',  'with measurable vector')}
-      ${kpi('Perimeter Zones',    summary.fieldsInPerimeter ?? 0, '#c0392b',     'farms directly in spread path')}
-      ${kpi('Inside Zone',        summary.totalInsideZone   ?? 0, '#e67e22',     'fields already affected')}
+      ${kpi('Pests Spreading',    summary.pestsWithVector   ?? 0, 'var(--text)',  'with measurable vector',     'Number of pest species for which a directional spread vector could be computed from at least two weeks of GPS-tagged observations.')}
+      ${kpi('Perimeter Zones',    summary.fieldsInPerimeter ?? 0, '#c0392b',     'farms directly in spread path', 'Unaffected farms that fall within ±60° of the spread bearing and within twice the weekly spread distance — the most likely next targets of the outbreak.')}
+      ${kpi('Inside Zone',        summary.totalInsideZone   ?? 0, '#e67e22',     'fields already affected',     'Fields that have already recorded observations for the spreading pest — the current extent of the infestation.')}
     </div>`;
 
   const rows = pests.map(p => {

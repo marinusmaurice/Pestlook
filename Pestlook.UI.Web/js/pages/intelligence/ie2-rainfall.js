@@ -24,8 +24,8 @@ export async function renderRainfallLag(el, data) {
     return;
   }
 
-  const kpi = (label, value, colour, sub = '') => `
-    <div class="card card-p" style="flex:1;min-width:130px;">
+  const kpi = (label, value, colour, sub = '', tooltip = '') => `
+    <div class="card card-p${tooltip ? ' has-kpi-tip' : ''}" style="flex:1;min-width:130px;"${tooltip ? ` data-kpi-tip="${tooltip}"` : ''}>
       <div style="font-size:0.72rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;">${label}</div>
       <div style="font-size:1.7rem;font-weight:700;color:${colour};">${value}</div>
       ${sub ? `<div style="font-size:0.75rem;color:var(--text-dim);margin-top:3px;">${sub}</div>` : ''}
@@ -34,10 +34,10 @@ export async function renderRainfallLag(el, data) {
   const kpis = `
     <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Detects <strong>wet events</strong> — weeks where the average session temperature dropped 3°C or more below the 4-week rolling average (a proxy for rainfall in the absence of a live weather feed) — then checks whether pest populations spiked in the 1–3 weeks following each event. A strong lag signal indicates the pest consistently responds to wet conditions within that window, allowing pre-emptive treatment planning.</div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
-      ${kpi('Wet Events Detected', summary.wetEventsFound  ?? 0, 'var(--accent)', 'temp-drop proxy')}
-      ${kpi('Pests Analysed',      summary.pestsAnalysed  ?? 0, 'var(--text)',   'with lag check')}
-      ${kpi('Strong Lag Signal',   summary.strongLag      ?? 0, '#c0392b',       '≥3 events with spike')}
-      ${kpi('Moderate Lag Signal', summary.moderateLag    ?? 0, '#e67e22',       '≥2 events with spike')}
+      ${kpi('Wet Events Detected', summary.wetEventsFound  ?? 0, 'var(--accent)', 'temp-drop proxy',          'Weeks where session temperature dropped 3°C or more below the 4-week rolling average, used as a proxy for significant rainfall in the absence of a live weather feed.')}
+      ${kpi('Pests Analysed',      summary.pestsAnalysed  ?? 0, 'var(--text)',   'with lag check',            'Number of pest species checked for a population spike in the 1–3 weeks following each detected wet event.')}
+      ${kpi('Strong Lag Signal',   summary.strongLag      ?? 0, '#c0392b',       '≥3 events with spike',   'Pests that spiked consistently after 3 or more wet events — a reliable rainfall-driven population trigger. Plan pre-emptive treatment ahead of wet weather for these species.')}
+      ${kpi('Moderate Lag Signal', summary.moderateLag    ?? 0, '#e67e22',       '≥2 events with spike',   'Pests that showed a spike following at least 2 wet events — a moderate indicator of rainfall sensitivity worth monitoring.')}
     </div>
     <div style="padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:0.75rem;color:var(--text-dim);margin-bottom:18px;">
       ℹ️ ${escapeHtml(summary.dataNote ?? '')}

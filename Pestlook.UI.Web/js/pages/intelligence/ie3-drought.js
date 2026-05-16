@@ -25,8 +25,8 @@ export async function renderDroughtStress(el, data) {
     return;
   }
 
-  const kpi = (label, value, colour, sub = '') => `
-    <div class="card card-p" style="flex:1;min-width:130px;">
+  const kpi = (label, value, colour, sub = '', tooltip = '') => `
+    <div class="card card-p${tooltip ? ' has-kpi-tip' : ''}" style="flex:1;min-width:130px;"${tooltip ? ` data-kpi-tip="${tooltip}"` : ''}>
       <div style="font-size:0.72rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;">${label}</div>
       <div style="font-size:1.7rem;font-weight:700;color:${colour};">${value}</div>
       ${sub ? `<div style="font-size:0.75rem;color:var(--text-dim);margin-top:3px;">${sub}</div>` : ''}
@@ -35,10 +35,10 @@ export async function renderDroughtStress(el, data) {
   const kpis = `
     <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Classifies each scouting date as a <strong>drought day</strong> when the 30-day rolling average session temperature exceeded the long-term mean by 2°C or more, then compares threshold breach rates during drought versus normal periods for each pest. A strong drought-stress link means the pest breaches significantly more often in hot, dry conditions — useful for scheduling pre-emptive interventions ahead of predicted heatwaves.</div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
-      ${kpi('Drought Days',      summary.droughtDays    ?? 0, '#c0392b',     `>${summary.droughtThreshold ?? '—'}°C avg`)}
-      ${kpi('Normal Days',       summary.normalDays     ?? 0, '#27ae60',     'within long-term mean')}
-      ${kpi('Long-Term Mean',    (summary.longTermMeanTemp ?? '—') + '°C', 'var(--accent)', 'session temperature avg')}
-      ${kpi('Drought-Stressed',  summary.droughtStress  ?? 0, '#e67e22',     `of ${summary.pestsAnalysed ?? 0} pests`)}
+      ${kpi('Drought Days',      summary.droughtDays    ?? 0, '#c0392b',     `>${summary.droughtThreshold ?? '—'}°C avg`, 'Days where the 30-day rolling average session temperature exceeded the long-term mean by 2°C or more, classified as drought-stress conditions.')}
+      ${kpi('Normal Days',       summary.normalDays     ?? 0, '#27ae60',     'within long-term mean',       'Days with average temperatures within the normal range — used as the baseline to compare pest breach rates against drought conditions.')}
+      ${kpi('Long-Term Mean',    (summary.longTermMeanTemp ?? '—') + '°C', 'var(--accent)', 'session temperature avg', 'The average temperature across all scouting sessions in the full dataset, used as the baseline reference to classify drought vs normal days.')}
+      ${kpi('Drought-Stressed',  summary.droughtStress  ?? 0, '#e67e22',     `of ${summary.pestsAnalysed ?? 0} pests`, 'Pest species that show a significantly higher threshold breach rate during drought-classified days compared to normal days — indicating heat/drought amplifies their activity.')}
     </div>
     <div style="padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:0.75rem;color:var(--text-dim);margin-bottom:18px;">
       ℹ️ ${escapeHtml(summary.dataNote ?? '')}

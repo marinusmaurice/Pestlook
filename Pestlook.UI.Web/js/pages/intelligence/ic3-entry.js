@@ -29,8 +29,8 @@ export async function renderEntryPointAnalysis(el, data) {
     return;
   }
 
-  const kpi = (label, value, colour, sub = '') => `
-    <div class="card card-p" style="flex:1;min-width:130px;">
+  const kpi = (label, value, colour, sub = '', tooltip = '') => `
+    <div class="card card-p${tooltip ? ' has-kpi-tip' : ''}" style="flex:1;min-width:130px;"${tooltip ? ` data-kpi-tip="${tooltip}"` : ''}>
       <div style="font-size:0.72rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;">${label}</div>
       <div style="font-size:1.7rem;font-weight:700;color:${colour};">${value}</div>
       ${sub ? `<div style="font-size:0.75rem;color:var(--text-dim);margin-top:3px;">${sub}</div>` : ''}
@@ -39,10 +39,10 @@ export async function renderEntryPointAnalysis(el, data) {
   const kpis = `
     <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Identifies the most likely <strong>entry point</strong> for each pest outbreak by locating the field with the earliest detection and measuring how far its farm sits from the centroid of all your farms. Farms on the <strong>perimeter</strong> of your cluster are the most probable entry points for introductions from outside (boundary vectors, road sides, irrigation channels). <strong>Central</strong> entries suggest internal spread via shared equipment, workers, or plant material.</div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
-      ${kpi('Pests Analysed',      summary.pestsAnalysed     ?? 0, 'var(--text)',  'with origin detected')}
-      ${kpi('Peripheral Entries',  summary.peripheralEntries ?? 0, '#c0392b',     'border / perimeter farms')}
-      ${kpi('Central Entries',     summary.centralEntries    ?? 0, '#2980b9',     'within farm cluster')}
-      ${kpi('GPS Not Set',         summary.unknownGps        ?? 0, '#7f8c8d',     'farms need coordinates')}
+      ${kpi('Pests Analysed',      summary.pestsAnalysed     ?? 0, 'var(--text)',  'with origin detected',       'Number of pest species with at least two fields in the observation record, enabling an entry point and spread chain to be determined.')}
+      ${kpi('Peripheral Entries',  summary.peripheralEntries ?? 0, '#c0392b',     'border / perimeter farms',   'Outbreaks that originated in farms on the geographic perimeter of your cluster — most likely introduced from outside via bordering fields, roads, or waterways.')}
+      ${kpi('Central Entries',     summary.centralEntries    ?? 0, '#2980b9',     'within farm cluster',        'Outbreaks that started within the geographic centre of your farms — suggesting internal spread via shared equipment, workers, or plant material rather than external introduction.')}
+      ${kpi('GPS Not Set',         summary.unknownGps        ?? 0, '#7f8c8d',     'farms need coordinates',     'Pests whose origin farm has no GPS coordinates set, making peripheral vs central classification impossible. Set farm lat/lng on the Farms page to resolve.')}
     </div>
     <div style="padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:0.75rem;color:var(--text-dim);margin-bottom:18px;">
       ℹ️ ${escapeHtml(summary.dataNote ?? '')}

@@ -26,8 +26,8 @@ export async function renderUnderscoutedZones(el, data) {
     return;
   }
 
-  const kpi = (label, value, colour, sub = '') => `
-    <div class="card card-p" style="flex:1;min-width:130px;">
+  const kpi = (label, value, colour, sub = '', tooltip = '') => `
+    <div class="card card-p${tooltip ? ' has-kpi-tip' : ''}" style="flex:1;min-width:130px;"${tooltip ? ` data-kpi-tip="${tooltip}"` : ''}>
       <div style="font-size:0.72rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;">${label}</div>
       <div style="font-size:1.7rem;font-weight:700;color:${colour};">${value}</div>
       ${sub ? `<div style="font-size:0.75rem;color:var(--text-dim);margin-top:3px;">${sub}</div>` : ''}
@@ -35,10 +35,10 @@ export async function renderUnderscoutedZones(el, data) {
 
   const kpis = `
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;">
-      ${kpi('Under-scouted',       summary.totalUnderScouted  ?? 0, '#e67e22', '<50% coverage this month')}
-      ${kpi('Critical Blind Spots', summary.criticalBlindSpots ?? 0, '#c0392b', 'low coverage + high pressure')}
-      ${kpi('High Risk',            summary.highRisk           ?? 0, '#e67e22', 'low coverage + some pressure')}
-      ${kpi('Low Risk',             summary.low                ?? 0, '#7f8c8d', 'low coverage, low pressure')}
+      ${kpi('Under-scouted',        summary.totalUnderScouted  ?? 0, '#e67e22', '<50% coverage this month', 'Fields that received fewer than half of their target scouting sessions this month — meaning key pest data may be missing.')}
+      ${kpi('Critical Blind Spots', summary.criticalBlindSpots ?? 0, '#c0392b', 'low coverage + high pressure', 'Fields with both low scouting coverage and documented high pest pressure — the most dangerous intelligence gaps in your programme.')}
+      ${kpi('High Risk',             summary.highRisk           ?? 0, '#e67e22', 'low coverage + some pressure', 'Under-scouted fields with moderate pest pressure — elevated risk of a missed threshold breach.')}
+      ${kpi('Low Risk',              summary.low                ?? 0, '#7f8c8d', 'low coverage, low pressure',  'Under-scouted fields with currently low pest pressure — monitor but not immediately critical.')}
     </div>`;
 
   const rows = zones.map(z => {
