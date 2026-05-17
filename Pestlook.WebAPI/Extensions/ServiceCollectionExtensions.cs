@@ -11,6 +11,7 @@ using Pestlook.WebAPI.Domain.Entities;
 using Pestlook.WebAPI.Infrastructure;
 using Pestlook.WebAPI.Infrastructure.Services;
 using Pestlook.WebAPI.Infrastructure.Services.Interfaces;
+using Pestlook.WebAPI.Infrastructure.Services.Interfaces;
 using Pestlook.WebAPI.OpenApi;
 using Pestlook.WebAPI.Options;
 using Pestlook.WebAPI.Validators;
@@ -148,6 +149,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IPhotoStorageService, PhotoStorageService>();
 
         return services;
     }

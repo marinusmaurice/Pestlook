@@ -17,6 +17,7 @@ builder.Host.AddSerilog(builder.Configuration);
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.Configure<CorsSettings>(builder.Configuration.GetSection(CorsSettings.SectionName));
 builder.Services.Configure<RateLimitSettings>(builder.Configuration.GetSection(RateLimitSettings.SectionName));
+builder.Services.Configure<PhotoStorageOptions>(builder.Configuration.GetSection(PhotoStorageOptions.SectionName));
 
 // ── Infrastructure ────────────────────────────────────────────────────────────
 builder.Services.AddDatabase(builder.Configuration);
@@ -61,6 +62,23 @@ app.UseStaticFiles(new StaticFileOptions
     OnPrepareResponse = ctx =>
     {
         ctx.Context.Response.Headers["Cache-Control"] = "no-store";
+    }
+});
+
+// ── Serve observation photos from disk ───────────────────────────────────────
+var photoOpts = app.Configuration.GetSection(PhotoStorageOptions.SectionName).Get<PhotoStorageOptions>()
+    ?? new PhotoStorageOptions();
+var photoRoot = Path.IsPathRooted(photoOpts.RootPath)
+    ? photoOpts.RootPath
+    : Path.Combine(app.Environment.ContentRootPath, photoOpts.RootPath);
+Directory.CreateDirectory(photoRoot);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider    = new PhysicalFileProvider(photoRoot),
+    RequestPath     = photoOpts.RequestPath,
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers["Cache-Control"] = "public, max-age=86400";
     }
 });
 
