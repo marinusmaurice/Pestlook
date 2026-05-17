@@ -47,7 +47,7 @@ export async function renderSessions(container) {
   // Lock the content-area scroll so only the grid scrolls internally
   const prevCssText = container.style.cssText;
   container._cleanup = () => { container.style.cssText = prevCssText; };
-  container.style.cssText = 'display:flex;flex-direction:column;overflow:hidden;height:100%;';
+  container.style.cssText = 'display:flex;flex-direction:column;overflow:hidden;flex:1;min-height:0;padding:20px 28px;';
 
   container.innerHTML = `
     <div class="section-head" style="margin-bottom:16px;flex-shrink:0;">
@@ -57,7 +57,7 @@ export async function renderSessions(container) {
       </div>
       <button class="btn-primary" id="planSessionBtn">＋ Plan Session</button>
     </div>
-    <div class="card" id="sessionsTableCard" style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;">
+    <div class="card" id="sessionsTableCard" style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;transform:none;transition:none;">
       <div id="sessionsFilterBar" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);">
         <input type="text" id="sessSearch" class="input-field"
           placeholder="Search scout, farm or field…"

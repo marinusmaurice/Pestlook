@@ -148,39 +148,94 @@ function renderDetail(session, container, params) {
   if (mapBtn) mapBtn.addEventListener('click', () => showScoutingMapModal(session, observations));
 }
 
+// ── Obs table sort/search state (module-level so re-renders preserve it) ─────
+let _obsSort = { by: null, desc: false };
+let _obsSearch = '';
+let _obsTableArgs = null; // cached for re-render on sort/search change
+
 function renderObsTable(observations, session, container, params, canEdit, isCompleted) {
+  // Reset state on a fresh (non-sort/search-triggered) render
+  _obsSort   = { by: null, desc: false };
+  _obsSearch = '';
+  _obsTableArgs = { observations, session, container, params, canEdit, isCompleted };
+  _renderObsTableInner();
+}
+
+function _renderObsTableInner() {
+  const { observations, session, container, params, canEdit, isCompleted } = _obsTableArgs;
   const wrap = document.getElementById('obsTableWrap');
+  if (!wrap) return;
+
   if (observations.length === 0) {
     wrap.innerHTML = '<div style="text-align:center;padding:30px;font-size:0.85rem;color:var(--text-dim);">No observation items yet.</div>';
     return;
   }
 
-  // Sort by observedAt ascending (same ordering as the scouting map) for consistent numbering
-  const sorted = [...observations].sort((a, b) => {
+  // ── Filter ────────────────────────────────────────────────────────────────
+  const q = _obsSearch.toLowerCase();
+  let items = observations.filter(o => {
+    if (!q) return true;
+    const pest = (o.pestName || (o.isUnknownPest ? 'unknown pest' : '')).toLowerCase();
+    const trap = (o.trapName || '').toLowerCase();
+    const notes = (o.notes || '').toLowerCase();
+    return pest.includes(q) || trap.includes(q) || notes.includes(q);
+  });
+
+  // ── Base sort: chronological (for stable # numbering) ─────────────────────
+  items = [...items].sort((a, b) => {
     if (a.observedAt && b.observedAt) return new Date(a.observedAt) - new Date(b.observedAt);
     if (a.observedAt) return -1;
     if (b.observedAt) return 1;
     return 0;
   });
 
+  // ── Column sort ───────────────────────────────────────────────────────────
+  if (_obsSort.by) {
+    items.sort((a, b) => {
+      let av, bv;
+      switch (_obsSort.by) {
+        case 'type':  av = a.observationType ?? ''; bv = b.observationType ?? ''; break;
+        case 'trap':  av = (a.trapName  || '').toLowerCase(); bv = (b.trapName  || '').toLowerCase(); break;
+        case 'pest':  av = (a.pestName  || '').toLowerCase(); bv = (b.pestName  || '').toLowerCase(); break;
+        case 'count': av = a.count      ?? -1;      bv = b.count      ?? -1; break;
+        case 'thr':   av = a.thresholdCount ?? -1;  bv = b.thresholdCount ?? -1; break;
+        case 'date':  av = a.observedAt ? new Date(a.observedAt).getTime() : 0;
+                      bv = b.observedAt ? new Date(b.observedAt).getTime() : 0; break;
+        default: return 0;
+      }
+      if (av < bv) return _obsSort.desc ? 1 : -1;
+      if (av > bv) return _obsSort.desc ? -1 : 1;
+      return 0;
+    });
+  }
+
+  // ── th helper ─────────────────────────────────────────────────────────────
+  function obsThBtn(label, key) {
+    const active = _obsSort.by === key;
+    const arrow  = active ? (_obsSort.desc ? ' ▼' : ' ▲') : '';
+    return `<th style="cursor:pointer;user-select:none;white-space:nowrap;" data-sort="${key}">${label}${arrow}</th>`;
+  }
+
+  // ── Rows ──────────────────────────────────────────────────────────────────
   let rows = '';
-  sorted.forEach((o, idx) => {
-    const rowNum = idx + 1;
-    const isTrap = o.observationType === 'Trap' || o.observationType === 0;
-    const typeTag = isTrap ? tag('🕸️ Trap', 'green') : tag('👁 AdHoc', 'amber');
-    const plannedTag = o.isPlanned ? tag('Planned', 'blue') : tag('Unplanned', 'gray');
-    const trapName = o.trapName ? escapeHtml(o.trapName) : '—';
-    const pestName = o.pestName ? escapeHtml(o.pestName) : (o.isUnknownPest ? '<em>Unknown pest</em>' : '—');
-    const mode = o.captureMode || '—';
-    const countVal = o.count != null ? o.count : '—';
+  items.forEach((o, idx) => {
+    const rowNum   = idx + 1;
+    const isTrap   = o.observationType === 'Trap' || o.observationType === 0;
+    const typeTag  = isTrap ? tag('🕸️ Trap', 'green') : tag('👁 AdHoc', 'amber');
+    const plannedTag  = o.isPlanned ? tag('Planned', 'blue') : tag('Unplanned', 'gray');
+    const trapName    = o.trapName ? escapeHtml(o.trapName) : '—';
+    const pestName    = o.pestName ? escapeHtml(o.pestName) : (o.isUnknownPest ? '<em>Unknown pest</em>' : '—');
+    const mode        = o.captureMode || '—';
+    const countVal    = o.count        != null ? o.count        : '—';
     const thresholdVal = o.thresholdCount != null ? o.thresholdCount : '—';
-    const presentVal = o.isPresent != null ? (o.isPresent ? '✓ Yes' : '✗ No') : '—';
-    const lifeStage = o.lifeStage || '—';
-    const coords = (o.latitude != null && o.longitude != null) ? `${Number(o.latitude).toFixed(4)}, ${Number(o.longitude).toFixed(4)}` : '—';
-    const notes = o.notes ? escapeHtml(o.notes) : '';
-    const createdBy = o.createdByName ? escapeHtml(o.createdByName) : '—';
-    const updatedBy = o.updatedByName ? escapeHtml(o.updatedByName) : '—';
-    const observedAt = o.observedAt ? formatDateTime(o.observedAt) : '—';
+    const presentVal  = o.isPresent    != null ? (o.isPresent ? '✓ Yes' : '✗ No') : '—';
+    const lifeStage   = o.lifeStage    || '—';
+    const coords      = (o.latitude != null && o.longitude != null)
+      ? `${Number(o.latitude).toFixed(4)}, ${Number(o.longitude).toFixed(4)}` : '—';
+    const notes       = o.notes ? escapeHtml(o.notes) : '';
+    const createdBy   = o.createdByName ? escapeHtml(o.createdByName) : '—';
+    const updatedBy   = o.updatedByName ? escapeHtml(o.updatedByName) : '—';
+    const observedAt  = o.observedAt ? formatDateTime(o.observedAt) : '—';
 
     let actions = '';
     if (canEdit) {
@@ -212,18 +267,54 @@ function renderObsTable(observations, session, container, params, canEdit, isCom
     `;
   });
 
+  // ── Shell: filter bar + fixed-height scroll area ──────────────────────────
   wrap.innerHTML = `
-    <div style="overflow-x:auto;">
-      <table class="data-table">
-        <thead><tr>
-          <th style="width:1%;text-align:center;">#</th><th>Type</th><th>Trap</th><th>Pest</th><th>Mode</th>
-          <th>Count</th><th>Threshold</th><th>Present</th><th>Stage</th><th>Coords</th><th>Notes</th>${isCompleted ? '<th>Observed At</th>' : ''}<th>Created by</th><th>Updated by</th><th style="width:1%;white-space:nowrap;"></th>
-        </tr></thead>
+    <div style="display:flex;gap:8px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--border);">
+      <input type="text" id="obsTableSearch" class="input-field"
+        placeholder="Search pest, trap or notes…"
+        value="${escapeHtml(_obsSearch)}"
+        style="margin:0;flex:1;min-width:140px;max-width:260px;padding:5px 10px;font-size:0.78rem;" />
+      <span style="font-size:0.75rem;color:var(--text-dim);white-space:nowrap;">${items.length} of ${observations.length}</span>
+    </div>
+    <div style="overflow-x:auto;overflow-y:auto;height:calc(100vh - 440px);min-height:160px;">
+      <table class="data-table" style="width:100%;min-width:860px;">
+        <thead style="position:sticky;top:0;z-index:1;background:var(--surface);">
+          <tr>
+            <th style="width:1%;text-align:center;">#</th>
+            ${obsThBtn('Type',      'type')}
+            ${obsThBtn('Trap',      'trap')}
+            ${obsThBtn('Pest',      'pest')}
+            <th>Mode</th>
+            ${obsThBtn('Count',     'count')}
+            ${obsThBtn('Threshold', 'thr')}
+            <th>Present</th><th>Stage</th><th>Coords</th><th>Notes</th>
+            ${isCompleted ? obsThBtn('Observed At', 'date') : ''}
+            <th>Created by</th><th>Updated by</th>
+            <th style="width:1%;white-space:nowrap;"></th>
+          </tr>
+        </thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
   `;
 
+  // ── Search (immediate — all in-memory) ────────────────────────────────────
+  document.getElementById('obsTableSearch')?.addEventListener('input', e => {
+    _obsSearch = e.target.value;
+    _renderObsTableInner();
+  });
+
+  // ── Sort click handlers ───────────────────────────────────────────────────
+  wrap.querySelectorAll('th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => {
+      const key = th.dataset.sort;
+      if (_obsSort.by === key) _obsSort.desc = !_obsSort.desc;
+      else { _obsSort.by = key; _obsSort.desc = true; }
+      _renderObsTableInner();
+    });
+  });
+
+  // ── Edit / delete handlers ────────────────────────────────────────────────
   wrap.querySelectorAll('[data-edit-obs]').forEach(btn => {
     btn.addEventListener('click', () => {
       const obs = observations.find(o => o.id === btn.dataset.editObs);
