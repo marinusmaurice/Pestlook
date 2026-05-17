@@ -185,10 +185,13 @@
             <!-- Photos -->
             <div class="sl" style="display:flex;align-items:center;justify-content:space-between;">
                 <span>Photos (@photos.Count)</span>
-                <div style="display:flex;gap:6px;margin-right:10px;">
-                    <button class="bo" style="padding:4px 10px;font-size:11px;" @onclick="TakePhoto" disabled="@photoAdding">📷 Camera</button>
-                    <button class="bo" style="padding:4px 10px;font-size:11px;" @onclick="PickPhoto" disabled="@photoAdding">🖼 Gallery</button>
-                </div>
+                @if (sessionStatus == SessionStatus.Active)
+                {
+                    <div style="display:flex;gap:6px;margin-right:10px;">
+                        <button class="bo" style="padding:4px 10px;font-size:11px;" @onclick="TakePhoto" disabled="@photoAdding">📷 Camera</button>
+                        <button class="bo" style="padding:4px 10px;font-size:11px;" @onclick="PickPhoto" disabled="@photoAdding">🖼 Gallery</button>
+                    </div>
+                }
             </div>
             @if (!string.IsNullOrEmpty(photoError))
             {
