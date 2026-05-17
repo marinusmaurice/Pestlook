@@ -98,6 +98,9 @@ public class LocalObservationPhoto
     public string LocalFilePath { get; set; } = "";
     public string? RemoteUrl { get; set; }
     public DateTime? UploadedAt { get; set; }
+    /// <summary>True when the photo was already uploaded but the scout deleted it locally.
+    /// On the next sync the server copy will be deleted then this row removed.</summary>
+    public bool IsDeletePending { get; set; }
 }
 
 // ── Cached Pest ──────────────────────────────────────────────

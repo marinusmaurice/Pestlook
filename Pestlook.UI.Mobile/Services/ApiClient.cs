@@ -210,6 +210,54 @@ public class ApiClient
     public async Task DeleteObservationAsync(Guid sessionId, Guid obsId)
         => await SendAsync(HttpMethod.Delete, $"scouting-sessions/{sessionId}/observations/{obsId}");
 
+    // ── Observation Photos ─────────────────────────────────────
+    /// <summary>Uploads one or more local photo files as multipart/form-data.</summary>
+    public async Task<ApiResult<List<string>>> UploadObservationPhotosAsync(
+        Guid sessionId, Guid observationId, IEnumerable<string> localFilePaths)
+    {
+        await EnsureTokenAsync();
+        using var content = new MultipartFormDataContent();
+        var added = 0;
+        foreach (var path in localFilePaths)
+        {
+            if (!File.Exists(path)) continue;
+            var stream    = File.OpenRead(path);
+            var fileName  = Path.GetFileName(path);
+            var fileContent = new StreamContent(stream);
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(
+                Path.GetExtension(path).ToLowerInvariant() switch
+                {
+                    ".png"  => "image/png",
+                    ".webp" => "image/webp",
+                    ".heic" => "image/heic",
+                    _       => "image/jpeg"
+                });
+            content.Add(fileContent, "files", fileName);
+            added++;
+        }
+        if (added == 0)
+            return new ApiResult<List<string>> { Success = true, Data = [] };
+
+        var req = new HttpRequestMessage(
+            HttpMethod.Post,
+            $"scouting-sessions/{sessionId}/observations/{observationId}/photos")
+        {
+            Content = content
+        };
+        AddHeaders(req, auth: true);
+        return await SendAndParse<List<string>>(req);
+    }
+
+    /// <summary>Tells the server to delete a previously uploaded photo.</summary>
+    public Task<ApiResult<List<string>>> DeleteObservationPhotoAsync(
+        Guid sessionId, Guid observationId, string remoteUrl)
+    {
+        var encoded = Uri.EscapeDataString(remoteUrl);
+        return SendAsync<List<string>>(
+            HttpMethod.Delete,
+            $"scouting-sessions/{sessionId}/observations/{observationId}/photos?url={encoded}");
+    }
+
     // ── HTTP helpers ──────────────────────────────────────────
     private async Task<ApiResult<T>> GetAsync<T>(string path, bool auth = true)
     {
@@ -258,6 +306,14 @@ public class ApiClient
         var req = new HttpRequestMessage(method, path);
         AddHeaders(req, auth);
         await _http.SendAsync(req);
+    }
+
+    private async Task<ApiResult<T>> SendAsync<T>(HttpMethod method, string path, bool auth = true)
+    {
+        if (auth) await EnsureTokenAsync();
+        var req = new HttpRequestMessage(method, path);
+        AddHeaders(req, auth);
+        return await SendAndParse<T>(req);
     }
 
     private void AddHeaders(HttpRequestMessage req, bool auth)

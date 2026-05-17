@@ -40,9 +40,12 @@ public class SyncService
             await SyncDownReferenceDataAsync();
             await PullPlannedSessionsAsync();
 
-            // ── Phase 2: Sync UP ──────────────────────────────────────
+            // ── Phase 2: Sync UP — observations ──────────────────────
             await PushAdHocSessionsAsync();
             await PushPlannedObservationsAsync();
+
+            // ── Phase 3: Sync UP — photos ─────────────────────────────
+            await PushPendingPhotosAsync();
 
             OnCompleted?.Invoke();
         }
@@ -377,6 +380,83 @@ public class SyncService
                 session.Status   = SessionStatus.Synced;
                 session.SyncedAt = DateTime.Now;
                 await _db.SaveSessionAsync(session);
+            }
+        }
+    }
+
+    // ── Phase 3: push pending photos ─────────────────────────────────────────
+
+    private async Task PushPendingPhotosAsync()
+    {
+        // 3a — delete photos that were removed locally after having been uploaded
+        var deletePending = await _db.GetDeletePendingPhotosAsync();
+        foreach (var photo in deletePending)
+        {
+            if (string.IsNullOrEmpty(photo.RemoteUrl)) { await _db.DeletePhotoAsync(photo.Id); continue; }
+
+            // Find the parent observation to get sessionId / remoteObsId
+            var obs = await _db.GetObservationAsync(photo.ObservationId);
+            if (obs is null) { await _db.DeletePhotoAsync(photo.Id); continue; }
+
+            if (Guid.TryParse(obs.RemoteId, out var remoteObsId) &&
+                Guid.TryParse(obs.SessionId, out var remoteSessionId))
+            {
+                var res = await _api.DeleteObservationPhotoAsync(remoteSessionId, remoteObsId, photo.RemoteUrl);
+                if (res.Success)
+                {
+                    PhotoService.DeleteLocalFile(photo.LocalFilePath);
+                    await _db.DeletePhotoAsync(photo.Id);
+                }
+                else
+                {
+                    OnError?.Invoke($"Photo delete failed: {res.Message ?? "Server error"}");
+                }
+            }
+            else
+            {
+                // No remote observation — just clean up locally
+                PhotoService.DeleteLocalFile(photo.LocalFilePath);
+                await _db.DeletePhotoAsync(photo.Id);
+            }
+        }
+
+        // 3b — upload photos that haven't been uploaded yet
+        // We need all observations that have a RemoteId (so we know the server ID to POST to)
+        var sessions = await _db.GetSessionsAsync();
+        foreach (var session in sessions)
+        {
+            if (string.IsNullOrEmpty(session.RemoteId)) continue;
+            if (!Guid.TryParse(session.RemoteId, out var remoteSessionId)) continue;
+
+            var observations = await _db.GetObservationsForSessionAsync(session.Id);
+            foreach (var obs in observations)
+            {
+                if (string.IsNullOrEmpty(obs.RemoteId)) continue;
+                if (!Guid.TryParse(obs.RemoteId, out var remoteObsId)) continue;
+
+                var unuploaded = await _db.GetUnuploadedPhotosForObservationAsync(obs.Id);
+                if (unuploaded.Count == 0) continue;
+
+                OnProgress?.Invoke($"↑ Uploading {unuploaded.Count} photo(s) for observation...");
+                var paths = unuploaded.Select(p => p.LocalFilePath).ToList();
+                var res   = await _api.UploadObservationPhotosAsync(remoteSessionId, remoteObsId, paths);
+
+                if (res.Success && res.Data is not null)
+                {
+                    // Server returns the full list of URLs; the new ones are appended at the end
+                    var newUrls = res.Data.TakeLast(unuploaded.Count).ToList();
+                    for (var i = 0; i < unuploaded.Count; i++)
+                    {
+                        var photo = unuploaded[i];
+                        photo.RemoteUrl    = i < newUrls.Count ? newUrls[i] : res.Data.LastOrDefault();
+                        photo.UploadedAt   = DateTime.Now;
+                        await _db.SavePhotoAsync(photo);
+                    }
+                }
+                else
+                {
+                    OnError?.Invoke($"Photo upload failed: {res.Message ?? "Server error"}");
+                }
             }
         }
     }

@@ -1,6 +1,7 @@
 @page "/add-obs/{SessionId}"
 @inject LocalDatabase Db
 @inject GpsService Gps
+@inject PhotoService PhotoSvc
 @inject NavigationManager Nav
 
 <div class="app-shell">
@@ -136,6 +137,45 @@
             }
         </div>
 
+        <!-- Photos -->
+        <div class="sl" style="display:flex;align-items:center;justify-content:space-between;">
+            <span>Photos (@stagedPhotos.Count)</span>
+            <div style="display:flex;gap:6px;margin-right:10px;">
+                <button class="bo" style="padding:4px 10px;font-size:11px;" @onclick="TakePhoto" disabled="@photoAdding">📷 Camera</button>
+                <button class="bo" style="padding:4px 10px;font-size:11px;" @onclick="PickPhoto" disabled="@photoAdding">🖼 Gallery</button>
+            </div>
+        </div>
+        @if (!string.IsNullOrEmpty(photoError))
+        {
+            <div style="margin:0 10px 4px;padding:6px 10px;border-radius:6px;background:rgba(224,96,96,.1);font-size:11px;color:var(--red);">@photoError</div>
+        }
+        @if (photoAdding)
+        {
+            <div style="padding:4px 12px;font-size:12px;color:var(--text-dim);display:flex;align-items:center;gap:6px;">
+                <span class="spinner-sm" style="width:12px;height:12px;"></span> Adding photo...
+            </div>
+        }
+        @if (stagedPhotos.Count > 0)
+        {
+            <div style="display:flex;gap:8px;padding:4px 10px 8px;flex-wrap:wrap;">
+                @foreach (var (path, thumb) in stagedPhotos)
+                {
+                    <div style="position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:.5px solid var(--border);background:var(--surface2);">
+                        @if (thumb is not null)
+                        {
+                            <img src="@thumb" style="width:100%;height:100%;object-fit:cover;" />
+                        }
+                        else
+                        {
+                            <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:24px;">🖼</div>
+                        }
+                        <button @onclick="() => RemoveStagedPhoto(path)"
+                                style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.55);border:none;border-radius:50%;width:20px;height:20px;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">✕</button>
+                    </div>
+                }
+            </div>
+        }
+
         <!-- Notes -->
         <div class="sl">Notes <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></div>
         <div style="margin:4px 10px;">
@@ -171,6 +211,11 @@
     private double? gpsLat;
     private double? gpsLng;
     private string gpsStatus = "Tap Get to capture location";
+
+    // Photo state: list of (stagedFilePath, dataUri thumbnail)
+    private List<(string Path, string? Thumb)> stagedPhotos = new();
+    private bool photoAdding;
+    private string? photoError;
 
     protected override async Task OnInitializedAsync()
     {
@@ -271,8 +316,62 @@
         };
         await Db.SaveObservationAsync(localObs);
 
+        // Attach any staged photos to the saved observation
+        foreach (var (path, _) in stagedPhotos)
+        {
+            var finalPath = PhotoService.AttachToObservation(path, localObs.Id);
+            await Db.SavePhotoAsync(new LocalObservationPhoto
+            {
+                ObservationId = localObs.Id,
+                LocalFilePath = finalPath
+            });
+        }
+
         saving = false;
         Nav.NavigateTo($"/session-detail/{SessionId}");
+    }
+
+    private async Task TakePhoto()
+    {
+        photoError = null;
+        photoAdding = true;
+        StateHasChanged();
+        try
+        {
+            var path = await PhotoSvc.TakePhotoAsync();
+            await AddStagedPhotoAsync(path);
+        }
+        finally { photoAdding = false; StateHasChanged(); }
+    }
+
+    private async Task PickPhoto()
+    {
+        photoError = null;
+        photoAdding = true;
+        StateHasChanged();
+        try
+        {
+            var path = await PhotoSvc.PickPhotoAsync();
+            await AddStagedPhotoAsync(path);
+        }
+        finally { photoAdding = false; StateHasChanged(); }
+    }
+
+    private async Task AddStagedPhotoAsync(string? path)
+    {
+        if (path is null) { photoError = "Photo cancelled or not available."; return; }
+        var thumb = await PhotoService.GetDataUriAsync(path);
+        stagedPhotos.Add((path, thumb));
+    }
+
+    private void RemoveStagedPhoto(string path)
+    {
+        var entry = stagedPhotos.FirstOrDefault(p => p.Path == path);
+        if (entry != default)
+        {
+            PhotoService.DeleteLocalFile(entry.Path);
+            stagedPhotos.Remove(entry);
+        }
     }
 
     private void Cancel() => Nav.NavigateTo($"/session-detail/{SessionId}");

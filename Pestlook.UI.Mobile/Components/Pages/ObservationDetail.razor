@@ -1,6 +1,7 @@
 @page "/obs-detail/{ObsId}/{SessionId}"
 @inject LocalDatabase Db
 @inject GpsService Gps
+@inject PhotoService PhotoSvc
 @inject NavigationManager Nav
 
 <div class="app-shell">
@@ -182,13 +183,47 @@
             }
 
             <!-- Photos -->
-            <div class="sl">Photos (@photos.Count)</div>
+            <div class="sl" style="display:flex;align-items:center;justify-content:space-between;">
+                <span>Photos (@photos.Count)</span>
+                <div style="display:flex;gap:6px;margin-right:10px;">
+                    <button class="bo" style="padding:4px 10px;font-size:11px;" @onclick="TakePhoto" disabled="@photoAdding">📷 Camera</button>
+                    <button class="bo" style="padding:4px 10px;font-size:11px;" @onclick="PickPhoto" disabled="@photoAdding">🖼 Gallery</button>
+                </div>
+            </div>
+            @if (!string.IsNullOrEmpty(photoError))
+            {
+                <div style="margin:0 10px 4px;padding:6px 10px;border-radius:6px;background:rgba(224,96,96,.1);font-size:11px;color:var(--red);">@photoError</div>
+            }
+            @if (photoAdding)
+            {
+                <div style="padding:4px 12px;font-size:12px;color:var(--text-dim);display:flex;align-items:center;gap:6px;">
+                    <span class="spinner-sm" style="width:12px;height:12px;"></span> Saving photo...
+                </div>
+            }
             @if (photos.Count > 0)
             {
-                <div style="display:flex;gap:6px;padding:4px 10px;flex-wrap:wrap;">
-                    @foreach (var photo in photos)
+                <div style="display:flex;gap:8px;padding:4px 10px 8px;flex-wrap:wrap;">
+                    @foreach (var photo in photos.Where(p => !p.IsDeletePending))
                     {
-                        <div class="photo-box" title="@Path.GetFileName(photo.LocalFilePath)">🖼</div>
+                        <div style="position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:.5px solid var(--border);background:var(--surface2);">
+                            @if (photoThumbs.TryGetValue(photo.Id, out var dataUri) && dataUri is not null)
+                            {
+                                <img src="@dataUri" style="width:100%;height:100%;object-fit:cover;" />
+                            }
+                            else
+                            {
+                                <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:24px;">🖼</div>
+                            }
+                            @if (photo.RemoteUrl is null)
+                            {
+                                <div style="position:absolute;bottom:2px;left:2px;background:rgba(0,0,0,.55);border-radius:4px;padding:1px 4px;font-size:9px;color:#fff;">pending</div>
+                            }
+                            @if (sessionStatus == SessionStatus.Active)
+                            {
+                                <button @onclick="() => DeletePhoto(photo)"
+                                        style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.55);border:none;border-radius:50%;width:20px;height:20px;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">✕</button>
+                            }
+                        </div>
                     }
                 </div>
             }
@@ -262,9 +297,14 @@
     private bool gpsCapturing;
     private LocalObservation? obs;
     private List<LocalObservationPhoto> photos = new();
+    private Dictionary<string, string?> photoThumbs = new();
     private List<CachedTrap> traps = new();
     private int? alertThreshold;
     private SessionStatus sessionStatus;
+
+    // Photo state
+    private bool photoAdding;
+    private string? photoError;
 
     // Edit-mode state
     private int editCount;
@@ -300,16 +340,34 @@
 
         // Get session status to control delete visibility
         var session = await Db.GetSessionAsync(SessionId);
-        sessionStatus = session?.Status ?? SessionStatus.Completed;
+        // For unplanned sessions, treat as Active if not yet completed (CompletedAt is null)
+        // This handles cases where Status may not be explicitly set to Active
+        if (session is not null && !session.IsPlanned && session.CompletedAt is null)
+            sessionStatus = SessionStatus.Active;
+        else
+            sessionStatus = session?.Status ?? SessionStatus.Completed;
 
         // Check alert threshold from observation snapshot
         alertThreshold = obs?.ThresholdCount;
+
+        // Load thumbnails for existing photos
+        await LoadThumbnailsAsync();
 
         // Open directly in edit mode for active sessions
         if (sessionStatus == SessionStatus.Active && obs is not null)
             StartEdit();
 
         loading = false;
+    }
+
+    private async Task LoadThumbnailsAsync()
+    {
+        photoThumbs.Clear();
+        foreach (var photo in photos.Where(p => !p.IsDeletePending))
+        {
+            var uri = await PhotoService.GetDataUriAsync(photo.LocalFilePath);
+            photoThumbs[photo.Id] = uri;
+        }
     }
 
     private static string TimeAgo(DateTime dt)
@@ -358,17 +416,106 @@
         GoBack();
     }
 
+    // ── Photo actions ─────────────────────────────────────────
+
+    private async Task TakePhoto()
+    {
+        photoError = null;
+        photoAdding = true;
+        StateHasChanged();
+        try
+        {
+            var path = await PhotoSvc.TakePhotoAsync();
+            await AttachPhotoAsync(path);
+        }
+        finally
+        {
+            photoAdding = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task PickPhoto()
+    {
+        photoError = null;
+        photoAdding = true;
+        StateHasChanged();
+        try
+        {
+            var path = await PhotoSvc.PickPhotoAsync();
+            await AttachPhotoAsync(path);
+        }
+        finally
+        {
+            photoAdding = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task AttachPhotoAsync(string? stagedPath)
+    {
+        if (stagedPath is null)
+        {
+            photoError = "Photo cancelled or not available.";
+            return;
+        }
+        var finalPath = PhotoService.AttachToObservation(stagedPath, ObsId);
+        var record = new LocalObservationPhoto
+        {
+            ObservationId = ObsId,
+            LocalFilePath = finalPath
+        };
+        await Db.SavePhotoAsync(record);
+        photos.Add(record);
+
+        // Mark observation dirty so it gets re-pushed before the photo upload
+        if (obs is not null)
+        {
+            obs.IsDirty = true;
+            await Db.SaveObservationAsync(obs);
+        }
+
+        var uri = await PhotoService.GetDataUriAsync(finalPath);
+        photoThumbs[record.Id] = uri;
+    }
+
+    private async Task DeletePhoto(LocalObservationPhoto photo)
+    {
+        if (photo.RemoteUrl is not null)
+        {
+            // Already uploaded — mark for server-side delete on next sync; keep file until confirmed
+            photo.IsDeletePending = true;
+            await Db.SavePhotoAsync(photo);
+        }
+        else
+        {
+            // Never uploaded — safe to remove immediately
+            PhotoService.DeleteLocalFile(photo.LocalFilePath);
+            await Db.DeletePhotoAsync(photo.Id);
+        }
+        photos = await Db.GetPhotosForObservationAsync(ObsId);
+        await LoadThumbnailsAsync();
+    }
+
     private async Task Delete()
     {
         if (obs?.IsPlanned == true) return;
         deleting = true;
         StateHasChanged();
 
-        // Delete photos first
+        // Delete photos: immediate for local-only, mark delete-pending for uploaded ones
         foreach (var p in photos)
         {
-            try { if (File.Exists(p.LocalFilePath)) File.Delete(p.LocalFilePath); } catch { }
-            await Db.DeletePhotoAsync(p.Id);
+            if (p.RemoteUrl is not null)
+            {
+                p.IsDeletePending = true;
+                await Db.SavePhotoAsync(p);
+            }
+            else
+            {
+                PhotoService.DeleteLocalFile(p.LocalFilePath);
+                await Db.DeletePhotoAsync(p.Id);
+            }
         }
         await Db.DeleteObservationAsync(ObsId);
 

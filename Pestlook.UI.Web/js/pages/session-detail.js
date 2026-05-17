@@ -245,6 +245,10 @@ function _renderObsTableInner() {
 
     const thresholdExceeded = o.thresholdCount != null && o.count != null && o.count > o.thresholdCount;
     const rowStyle = thresholdExceeded ? ' style="background:rgba(220,38,38,0.12);box-shadow:inset 0 0 8px rgba(220,38,38,0.25);"' : '';
+    const photos = o.photoUrls || [];
+    const photosHtml = photos.length > 0
+      ? `<button class="btn-outline obs-photos-btn" style="padding:2px 8px;font-size:0.72rem;white-space:nowrap;" data-photos='${JSON.stringify(photos).replace(/'/g, '&#39;')}' data-name="${escapeHtml(o.pestName || 'Observation')}">📷 ${photos.length} photo${photos.length > 1 ? 's' : ''}</button>`
+      : '—';
 
     rows += `
       <tr${rowStyle}>
@@ -259,6 +263,7 @@ function _renderObsTableInner() {
         <td>${lifeStage}</td>
         <td style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text-dim);">${coords}</td>
         <td style="font-size:0.78rem;color:var(--text-dim);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${notes}">${notes || '—'}</td>
+        <td><div style="display:flex;gap:3px;flex-wrap:wrap;">${photosHtml}</div></td>
         ${isCompleted ? `<td style="font-size:0.78rem;color:var(--text-dim);white-space:nowrap;">${observedAt}</td>` : ''}
         <td style="font-size:0.78rem;color:var(--text-dim);">${createdBy}</td>
         <td style="font-size:0.78rem;color:var(--text-dim);">${updatedBy}</td>
@@ -287,7 +292,7 @@ function _renderObsTableInner() {
             <th>Mode</th>
             ${obsThBtn('Count',     'count')}
             ${obsThBtn('Threshold', 'thr')}
-            <th>Present</th><th>Stage</th><th>Coords</th><th>Notes</th>
+            <th>Present</th><th>Stage</th><th>Coords</th><th>Notes</th><th>Photos</th>
             ${isCompleted ? obsThBtn('Observed At', 'date') : ''}
             <th>Created by</th><th>Updated by</th>
             <th style="width:1%;white-space:nowrap;"></th>
@@ -311,6 +316,14 @@ function _renderObsTableInner() {
       if (_obsSort.by === key) _obsSort.desc = !_obsSort.desc;
       else { _obsSort.by = key; _obsSort.desc = true; }
       _renderObsTableInner();
+    });
+  });
+
+  // ── Photo carousel buttons ────────────────────────────────────────────────
+  wrap.querySelectorAll('.obs-photos-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const photos = JSON.parse(btn.dataset.photos);
+      showPhotoCarousel(photos, btn.dataset.name);
     });
   });
 
@@ -341,6 +354,50 @@ function _renderObsTableInner() {
       }
     });
   });
+}
+
+/* ── Photo Carousel ──────────────────────────────────────────────────────────── */
+
+function showPhotoCarousel(photos, title) {
+  let current = 0;
+  const safeTitle = title.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;';
+
+  const render = () => {
+    overlay.innerHTML = `
+      <div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;max-width:90vw;max-height:90vh;">
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:0 4px;">
+          <div style="font-size:0.9rem;font-weight:600;color:#fff;">${safeTitle} · ${current + 1} / ${photos.length}</div>
+          <button id="carouselClose" style="background:rgba(255,255,255,0.12);border:none;border-radius:50%;width:32px;height:32px;color:#fff;font-size:16px;cursor:pointer;">✕</button>
+        </div>
+        <div style="position:relative;display:flex;align-items:center;gap:12px;">
+          <button id="carouselPrev" style="background:rgba(255,255,255,0.12);border:none;border-radius:50%;width:40px;height:40px;color:#fff;font-size:20px;cursor:pointer;flex-shrink:0;${photos.length < 2 ? 'visibility:hidden;' : ''}">‹</button>
+          <img src="${photos[current].replace(/"/g,'&quot;')}" style="max-width:70vw;max-height:65vh;border-radius:10px;object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,0.6);" />
+          <button id="carouselNext" style="background:rgba(255,255,255,0.12);border:none;border-radius:50%;width:40px;height:40px;color:#fff;font-size:20px;cursor:pointer;flex-shrink:0;${photos.length < 2 ? 'visibility:hidden;' : ''}">›</button>
+        </div>
+        ${photos.length > 1 ? `
+        <div style="display:flex;gap:6px;">
+          ${photos.map((_, i) => `<div style="width:8px;height:8px;border-radius:50%;background:${i === current ? '#fff' : 'rgba(255,255,255,0.3)'};"></div>`).join('')}
+        </div>` : ''}
+      </div>
+    `;
+    overlay.querySelector('#carouselClose').addEventListener('click', () => { overlay.remove(); });
+    overlay.querySelector('#carouselPrev')?.addEventListener('click', () => { current = (current - 1 + photos.length) % photos.length; render(); });
+    overlay.querySelector('#carouselNext')?.addEventListener('click', () => { current = (current + 1) % photos.length; render(); });
+  };
+
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  const onKey = e => {
+    if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', onKey); }
+    if (e.key === 'ArrowLeft') { current = (current - 1 + photos.length) % photos.length; render(); }
+    if (e.key === 'ArrowRight') { current = (current + 1) % photos.length; render(); }
+  };
+  document.addEventListener('keydown', onKey);
+  overlay.addEventListener('remove', () => document.removeEventListener('keydown', onKey));
+
+  document.body.appendChild(overlay);
+  render();
 }
 
 /* ── Scouting Map Modal ──────────────────────────────────────────────────────── */

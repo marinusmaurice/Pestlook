@@ -103,6 +103,24 @@ public class LocalDatabase
     public Task DeletePhotoAsync(string id)
         => _db.DeleteAsync<LocalObservationPhoto>(id);
 
+    /// <summary>Returns photos that have not yet been uploaded to the server.</summary>
+    public Task<List<LocalObservationPhoto>> GetUnuploadedPhotosForObservationAsync(string observationId)
+        => _db.Table<LocalObservationPhoto>()
+              .Where(p => p.ObservationId == observationId && p.RemoteUrl == null && !p.IsDeletePending)
+              .ToListAsync();
+
+    /// <summary>Returns photos that were uploaded but then deleted locally — needs a server-side delete on next sync.</summary>
+    public Task<List<LocalObservationPhoto>> GetDeletePendingPhotosAsync()
+        => _db.Table<LocalObservationPhoto>().Where(p => p.IsDeletePending).ToListAsync();
+
+    /// <summary>Deletes all photo rows for an observation (used when the observation is deleted).</summary>
+    public async Task DeletePhotosForObservationAsync(string observationId)
+    {
+        var photos = await GetPhotosForObservationAsync(observationId);
+        foreach (var p in photos)
+            await _db.DeleteAsync<LocalObservationPhoto>(p.Id);
+    }
+
     // ── Cached Pests ──────────────────────────────────────────
     public Task<List<CachedPest>> GetCachedPestsAsync()
         => _db.Table<CachedPest>().OrderBy(p => p.CommonName).ToListAsync();
