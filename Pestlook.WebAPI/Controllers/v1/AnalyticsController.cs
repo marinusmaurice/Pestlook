@@ -22,22 +22,37 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
     /// Returns the start/end UTC range from the query params.
     /// <paramref name="dateRange"/> accepts: "7", "30", "90", "365", "all".
     /// <paramref name="from"/> / <paramref name="to"/> explicit ISO dates take priority.
+    /// Start date is normalized to 00:00:00, end date to 23:59:59.
     /// </summary>
     private static (DateTime From, DateTime To) ResolveRange(
         string? dateRange, DateTime? from, DateTime? to)
     {
-        var end   = to   ?? DateTime.Now;
-        if (from.HasValue) return (from.Value, end);
+        var now = DateTime.Now;
+        
+        // Normalize end date to 23:59:59
+        var end = to.HasValue 
+            ? to.Value.Date.AddDays(1).AddSeconds(-1) 
+            : now.Date.AddDays(1).AddSeconds(-1);
 
-        var start = dateRange switch
+        // Normalize start date to 00:00:00
+        DateTime start;
+        if (from.HasValue)
         {
-            "7"   => end.AddDays(-7),
-            "30"  => end.AddDays(-30),
-            "90"  => end.AddDays(-90),
-            "365" => end.AddDays(-365),
-            "all" => DateTime.UnixEpoch,
-            _     => end.AddDays(-90),
-        };
+            start = from.Value.Date;
+        }
+        else
+        {
+            start = dateRange switch
+            {
+                "7"   => now.AddDays(-7).Date,
+                "30"  => now.AddDays(-30).Date,
+                "90"  => now.AddDays(-90).Date,
+                "365" => now.AddDays(-365).Date,
+                "all" => DateTime.UnixEpoch,
+                _     => now.AddDays(-90).Date,
+            };
+        }
+
         return (start, end);
     }
 

@@ -17,8 +17,18 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
 
     private static (DateTime From, DateTime To) ResolveRange(DateTime? from, DateTime? to, int defaultDays = 180)
     {
-        var end   = to   ?? DateTime.Now;
-        var start = from ?? end.AddDays(-defaultDays);
+        var now = DateTime.Now;
+
+        // Normalize end date to 23:59:59
+        var end = to.HasValue
+            ? to.Value.Date.AddDays(1).AddSeconds(-1)
+            : now.Date.AddDays(1).AddSeconds(-1);
+
+        // Normalize start date to 00:00:00
+        var start = from.HasValue
+            ? from.Value.Date
+            : end.AddDays(-defaultDays).Date;
+
         return (start, end);
     }
 
