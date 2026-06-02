@@ -34,8 +34,8 @@ export function renderSignUp(container) {
             <div class="form-group">
               <label class="input-label">Subscription Plan</label>
               <select class="input-field" id="subPlan">
-                <option value="0">Basic</option>
-                <option value="1" selected>Professional</option>
+                <option value="0" selected>Basic</option>
+                <option value="1">Professional</option>
               </select>
             </div>
           </div>
