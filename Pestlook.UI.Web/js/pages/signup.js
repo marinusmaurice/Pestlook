@@ -36,7 +36,6 @@ export function renderSignUp(container) {
               <select class="input-field" id="subPlan">
                 <option value="0">Basic</option>
                 <option value="1" selected>Professional</option>
-                <option value="2">Enterprise</option>
               </select>
             </div>
           </div>
