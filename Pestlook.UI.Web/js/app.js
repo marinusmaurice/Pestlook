@@ -8,6 +8,8 @@ import { renderLanding } from './pages/landing.js';
 import { renderLogin } from './pages/login.js';
 import { renderSignUp } from './pages/signup.js';
 import { renderActivate } from './pages/activate.js';
+import { renderForgotPassword } from './pages/forgot-password.js';
+import { renderResetPassword } from './pages/reset-password.js';
 import { renderDashboard } from './pages/dashboard.js';
 import { renderFarms } from './pages/farms.js';
 import { renderFarmDetail } from './pages/farm-detail.js';
@@ -26,7 +28,7 @@ import { renderContainment }   from './pages/containment.js';
 
 const appRoot = document.getElementById('app-root');
 
-const publicPaths = ['/', '/login', '/signup', '/activate'];
+const publicPaths = ['/', '/login', '/signup', '/activate', '/forgot-password', '/reset-password'];
 
 function renderShell() {
   appRoot.innerHTML = `
@@ -101,6 +103,18 @@ registerRoute('/signup', async () => {
 registerRoute('/activate', async (params) => {
   ensureShell('auth');
   await renderActivate(getAuthContent(), params);
+});
+
+registerRoute('/forgot-password', async () => {
+  if (isAuthenticated()) { navigate('/dashboard'); return; }
+  ensureShell('auth');
+  renderForgotPassword(getAuthContent());
+});
+
+registerRoute('/reset-password', async (params) => {
+  if (isAuthenticated()) { navigate('/dashboard'); return; }
+  ensureShell('auth');
+  await renderResetPassword(getAuthContent(), params);
 });
 
 // ── Authenticated Routes ──

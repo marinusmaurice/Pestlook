@@ -28,6 +28,14 @@ export function resendActivation(email) {
   return post('/auth/resend-activation', { email }, false);
 }
 
+export function forgotPassword(email) {
+  return post('/auth/forgot-password', { email }, false);
+}
+
+export function resetPassword(userId, token, newPassword) {
+  return post('/auth/reset-password', { userId, token, newPassword }, false);
+}
+
 export function registerUser(request) {
   return post('/auth/register', request);
 }

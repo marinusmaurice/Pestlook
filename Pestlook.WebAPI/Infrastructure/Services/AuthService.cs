@@ -132,6 +132,53 @@ public sealed class AuthService(
         logger.LogInformation("Activation email resent to {Email}", email);
     }
 
+    public async Task ForgotPasswordAsync(string email, CancellationToken ct = default)
+    {
+        // Always returns silently — never reveal whether the email is registered
+        var user = await db.Users
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => u.Email == email, ct);
+
+        if (user is null || !user.EmailConfirmed)
+            return;
+
+        try
+        {
+            var token = await userManager.GeneratePasswordResetTokenAsync(user);
+            var encodedToken = Uri.EscapeDataString(token);
+            var resetUrl = $"{_email.AppBaseUrl}/#/reset-password?userId={user.Id}&token={encodedToken}";
+            await emailService.SendPasswordResetEmailAsync(user.Email!, user.FirstName, resetUrl, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to send password reset email to {Email}", email);
+        }
+
+        logger.LogInformation("Password reset requested for {Email}", email);
+    }
+
+    public async Task ResetPasswordAsync(string userId, string token, string newPassword, CancellationToken ct = default)
+    {
+        var user = await db.Users
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => u.Id == userId, ct)
+            ?? throw new InvalidOperationException("Invalid password reset link.");
+
+        var result = await userManager.ResetPasswordAsync(user, token, newPassword);
+        if (!result.Succeeded)
+        {
+            logger.LogWarning("Password reset failed for user {UserId}", userId);
+            throw new InvalidOperationException("Password reset link is invalid or has expired.");
+        }
+
+        // Clear any account lock that may have triggered the reset
+        user.FailedLoginAttempts = 0;
+        user.LockedUntil = null;
+        await userManager.UpdateAsync(user);
+
+        logger.LogInformation("Password reset completed for user {Email}", user.Email);
+    }
+
     public async Task<TokenResponse> RegisterAsync(RegisterRequest request, string ipAddress, CancellationToken ct = default)
     {
         if (tenantContext.TenantId is null)

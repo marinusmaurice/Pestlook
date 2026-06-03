@@ -55,6 +55,23 @@ public sealed class AuthController(
         return NoContent();
     }
 
+    [HttpPost("forgot-password")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken ct)
+    {
+        await authService.ForgotPasswordAsync(request.Email, ct);
+        return NoContent();
+    }
+
+    [HttpPost("reset-password")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request, CancellationToken ct)
+    {
+        await authService.ResetPasswordAsync(request.UserId, request.Token, request.NewPassword, ct);
+        return NoContent();
+    }
+
     [HttpPost("register")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(ApiResponse<TokenResponse>), StatusCodes.Status200OK)]
