@@ -7,6 +7,7 @@ import { showToast } from './components/toast.js';
 import { renderLanding } from './pages/landing.js';
 import { renderLogin } from './pages/login.js';
 import { renderSignUp } from './pages/signup.js';
+import { renderActivate } from './pages/activate.js';
 import { renderDashboard } from './pages/dashboard.js';
 import { renderFarms } from './pages/farms.js';
 import { renderFarmDetail } from './pages/farm-detail.js';
@@ -25,7 +26,7 @@ import { renderContainment }   from './pages/containment.js';
 
 const appRoot = document.getElementById('app-root');
 
-const publicPaths = ['/', '/login', '/signup'];
+const publicPaths = ['/', '/login', '/signup', '/activate'];
 
 function renderShell() {
   appRoot.innerHTML = `
@@ -95,6 +96,11 @@ registerRoute('/signup', async () => {
   if (isAuthenticated()) { navigate('/dashboard'); return; }
   ensureShell('auth');
   renderSignUp(getAuthContent());
+});
+
+registerRoute('/activate', async (params) => {
+  ensureShell('auth');
+  await renderActivate(getAuthContent(), params);
 });
 
 // ── Authenticated Routes ──

@@ -24,10 +24,13 @@ export function currentPath() {
 }
 
 function matchRoute(path) {
+  const [pathPart, queryPart] = path.split('?');
+  const queryParams = Object.fromEntries(new URLSearchParams(queryPart || ''));
+
   for (const route of routes) {
-    const match = path.match(route.pattern);
+    const match = pathPart.match(route.pattern);
     if (match) {
-      const params = {};
+      const params = { ...queryParams };
       route.paramNames.forEach((name, i) => {
         params[name] = match[i + 1];
       });
@@ -38,14 +41,15 @@ function matchRoute(path) {
 }
 
 async function onHashChange() {
-  const path = currentPath();
+  const full = currentPath();
+  const path = full.split('?')[0];
 
   if (beforeNavigateHook) {
     const allow = beforeNavigateHook(path);
     if (allow === false) return;
   }
 
-  const matched = matchRoute(path);
+  const matched = matchRoute(full);
   if (matched) {
     currentRoute = path;
     await matched.handler(matched.params);

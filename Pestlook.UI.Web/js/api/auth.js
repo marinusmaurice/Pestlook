@@ -20,6 +20,14 @@ export function getMe() {
   return get('/auth/me');
 }
 
+export function activateAccount(userId, token) {
+  return post('/auth/activate', { userId, token }, false);
+}
+
+export function resendActivation(email) {
+  return post('/auth/resend-activation', { email }, false);
+}
+
 export function registerUser(request) {
   return post('/auth/register', request);
 }

@@ -26,7 +26,7 @@ builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddRateLimiting(builder.Configuration);
 builder.Services.AddCorsPolicy(builder.Configuration);
 builder.Services.AddApiVersioningConfiguration();
-builder.Services.AddApplicationServices();
+builder.Services.AddApplicationServices(builder.Configuration);
 builder.Services.AddValidationConfiguration();
 builder.Services.AddMappingConfiguration();
 

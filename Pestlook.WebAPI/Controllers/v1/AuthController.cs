@@ -28,14 +28,31 @@ public sealed class AuthController(
             : HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
     [HttpPost("sign-up")]
-    [ProducesResponseType(typeof(ApiResponse<TokenResponse>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<SignUpResponse>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> SignUp([FromBody] SignUpRequest request, CancellationToken ct)
     {
         var result = await authService.SignUpAsync(request, IpAddress, ct);
         return StatusCode(StatusCodes.Status201Created,
-            ApiResponse<TokenResponse>.Ok(result, "Account created successfully."));
+            ApiResponse<SignUpResponse>.Ok(result, result.Message));
+    }
+
+    [HttpPost("activate")]
+    [ProducesResponseType(typeof(ApiResponse<TokenResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ActivateAccount([FromBody] ActivateAccountRequest request, CancellationToken ct)
+    {
+        var result = await authService.ActivateAccountAsync(request.UserId, request.Token, IpAddress, ct);
+        return Ok(ApiResponse<TokenResponse>.Ok(result, "Account activated successfully. Welcome to PestLook!"));
+    }
+
+    [HttpPost("resend-activation")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> ResendActivation([FromBody] ResendActivationRequest request, CancellationToken ct)
+    {
+        await authService.ResendActivationAsync(request.Email, ct);
+        return NoContent();
     }
 
     [HttpPost("register")]

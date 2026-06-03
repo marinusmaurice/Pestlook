@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Pestlook.WebAPI.Data;
@@ -16,31 +17,31 @@ namespace Pestlook.WebAPI.Infrastructure.Services;
 public sealed class AuthService(
     UserManager<ApplicationUser> userManager,
     ITokenService tokenService,
+    IEmailService emailService,
     ApplicationDbContext db,
     ITenantContext tenantContext,
     IOptions<JwtOptions> jwtOptions,
+    IOptions<EmailOptions> emailOptions,
     ILogger<AuthService> logger) : IAuthService
 {
     private const int MaxFailedAttempts = 5;
     private static readonly TimeSpan LockDuration = TimeSpan.FromMinutes(15);
     private readonly JwtOptions _jwt = jwtOptions.Value;
+    private readonly EmailOptions _email = emailOptions.Value;
 
-    public async Task<TokenResponse> SignUpAsync(SignUpRequest request, string ipAddress, CancellationToken ct = default)
+    public async Task<SignUpResponse> SignUpAsync(SignUpRequest request, string ipAddress, CancellationToken ct = default)
     {
-        var slugTaken = await db.Tenants.AnyAsync(t => t.Slug == request.TenantSlug, ct);
-        if (slugTaken)
-            throw new ConflictException($"The organization slug '{request.TenantSlug}' is already in use.");
-
         var existingUser = await userManager.FindByEmailAsync(request.Email);
         if (existingUser is not null)
             throw new ConflictException("Email is already registered.");
 
+        var slug = await GenerateUniqueSlugAsync(request.TenantName, ct);
         var plan = request.SubscriptionPlan;
 
         var tenant = new Tenant
         {
             Name = request.TenantName,
-            Slug = request.TenantSlug.ToLowerInvariant(),
+            Slug = slug,
             SubscriptionPlan = plan,
             MonitoringPointQuota = plan switch
             {
@@ -55,21 +56,22 @@ public sealed class AuthService(
 
         db.Pests.Add(new Pest
         {
-            TenantId            = tenant.Id,
-            CommonName          = "Unknown",
-            Category            = PestCategory.Other,
-            DefaultCaptureMode  = CaptureMode.Count,
-            IsSystemPest        = true
+            TenantId           = tenant.Id,
+            CommonName         = "Unknown",
+            Category           = PestCategory.Other,
+            DefaultCaptureMode = CaptureMode.Count,
+            IsSystemPest       = true
         });
         await db.SaveChangesAsync(ct);
 
         var user = new ApplicationUser
         {
-            UserName  = request.Email,
-            Email     = request.Email,
-            FirstName = request.FirstName,
-            LastName  = request.LastName,
-            TenantId  = tenant.Id
+            UserName       = request.Email,
+            Email          = request.Email,
+            FirstName      = request.FirstName,
+            LastName       = request.LastName,
+            TenantId       = tenant.Id,
+            EmailConfirmed = false
         };
 
         var result = await userManager.CreateAsync(user, request.Password);
@@ -83,10 +85,51 @@ public sealed class AuthService(
 
         await userManager.AddToRoleAsync(user, "Admin");
 
+        await SendActivationEmailAsync(user, ct);
+
         logger.LogInformation("New tenant {TenantId} ({Slug}) created via sign-up by {Email}",
             tenant.Id, tenant.Slug, user.Email);
 
+        return new SignUpResponse(
+            "Account created! Please check your email to activate your account.",
+            user.Email!);
+    }
+
+    public async Task<TokenResponse> ActivateAccountAsync(string userId, string token, string ipAddress, CancellationToken ct = default)
+    {
+        var user = await db.Users
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => u.Id == userId, ct)
+            ?? throw new InvalidOperationException("Invalid activation link.");
+
+        if (user.EmailConfirmed)
+            throw new InvalidOperationException("Account is already activated.");
+
+        var result = await userManager.ConfirmEmailAsync(user, token);
+        if (!result.Succeeded)
+        {
+            logger.LogWarning("Account activation failed for user {UserId}", userId);
+            throw new InvalidOperationException("Activation link is invalid or has expired. Please request a new one.");
+        }
+
+        logger.LogInformation("Account activated for user {Email}", user.Email);
+
         return await IssueTokensAsync(user, ipAddress, ct);
+    }
+
+    public async Task ResendActivationAsync(string email, CancellationToken ct = default)
+    {
+        // Always return without error to avoid leaking whether an email is registered
+        var user = await db.Users
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => u.Email == email, ct);
+
+        if (user is null || user.EmailConfirmed)
+            return;
+
+        await SendActivationEmailAsync(user, ct);
+
+        logger.LogInformation("Activation email resent to {Email}", email);
     }
 
     public async Task<TokenResponse> RegisterAsync(RegisterRequest request, string ipAddress, CancellationToken ct = default)
@@ -102,13 +145,15 @@ public sealed class AuthService(
         if (existing is not null)
             throw new InvalidOperationException("Email is already registered.");
 
+        // Admin-created users are pre-approved — no email verification required
         var user = new ApplicationUser
         {
-            UserName = request.Email,
-            Email = request.Email,
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            TenantId = tenant.Id
+            UserName       = request.Email,
+            Email          = request.Email,
+            FirstName      = request.FirstName,
+            LastName       = request.LastName,
+            TenantId       = tenant.Id,
+            EmailConfirmed = true
         };
 
         var result = await userManager.CreateAsync(user, request.Password);
@@ -133,6 +178,9 @@ public sealed class AuthService(
         if (tenantContext.TenantId.HasValue && user.TenantId != tenantContext.TenantId)
             throw new UnauthorizedAccessException("Invalid credentials.");
 
+        if (!user.EmailConfirmed)
+            throw new UnauthorizedAccessException("Please activate your account. Check your email for the activation link.");
+
         if (!user.IsActive)
             throw new UnauthorizedAccessException("Account is disabled.");
 
@@ -152,7 +200,6 @@ public sealed class AuthService(
             throw new UnauthorizedAccessException("Invalid credentials.");
         }
 
-        // Reset brute-force counters on successful login
         user.FailedLoginAttempts = 0;
         user.LockedUntil = null;
         await userManager.UpdateAsync(user);
@@ -181,13 +228,11 @@ public sealed class AuthService(
         if (storedToken is null || !storedToken.IsActive)
             throw new UnauthorizedAccessException("Refresh token is invalid or expired.");
 
-        // Rotate: revoke old, issue new
         storedToken.RevokedAt = DateTime.Now;
         var newRefreshToken = BuildRefreshToken(user, ipAddress);
         storedToken.ReplacedByToken = newRefreshToken.Token;
         db.RefreshTokens.Add(newRefreshToken);
 
-        // Remove tokens older than double the expiry window to keep the table clean
         var cutoff = DateTime.Now.AddDays(-(_jwt.RefreshTokenExpiryDays * 2));
         var stale = user.RefreshTokens.Where(rt => rt.CreatedAt < cutoff).ToList();
         db.RefreshTokens.RemoveRange(stale);
@@ -215,6 +260,40 @@ public sealed class AuthService(
         await db.SaveChangesAsync(ct);
 
         logger.LogInformation("Refresh token revoked for user {UserId} from {Ip}", token.UserId, ipAddress);
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private async Task SendActivationEmailAsync(ApplicationUser user, CancellationToken ct)
+    {
+        try
+        {
+            var confirmationToken = await userManager.GenerateEmailConfirmationTokenAsync(user);
+            var encodedToken = Uri.EscapeDataString(confirmationToken);
+            var activationUrl = $"{_email.AppBaseUrl}/#/activate?userId={user.Id}&token={encodedToken}";
+            await emailService.SendActivationEmailAsync(user.Email!, user.FirstName, activationUrl, ct);
+        }
+        catch (Exception ex)
+        {
+            // Email failure must not break account creation — user can request a resend
+            logger.LogError(ex, "Failed to send activation email to {Email}", user.Email);
+        }
+    }
+
+    private async Task<string> GenerateUniqueSlugAsync(string tenantName, CancellationToken ct)
+    {
+        var baseSlug = Regex.Replace(tenantName.ToLowerInvariant(), @"[^a-z0-9]+", "-").Trim('-');
+        if (string.IsNullOrEmpty(baseSlug)) baseSlug = "org";
+
+        var slug = baseSlug;
+        var suffix = 2;
+
+        while (await db.Tenants.AnyAsync(t => t.Slug == slug, ct))
+        {
+            slug = $"{baseSlug}-{suffix++}";
+        }
+
+        return slug;
     }
 
     private async Task<TokenResponse> IssueTokensAsync(ApplicationUser user, string ipAddress, CancellationToken ct)

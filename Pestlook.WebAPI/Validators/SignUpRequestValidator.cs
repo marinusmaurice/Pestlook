@@ -11,12 +11,6 @@ public sealed class SignUpRequestValidator : AbstractValidator<SignUpRequest>
             .NotEmpty().WithMessage("Organization name is required.")
             .MaximumLength(200);
 
-        RuleFor(x => x.TenantSlug)
-            .NotEmpty().WithMessage("Organization slug is required.")
-            .MaximumLength(100)
-            .Matches("^[a-z0-9-]+$")
-            .WithMessage("Slug may only contain lowercase letters, digits, and hyphens.");
-
         RuleFor(x => x.SubscriptionPlan)
             .IsInEnum().WithMessage("Subscription plan must be a valid value.");
 
