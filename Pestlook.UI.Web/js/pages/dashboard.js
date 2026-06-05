@@ -1,4 +1,5 @@
 import { getDashboard } from '../api/dashboard.js';
+import { getQuotaStatus } from '../api/quota.js';
 import { getUser } from '../utils/storage.js';
 import { greeting, todayFormatted, formatTime, formatDateTime, escapeHtml } from '../utils/helpers.js';
 import { showToast } from '../components/toast.js';
@@ -14,6 +15,7 @@ export async function renderDashboard(container) {
       <div style="font-family:'Fraunces',serif;font-size:1.6rem;font-weight:600;color:var(--text);letter-spacing:-0.02em;">${greeting()}, ${escapeHtml(name)} 👋</div>
       <div style="font-size:0.85rem;color:var(--text-dim);">Here's what's happening across your farms today — ${todayFormatted()}</div>
     </div>
+    <div id="quotaBanner"></div>
     <div class="stat-grid" id="dashStats">
       <div class="stat-card"><div class="skeleton skeleton-card"></div></div>
       <div class="stat-card"><div class="skeleton skeleton-card"></div></div>
@@ -31,17 +33,60 @@ export async function renderDashboard(container) {
   `;
 
   try {
-    const res = await getDashboard();
-    const d = res.data;
+    const [dashRes, quotaRes] = await Promise.allSettled([getDashboard(), getQuotaStatus()]);
 
-    renderStats(d.stats.farmCount, d.stats.trapCount, d.stats.enabledTrapCount, d.stats.sessionCount, d.stats.completedSessionCount, d.stats.outstandingSessionCount, d.stats.observationCount);
-    renderActiveSessions(d.recentSessions.filter(s => !s.completedAt), d.recentSessions);
-    renderActivityFeed(d.recentActivity);
-    renderMap(d.traps);
-    renderTopPests(d.topPests);
+    if (dashRes.status === 'fulfilled') {
+      const d = dashRes.value.data;
+      renderStats(d.stats.farmCount, d.stats.trapCount, d.stats.enabledTrapCount, d.stats.sessionCount, d.stats.completedSessionCount, d.stats.outstandingSessionCount, d.stats.observationCount);
+      renderActiveSessions(d.recentSessions.filter(s => !s.completedAt), d.recentSessions);
+      renderActivityFeed(d.recentActivity);
+      renderMap(d.traps);
+      renderTopPests(d.topPests);
+    } else {
+      showToast('Failed to load dashboard: ' + dashRes.reason?.message, 'error');
+    }
+
+    if (quotaRes.status === 'fulfilled') {
+      renderQuotaBanner(quotaRes.value.data);
+    }
   } catch (err) {
     showToast('Failed to load dashboard: ' + err.message, 'error');
   }
+}
+
+function renderQuotaBanner(quota) {
+  const el = document.getElementById('quotaBanner');
+  if (!el || !quota) return;
+
+  const { used, captured, quota: limit, isExceeded, excess, isProRata, proRataDays } = quota;
+  const pct = Math.min(100, Math.round((used / limit) * 100));
+  const barColor = pct >= 100 ? 'var(--danger, #C75146)' : pct >= 80 ? 'var(--warning, #E5A52F)' : 'var(--primary, #2B6E4F)';
+
+  const proRataNote = isProRata
+    ? `<span style="font-size:0.78rem;color:var(--text-dim);"> · Pro-rated (${proRataDays}-day month)</span>`
+    : '';
+
+  const excessNote = isExceeded
+    ? `<div style="margin-top:6px;font-size:0.83rem;color:var(--danger,#C75146);">
+         ${excess} observation${excess !== 1 ? 's' : ''} captured beyond your quota this month — included in your records but not in analytics.
+         <a href="#/settings" style="color:var(--primary);margin-left:6px;">Upgrade plan</a>
+       </div>`
+    : '';
+
+  el.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-bottom:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+        <span style="font-size:0.88rem;font-weight:600;color:var(--text);">Monthly observations ${proRataNote}</span>
+        <span style="font-size:0.88rem;color:var(--text-dim);">${used.toLocaleString()} / ${limit.toLocaleString()} included&nbsp;
+          ${captured > used ? `<span style="color:var(--text-dim);">(${captured.toLocaleString()} captured)</span>` : ''}
+        </span>
+      </div>
+      <div style="background:var(--border);border-radius:999px;height:8px;overflow:hidden;">
+        <div style="background:${barColor};width:${pct}%;height:100%;border-radius:999px;transition:width 0.4s ease;"></div>
+      </div>
+      ${excessNote}
+    </div>
+  `;
 }
 
 function renderStats(farmCount, trapCount, enabledTrapCount, sessionCount, completedSessionCount, outstandingSessionCount, obsCount) {

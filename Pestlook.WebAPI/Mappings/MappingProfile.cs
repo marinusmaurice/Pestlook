@@ -69,7 +69,8 @@ public sealed class MappingProfile : Profile
                     ? JsonSerializer.Deserialize<List<string>>(s.PhotoUrlsJson, (JsonSerializerOptions?)null) ?? new List<string>()
                     : new List<string>()))
             .ForMember(d => d.CreatedByName, o => o.MapFrom(s => s.CreatedBy != null ? s.CreatedBy.FirstName + " " + s.CreatedBy.LastName : null))
-            .ForMember(d => d.UpdatedByName, o => o.MapFrom(s => s.UpdatedBy != null ? s.UpdatedBy.FirstName + " " + s.UpdatedBy.LastName : null));
+            .ForMember(d => d.UpdatedByName, o => o.MapFrom(s => s.UpdatedBy != null ? s.UpdatedBy.FirstName + " " + s.UpdatedBy.LastName : null))
+            .ForMember(d => d.MonthlySequence, o => o.MapFrom(s => s.MonthlySequence));
 
         CreateMap<Trap, TrapResponse>()
             .ConstructUsing((src, _) => new TrapResponse(
@@ -81,6 +82,11 @@ public sealed class MappingProfile : Profile
                 src.CreatedAt, src.UpdatedAt));
 
         CreateMap<BillingSnapshot, BillingSnapshotResponse>()
-            .ConstructUsing(_ => new BillingSnapshotResponse());
+            .ConstructUsing(_ => new BillingSnapshotResponse())
+            .ForMember(d => d.ObservationQuota,      o => o.MapFrom(s => s.ObservationQuota))
+            .ForMember(d => d.ObservationsCaptured,  o => o.MapFrom(s => s.ObservationsCaptured))
+            .ForMember(d => d.ObservationsUsed,      o => o.MapFrom(s => s.ObservationsUsed))
+            .ForMember(d => d.IsProRata,             o => o.MapFrom(s => s.IsProRata))
+            .ForMember(d => d.ProRataDays,           o => o.MapFrom(s => s.ProRataDays));
     }
 }

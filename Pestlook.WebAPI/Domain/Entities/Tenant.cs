@@ -10,6 +10,8 @@ public sealed class Tenant
     public bool IsActive { get; set; } = true;
     public SubscriptionPlan SubscriptionPlan { get; set; } = SubscriptionPlan.Basic;
     public int MonitoringPointQuota { get; set; } = 10;
+    /// <summary>Maximum observations per calendar month based on the subscription plan.</summary>
+    public int ObservationQuota { get; set; } = 300;
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
     public ICollection<ApplicationUser> Users { get; set; } = [];

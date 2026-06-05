@@ -50,6 +50,13 @@ public sealed class SessionObservation : IHasTenant, IAuditableByUser
     /// <summary>The date/time the scout actually recorded the observation on the mobile device.</summary>
     public DateTime? ObservedAt { get; set; }
 
+    /// <summary>
+    /// Sequential position within the tenant's ObservedAt calendar month.
+    /// Only set when ObservedAt has a value. Observations with MonthlySequence greater than
+    /// the tenant's ObservationQuota are captured but excluded from analytics.
+    /// </summary>
+    public int? MonthlySequence { get; set; }
+
     /// <summary>JSON array of photo URLs captured during this observation.</summary>
     public string? PhotoUrlsJson { get; set; }
 

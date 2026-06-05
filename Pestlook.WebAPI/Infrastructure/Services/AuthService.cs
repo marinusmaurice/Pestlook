@@ -20,6 +20,7 @@ public sealed class AuthService(
     IEmailService emailService,
     ApplicationDbContext db,
     ITenantContext tenantContext,
+    IQuotaService quotaService,
     IOptions<JwtOptions> jwtOptions,
     IOptions<EmailOptions> emailOptions,
     ILogger<AuthService> logger) : IAuthService
@@ -37,18 +38,15 @@ public sealed class AuthService(
 
         var slug = await GenerateUniqueSlugAsync(request.TenantName, ct);
         var plan = request.SubscriptionPlan;
+        var planConfig = await quotaService.GetPlanConfigAsync(plan, ct);
 
         var tenant = new Tenant
         {
-            Name = request.TenantName,
-            Slug = slug,
-            SubscriptionPlan = plan,
-            MonitoringPointQuota = plan switch
-            {
-                SubscriptionPlan.Professional => 50,
-                SubscriptionPlan.Enterprise   => 200,
-                _                             => 10
-            }
+            Name                 = request.TenantName,
+            Slug                 = slug,
+            SubscriptionPlan     = plan,
+            MonitoringPointQuota = planConfig.MonitoringPointQuota,
+            ObservationQuota     = planConfig.ObservationQuota
         };
 
         db.Tenants.Add(tenant);
@@ -84,6 +82,26 @@ public sealed class AuthService(
         }
 
         await userManager.AddToRoleAsync(user, "Admin");
+
+        var now = DateTime.Now;
+        var (quota, amountCents, isProRata, proRataDays) =
+            quotaService.GetBillingTerms(planConfig.ObservationQuota, planConfig.AmountCents, tenant.CreatedAt, now.Year, now.Month);
+
+        db.BillingSnapshots.Add(new BillingSnapshot
+        {
+            TenantId             = tenant.Id,
+            OwnerId              = user.Id,
+            BillingMonth         = new DateTime(now.Year, now.Month, 1),
+            ActivePointCount     = 0,
+            ObservationQuota     = quota,
+            ObservationsCaptured = 0,
+            ObservationsUsed     = 0,
+            AmountCents          = amountCents,
+            IsProRata            = isProRata,
+            ProRataDays          = isProRata ? proRataDays : null,
+            Status               = "pending"
+        });
+        await db.SaveChangesAsync(ct);
 
         await SendActivationEmailAsync(user, ct);
 

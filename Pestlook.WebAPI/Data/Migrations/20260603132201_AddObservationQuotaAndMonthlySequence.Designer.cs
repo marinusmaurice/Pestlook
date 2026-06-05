@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Pestlook.WebAPI.Data;
 
@@ -11,9 +12,11 @@ using Pestlook.WebAPI.Data;
 namespace Pestlook.WebAPI.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260603132201_AddObservationQuotaAndMonthlySequence")]
+    partial class AddObservationQuotaAndMonthlySequence
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -831,49 +834,6 @@ namespace Pestlook.WebAPI.Data.Migrations
                     b.HasIndex("TenantId", "CreatedAt");
 
                     b.ToTable("SessionObservations");
-                });
-
-            modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.SubscriptionPlanConfig", b =>
-                {
-                    b.Property<string>("Plan")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<int>("AmountCents")
-                        .HasColumnType("int");
-
-                    b.Property<int>("MonitoringPointQuota")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ObservationQuota")
-                        .HasColumnType("int");
-
-                    b.HasKey("Plan");
-
-                    b.ToTable("SubscriptionPlanConfigs");
-
-                    b.HasData(
-                        new
-                        {
-                            Plan = "Basic",
-                            AmountCents = 2500,
-                            MonitoringPointQuota = 10,
-                            ObservationQuota = 300
-                        },
-                        new
-                        {
-                            Plan = "Professional",
-                            AmountCents = 15000,
-                            MonitoringPointQuota = 50,
-                            ObservationQuota = 2000
-                        },
-                        new
-                        {
-                            Plan = "Enterprise",
-                            AmountCents = 0,
-                            MonitoringPointQuota = 200,
-                            ObservationQuota = 999999
-                        });
                 });
 
             modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.Tenant", b =>

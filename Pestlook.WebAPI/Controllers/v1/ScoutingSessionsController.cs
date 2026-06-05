@@ -155,7 +155,8 @@ public sealed class ScoutingSessionsController(
                     o.ObservationGroupId,
                     CreatedByName  = o.CreatedBy != null ? o.CreatedBy.FirstName + " " + o.CreatedBy.LastName : null,
                     UpdatedByName  = o.UpdatedBy != null ? o.UpdatedBy.FirstName + " " + o.UpdatedBy.LastName : null,
-                    o.ObservedAt
+                    o.ObservedAt,
+                    o.MonthlySequence
                 }).ToList()
             })
             .ToListAsync(ct);
@@ -176,7 +177,8 @@ public sealed class ScoutingSessionsController(
                 o.PhotoUrlsJson is not null
                     ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(o.PhotoUrlsJson) ?? []
                     : [],
-                o.ObservationGroupId, o.CreatedByName, o.UpdatedByName, o.ObservedAt)).ToList(),
+                o.ObservationGroupId, o.CreatedByName, o.UpdatedByName, o.ObservedAt,
+                o.MonthlySequence)).ToList(),
             p.CreatedByName, p.UpdatedByName)).ToList();
 
         return Ok(ApiResponse<List<ScoutingSessionResponse>>.Ok(sessions));
@@ -619,6 +621,7 @@ public sealed class ScoutingSessionsController(
                 SortOrder = nextSort + 1 + r,
                 ObservationGroupId = groupId,
                 ObservedAt = request.ObservedAt
+                // MonthlySequence is assigned automatically in SaveChangesAsync
             };
             db.SessionObservations.Add(obs);
             if (r == 0) firstId = obs.Id;

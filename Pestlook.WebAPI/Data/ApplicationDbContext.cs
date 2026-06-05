@@ -29,6 +29,7 @@ public sealed class ApplicationDbContext(
     public DbSet<Trap> Traps => Set<Trap>();
     public DbSet<SessionObservation> SessionObservations => Set<SessionObservation>();
     public DbSet<BillingSnapshot> BillingSnapshots => Set<BillingSnapshot>();
+    public DbSet<SubscriptionPlanConfig> SubscriptionPlanConfigs => Set<SubscriptionPlanConfig>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -255,7 +256,9 @@ public sealed class ApplicationDbContext(
              .HasForeignKey(so => so.DeletedByUserId)
              .IsRequired(false)
              .OnDelete(DeleteBehavior.NoAction);
-            e.HasQueryFilter(so => tenantContext.TenantId == null || so.TenantId == tenantContext.TenantId);
+            e.HasQueryFilter(so =>
+                (tenantContext.TenantId == null || so.TenantId == tenantContext.TenantId) &&
+                (tenantContext.ObservationQuota <= 0 || so.MonthlySequence == null || so.MonthlySequence <= tenantContext.ObservationQuota));
             e.HasIndex(so => so.SessionId);
             e.HasIndex(so => so.TenantId);
             e.HasIndex(so => new { so.SessionId, so.ObservationType });
@@ -299,6 +302,17 @@ public sealed class ApplicationDbContext(
             e.HasQueryFilter(b => tenantContext.TenantId == null || b.TenantId == tenantContext.TenantId);
         });
 
+        builder.Entity<SubscriptionPlanConfig>(e =>
+        {
+            e.HasKey(c => c.Plan);
+            e.Property(c => c.Plan).HasConversion<string>().HasMaxLength(50);
+            e.HasData(
+                new SubscriptionPlanConfig { Plan = SubscriptionPlan.Basic,        ObservationQuota = 300,    AmountCents = 2500,  MonitoringPointQuota = 10  },
+                new SubscriptionPlanConfig { Plan = SubscriptionPlan.Professional, ObservationQuota = 2000,   AmountCents = 15000, MonitoringPointQuota = 50  },
+                new SubscriptionPlanConfig { Plan = SubscriptionPlan.Enterprise,   ObservationQuota = 999999, AmountCents = 0,     MonitoringPointQuota = 200 }
+            );
+        });
+
         // ── User audit FK configuration ──────────────────────────────────────
         ConfigureUserAudit<Farm>(builder);
         ConfigureUserAudit<Field>(builder);
@@ -310,10 +324,48 @@ public sealed class ApplicationDbContext(
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         SetUserAuditFields();
+        await AssignMonthlySequencesAsync(cancellationToken);
         var auditEntries = BuildAuditEntries();
         var result = await base.SaveChangesAsync(cancellationToken);
         await SaveAuditLogsAsync(auditEntries, cancellationToken);
         return result;
+    }
+
+    private async Task AssignMonthlySequencesAsync(CancellationToken ct)
+    {
+        var pending = ChangeTracker.Entries<SessionObservation>()
+            .Where(e => e.State is EntityState.Added or EntityState.Modified
+                     && e.Entity.ObservedAt.HasValue
+                     && e.Entity.MonthlySequence == null)
+            .Select(e => e.Entity)
+            .ToList();
+
+        if (pending.Count == 0) return;
+
+        var groups = pending.GroupBy(o => new
+        {
+            o.TenantId,
+            Year  = o.ObservedAt!.Value.Year,
+            Month = o.ObservedAt.Value.Month
+        });
+
+        foreach (var group in groups)
+        {
+            var monthStart = new DateTime(group.Key.Year, group.Key.Month, 1);
+            var monthEnd   = monthStart.AddMonths(1);
+
+            var existingCount = await SessionObservations
+                .IgnoreQueryFilters()
+                .CountAsync(o => o.TenantId      == group.Key.TenantId
+                              && o.ObservedAt     >= monthStart
+                              && o.ObservedAt      < monthEnd
+                              && o.MonthlySequence != null, ct);
+
+            // Order within this batch by ObservedAt so earlier field events get lower sequence numbers
+            var ordered = group.OrderBy(o => o.ObservedAt).ToList();
+            for (var i = 0; i < ordered.Count; i++)
+                ordered[i].MonthlySequence = existingCount + i + 1;
+        }
     }
 
     private List<PendingAuditEntry> BuildAuditEntries()

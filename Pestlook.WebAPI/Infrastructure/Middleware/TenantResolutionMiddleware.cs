@@ -30,6 +30,7 @@ public sealed class TenantResolutionMiddleware(RequestDelegate next, ILogger<Ten
 
         tenantContext.TenantId = tenant.Id;
         tenantContext.TenantSlug = tenant.Slug;
+        tenantContext.ObservationQuota = tenant.ObservationQuota;
 
         await next(context);
     }
