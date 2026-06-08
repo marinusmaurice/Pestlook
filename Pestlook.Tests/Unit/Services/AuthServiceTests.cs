@@ -52,6 +52,8 @@ public sealed class AuthServiceTests : IDisposable
         _tokenServiceMock.Setup(t => t.GenerateRefreshToken())
             .Returns("mocked-refresh-token");
 
+        var emailServiceMock = new Mock<IEmailService>();
+
         var jwtOptions = Options.Create(new JwtOptions
         {
             Secret = "super-secret-key-that-is-at-least-32-chars!!",
@@ -61,12 +63,26 @@ public sealed class AuthServiceTests : IDisposable
             RefreshTokenExpiryDays = 7
         });
 
+        var emailOptions = Options.Create(new EmailOptions
+        {
+            Host = "localhost",
+            Port = 25,
+            EnableSsl = false,
+            Username = "test",
+            Password = "test",
+            FromAddress = "noreply@test.local",
+            FromName = "Test",
+            AppBaseUrl = "https://test.local"
+        });
+
         _sut = new AuthService(
             _userManagerMock.Object,
             _tokenServiceMock.Object,
+            emailServiceMock.Object,
             _db,
             _tenantContext,
             jwtOptions,
+            emailOptions,
             new Mock<ILogger<AuthService>>().Object);
     }
 

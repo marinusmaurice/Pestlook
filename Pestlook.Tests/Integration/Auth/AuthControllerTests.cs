@@ -1,8 +1,11 @@
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Pestlook.Tests.Helpers;
 using Pestlook.Tests.Integration.Infrastructure;
+using Pestlook.WebAPI.Data;
 using Pestlook.WebAPI.Domain.Enums;
 using Pestlook.WebAPI.DTOs.Auth;
 using Pestlook.WebAPI.DTOs.Common;
@@ -215,13 +218,11 @@ public sealed class AuthControllerTests(TestWebApplicationFactory factory)
     [Fact]
     public async Task SignUp_ShouldAlwaysAssignAdminRole()
     {
-        var slug = $"org-{Guid.NewGuid():N}";
         var email = $"owner_{Guid.NewGuid():N}@test.com";
 
         var signUpResp = await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/sign-up",
             new SignUpRequest(
                 TenantName: "Test Org",
-                TenantSlug: slug,
                 SubscriptionPlan: SubscriptionPlan.Basic,
                 Email: email,
                 Password: "P@ssw0rd1!",
@@ -229,16 +230,14 @@ public sealed class AuthControllerTests(TestWebApplicationFactory factory)
                 LastName: "User"));
 
         signUpResp.StatusCode.Should().Be(HttpStatusCode.Created);
-        var tokens = (await signUpResp.Content.ReadFromJsonAsync<ApiResponse<TokenResponse>>())!.Data!;
 
-        var authedClient = factory.CreateClient();
-        authedClient.DefaultRequestHeaders.Authorization =
-            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", tokens.AccessToken);
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var user = await db.Users.IgnoreQueryFilters().SingleAsync(u => u.Email == email);
+        var userManager = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<Pestlook.WebAPI.Domain.Entities.ApplicationUser>>();
+        var roles = await userManager.GetRolesAsync(user);
 
-        var body = (await (await authedClient.GetAsync("/api/v1/auth/me")).Content
-            .ReadFromJsonAsync<ApiResponse<UserInfoResponse>>())!;
-
-        body.Data!.Roles.Should().ContainSingle(r => r == "Admin");
+        roles.Should().ContainSingle(r => r == "Admin");
     }
 
     // ── Role selection via POST /api/v1/auth/register ─────────────────────────

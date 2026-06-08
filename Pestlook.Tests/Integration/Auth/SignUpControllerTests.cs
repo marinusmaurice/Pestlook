@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -15,13 +14,12 @@ namespace Pestlook.Tests.Integration.Auth;
 [Collection("Integration")]
 public sealed class SignUpControllerTests(TestWebApplicationFactory factory)
 {
-    // Produces a fully valid request; each call gets a fresh slug + email.
+    // Produces a fully valid request; each call gets a fresh name + email.
     private static SignUpRequest Valid(
         SubscriptionPlan plan = SubscriptionPlan.Basic,
-        string? slug  = null,
+        string? tenantName = null,
         string? email = null) => new(
-            TenantName:       "Acme Farms",
-            TenantSlug:       slug  ?? $"acme-{Guid.NewGuid():N}",
+            TenantName:       tenantName ?? $"Acme Farms {Guid.NewGuid():N}",
             SubscriptionPlan: plan,
             Email:            email ?? $"owner_{Guid.NewGuid():N}@acme.com",
             Password:         "P@ssw0rd1!",
@@ -31,19 +29,16 @@ public sealed class SignUpControllerTests(TestWebApplicationFactory factory)
     // ── POST /api/v1/auth/sign-up — happy path ────────────────────────────────
 
     [Fact]
-    public async Task SignUp_WithValidRequest_ShouldReturn201WithTokens()
+    public async Task SignUp_WithValidRequest_ShouldReturn201WithActivationMessage()
     {
         var response = await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/sign-up", Valid());
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var body = await response.Content.ReadFromJsonAsync<ApiResponse<TokenResponse>>();
+        var body = await response.Content.ReadFromJsonAsync<ApiResponse<SignUpResponse>>();
         body!.Success.Should().BeTrue();
         body.Data.Should().NotBeNull();
-        body.Data!.AccessToken.Should().NotBeNullOrEmpty();
-        body.Data.RefreshToken.Should().NotBeNullOrEmpty();
-        body.Data.AccessTokenExpiry.Should().BeAfter(DateTime.Now);
-        body.Data.RefreshTokenExpiry.Should().BeAfter(DateTime.Now);
-        body.Message.Should().Be("Account created successfully.");
+        body.Data!.Email.Should().NotBeNullOrEmpty();
+        body.Message.Should().Be("Account created! Please check your email to activate your account.");
     }
 
     [Fact]
@@ -60,19 +55,29 @@ public sealed class SignUpControllerTests(TestWebApplicationFactory factory)
     [Fact]
     public async Task SignUp_SignedUpUserShouldHaveAdminRole()
     {
-        var tokens = await SignUpAndGetTokensAsync();
+        var response = await SignUpAsync();
 
-        var me = await GetMeAsync(tokens.AccessToken);
-        me.Roles.Should().ContainSingle().Which.Should().Be("Admin");
+        using var scope = factory.Services.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<Pestlook.WebAPI.Domain.Entities.ApplicationUser>>();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var user = await db.Users.IgnoreQueryFilters().SingleAsync(u => u.Email == response.Email);
+        var roles = await userManager.GetRolesAsync(user);
+
+        roles.Should().ContainSingle().Which.Should().Be("Admin");
     }
 
     [Fact]
     public async Task SignUp_SignedUpUserShouldNotHaveScoutRole()
     {
-        var tokens = await SignUpAndGetTokensAsync();
+        var response = await SignUpAsync();
 
-        var me = await GetMeAsync(tokens.AccessToken);
-        me.Roles.Should().NotContain("Scout");
+        using var scope = factory.Services.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<Pestlook.WebAPI.Domain.Entities.ApplicationUser>>();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var user = await db.Users.IgnoreQueryFilters().SingleAsync(u => u.Email == response.Email);
+        var roles = await userManager.GetRolesAsync(user);
+
+        roles.Should().NotContain("Scout");
     }
 
     // ── Subscription plan → MonitoringPointQuota ──────────────────────────────
@@ -84,12 +89,12 @@ public sealed class SignUpControllerTests(TestWebApplicationFactory factory)
     public async Task SignUp_EachPlan_SetsCorrectMonitoringPointQuota(
         SubscriptionPlan plan, int expectedQuota)
     {
-        var slug = $"plan-{Guid.NewGuid():N}";
-        await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/sign-up", Valid(plan: plan, slug: slug));
+        var tenantName = $"Plan Farms {Guid.NewGuid():N}";
+        await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/sign-up", Valid(plan: plan, tenantName: tenantName));
 
         using var scope = factory.Services.CreateScope();
         var db     = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var tenant = await db.Tenants.SingleAsync(t => t.Slug == slug);
+        var tenant = await db.Tenants.SingleAsync(t => t.Name == tenantName);
 
         tenant.MonitoringPointQuota.Should().Be(expectedQuota);
         tenant.SubscriptionPlan.Should().Be(plan);
@@ -119,19 +124,6 @@ public sealed class SignUpControllerTests(TestWebApplicationFactory factory)
     // ── Conflict cases ────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task SignUp_WithDuplicateSlug_ShouldReturn409()
-    {
-        var slug  = $"dup-slug-{Guid.NewGuid():N}";
-        var first  = Valid(slug: slug);
-        var second = Valid(slug: slug); // different email, same slug
-
-        await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/sign-up", first);
-        var response = await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/sign-up", second);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
-    }
-
-    [Fact]
     public async Task SignUp_WithDuplicateEmail_ShouldReturn409()
     {
         var email  = $"dup-email-{Guid.NewGuid():N}@test.com";
@@ -147,31 +139,22 @@ public sealed class SignUpControllerTests(TestWebApplicationFactory factory)
     // ── FluentValidation failures ─────────────────────────────────────────────
 
     [Theory]
-    // Tenant name
-    [InlineData("",      "valid-slug", "owner@test.com", "P@ssw0rd1!", "Jane", "Farmer")] // empty name
-    // Slug format
-    [InlineData("Acme",  "",           "owner@test.com", "P@ssw0rd1!", "Jane", "Farmer")] // empty slug
-    [InlineData("Acme",  "HasUpper",   "owner@test.com", "P@ssw0rd1!", "Jane", "Farmer")] // uppercase
-    [InlineData("Acme",  "has space",  "owner@test.com", "P@ssw0rd1!", "Jane", "Farmer")] // space
-    [InlineData("Acme",  "under_score","owner@test.com", "P@ssw0rd1!", "Jane", "Farmer")] // underscore
-    // Email
-    [InlineData("Acme",  "valid-slug", "",               "P@ssw0rd1!", "Jane", "Farmer")] // empty email
-    [InlineData("Acme",  "valid-slug", "not-an-email",   "P@ssw0rd1!", "Jane", "Farmer")] // not an email
-    // Password rules
-    [InlineData("Acme",  "valid-slug", "owner@test.com", "Short1!",    "Jane", "Farmer")] // < 8 chars
-    [InlineData("Acme",  "valid-slug", "owner@test.com", "nouppercase1!","Jane","Farmer")]// no uppercase
-    [InlineData("Acme",  "valid-slug", "owner@test.com", "NOLOWERCASE1!","Jane","Farmer")]// no lowercase
-    [InlineData("Acme",  "valid-slug", "owner@test.com", "NoDigitHere!", "Jane","Farmer")]// no digit
-    [InlineData("Acme",  "valid-slug", "owner@test.com", "NoSpecial123", "Jane","Farmer")]// no special char
-    // Name fields
-    [InlineData("Acme",  "valid-slug", "owner@test.com", "P@ssw0rd1!", "",     "Farmer")] // empty first name
-    [InlineData("Acme",  "valid-slug", "owner@test.com", "P@ssw0rd1!", "Jane", "")]       // empty last name
+    [InlineData("", "owner@test.com", "P@ssw0rd1!", "Jane", "Farmer")]
+    [InlineData("Acme", "", "P@ssw0rd1!", "Jane", "Farmer")]
+    [InlineData("Acme", "not-an-email", "P@ssw0rd1!", "Jane", "Farmer")]
+    [InlineData("Acme", "Short1!", "Short1!", "Jane", "Farmer")]
+    [InlineData("Acme", "owner@test.com", "nouppercase1!", "Jane", "Farmer")]
+    [InlineData("Acme", "owner@test.com", "NOLOWERCASE1!", "Jane", "Farmer")]
+    [InlineData("Acme", "owner@test.com", "NoDigitHere!", "Jane", "Farmer")]
+    [InlineData("Acme", "owner@test.com", "NoSpecial123", "Jane", "Farmer")]
+    [InlineData("Acme", "owner@test.com", "P@ssw0rd1!", "", "Farmer")]
+    [InlineData("Acme", "owner@test.com", "P@ssw0rd1!", "Jane", "")]
     public async Task SignUp_WhenRequestIsInvalid_ShouldReturn400(
-        string tenantName, string slug, string email, string password,
+        string tenantName, string email, string password,
         string firstName,  string lastName)
     {
         var request = new SignUpRequest(
-            tenantName, slug, SubscriptionPlan.Basic, email, password, firstName, lastName);
+            tenantName, SubscriptionPlan.Basic, email, password, firstName, lastName);
 
         var response = await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/sign-up", request);
 
@@ -183,12 +166,12 @@ public sealed class SignUpControllerTests(TestWebApplicationFactory factory)
     [Fact]
     public async Task SignUp_CreatedTenantShouldBeActive()
     {
-        var slug = $"active-check-{Guid.NewGuid():N}";
-        await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/sign-up", Valid(slug: slug));
+        var tenantName = $"Active Check Farms {Guid.NewGuid():N}";
+        await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/sign-up", Valid(tenantName: tenantName));
 
         using var scope = factory.Services.CreateScope();
         var db     = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var tenant = await db.Tenants.SingleAsync(t => t.Slug == slug);
+        var tenant = await db.Tenants.SingleAsync(t => t.Name == tenantName);
 
         tenant.IsActive.Should().BeTrue();
     }
@@ -196,61 +179,50 @@ public sealed class SignUpControllerTests(TestWebApplicationFactory factory)
     [Fact]
     public async Task SignUp_CreatedTenantShouldHaveCorrectName()
     {
-        var slug = $"name-check-{Guid.NewGuid():N}";
-        var request = Valid(slug: slug) with { TenantName = "Green Leaf Farms" };
+        var tenantName = $"Green Leaf Farms {Guid.NewGuid():N}";
+        var request = Valid(tenantName: tenantName);
         await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/sign-up", request);
 
         using var scope = factory.Services.CreateScope();
         var db     = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var tenant = await db.Tenants.SingleAsync(t => t.Slug == slug);
+        var tenant = await db.Tenants.SingleAsync(t => t.Name == tenantName);
 
-        tenant.Name.Should().Be("Green Leaf Farms");
+        tenant.Name.Should().Be(tenantName);
+
     }
 
     // ── Post sign-up flows ────────────────────────────────────────────────────
 
     [Fact]
-    public async Task SignUp_UserCanLogInWithCredentialsAfterwards()
+    public async Task SignUp_UserCannotLogInBeforeActivation()
     {
-        var email    = $"login-after-{Guid.NewGuid():N}@test.com";
+        var email = $"login-after-{Guid.NewGuid():N}@test.com";
         var password = "P@ssw0rd1!";
         await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/sign-up",
             Valid(email: email) with { Password = password });
 
-        // No tenant header — the new tenant is not "test-tenant"
         var loginResp = await factory.CreateClient()
             .PostAsJsonAsync("/api/v1/auth/login", new LoginRequest(email, password));
 
-        loginResp.StatusCode.Should().Be(HttpStatusCode.OK);
-        var body = (await loginResp.Content.ReadFromJsonAsync<ApiResponse<TokenResponse>>())!;
-        body.Data!.AccessToken.Should().NotBeNullOrEmpty();
+        loginResp.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
-    public async Task SignUp_ReturnedTokensAreImmediatelyUsable()
+    public async Task SignUp_ReturnsActivationResponseWithCreatedEmail()
     {
-        var tokens = await SignUpAndGetTokensAsync();
+        var response = await SignUpAsync();
 
-        var me = await GetMeAsync(tokens.AccessToken);
-        me.Should().NotBeNull();
-        me.Email.Should().NotBeNullOrEmpty();
+        response.Email.Should().NotBeNullOrEmpty();
+        response.Message.Should().Be("Account created! Please check your email to activate your account.");
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private async Task<TokenResponse> SignUpAndGetTokensAsync(SignUpRequest? request = null)
+    private async Task<SignUpResponse> SignUpAsync(SignUpRequest? request = null)
     {
         var resp = await factory.CreateClient()
             .PostAsJsonAsync("/api/v1/auth/sign-up", request ?? Valid());
-        return (await resp.Content.ReadFromJsonAsync<ApiResponse<TokenResponse>>())!.Data!;
-    }
-
-    private async Task<UserInfoResponse> GetMeAsync(string accessToken)
-    {
-        var client = factory.CreateClient();
-        client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", accessToken);
-        var resp = await client.GetAsync("/api/v1/auth/me");
-        return (await resp.Content.ReadFromJsonAsync<ApiResponse<UserInfoResponse>>())!.Data!;
+        resp.StatusCode.Should().Be(HttpStatusCode.Created);
+        return (await resp.Content.ReadFromJsonAsync<ApiResponse<SignUpResponse>>())!.Data!;
     }
 }

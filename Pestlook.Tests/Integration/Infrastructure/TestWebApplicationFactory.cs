@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Tokens;
@@ -20,6 +21,7 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
     public static readonly string DefaultAdminId = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
     public static readonly string DefaultAdminEmail = "admin@test-tenant.com";
     private readonly string _dbName = $"TestDb_{Guid.NewGuid():N}";
+    private readonly InMemoryDatabaseRoot _dbRoot = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -50,7 +52,7 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
             services.RemoveAll(typeof(IDbContextOptionsConfiguration<ApplicationDbContext>));
             services.RemoveAll<DbContextOptions<ApplicationDbContext>>();
             services.AddDbContext<ApplicationDbContext>((_, options) =>
-                options.UseInMemoryDatabase(_dbName));
+                options.UseInMemoryDatabase(_dbName, _dbRoot));
 
             // Swap JWT validation to use the test secret
             services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>

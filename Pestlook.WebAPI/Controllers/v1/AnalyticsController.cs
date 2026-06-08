@@ -16,6 +16,17 @@ namespace Pestlook.WebAPI.Controllers.v1;
 [Authorize]
 public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBase
 {
+    private static readonly JsonSerializerOptions AnalyticsJsonOptions = new()
+    {
+        PropertyNamingPolicy = null
+    };
+
+    private IActionResult AnalyticsOk(object data) =>
+        new JsonResult(ApiResponse<object>.Ok(data), AnalyticsJsonOptions)
+        {
+            StatusCode = StatusCodes.Status200OK
+        };
+
     // ── Shared filter helper ────────────────────────────────────────────────
 
     /// <summary>
@@ -73,7 +84,9 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         page     = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 500);
 
-        var query = db.ScoutingSessions.OrderByDescending(ss => ss.CreatedAt);
+        var query = db.ScoutingSessions
+            .OrderByDescending(ss => ss.CompletedAt != null)
+            .ThenByDescending(ss => ss.CompletedAt ?? ss.StartedAt ?? ss.ScheduledDate ?? ss.CreatedAt);
 
         var totalCount = await query.CountAsync(ct);
 
@@ -191,12 +204,14 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         // Previously used a separate obsKpisQ without farm/field/scout filters which
         // caused full-table scans and returned wrong totals when filters were active.
         var totalObservations = await obsBase.SumAsync(o => (int?)(o.Count ?? 0), ct) ?? 0;
-        var thresholdBreaches = await obsBase.CountAsync(o => o.ThresholdCount != null && o.Count > o.ThresholdCount, ct);
+        var thresholdBreaches = await obsBase.CountAsync(o =>
+            (o.ThresholdCount != null && o.Count > o.ThresholdCount) ||
+            (o.IsUnknownPest && (o.Count ?? 0) >= 5), ct);
 
         // Trend — bucket size adapts to the selected range
-        var spanDays = (end - start).TotalDays;
+        var spanDays = (end.Date - start.Date).TotalDays + 1;
         List<object> weeklyObs;
-        if (spanDays <= 14)
+        if (spanDays <= 31)
         {
             // Daily buckets
             var raw = await obsBase
@@ -236,7 +251,7 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
             .Take(6)
             .ToListAsync(ct);
 
-        return Ok(ApiResponse<object>.Ok(new
+        return AnalyticsOk(new
         {
             kpis = new
             {
@@ -247,7 +262,7 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
             },
             weeklyTrend = weeklyObs,
             topPests,
-        }));
+        });
     }
 
     // ── R1 Threshold Alerts ─────────────────────────────────────────────────
@@ -265,11 +280,11 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         var (start, end) = ResolveRange(dateRange, from, to);
 
         var obsQ = db.SessionObservations
-            .Where(o => !o.IsUnknownPest
-                     && o.ThresholdCount != null
-                     && o.Count > o.ThresholdCount
-                     && o.Session.CompletedAt >= start
-                     && o.Session.CompletedAt <= end);
+            .Where(o =>
+                (((!o.IsUnknownPest && o.ThresholdCount != null && o.Count > o.ThresholdCount) ||
+                  (o.IsUnknownPest && (o.Count ?? 0) >= 5)))
+                && o.Session.CompletedAt >= start
+                && o.Session.CompletedAt <= end);
 
         if (farmId.HasValue)  obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
         if (fieldId.HasValue) obsQ = obsQ.Where(o => o.Session.FieldId == fieldId);
@@ -315,7 +330,7 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
             .OrderBy(x => x.WeekIndex)
             .ToListAsync(ct);
 
-        return Ok(ApiResponse<object>.Ok(new { breaches, repeatOffenders, weeklyTrend }));
+        return AnalyticsOk(new { breaches, repeatOffenders, weeklyTrend });
     }
 
     // ── R2 Pest Pressure ────────────────────────────────────────────────────
@@ -370,15 +385,18 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
                 g.Key.FieldId,
                 g.Key.PestName,
                 PestCount = g.Sum(o => o.Count ?? 0),
+                MaxSingleCount = g.Max(o => o.Count ?? 0),
             })
-            .OrderByDescending(x => x.PestCount)
             .ToListAsync(ct);
 
         var top3ByField = topPestsByField
             .GroupBy(x => x.FieldId)
             .ToDictionary(
                 g => g.Key,
-                g => g.Take(3).Select(x => new { x.PestName, x.PestCount }).ToList()
+                g => g.OrderByDescending(x => x.MaxSingleCount)
+                    .ThenByDescending(x => x.PestCount)
+                    .Take(3)
+                    .Select(x => new { x.PestName, x.PestCount }).ToList()
             );
 
         var result = fieldStats.Select(f => new
@@ -393,7 +411,7 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
             TopPests = f.FieldId.HasValue && top3ByField.TryGetValue(f.FieldId, out var tp) ? tp : [],
         });
 
-        return Ok(ApiResponse<object>.Ok(new { fields = result }));
+        return AnalyticsOk(new { fields = result });
     }
 
     // ── R3 Sessions Summary ─────────────────────────────────────────────────
@@ -413,7 +431,8 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
 
         var sessQ = db.ScoutingSessions
             .Where(ss => (ss.CompletedAt ?? ss.StartedAt ?? ss.ScheduledDate) >= start
-                      && (ss.CompletedAt ?? ss.StartedAt ?? ss.ScheduledDate) <= end);
+                      && ((ss.CompletedAt ?? ss.StartedAt ?? ss.ScheduledDate) <= end
+                          || (ss.IsPlanned && ss.StartedAt == null && ss.CompletedAt == null)));
 
         if (farmId.HasValue)  sessQ = sessQ.Where(ss => ss.FarmId == farmId || ss.Field!.FarmId == farmId);
         if (fieldId.HasValue) sessQ = sessQ.Where(ss => ss.FieldId == fieldId);
@@ -503,7 +522,7 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
             s.ObsCount,
         });
 
-        return Ok(ApiResponse<object>.Ok(new { kpis, scoutCompliance, weeklyStacked, sessions = sessionTable }));
+        return AnalyticsOk(new { kpis, scoutCompliance, weeklyStacked, sessions = sessionTable });
     }
 
     // ── R4 Top Pests ────────────────────────────────────────────────────────
@@ -572,7 +591,7 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
             TopLifeStage = p.PestId.HasValue && topLifeStageByPest.TryGetValue(p.PestId, out var ls) ? ls : null,
         });
 
-        return Ok(ApiResponse<object>.Ok(new { pests = result }));
+        return AnalyticsOk(new { pests = result });
     }
 
     // ── R5 Trap Performance ─────────────────────────────────────────────────
@@ -630,12 +649,18 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         var topPestByTrap = await obsQ
             .Where(o => o.PestId != null && !o.IsUnknownPest)
             .GroupBy(o => new { o.TrapId, PestName = o.Pest!.CommonName })
-            .Select(g => new { g.Key.TrapId, g.Key.PestName, Count = g.Sum(o => o.Count ?? 0) })
+            .Select(g => new
+            {
+                g.Key.TrapId,
+                g.Key.PestName,
+                Count = g.Sum(o => o.Count ?? 0),
+                MaxSingleCount = g.Max(o => o.Count ?? 0)
+            })
             .ToListAsync(ct);
 
         var topPestMap = topPestByTrap
             .GroupBy(x => x.TrapId)
-            .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.Count).First().PestName);
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.MaxSingleCount).ThenByDescending(x => x.Count).First().PestName);
 
         var catchesByType = await obsQ
             .GroupBy(o => o.Trap != null && o.Trap.TrapType != null ? o.Trap.TrapType.Name : "Unknown")
@@ -668,7 +693,7 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
             };
         });
 
-        return Ok(ApiResponse<object>.Ok(new { traps = result, catchesByType }));
+        return AnalyticsOk(new { traps = result, catchesByType });
     }
 
     // ── R6 Scout Productivity ───────────────────────────────────────────────
@@ -688,7 +713,8 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
 
         var sessQ = db.ScoutingSessions
             .Where(ss => (ss.CompletedAt ?? ss.StartedAt ?? ss.ScheduledDate) >= start
-                      && (ss.CompletedAt ?? ss.StartedAt ?? ss.ScheduledDate) <= end
+                      && ((ss.CompletedAt ?? ss.StartedAt ?? ss.ScheduledDate) <= end
+                          || (ss.IsPlanned && ss.StartedAt == null && ss.CompletedAt == null))
                       && ss.ScouterId != null);
 
         if (farmId.HasValue)  sessQ = sessQ.Where(ss => ss.FarmId == farmId || ss.Field!.FarmId == farmId);
@@ -722,8 +748,12 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
             .GroupBy(o => o.SessionId)
             .Select(g => new
             {
-                SessionId  = g.Key,
-                TotalObs   = g.Sum(o => o.Count ?? 0),
+                SessionId = g.Key,
+                TotalObs = g.Sum(o =>
+                    ((!o.IsUnknownPest && o.ThresholdCount != null && o.Count > o.ThresholdCount) ||
+                     (o.IsUnknownPest && (o.Count ?? 0) >= 5))
+                        ? (o.Count ?? 0)
+                        : 0),
                 AlertCount = g.Count(o => o.ThresholdCount != null && o.Count > o.ThresholdCount),
             })
             .ToListAsync(ct);
@@ -790,7 +820,7 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
             .OrderBy(x => x.WeekStart)
             .ToList();
 
-        return Ok(ApiResponse<object>.Ok(new { scouts, weeklyActivity }));
+        return AnalyticsOk(new { scouts, weeklyActivity });
     }
 
     // ── R7 Seasonal Trends ──────────────────────────────────────────────────
@@ -802,11 +832,10 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         [FromQuery] string? scoutId,
         CancellationToken ct = default)
     {
-        // Always last 18 months
-        var cutoff = DateTime.Now.AddMonths(-18);
+        var periodStart = DateTime.Now.AddDays(-30).Date;
 
         var sessQ = db.ScoutingSessions
-            .Where(ss => ss.CompletedAt >= cutoff);
+            .Where(ss => ss.CompletedAt >= periodStart);
 
         if (farmId.HasValue)  sessQ = sessQ.Where(ss => ss.FarmId == farmId || ss.Field!.FarmId == farmId);
         if (fieldId.HasValue) sessQ = sessQ.Where(ss => ss.FieldId == fieldId);
@@ -825,33 +854,29 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
             })
             .ToListAsync(ct);
 
-        var monthMap = sessions
-            .GroupBy(s => new DateTime(s.CompletedAt!.Value.Year, s.CompletedAt.Value.Month, 1))
-            .Select(g =>
-            {
-                var temps     = g.Where(s => s.TemperatureCelsius.HasValue).Select(s => s.TemperatureCelsius!.Value).ToList();
-                var allObs    = g.SelectMany(s => s.Obs).ToList();
-                var pestTotals = allObs.Where(o => o.PestName != null)
-                    .GroupBy(o => o.PestName!)
-                    .Select(pg => new { PestName = pg.Key, PestCount = pg.Sum(o => o.Count ?? 0) })
-                    .OrderByDescending(x => x.PestCount)
-                    .Take(3)
-                    .ToList();
-
-                return new
-                {
-                    MonthKey      = g.Key.ToString("yyyy-MM"),
-                    MonthLabel    = g.Key.ToString("MMM yyyy"),
-                    SessionCount  = g.Count(),
-                    TotalObs      = allObs.Sum(o => o.Count ?? 0),
-                    AvgTempCelsius = temps.Count > 0 ? (double?)Math.Round(temps.Average(), 1) : null,
-                    TopPests      = pestTotals,
-                };
-            })
-            .OrderBy(m => m.MonthKey)
+        var temps = sessions.Where(s => s.TemperatureCelsius.HasValue).Select(s => s.TemperatureCelsius!.Value).ToList();
+        var allObs = sessions.SelectMany(s => s.Obs).ToList();
+        var pestTotals = allObs.Where(o => o.PestName != null)
+            .GroupBy(o => o.PestName!)
+            .Select(pg => new { PestName = pg.Key, PestCount = pg.Sum(o => o.Count ?? 0) })
+            .OrderByDescending(x => x.PestCount)
+            .Take(3)
             .ToList();
 
-        return Ok(ApiResponse<object>.Ok(new { months = monthMap }));
+        var monthMap = new[]
+        {
+            new
+            {
+                MonthKey = DateTime.Now.ToString("yyyy-MM"),
+                MonthLabel = DateTime.Now.ToString("MMM yyyy"),
+                SessionCount = sessions.Count,
+                TotalObs = allObs.Sum(o => o.Count ?? 0),
+                AvgTempCelsius = temps.Count > 0 ? (double?)Math.Round(temps.Average(), 1) : null,
+                TopPests = pestTotals,
+            }
+        };
+
+        return AnalyticsOk(new { months = monthMap });
     }
 
     // ── R8 Unknown Pests ────────────────────────────────────────────────────
@@ -933,7 +958,7 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
             .OrderBy(x => x.WeekStart)
             .ToList();
 
-        return Ok(ApiResponse<object>.Ok(new { kpis, items = result, weeklyTrend }));
+        return AnalyticsOk(new { kpis, items = result, weeklyTrend });
     }
 
     // ── R9 Field Coverage ───────────────────────────────────────────────────
@@ -946,7 +971,7 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         CancellationToken ct = default)
     {
         var now        = DateTime.Now;
-        var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0);
+        var coverageStart = now.AddDays(-30).Date;
         const int TargetPerMonth = 4;
 
         var fieldsQ = db.Fields.AsQueryable();
@@ -987,19 +1012,25 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
                      && !o.IsUnknownPest
                      && o.PestId != null)
             .GroupBy(o => new { o.Session.FieldId, PestName = o.Pest!.CommonName })
-            .Select(g => new { g.Key.FieldId, g.Key.PestName, Count = g.Sum(o => o.Count ?? 0) })
+            .Select(g => new
+            {
+                g.Key.FieldId,
+                g.Key.PestName,
+                Count = g.Sum(o => o.Count ?? 0),
+                MaxSingleCount = g.Max(o => o.Count ?? 0)
+            })
             .ToListAsync(ct);
 
         var topPestMap = topPests
             .GroupBy(x => x.FieldId)
-            .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.Count).First().PestName);
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.MaxSingleCount).ThenByDescending(x => x.Count).First().PestName);
 
         var sessByField = sessions.GroupBy(s => s.FieldId).ToDictionary(g => g.Key, g => g.ToList());
 
         var result = fields.Select(f =>
         {
             var allSess  = sessByField.TryGetValue(f.Id, out var sl) ? sl : [];
-            var thisMo   = allSess.Count(s => s.CompletedAt >= monthStart);
+            var thisMo   = allSess.Count(s => s.CompletedAt >= coverageStart);
             var last     = allSess.MaxBy(s => s.CompletedAt)?.CompletedAt;
             var pct      = Math.Min(100, (int)Math.Round(100.0 * thisMo / TargetPerMonth));
             return new
@@ -1018,7 +1049,7 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         .OrderBy(f => f.CoveragePct)
         .ToList();
 
-        return Ok(ApiResponse<object>.Ok(new { targetPerMonth = TargetPerMonth, fields = result }));
+        return AnalyticsOk(new { targetPerMonth = TargetPerMonth, fields = result });
     }
 
     // ── R10 Billing ─────────────────────────────────────────────────────────
@@ -1040,6 +1071,6 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         var activeTraps = await db.Traps
             .CountAsync(t => t.IsEnabled, ct);
 
-        return Ok(ApiResponse<object>.Ok(new { activeTraps, snapshots }));
+        return AnalyticsOk(new { activeTraps, snapshots });
     }
 }
