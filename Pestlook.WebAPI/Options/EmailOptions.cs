@@ -12,4 +12,7 @@ public sealed class EmailOptions
     public string FromAddress { get; init; } = string.Empty;
     public string FromName { get; init; } = "PestLook";
     public string AppBaseUrl { get; init; } = string.Empty;
+
+    /// <summary>Address that receives user feedback submissions.</summary>
+    public string AdminAddress { get; init; } = "admin@pestlook.com";
 }

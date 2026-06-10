@@ -29,6 +29,7 @@ public sealed class ApplicationDbContext(
     public DbSet<Trap> Traps => Set<Trap>();
     public DbSet<SessionObservation> SessionObservations => Set<SessionObservation>();
     public DbSet<BillingSnapshot> BillingSnapshots => Set<BillingSnapshot>();
+    public DbSet<Feedback> Feedbacks => Set<Feedback>();
 
     private static SubscriptionPlan ParseSubscriptionPlan(string value) =>
         Enum.TryParse<SubscriptionPlan>(value, out var parsed) ? parsed : SubscriptionPlan.Free;
@@ -305,6 +306,33 @@ public sealed class ApplicationDbContext(
              .OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(b => new { b.TenantId, b.BillingMonth }).IsUnique();
             e.HasQueryFilter(b => tenantContext.TenantId == null || b.TenantId == tenantContext.TenantId);
+        });
+
+        builder.Entity<Feedback>(e =>
+        {
+            e.HasKey(f => f.Id);
+            e.Property(f => f.Category).HasConversion<string>().HasMaxLength(50);
+            e.Property(f => f.Subject).HasMaxLength(200).IsRequired();
+            e.Property(f => f.Message).HasMaxLength(4000).IsRequired();
+            e.Property(f => f.PageUrl).HasMaxLength(500);
+            e.HasOne(f => f.CreatedBy)
+             .WithMany()
+             .HasForeignKey(f => f.CreatedByUserId)
+             .IsRequired(false)
+             .OnDelete(DeleteBehavior.NoAction);
+            e.HasOne<ApplicationUser>()
+             .WithMany()
+             .HasForeignKey(f => f.UpdatedByUserId)
+             .IsRequired(false)
+             .OnDelete(DeleteBehavior.NoAction);
+            e.HasOne<ApplicationUser>()
+             .WithMany()
+             .HasForeignKey(f => f.DeletedByUserId)
+             .IsRequired(false)
+             .OnDelete(DeleteBehavior.NoAction);
+            e.HasQueryFilter(f => f.DeletedAt == null &&
+                (tenantContext.TenantId == null || f.TenantId == tenantContext.TenantId));
+            e.HasIndex(f => new { f.TenantId, f.CreatedAt });
         });
 
         // ── User audit FK configuration ──────────────────────────────────────

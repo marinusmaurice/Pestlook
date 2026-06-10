@@ -4,7 +4,10 @@ export const SubscriptionPlanValues = { Free: 0 };
 // export const SubscriptionPlan = { 0: 'Basic', 1: 'Professional', 2: 'Enterprise' };
 // export const SubscriptionPlanValues = { Basic: 0, Professional: 1, Enterprise: 2 };
 
-export const PestCategory = { 0: 'Insect', 1: 'Disease', 2: 'Weed', 3: 'Rodent', 4: 'Other' };
+export const FeedbackCategory = { 0: 'General', 1: 'Bug report', 2: 'Feature request', 3: 'Question' };
+export const FeedbackCategoryValues = { General: 0, BugReport: 1, FeatureRequest: 2, Question: 3 };
+
+export const PestCategory ={ 0: 'Insect', 1: 'Disease', 2: 'Weed', 3: 'Rodent', 4: 'Other' };
 export const PestCategoryValues = { Insect: 0, Disease: 1, Weed: 2, Rodent: 3, Other: 4 };
 
 export const CaptureMode = { 0: 'Count', 1: 'Presence' };
