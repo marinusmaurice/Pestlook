@@ -20,26 +20,31 @@ public class ApiClient
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
-    // WebAPI URLs from launchSettings.json: https://localhost:7290 | http://localhost:5210
     // IMPORTANT: trailing slash is required for HttpClient relative URI resolution
+#if DEBUG
+    // WebAPI URLs from launchSettings.json: https://localhost:7290 | http://localhost:5210
     public const string BaseUrl = "https://localhost:7290/api/v1/";
+#else
+    public const string BaseUrl = "https://www.pestlook.com/api/v1/";
+#endif
 
     public ApiClient()
     {
+#if DEBUG
 #if ANDROID
         // Android emulator maps 10.0.2.2 to the host machine's localhost
-        const string AndroidBaseUrl = "https://10.0.2.2:7290/api/v1/";
-        var handler = new HttpClientHandler
-        {
-            ServerCertificateCustomValidationCallback = (_, _, _, _) => true
-        };
-        _http = new HttpClient(handler) { BaseAddress = new Uri(AndroidBaseUrl) };
+        const string debugBaseUrl = "https://10.0.2.2:7290/api/v1/";
 #else
+        const string debugBaseUrl = BaseUrl;
+#endif
+        // Dev certificates are self-signed — skip validation in debug builds only
         var handler = new HttpClientHandler
         {
             ServerCertificateCustomValidationCallback = (_, _, _, _) => true
         };
-        _http = new HttpClient(handler) { BaseAddress = new Uri(BaseUrl) };
+        _http = new HttpClient(handler) { BaseAddress = new Uri(debugBaseUrl) };
+#else
+        _http = new HttpClient { BaseAddress = new Uri(BaseUrl) };
 #endif
     }
 
