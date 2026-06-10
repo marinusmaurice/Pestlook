@@ -30,6 +30,9 @@ public sealed class ApplicationDbContext(
     public DbSet<SessionObservation> SessionObservations => Set<SessionObservation>();
     public DbSet<BillingSnapshot> BillingSnapshots => Set<BillingSnapshot>();
 
+    private static SubscriptionPlan ParseSubscriptionPlan(string value) =>
+        Enum.TryParse<SubscriptionPlan>(value, out var parsed) ? parsed : SubscriptionPlan.Free;
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -40,7 +43,12 @@ public sealed class ApplicationDbContext(
             e.HasIndex(t => t.Slug).IsUnique();
             e.Property(t => t.Name).HasMaxLength(200).IsRequired();
             e.Property(t => t.Slug).HasMaxLength(100).IsRequired();
-            e.Property(t => t.SubscriptionPlan).HasConversion<string>().HasMaxLength(50);
+            // Legacy rows may hold 'Basic'/'Professional'/'Enterprise' — map anything unknown to Free.
+            e.Property(t => t.SubscriptionPlan)
+             .HasConversion(
+                 p => p.ToString(),
+                 s => ParseSubscriptionPlan(s))
+             .HasMaxLength(50);
         });
 
         builder.Entity<ApplicationUser>(e =>

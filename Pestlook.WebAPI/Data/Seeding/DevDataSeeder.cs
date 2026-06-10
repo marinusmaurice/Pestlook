@@ -29,8 +29,8 @@ public static class DevDataSeeder
             Name                 = "Demo Farm Co",
             Slug                 = "demo-farm-co",
             IsActive             = true,
-            SubscriptionPlan     = SubscriptionPlan.Basic,
-            MonitoringPointQuota = 100,
+            SubscriptionPlan     = SubscriptionPlan.Free,
+            MonitoringPointQuota = 10000,
             CreatedAt            = DateTime.Now
         };
         db.Tenants.Add(tenant);
