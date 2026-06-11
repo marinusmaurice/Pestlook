@@ -17,7 +17,7 @@ public sealed class SignUpControllerTests(TestWebApplicationFactory factory)
 {
     // Produces a fully valid request; each call gets a fresh slug + email.
     private static SignUpRequest Valid(
-        SubscriptionPlan plan = SubscriptionPlan.Basic,
+        SubscriptionPlan plan = SubscriptionPlan.Free,
         string? slug  = null,
         string? email = null) => new(
             TenantName:       "Acme Farms",
@@ -78,9 +78,11 @@ public sealed class SignUpControllerTests(TestWebApplicationFactory factory)
     // ── Subscription plan → MonitoringPointQuota ──────────────────────────────
 
     [Theory]
-    [InlineData(SubscriptionPlan.Basic,        10)]
-    [InlineData(SubscriptionPlan.Professional, 50)]
-    [InlineData(SubscriptionPlan.Enterprise,  200)]
+    [InlineData(SubscriptionPlan.Free, 10000)]
+    // Paid plans disabled:
+    // [InlineData(SubscriptionPlan.Basic,        10)]
+    // [InlineData(SubscriptionPlan.Professional, 50)]
+    // [InlineData(SubscriptionPlan.Enterprise,  200)]
     public async Task SignUp_EachPlan_SetsCorrectMonitoringPointQuota(
         SubscriptionPlan plan, int expectedQuota)
     {
@@ -96,9 +98,11 @@ public sealed class SignUpControllerTests(TestWebApplicationFactory factory)
     }
 
     [Theory]
-    [InlineData(SubscriptionPlan.Basic)]
-    [InlineData(SubscriptionPlan.Professional)]
-    [InlineData(SubscriptionPlan.Enterprise)]
+    [InlineData(SubscriptionPlan.Free)]
+    // Paid plans disabled:
+    // [InlineData(SubscriptionPlan.Basic)]
+    // [InlineData(SubscriptionPlan.Professional)]
+    // [InlineData(SubscriptionPlan.Enterprise)]
     public async Task SignUp_AllDefinedPlans_ShouldReturn201(SubscriptionPlan plan)
     {
         var response = await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/sign-up", Valid(plan: plan));
@@ -171,7 +175,7 @@ public sealed class SignUpControllerTests(TestWebApplicationFactory factory)
         string firstName,  string lastName)
     {
         var request = new SignUpRequest(
-            tenantName, slug, SubscriptionPlan.Basic, email, password, firstName, lastName);
+            tenantName, slug, SubscriptionPlan.Free, email, password, firstName, lastName);
 
         var response = await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/sign-up", request);
 

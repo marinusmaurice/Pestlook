@@ -4,6 +4,7 @@ using Pestlook.WebAPI.Domain.Entities;
 using Pestlook.WebAPI.DTOs.Auth;
 using Pestlook.WebAPI.DTOs.BillingSnapshots;
 using Pestlook.WebAPI.DTOs.Farms;
+using Pestlook.WebAPI.DTOs.Feedback;
 using Pestlook.WebAPI.DTOs.Fields;
 using Pestlook.WebAPI.DTOs.Pests;
 using Pestlook.WebAPI.DTOs.ScoutingSessions;
@@ -82,5 +83,10 @@ public sealed class MappingProfile : Profile
 
         CreateMap<BillingSnapshot, BillingSnapshotResponse>()
             .ConstructUsing(_ => new BillingSnapshotResponse());
+
+        CreateMap<Feedback, FeedbackResponse>()
+            .ConstructUsing(_ => new FeedbackResponse())
+            .ForMember(d => d.SubmittedByName, o => o.MapFrom(f =>
+                f.CreatedBy != null ? f.CreatedBy.FirstName + " " + f.CreatedBy.LastName : null));
     }
 }

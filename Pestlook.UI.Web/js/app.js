@@ -20,6 +20,7 @@ import { renderTraps } from './pages/traps.js';
 import { renderSettings } from './pages/settings.js';
 import { renderReports } from './pages/reports.js';
 import { renderHelp } from './pages/help.js';
+import { renderFeedback } from './pages/feedback.js';
 import { renderIntelligence } from './pages/intelligence.js';
 import { renderPredictive } from './pages/predictive.js';
 import { renderActionable }    from './pages/actionable.js';
@@ -191,6 +192,10 @@ registerRoute('/reports', async () => { navigate('/analytics'); });
 
 registerRoute('/help', authedRoute(async (content) => {
   await renderHelp(content);
+}));
+
+registerRoute('/feedback', authedRoute(async (content) => {
+  await renderFeedback(content);
 }));
 
 registerRoute('/logout', async () => {

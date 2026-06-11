@@ -43,12 +43,15 @@ public sealed class AuthService(
             Name = request.TenantName,
             Slug = slug,
             SubscriptionPlan = plan,
-            MonitoringPointQuota = plan switch
-            {
-                SubscriptionPlan.Professional => 50,
-                SubscriptionPlan.Enterprise   => 200,
-                _                             => 10
-            }
+            // Free plan: 10,000 observations per month.
+            // Paid plan quotas disabled:
+            // MonitoringPointQuota = plan switch
+            // {
+            //     SubscriptionPlan.Professional => 50,
+            //     SubscriptionPlan.Enterprise   => 200,
+            //     _                             => 10
+            // }
+            MonitoringPointQuota = 10000
         };
 
         db.Tenants.Add(tenant);

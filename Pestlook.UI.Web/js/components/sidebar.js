@@ -25,6 +25,7 @@ const navItems = [
     { id: 'pests', icon: '🦗', label: 'Pest Catalogue', path: '/pests' },
     { id: 'settings', icon: '⚙️', label: 'Settings', path: '/settings' },
     { id: 'help', icon: '📖', label: 'Help', path: '/help' },
+    { id: 'feedback', icon: '💬', label: 'Feedback', path: '/feedback' },
   ]},
 ];
 

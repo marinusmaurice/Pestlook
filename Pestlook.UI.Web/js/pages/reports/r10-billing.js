@@ -66,7 +66,7 @@ export function renderBilling(el, data, lookups) {
         <div class="progress-fill" style="width:${quotaPct}%;background:${quotaColor};border-radius:6px;transition:width .4s;"></div>
       </div>
       <div style="font-size:0.75rem;color:var(--text-dim);margin-top:6px;">
-        ${quotaPct >= 90 ? '⚠ Approaching quota limit — consider upgrading your plan'
+        ${quotaPct >= 90 ? '⚠ Approaching quota limit'
           : quotaPct >= 70 ? 'Quota at moderate utilisation'
           : 'Quota well within limits'}
       </div>

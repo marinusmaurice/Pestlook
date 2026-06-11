@@ -8,8 +8,8 @@ public sealed class Tenant
     public string Name { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
-    public SubscriptionPlan SubscriptionPlan { get; set; } = SubscriptionPlan.Basic;
-    public int MonitoringPointQuota { get; set; } = 10;
+    public SubscriptionPlan SubscriptionPlan { get; set; } = SubscriptionPlan.Free;
+    public int MonitoringPointQuota { get; set; } = 10000;
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
     public ICollection<ApplicationUser> Users { get; set; } = [];

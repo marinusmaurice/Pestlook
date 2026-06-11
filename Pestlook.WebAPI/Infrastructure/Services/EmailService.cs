@@ -24,6 +24,31 @@ public sealed class EmailService(
         logger.LogInformation("Password reset email sent to {Email}", toEmail);
     }
 
+    public async Task SendFeedbackEmailAsync(string userEmail, string userName, string category, string subject, string message, CancellationToken ct = default)
+    {
+        using var client = new SmtpClient(_opts.Host, _opts.Port)
+        {
+            EnableSsl = _opts.EnableSsl,
+            Credentials = new NetworkCredential(_opts.Username, _opts.Password)
+        };
+
+        // From the submitting user and CC'd to them, so the admin can simply
+        // reply-all and the conversation includes the user.
+        using var mail = new MailMessage
+        {
+            From = new MailAddress(userEmail, userName),
+            Subject = $"[PestLook Feedback] [{category}] {subject}",
+            Body = BuildFeedbackHtml(userEmail, userName, category, subject, message),
+            IsBodyHtml = true
+        };
+        mail.To.Add(_opts.AdminAddress);
+        mail.CC.Add(new MailAddress(userEmail, userName));
+        mail.ReplyToList.Add(new MailAddress(userEmail, userName));
+
+        await client.SendMailAsync(mail, ct);
+        logger.LogInformation("Feedback email sent to {Admin} from {Email}", _opts.AdminAddress, userEmail);
+    }
+
     private async Task SendAsync(string toEmail, string subject, string htmlBody, CancellationToken ct)
     {
         using var client = new SmtpClient(_opts.Host, _opts.Port)
@@ -43,6 +68,48 @@ public sealed class EmailService(
 
         await client.SendMailAsync(message, ct);
     }
+
+    private static string BuildFeedbackHtml(string userEmail, string userName, string category, string subject, string message) => $"""
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <title>PestLook feedback</title>
+        </head>
+        <body style="margin:0;padding:0;background:#F5F5F0;font-family:'Inter',Arial,sans-serif;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F5F0;padding:40px 0;">
+            <tr>
+              <td align="center">
+                <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #E2DFD3;">
+                  <tr>
+                    <td style="background:#2B6E4F;padding:24px 40px;text-align:center;">
+                      <h1 style="margin:0;color:#ffffff;font-size:1.5rem;font-weight:800;letter-spacing:-0.02em;">
+                        Pest<span style="color:#E5A52F;">Look</span> Feedback
+                      </h1>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:32px 40px;">
+                      <p style="margin:0 0 6px;font-size:0.85rem;color:#5A6B62;"><strong>From:</strong> {WebUtility.HtmlEncode(userName)} &lt;{WebUtility.HtmlEncode(userEmail)}&gt;</p>
+                      <p style="margin:0 0 6px;font-size:0.85rem;color:#5A6B62;"><strong>Category:</strong> {WebUtility.HtmlEncode(category)}</p>
+                      <p style="margin:0 0 20px;font-size:0.85rem;color:#5A6B62;"><strong>Subject:</strong> {WebUtility.HtmlEncode(subject)}</p>
+                      <div style="border:1px solid #E2DFD3;border-radius:10px;padding:16px;font-size:0.95rem;color:#1F2A26;line-height:1.6;white-space:pre-wrap;">{WebUtility.HtmlEncode(message)}</div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="background:#F9F7F0;padding:16px 40px;border-top:1px solid #E2DFD3;text-align:center;">
+                      <p style="margin:0;font-size:0.78rem;color:#9AA8A1;">
+                        Reply-all to this email to respond directly to the user.
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+        """;
 
     private static string BuildPasswordResetHtml(string firstName, string resetUrl) => $"""
         <!DOCTYPE html>

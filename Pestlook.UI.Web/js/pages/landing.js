@@ -161,6 +161,7 @@ function _getLandingHTML() {
           <div class="nav-links" id="navLinks">
             <a href="#home" data-nav="home" class="nav-link">Home</a>
             <a href="#pricing" data-nav="pricing" class="nav-link">Pricing &amp; Plans</a>
+            <a href="#about" data-nav="about" class="nav-link">About</a>
             <a href="#dashboard" data-nav="dashboard" class="nav-link" id="dashboardNavLink" style="display:none;">Dashboard</a>
             <a href="#account" data-nav="account" class="nav-link" id="accountNavLink">Account</a>
             <button id="logoutBtnMobile" class="logout-btn" style="display:none;">Logout <i class="fas fa-sign-out-alt"></i></button>
@@ -195,7 +196,6 @@ function _getLandingHTML() {
               <span style="background:white;padding:5px 12px;border-radius:20px;font-size:0.82rem;font-weight:500;"><i class="fas fa-crosshairs" style="color:var(--primary);"></i> Trap GPS pins</span>
               <span style="background:white;padding:5px 12px;border-radius:20px;font-size:0.82rem;font-weight:500;"><i class="fas fa-barcode" style="color:var(--primary);"></i> Barcode scanning</span>
               <span style="background:white;padding:5px 12px;border-radius:20px;font-size:0.82rem;font-weight:500;"><i class="fas fa-camera" style="color:var(--primary);"></i> Photo evidence</span>
-              <span style="background:white;padding:5px 12px;border-radius:20px;font-size:0.82rem;font-weight:500;"><i class="fas fa-file-csv" style="color:var(--primary);"></i> CSV &amp; PDF export</span>
             </div>
           </div>
         </div>
@@ -281,7 +281,7 @@ function _getLandingHTML() {
         <!-- ANALYTICS BANNER -->
         <div class="analytics-banner">
           <h2><i class="fas fa-brain"></i> From field data to decisions &mdash; automatically</h2>
-          <p>Every observation your scouts record feeds a living intelligence system. PestLook doesn&rsquo;t just store data &mdash; it analyses trends, forecasts outbreaks, maps pest movement across your fields, and tells you exactly where to look next and when to act. All reports are filterable by date range, farm, field, crop, or scout, and exportable to CSV or PDF. Every feature is available on every plan.</p>
+          <p>Every observation your scouts record feeds a living intelligence system. PestLook doesn&rsquo;t just store data &mdash; it analyses trends, forecasts outbreaks, maps pest movement across your fields, and tells you exactly where to look next and when to act. All reports are filterable by date range, farm, field, crop, or scout. Every feature is available on every plan.</p>
           <div style="display:flex;flex-wrap:wrap;gap:24px;margin:28px 0 4px;">
             <div style="flex:1;min-width:220px;">
               <p style="font-weight:700;font-size:0.85rem;opacity:0.8;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.06em;">Operations &amp; Monitoring</p>
@@ -319,28 +319,6 @@ function _getLandingHTML() {
           </div>
         </div>
 
-        <!-- TESTIMONIALS -->
-        <div style="text-align:center;margin-top:48px;">
-          <h2 style="font-size:2rem;">Trusted by farmers &amp; agronomists</h2>
-        </div>
-        <div class="testimonials-grid">
-          <div class="testimonial-card">
-            <div class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
-            <blockquote>"PestLook replaced our messy WhatsApp photo logs. Scouting is structured, every observation is GPS-tagged, and the threshold alerts mean we spray only when we need to."</blockquote>
-            <div class="author">&mdash; Riaan V., crop consultant, Limpopo</div>
-          </div>
-          <div class="testimonial-card">
-            <div class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
-            <blockquote>"My scouts work in blocks with zero signal. The offline mode means they never lose data, and everything syncs automatically on the drive back. The reports save me hours every week."</blockquote>
-            <div class="author">&mdash; Annelize M., farm manager, Western Cape</div>
-          </div>
-          <div class="testimonial-card">
-            <div class="stars"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
-            <blockquote>"Barcode scanning on the traps is a game-changer &mdash; no more guessing which trap is which. And the seasonal trends report shows us exactly when to prepare for bollworm."</blockquote>
-            <div class="author">&mdash; Johan K., agronomist, Free State</div>
-          </div>
-        </div>
-
         <!-- FINAL CTA -->
         <div style="background:var(--primary-light);border-radius:28px;padding:40px 32px;text-align:center;margin:24px 0 48px;">
           <h2 style="font-size:1.8rem;margin-bottom:12px;">Ready to protect your crops with real data?</h2>
@@ -352,9 +330,32 @@ function _getLandingHTML() {
       <!-- PRICING VIEW -->
       <div id="pricingView" class="view">
         <div style="text-align:center;margin:40px 0 20px;">
-          <h1 style="font-size:2.5rem;">Simple, transparent pricing</h1>
-          <p style="font-size:1.2rem;color:var(--text-muted);">Every plan gives you the full platform &mdash; every report, every intelligence feature, every tool. The only difference is how many observations you need per month.</p>
+          <h1 style="font-size:2.5rem;">PestLook is free</h1>
+          <p style="font-size:1.2rem;color:var(--text-muted);">One plan, no payment, full platform &mdash; every report, every intelligence feature, every tool. 10,000 observations per month, on us.</p>
         </div>
+        <div class="pricing-grid" style="max-width:480px;margin:0 auto;">
+          <div class="pricing-card popular">
+            <h3>Free</h3>
+            <div class="price">$0<span style="font-size:1rem;"> /month</span></div>
+            <p style="color:var(--text-muted);margin-bottom:8px;">For every farmer, scout and agronomist</p>
+            <div style="background:var(--primary-light);border-radius:12px;padding:12px 16px;margin:16px 0;text-align:center;">
+              <strong style="font-size:1.4rem;color:var(--primary);">10,000 observations</strong><br>
+              <span style="font-size:0.85rem;color:var(--text-muted);">per month</span>
+            </div>
+            <ul class="feature-list">
+              <li><i class="fas fa-check"></i> Full analytics &amp; intelligence suite</li>
+              <li><i class="fas fa-check"></i> Farms, fields &amp; trap management</li>
+              <li><i class="fas fa-check"></i> Planned &amp; ad-hoc scouting sessions</li>
+              <li><i class="fas fa-check"></i> Photo &amp; GPS observation logging</li>
+              <li><i class="fas fa-check"></i> Economic threshold alerts</li>
+              <li><i class="fas fa-check"></i> Scout team roles &amp; assignments</li>
+              <li><i class="fas fa-check"></i> Custom pest library &amp; trap types</li>
+              <li><i class="fas fa-check"></i> Offline mobile app with auto-sync</li>
+            </ul>
+            <button class="btn-primary choose-plan" data-plan="Free" style="width:100%;text-align:center;">Get started free</button>
+          </div>
+        </div>
+        <!-- Paid plans disabled — the platform is currently free:
         <div class="pricing-grid">
           <div class="pricing-card">
             <h3>Basic</h3>
@@ -373,7 +374,6 @@ function _getLandingHTML() {
               <li><i class="fas fa-check"></i> Scout team roles &amp; assignments</li>
               <li><i class="fas fa-check"></i> Custom pest library &amp; trap types</li>
               <li><i class="fas fa-check"></i> Offline mobile app with auto-sync</li>
-              <li><i class="fas fa-check"></i> CSV &amp; PDF export</li>
             </ul>
             <button class="btn-primary choose-plan" data-plan="Basic" style="width:100%;text-align:center;">Get started</button>
           </div>
@@ -394,7 +394,6 @@ function _getLandingHTML() {
               <li><i class="fas fa-check"></i> Scout team roles &amp; assignments</li>
               <li><i class="fas fa-check"></i> Custom pest library &amp; trap types</li>
               <li><i class="fas fa-check"></i> Offline mobile app with auto-sync</li>
-              <li><i class="fas fa-check"></i> CSV &amp; PDF export</li>
             </ul>
             <button class="btn-primary choose-plan" data-plan="Agronomist" style="width:100%;">Start 14-day trial</button>
           </div>
@@ -415,13 +414,13 @@ function _getLandingHTML() {
               <li><i class="fas fa-check"></i> Scout team roles &amp; assignments</li>
               <li><i class="fas fa-check"></i> Custom pest library &amp; trap types</li>
               <li><i class="fas fa-check"></i> Offline mobile app with auto-sync</li>
-              <li><i class="fas fa-check"></i> CSV &amp; PDF export</li>
             </ul>
             <a href="mailto:admin@pestlook.com" class="btn-outline" style="width:100%;display:block;text-align:center;padding:10px 0;">Contact admin@pestlook.com</a>
           </div>
         </div>
+        -->
         <div style="background:var(--gray-light);border-radius:24px;padding:24px;margin:40px 0;">
-          <h3><i class="fas fa-check-circle" style="color:var(--primary);"></i> Every plan includes &mdash; no exceptions:</h3>
+          <h3><i class="fas fa-check-circle" style="color:var(--primary);"></i> Your free plan includes &mdash; no exceptions:</h3>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:16px;">
             <span>&#10003; All analytics &amp; intelligence reports</span>
             <span>&#10003; AI pest spread &amp; forecast engine</span>
@@ -432,9 +431,49 @@ function _getLandingHTML() {
             <span>&#10003; Life stage &amp; weather logging</span>
             <span>&#10003; Two-way auto sync</span>
             <span>&#10003; Full audit trail on all data</span>
-            <span>&#10003; CSV &amp; PDF export</span>
             <span>&#10003; Scout team roles &amp; assignments</span>
             <span>&#10003; No ads, ever</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ABOUT VIEW -->
+      <div id="aboutView" class="view">
+        <div style="max-width:760px;margin:40px auto;">
+          <h1 style="font-size:2.5rem;text-align:center;">About PestLook</h1>
+
+          <div style="background:white;border-radius:24px;padding:32px;margin-top:32px;box-shadow:var(--shadow-md);">
+            <h2 style="margin-bottom:16px;"><i class="fas fa-seedling" style="color:var(--primary);"></i> Why is PestLook free?</h2>
+            <p style="color:var(--text-muted);line-height:1.7;margin-bottom:16px;">
+              PestLook is free because trust is built before it&rsquo;s charged for. The agricultural industry is full of expensive tools that farmers never fully adopt &mdash; we&rsquo;d rather prove the value first.
+            </p>
+            <p style="color:var(--text-muted);line-height:1.7;margin-bottom:16px;">
+              We&rsquo;re in active beta. That means you get a fully functional platform at no cost, and we get real-world feedback from the people who matter most: the people actually standing in the field.
+            </p>
+            <p style="color:var(--text-muted);line-height:1.7;margin-bottom:16px;">
+              A paid tier is coming. It will cover advanced features, integrations, and scale. But the core of what makes PestLook useful &mdash; spray recommendations, pest identification, resistance tracking &mdash; will always remain accessible.
+            </p>
+            <p style="color:var(--text-muted);line-height:1.7;">
+              Once we exit beta, pricing may be introduced depending on where the platform goes and how much it grows. If that happens, you&rsquo;ll know well in advance &mdash; no surprises.
+            </p>
+          </div>
+
+          <div style="background:white;border-radius:24px;padding:32px;margin-top:24px;box-shadow:var(--shadow-md);">
+            <h2 style="margin-bottom:16px;"><i class="fas fa-envelope" style="color:var(--primary);"></i> Contact</h2>
+            <p style="color:var(--text-muted);line-height:1.7;">
+              Questions, ideas, or problems? Email us at
+              <a href="mailto:admin@pestlook.com" style="color:var(--primary);font-weight:600;">admin@pestlook.com</a>
+            </p>
+          </div>
+
+          <div style="background:white;border-radius:24px;padding:32px;margin-top:24px;box-shadow:var(--shadow-md);">
+            <h2 style="margin-bottom:16px;"><i class="fas fa-building" style="color:var(--primary);"></i> Created by</h2>
+            <p style="color:var(--text-muted);line-height:1.7;">
+              UMBRELLA SOLUTIONS LLC<br>
+              PO BOX 587<br>
+              BOUND BROOK NJ 08805<br>
+              USA
+            </p>
           </div>
         </div>
       </div>
@@ -482,7 +521,7 @@ function _getLandingHTML() {
     <footer>
       <div class="container">
         <p>&copy; 2026 PestLook &mdash; Complete pest scouting &amp; trap monitoring. Built for farmers, agronomists, and the field.</p>
-        <p style="margin-top:8px;"><i class="fas fa-envelope"></i> admin@pestlook.com | <i class="fas fa-phone-alt"></i> +27 (0) 21 001 2345</p>
+        <p style="margin-top:8px;"><i class="fas fa-envelope"></i> admin@pestlook.com</p>
       </div>
     </footer>
   `;
@@ -545,6 +584,7 @@ function _initLandingApp() {
   const views = {
     home:      document.getElementById('homeView'),
     pricing:   document.getElementById('pricingView'),
+    about:     document.getElementById('aboutView'),
     account:   document.getElementById('accountView'),
     dashboard: document.getElementById('dashboardView')
   };
@@ -641,7 +681,7 @@ function _initLandingApp() {
       if (!currentUser) {
         navigate('/login');
       } else {
-        alert(`Thank you! You selected the ${plan} plan. Payment integration coming soon.`);
+        alert(`You're on the ${plan} plan — PestLook is free, no payment needed.`);
       }
     });
   });

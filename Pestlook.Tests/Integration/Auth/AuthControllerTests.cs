@@ -222,7 +222,7 @@ public sealed class AuthControllerTests(TestWebApplicationFactory factory)
             new SignUpRequest(
                 TenantName: "Test Org",
                 TenantSlug: slug,
-                SubscriptionPlan: SubscriptionPlan.Basic,
+                SubscriptionPlan: SubscriptionPlan.Free,
                 Email: email,
                 Password: "P@ssw0rd1!",
                 FirstName: "Owner",
