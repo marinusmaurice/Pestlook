@@ -6,10 +6,10 @@
 		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
 
 		<!-- Note for MacCatalyst:
-            The default runtime is maccatalyst-x64, except in Release config, in which case the default is maccatalyst-x64;maccatalyst-arm64.
-            When specifying both architectures, use the plural <RuntimeIdentifiers> instead of the singular <RuntimeIdentifier>.
-            The Mac App Store will NOT accept apps with ONLY maccatalyst-arm64 indicated;
-            either BOTH runtimes must be indicated or ONLY macatalyst-x64. -->
+			The default runtime is maccatalyst-x64, except in Release config, in which case the default is maccatalyst-x64;maccatalyst-arm64.
+			When specifying both architectures, use the plural <RuntimeIdentifiers> instead of the singular <RuntimeIdentifier>.
+			The Mac App Store will NOT accept apps with ONLY maccatalyst-arm64 indicated;
+			either BOTH runtimes must be indicated or ONLY macatalyst-x64. -->
 		<!-- For example: <RuntimeIdentifiers>maccatalyst-x64;maccatalyst-arm64</RuntimeIdentifiers> -->
 
 		<OutputType>Exe</OutputType>
@@ -19,6 +19,13 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<EnableDefaultCssItems>false</EnableDefaultCssItems>
 		<Nullable>enable</Nullable>
+
+		<!-- Android Signing Configuration -->
+		<AndroidKeyStore>true</AndroidKeyStore>
+		<AndroidSigningKeyStore>$(ProjectDir)android/keystore/pestlook.jks</AndroidSigningKeyStore>
+		<AndroidSigningKeyAlias>pestlook</AndroidSigningKeyAlias>
+		<AndroidSigningKeyPass>pestlook123</AndroidSigningKeyPass>
+		<AndroidSigningStorePass>pestlook123</AndroidSigningStorePass>
 
 		<!-- Enable XAML source generation for faster build times and improved performance.
              This generates C# code from XAML at compile time instead of runtime inflation.
@@ -32,7 +39,7 @@
 		<ApplicationTitle>Pestlook</ApplicationTitle>
 
 		<!-- App Identifier -->
-		<ApplicationId>com.companyname.pestlook.ui.mobile</ApplicationId>
+		<ApplicationId>com.pestlook.ui.mobile</ApplicationId>
 
 		<!-- Versions -->
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>

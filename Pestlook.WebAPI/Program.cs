@@ -44,6 +44,20 @@ builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
+// ── Canonical host: 301 www.pestlook.com → pestlook.com ─────────────────────
+app.Use(async (context, next) =>
+{
+    var host = context.Request.Host.Host;
+    if (host.StartsWith("www.", StringComparison.OrdinalIgnoreCase))
+    {
+        var newHost = host[4..];
+        var url = $"https://{newHost}{context.Request.PathBase}{context.Request.Path}{context.Request.QueryString}";
+        context.Response.Redirect(url, permanent: true);
+        return;
+    }
+    await next();
+});
+
 // ── Middleware pipeline ───────────────────────────────────────────────────────
 app.UseSecurityPipeline();            // Exception → ReqRes Logging → Security Headers → HTTPS
 app.UseSerilogRequestLogging();       // Serilog structured access log

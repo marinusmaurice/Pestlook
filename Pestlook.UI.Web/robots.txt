@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /observation-photos/
+
+Sitemap: https://pestlook.com/sitemap.xml
