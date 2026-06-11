@@ -94,7 +94,7 @@ public sealed class AuthService(
             tenant.Id, tenant.Slug, user.Email);
 
         return new SignUpResponse(
-            "Account created! Please check your email to activate your account.",
+            "Account created! Please check your email to activate your account. If you don't see it, check your spam or junk folder.",
             user.Email!);
     }
 

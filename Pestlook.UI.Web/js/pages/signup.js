@@ -112,7 +112,8 @@ function showCheckEmailScreen(email) {
       </div>
       <p style="font-size:0.9rem;color:var(--text-muted);line-height:1.6;margin-bottom:28px;">
         Click the link in the email to activate your account and get started.
-        The link expires in <strong>24 hours</strong>.
+        The link expires in <strong>24 hours</strong>.<br>
+        <strong>Heads up:</strong> the email can land in your <strong>spam or junk folder</strong> — please check there just in case.
       </p>
       <div style="background:var(--surface-alt,#F5F5F0);border-radius:12px;padding:16px;font-size:0.85rem;color:var(--text-muted);margin-bottom:20px;">
         <strong>Didn't receive it?</strong> Check your spam folder, then try resending below.
