@@ -22,6 +22,7 @@ public class ApiClient
 
     // WebAPI URLs from launchSettings.json: https://localhost:7290 | http://localhost:5210
     // IMPORTANT: trailing slash is required for HttpClient relative URI resolution
+#if DEBUG
     public const string BaseUrl = "https://localhost:7290/api/v1/";
 #else
     public const string BaseUrl = "https://pestlook.com/api/v1/";

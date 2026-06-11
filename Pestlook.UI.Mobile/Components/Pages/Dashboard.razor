@@ -240,6 +240,8 @@
     private void Log(string msg) => _debugLines.Add($"[{DateTime.Now:HH:mm:ss.fff}] {msg}");
 #else
     private readonly bool _isDebug = false;
+    private bool _debugExpanded;
+    private readonly List<string> _debugLines = new();
     private void ToggleDebug() { }
     private void Log(string msg) { }
 #endif
