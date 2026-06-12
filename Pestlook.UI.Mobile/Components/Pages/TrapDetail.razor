@@ -78,6 +78,10 @@
                             {
                                 @($"{Gps.Latitude?.ToString("F6")}, {Gps.Longitude?.ToString("F6")}")
                             }
+                            else if (Gps?.LastError is not null)
+                            {
+                                <span style="color:var(--red,#C75146);">@Gps.LastError</span>
+                            }
                             else
                             {
                                 <span style="color:var(--text-dim);">Acquiring GPS fix…</span>
@@ -87,7 +91,7 @@
                         {
                             <span class="ch cs" style="font-size:9px;">@(Gps.AccuracyMetres?.ToString("F1") ?? "—")m</span>
                         }
-                        else
+                        else if (Gps?.LastError is null)
                         {
                             <span class="spinner-sm" style="width:14px;height:14px;"></span>
                         }
@@ -223,7 +227,7 @@
         double? lat, lng;
         if (useGps)
         {
-            if (Gps is null || !Gps.HasFix) { gpsError = "No GPS fix yet. Wait or switch to manual entry."; return; }
+            if (Gps is null || !Gps.HasFix) { gpsError = Gps?.LastError ?? "No GPS fix yet. Wait or switch to manual entry."; return; }
             lat = Gps.Latitude;
             lng = Gps.Longitude;
         }

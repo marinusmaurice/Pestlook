@@ -10,10 +10,23 @@ public class GpsService
 
     public event Action? OnLocationChanged;
 
+    /// <summary>Why the last fix attempt failed, or null if it succeeded. For display in the UI.</summary>
+    public string? LastError { get; private set; }
+
     public async Task StartListeningAsync()
     {
         try
         {
+            var status = await Permissions.CheckStatusAsync<Permissions.LocationWhenInUse>();
+            if (status != PermissionStatus.Granted)
+                status = await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
+
+            if (status != PermissionStatus.Granted)
+            {
+                LastError = "Location permission denied. Enable it for PestLook in your device settings.";
+                return;
+            }
+
             var location = await Geolocation.GetLocationAsync(new GeolocationRequest
             {
                 DesiredAccuracy = GeolocationAccuracy.Best,
@@ -25,24 +38,29 @@ public class GpsService
                 Latitude = location.Latitude;
                 Longitude = location.Longitude;
                 AccuracyMetres = location.Accuracy;
+                LastError = null;
                 OnLocationChanged?.Invoke();
+            }
+            else
+            {
+                LastError = "Could not get a GPS fix. Make sure location is turned on.";
             }
         }
         catch (FeatureNotSupportedException)
         {
-            // GPS not supported on this device
+            LastError = "GPS is not supported on this device.";
         }
         catch (FeatureNotEnabledException)
         {
-            // GPS not enabled
+            LastError = "Location is turned off. Enable it in your device settings.";
         }
         catch (PermissionException)
         {
-            // Permission denied
+            LastError = "Location permission denied. Enable it for PestLook in your device settings.";
         }
-        catch
+        catch (Exception ex)
         {
-            // Fallback
+            LastError = $"GPS error: {ex.Message}";
         }
     }
 

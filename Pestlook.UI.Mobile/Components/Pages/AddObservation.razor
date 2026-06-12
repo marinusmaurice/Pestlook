@@ -262,7 +262,7 @@
             }
             else
             {
-                gpsStatus = "Location unavailable";
+                gpsStatus = Gps.LastError ?? "Location unavailable";
             }
         }
         catch

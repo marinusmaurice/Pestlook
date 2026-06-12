@@ -84,6 +84,10 @@
                     <div style="font-size:12px;font-weight:600;">@Gps.Latitude?.ToString("F4"), @Gps.Longitude?.ToString("F4")</div>
                     <div style="font-size:11px;color:var(--text-dim);">Accuracy: @(Gps.AccuracyMetres?.ToString("F1") ?? "—")m</div>
                 }
+                else if (useGps && Gps.LastError is not null)
+                {
+                    <div style="font-size:12px;color:var(--red,#C75146);">@Gps.LastError</div>
+                }
                 else if (useGps)
                 {
                     <div style="font-size:12px;color:var(--text-dim);">Acquiring GPS fix…</div>
@@ -102,7 +106,7 @@
             {
                 <span class="ch cs">OK</span>
             }
-            else if (useGps)
+            else if (useGps && Gps.LastError is null)
             {
                 <span class="spinner-sm" style="width:14px;height:14px;"></span>
             }
