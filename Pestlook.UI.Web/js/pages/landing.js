@@ -180,6 +180,7 @@ function _getLandingHTML() {
             <p>PestLook gives farmers and agronomists a complete system to manage farms, deploy traps, run scouting sessions, record pest observations with GPS and photos, and turn field data into actionable analytics reports &mdash; even offline.</p>
             <div style="display:flex;gap:12px;flex-wrap:wrap;">
               <a href="#account" class="btn-primary" id="heroCtaBtn"><i class="fas fa-tractor"></i> Start free scouting</a>
+              <a href="/downloads/com.pestlook.ui.mobile-Signed.apk" class="btn-outline" download><i class="fab fa-android" style="color:var(--primary);"></i> Download Android app</a>
               <a href="#pricing" class="btn-outline" id="heroPricingBtn">View plans</a>
             </div>
             <div class="hero-stats">
@@ -521,7 +522,8 @@ function _getLandingHTML() {
     <footer>
       <div class="container">
         <p>&copy; 2026 PestLook &mdash; Complete pest scouting &amp; trap monitoring. Built for farmers, agronomists, and the field.</p>
-        <p style="margin-top:8px;"><i class="fas fa-envelope"></i> admin@pestlook.com</p>
+        <p style="margin-top:8px;"><i class="fas fa-envelope"></i> admin@pestlook.com
+          &nbsp;·&nbsp; <a href="/downloads/com.pestlook.ui.mobile-Signed.apk" download style="color:var(--primary);font-weight:600;"><i class="fab fa-android"></i> Android app (.apk)</a></p>
       </div>
     </footer>
   `;

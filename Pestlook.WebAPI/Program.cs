@@ -74,10 +74,14 @@ app.UseAuthorization();
 
 // ── Serve SPA static files from Pestlook.UI.Web ──────────────────────────────
 var spaRoot = Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, "..", "Pestlook.UI.Web"));
+// .apk is not in the default MIME map; without this the Android download 404s.
+var spaContentTypes = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+spaContentTypes.Mappings[".apk"] = "application/vnd.android.package-archive";
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(spaRoot),
     RequestPath  = "",
+    ContentTypeProvider = spaContentTypes,
     OnPrepareResponse = ctx =>
     {
         ctx.Context.Response.Headers["Cache-Control"] = "no-store";

@@ -1944,6 +1944,19 @@ export function renderHelp(container) {
         <div style="font-size:0.85rem;color:var(--text-dim);">Everything you need to know about Pestlook</div>
       </div>
 
+      <!-- Mobile app download -->
+      <div class="card card-p" style="margin-bottom:22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+        <div style="font-size:2rem;">📱</div>
+        <div style="flex:1;min-width:220px;">
+          <div style="font-size:0.95rem;font-weight:700;color:var(--text);">PestLook for Android</div>
+          <div style="font-size:0.8rem;color:var(--text-dim);margin-top:2px;">
+            Scout offline in the field — GPS, photos, and barcode scanning. Sign in with the same account.
+            Enable "Install unknown apps" when prompted; the Play Store listing is coming.
+          </div>
+        </div>
+        <a href="/downloads/com.pestlook.ui.mobile-Signed.apk" download class="btn-outline" style="padding:9px 18px;white-space:nowrap;">⬇ Download .apk</a>
+      </div>
+
       <!-- Tab bar -->
       <div style="display:flex;gap:8px;margin-bottom:22px;flex-wrap:wrap;">
         ${tabsHtml}

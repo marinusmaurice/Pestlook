@@ -361,3 +361,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# Mobile app binary served from the website download page (copy from Pestlook.UI.Mobile publish output on release)
+Pestlook.UI.Web/downloads/*.apk
