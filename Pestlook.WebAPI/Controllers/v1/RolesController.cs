@@ -130,9 +130,14 @@ public sealed class RolesController(
         var user = await userManager.FindByIdAsync(userId)
             ?? throw new KeyNotFoundException("User not found.");
 
+        if (request.Timezone is not null && !TimeZoneInfo.TryFindSystemTimeZoneById(request.Timezone, out _))
+            return BadRequest(ApiResponse<object>.Fail($"Unknown timezone id '{request.Timezone}'."));
+
         user.FirstName = request.FirstName;
         user.LastName = request.LastName;
         user.IsActive = request.IsActive;
+        if (request.Timezone is not null)
+            user.Timezone = request.Timezone;
 
         var updateResult = await userManager.UpdateAsync(user);
         if (!updateResult.Succeeded)

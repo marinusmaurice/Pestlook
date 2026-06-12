@@ -5,4 +5,5 @@ public sealed record RegisterRequest(
     string Password,
     string FirstName,
     string LastName,
-    string? Role = null);
+    string? Role = null,
+    string? Timezone = null);

@@ -313,12 +313,15 @@ public sealed class AnalyticsController(ApplicationDbContext db, IUserTimezoneSe
             .ToList();
 
         var eightWeeksAgo = DateTime.UtcNow.AddDays(-56);
+        // Hoisted local: EF parameterizes it into DATEADD; TimeZoneInfo calls
+        // inside the lambda are not translatable.
+        var tzOffsetMinutes = (int)tz.GetUtcOffset(DateTime.UtcNow).TotalMinutes;
         var weeklyTrend = await db.SessionObservations
             .Where(o => !o.IsUnknownPest
                      && o.ThresholdCount != null
                      && o.Count > o.ThresholdCount
                      && o.Session.CompletedAt >= eightWeeksAgo)
-            .GroupBy(o => o.Session.CompletedAt!.Value.AddMinutes((int)tz.GetUtcOffset(DateTime.UtcNow).TotalMinutes).DayOfYear / 7)
+            .GroupBy(o => o.Session.CompletedAt!.Value.AddMinutes(tzOffsetMinutes).DayOfYear / 7)
             .Select(g => new
             {
                 WeekIndex = g.Key,

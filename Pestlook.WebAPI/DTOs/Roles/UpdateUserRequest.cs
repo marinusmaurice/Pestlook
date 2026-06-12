@@ -4,4 +4,5 @@ public sealed record UpdateUserRequest(
     string FirstName,
     string LastName,
     bool IsActive,
-    string Role);
+    string Role,
+    string? Timezone = null);

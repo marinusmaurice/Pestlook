@@ -75,6 +75,13 @@ function renderOrgInfo(container) {
   `;
 }
 
+/** IANA timezone <option> list with the given timezone pre-selected. */
+function tzSelectOptions(selectedTz) {
+  return Intl.supportedValuesOf('timeZone')
+    .map(tz => `<option value="${tz}" ${tz === selectedTz ? 'selected' : ''}>${tz.replace(/_/g, ' ')}</option>`)
+    .join('');
+}
+
 function renderPreferences(container) {
   const user = getUser();
   const currentUnit = user?.temperatureUnit || 'C';
@@ -82,10 +89,7 @@ function renderPreferences(container) {
   const browserTz = detectBrowserTimezone();
   const prefsBox = container.querySelector('#settings-prefs');
 
-  const timezones = Intl.supportedValuesOf('timeZone');
-  const tzOptions = timezones
-    .map(tz => `<option value="${tz}" ${tz === currentTz ? 'selected' : ''}>${tz.replace(/_/g, ' ')}</option>`)
-    .join('');
+  const tzOptions = tzSelectOptions(currentTz);
 
   prefsBox.innerHTML = `
     <div class="section-title" style="margin-bottom:16px;">Preferences</div>
@@ -318,7 +322,7 @@ async function loadTeamMembers(container) {
             <div style="font-size:0.72rem;color:var(--text-dim);">${escapeHtml(u.email || '')}</div>
           </div>
           ${tag(role, roleColor)}
-          <button class="btn-outline user-edit-btn" style="padding:4px 10px;font-size:0.72rem;" data-id="${u.id}" data-first="${escapeHtml(u.firstName || '')}" data-last="${escapeHtml(u.lastName || '')}" data-email="${escapeHtml(u.email || '')}" data-active="${u.isActive}" data-role="${escapeHtml(role)}">Edit</button>
+          <button class="btn-outline user-edit-btn" style="padding:4px 10px;font-size:0.72rem;" data-id="${u.id}" data-first="${escapeHtml(u.firstName || '')}" data-last="${escapeHtml(u.lastName || '')}" data-email="${escapeHtml(u.email || '')}" data-active="${u.isActive}" data-role="${escapeHtml(role)}" data-timezone="${escapeHtml(u.timezone || '')}">Edit</button>
         </div>
       `;
     }).join('');
@@ -332,6 +336,9 @@ async function loadTeamMembers(container) {
 }
 
 function openInviteModal(container) {
+  // New members default to the logged-in user's timezone (same site/region is
+  // the common case); fall back to the browser timezone if none is saved yet.
+  const defaultTz = getUser()?.timezone || detectBrowserTimezone();
   const body = openModal({
     title: 'Add Team Member',
     subtitle: 'Register a new user for your tenant',
@@ -362,6 +369,15 @@ function openInviteModal(container) {
             <option value="Admin">Admin</option>
           </select>
         </div>
+        <div>
+          <div class="input-label">Timezone</div>
+          <select class="input-field" id="inv-timezone">
+            ${tzSelectOptions(defaultTz)}
+          </select>
+          <div style="font-size:0.7rem;color:var(--text-dim);margin-top:6px;">
+            Used for date-based reports. The member can change it later in their own settings.
+          </div>
+        </div>
         <div style="display:flex;gap:10px;margin-top:6px;">
           <button class="btn-outline" id="inv-cancel" style="flex:1;">Cancel</button>
           <button class="btn-primary" id="inv-submit" style="flex:2;justify-content:center;">＋ Add Member</button>
@@ -377,6 +393,7 @@ function openInviteModal(container) {
     const firstName = body.querySelector('#inv-first').value.trim();
     const lastName = body.querySelector('#inv-last').value.trim();
     const role = body.querySelector('#inv-role').value;
+    const timezone = body.querySelector('#inv-timezone').value || null;
 
     if (!email || !password || !firstName || !lastName) {
       showToast('All fields are required', 'error');
@@ -387,7 +404,7 @@ function openInviteModal(container) {
     btn.disabled = true; btn.textContent = 'Adding…';
 
     try {
-      await registerUser({ email, password, firstName, lastName, role });
+      await registerUser({ email, password, firstName, lastName, role, timezone });
       closeModal();
       showToast('Team member added');
       loadTeamMembers(container);
@@ -425,6 +442,13 @@ function openEditUserModal(container, data) {
             <option value="Admin" ${data.role==='Admin'?'selected':''}>Admin</option>
           </select>
         </div>
+        <div>
+          <div class="input-label">Timezone</div>
+          <select class="input-field" id="edit-timezone">
+            ${data.timezone ? '' : '<option value="" selected disabled>Not set</option>'}
+            ${tzSelectOptions(data.timezone || '')}
+          </select>
+        </div>
         <div style="display:flex;align-items:center;gap:10px;">
           <input type="checkbox" id="edit-active" ${data.active==='true'?'checked':''}>
           <label for="edit-active" class="input-label" style="margin:0;">Active</label>
@@ -443,6 +467,8 @@ function openEditUserModal(container, data) {
     const lastName = body.querySelector("#edit-last").value.trim();
     const role = body.querySelector("#edit-role").value;
     const isActive = body.querySelector("#edit-active").checked;
+    // null = leave unchanged server-side (e.g. "Not set" never touched)
+    const timezone = body.querySelector("#edit-timezone").value || null;
 
     if (!firstName || !lastName) {
       showToast("First and last name are required", "error");
@@ -453,7 +479,7 @@ function openEditUserModal(container, data) {
     btn.disabled = true; btn.textContent = "Saving…";
 
     try {
-      await updateUser(data.id, { firstName, lastName, isActive, role });
+      await updateUser(data.id, { firstName, lastName, isActive, role, timezone });
       closeModal();
       showToast("User updated");
       loadTeamMembers(container);

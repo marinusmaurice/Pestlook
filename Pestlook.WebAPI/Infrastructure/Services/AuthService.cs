@@ -195,6 +195,9 @@ public sealed class AuthService(
         if (existing is not null)
             throw new InvalidOperationException("Email is already registered.");
 
+        if (request.Timezone is not null && !TimeZoneInfo.TryFindSystemTimeZoneById(request.Timezone, out _))
+            throw new InvalidOperationException($"Unknown timezone id '{request.Timezone}'.");
+
         // Admin-created users are pre-approved — no email verification required
         var user = new ApplicationUser
         {
@@ -203,7 +206,8 @@ public sealed class AuthService(
             FirstName      = request.FirstName,
             LastName       = request.LastName,
             TenantId       = tenant.Id,
-            EmailConfirmed = true
+            EmailConfirmed = true,
+            Timezone       = request.Timezone
         };
 
         var result = await userManager.CreateAsync(user, request.Password);
