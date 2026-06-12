@@ -45,7 +45,7 @@ public sealed class SessionObservation : IHasTenant, IAuditableByUser
     public LifeStage? LifeStage { get; set; }
 
     public int SortOrder { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>The date/time the scout actually recorded the observation on the mobile device.</summary>
     public DateTime? ObservedAt { get; set; }

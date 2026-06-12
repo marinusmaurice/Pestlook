@@ -36,7 +36,7 @@ public static class JwtTestHelper
             issuer: TestIssuer,
             audience: TestAudience,
             claims: claims,
-            expires: DateTime.Now.AddMinutes(expiryMinutes),
+            expires: DateTime.UtcNow.AddMinutes(expiryMinutes),
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);

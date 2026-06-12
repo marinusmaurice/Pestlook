@@ -1,6 +1,6 @@
 import { activateAccount } from '../api/auth.js';
 import { saveTokens, saveUser, isAuthenticated } from '../utils/storage.js';
-import { getMe } from '../api/auth.js';
+import { getMe, updateTimezone, detectBrowserTimezone } from '../api/auth.js';
 import { navigate } from '../utils/router.js';
 import { showToast } from '../components/toast.js';
 
@@ -33,7 +33,16 @@ export async function renderActivate(container, params) {
     saveTokens(res.data);
 
     const meRes = await getMe();
-    saveUser(meRes.data);
+    let user = meRes.data;
+
+    // First sign-in after activation: persist the browser timezone on the profile.
+    if (!user.timezone) {
+      try {
+        const tzRes = await updateTimezone(detectBrowserTimezone());
+        user = tzRes.data;
+      } catch { /* non-fatal — analytics fall back to UTC until set in Settings */ }
+    }
+    saveUser(user);
 
     renderState('✅', 'Account activated!',
       'Your account is ready. Redirecting you to your dashboard…', null);

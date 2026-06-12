@@ -23,8 +23,9 @@ export function renderOverview(el, data, lookups) {
   const dateFmt = spanDays > 180
     ? { month: 'short', year: '2-digit' }
     : { day: 'numeric', month: 'short' };
+  // Bucket dates are calendar dates at midnight UTC — format in UTC so labels never shift a day
   const weekLabels = weeklyTrend.map(w =>
-    new Date(w.weekStart).toLocaleDateString('en-GB', dateFmt));
+    new Date(w.weekStart).toLocaleDateString('en-GB', { ...dateFmt, timeZone: 'UTC' }));
   const weekCounts = weeklyTrend.map(w => w.totalObs);
 
   const recent4 = weekCounts.slice(-4).reduce((a, b) => a + b, 0);

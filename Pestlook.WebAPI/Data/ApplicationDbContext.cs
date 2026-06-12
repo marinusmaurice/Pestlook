@@ -34,6 +34,14 @@ public sealed class ApplicationDbContext(
     private static SubscriptionPlan ParseSubscriptionPlan(string value) =>
         Enum.TryParse<SubscriptionPlan>(value, out var parsed) ? parsed : SubscriptionPlan.Free;
 
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        base.ConfigureConventions(configurationBuilder);
+        // datetime2 columns carry no timezone; the app writes UTC only, so all
+        // DateTime/DateTime? properties materialize with Kind.Utc.
+        configurationBuilder.Properties<DateTime>().HaveConversion<UtcDateTimeValueConverter>();
+    }
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -61,6 +69,7 @@ public sealed class ApplicationDbContext(
             e.Property(u => u.FirstName).HasMaxLength(100);
             e.Property(u => u.LastName).HasMaxLength(100);
             e.Property(u => u.TemperatureUnit).HasMaxLength(1).HasDefaultValue("C");
+            e.Property(u => u.Timezone).HasMaxLength(100);
             e.HasQueryFilter(u => tenantContext.TenantId == null || u.TenantId == tenantContext.TenantId);
         });
 

@@ -64,9 +64,11 @@ public sealed class AuthServiceTests : IDisposable
         _sut = new AuthService(
             _userManagerMock.Object,
             _tokenServiceMock.Object,
+            new Mock<IEmailService>().Object,
             _db,
             _tenantContext,
             jwtOptions,
+            Options.Create(new EmailOptions()),
             new Mock<ILogger<AuthService>>().Object);
     }
 

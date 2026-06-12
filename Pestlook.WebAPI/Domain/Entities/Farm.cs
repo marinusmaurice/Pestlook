@@ -16,8 +16,8 @@ public sealed class Farm : IHasTenant, IAuditableByUser
     /// <summary>Hex colour used to render the farm boundary on maps (e.g. "#3aad5a").</summary>
     public string? BoundaryColor { get; set; }
     public bool IsActive { get; set; } = true;
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
-    public DateTime UpdatedAt { get; set; } = DateTime.Now;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? DeletedAt { get; set; }
 
     public string? CreatedByUserId { get; set; }

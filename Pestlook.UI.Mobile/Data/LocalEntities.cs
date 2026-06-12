@@ -20,7 +20,7 @@ public class LocalSession
     public string? FieldName { get; set; }
     public string? ScouterId { get; set; }
     public string? TenantId { get; set; }
-    public DateTime StartedAt { get; set; } = DateTime.Now;
+    public DateTime StartedAt { get; set; } = DateTime.UtcNow;
     public DateTime? CompletedAt { get; set; }
     public DateTime? SyncedAt { get; set; }
     public SessionStatus Status { get; set; }
@@ -49,7 +49,7 @@ public class LocalMonitoringPoint
     public double Latitude { get; set; }
     public double Longitude { get; set; }
     public double? GpsAccuracy { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public string? RemoteId { get; set; }
 }
 
@@ -71,7 +71,7 @@ public class LocalObservation
     public string? TrapName { get; set; }
     public double? CapturedLat { get; set; }
     public double? CapturedLng { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public string? RemoteId { get; set; }
     /// <summary>Snapshot of pest economic action threshold
     public int? ThresholdCount { get; set; }
@@ -114,7 +114,7 @@ public class CachedPest
     public int DefaultCaptureMode { get; set; }
     public int? AlertThreshold { get; set; }
     public bool IsSystemPest { get; set; }
-    public DateTime CachedAt { get; set; } = DateTime.Now;
+    public DateTime CachedAt { get; set; } = DateTime.UtcNow;
 }
 
 // ── Cached TrapType
@@ -126,7 +126,7 @@ public class CachedTrapType
     public string? Description { get; set; }
     /// <summary>True for system-wide types (TenantId == null on server); false for tenant-specific types.</summary>
     public bool IsSystemType { get; set; }
-    public DateTime CachedAt { get; set; } = DateTime.Now;
+    public DateTime CachedAt { get; set; } = DateTime.UtcNow;
 }
 
 // ── Cached Farm
@@ -137,7 +137,7 @@ public class CachedFarm
     public string Name { get; set; } = "";
     public string? Location { get; set; }
     public bool IsActive { get; set; }
-    public DateTime CachedAt { get; set; } = DateTime.Now;
+    public DateTime CachedAt { get; set; } = DateTime.UtcNow;
 }
 
 // ── Cached Field
@@ -149,7 +149,7 @@ public class CachedField
     public string Name { get; set; } = "";
     public string? CropType { get; set; }
     public bool IsActive { get; set; }
-    public DateTime CachedAt { get; set; } = DateTime.Now;
+    public DateTime CachedAt { get; set; } = DateTime.UtcNow;
 }
 
 // ── Cached Trap
@@ -167,7 +167,7 @@ public class CachedTrap
     public double? Longitude { get; set; }
     public bool IsEnabled { get; set; }
     public string? Notes { get; set; }
-    public DateTime CachedAt { get; set; } = DateTime.Now;
+    public DateTime CachedAt { get; set; } = DateTime.UtcNow;
 }
 
 // ── App Settings

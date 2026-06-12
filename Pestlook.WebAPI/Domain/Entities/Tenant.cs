@@ -10,7 +10,7 @@ public sealed class Tenant
     public bool IsActive { get; set; } = true;
     public SubscriptionPlan SubscriptionPlan { get; set; } = SubscriptionPlan.Free;
     public int MonitoringPointQuota { get; set; } = 10000;
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<ApplicationUser> Users { get; set; } = [];
     public ICollection<Farm> Farms { get; set; } = [];

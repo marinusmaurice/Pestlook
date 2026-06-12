@@ -13,7 +13,7 @@ export function renderScoutingSessions(el, data, lookups) {
   const sessions       = data.sessions        ?? [];
 
   const weekLabels  = weeklyStacked.map(w =>
-    new Date(w.weekStart).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
+    new Date(w.weekStart).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }));
   const completedW  = weeklyStacked.map(w => w.completed);
   const plannedW    = weeklyStacked.map(w => w.planned);
   const overdueW    = weeklyStacked.map(w => w.overdue);

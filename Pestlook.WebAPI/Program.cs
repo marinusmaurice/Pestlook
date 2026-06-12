@@ -4,6 +4,7 @@ using FluentValidation.AspNetCore;
 using Microsoft.Extensions.FileProviders;
 using Pestlook.WebAPI.Extensions;
 using Pestlook.WebAPI.Infrastructure.Filters;
+using Pestlook.WebAPI.Infrastructure.Json;
 using Pestlook.WebAPI.Options;
 using Serilog;
 using System.Text.Json.Serialization;
@@ -33,7 +34,11 @@ builder.Services.AddMappingConfiguration();
 // ── Controllers + Validation ──────────────────────────────────────────────────
 builder.Services.AddControllers(options => options.Filters.Add<ActionLoggingFilter>())
     .AddJsonOptions(opt =>
-        opt.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+    {
+        opt.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        // All DateTime values cross the wire as UTC ISO 8601 with a trailing Z.
+        opt.JsonSerializerOptions.Converters.Add(new UtcDateTimeJsonConverter());
+    });
 builder.Services.AddFluentValidationAutoValidation();
 
 // ── OpenAPI ───────────────────────────────────────────────────────────────────

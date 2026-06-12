@@ -1,4 +1,4 @@
-import { login, getMe } from '../api/auth.js';
+import { login, getMe, updateTimezone, detectBrowserTimezone } from '../api/auth.js';
 import { saveTokens, saveUser, isAuthenticated } from '../utils/storage.js';
 import { navigate } from '../utils/router.js';
 import { showToast } from '../components/toast.js';
@@ -61,7 +61,16 @@ async function handleLogin(e) {
     saveTokens(res.data);
 
     const meRes = await getMe();
-    saveUser(meRes.data);
+    let user = meRes.data;
+
+    // First login: detect the browser timezone and persist it on the profile.
+    if (!user.timezone) {
+      try {
+        const tzRes = await updateTimezone(detectBrowserTimezone());
+        user = tzRes.data;
+      } catch { /* non-fatal — analytics fall back to UTC until set in Settings */ }
+    }
+    saveUser(user);
 
     showToast('Welcome back!', 'success');
     navigate('/dashboard');

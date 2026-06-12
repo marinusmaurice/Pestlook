@@ -15,7 +15,7 @@ public sealed class Feedback : IHasTenant, IAuditableByUser
     /// <summary>The in-app page the user was on when submitting, if provided.</summary>
     public string? PageUrl { get; set; }
 
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
     public DateTime? DeletedAt { get; set; }
 

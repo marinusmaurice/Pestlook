@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Pestlook.WebAPI.Data;
 using Pestlook.WebAPI.DTOs.Common;
+using Pestlook.WebAPI.Infrastructure.Services.Interfaces;
 
 namespace Pestlook.WebAPI.Controllers.v1;
 
@@ -11,26 +12,36 @@ namespace Pestlook.WebAPI.Controllers.v1;
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/intelligence")]
 [Authorize]
-public sealed class IntelligenceController(ApplicationDbContext db) : ControllerBase
+public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezoneService tzService) : ControllerBase
 {
     // ── Shared helpers ──────────────────────────────────────────────────────
 
-    private static (DateTime From, DateTime To) ResolveRange(DateTime? from, DateTime? to, int defaultDays = 180)
+    /// <summary>
+    /// Returns the start/end UTC range. Explicit from/to are interpreted as
+    /// calendar dates in the user's timezone; day boundaries are the user's
+    /// local day converted to UTC.
+    /// </summary>
+    private async Task<(DateTime From, DateTime To)> ResolveRangeAsync(
+        DateTime? from, DateTime? to, int defaultDays, CancellationToken ct)
     {
-        var now = DateTime.Now;
+        var tz = await tzService.GetUserTimeZoneAsync(ct);
+        var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
 
-        // Normalize end date to 23:59:59
-        var end = to.HasValue
-            ? to.Value.Date.AddDays(1).AddSeconds(-1)
-            : now.Date.AddDays(1).AddSeconds(-1);
+        // Normalize end date to local 23:59:59
+        var endLocal = (to?.Date ?? nowLocal.Date).AddDays(1).AddSeconds(-1);
 
-        // Normalize start date to 00:00:00
-        var start = from.HasValue
-            ? from.Value.Date
-            : end.AddDays(-defaultDays).Date;
+        // Normalize start date to local 00:00:00
+        var startLocal = from?.Date ?? endLocal.AddDays(-defaultDays).Date;
 
-        return (start, end);
+        return (LocalToUtc(startLocal, tz), LocalToUtc(endLocal, tz));
     }
+
+    private static DateTime LocalToUtc(DateTime local, TimeZoneInfo tz) =>
+        TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(local, DateTimeKind.Unspecified), tz);
+
+    /// <summary>Local calendar date (midnight, Kind=Unspecified) of a UTC instant — bucket label only.</summary>
+    private static DateTime ToLocalDate(DateTime utc, TimeZoneInfo tz) =>
+        TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), tz).Date;
 
     // ── I1 · Spread & Movement — Pest Spread Direction ──────────────────────
 
@@ -76,7 +87,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         [FromQuery] Guid?     pestId,
         CancellationToken ct = default)
     {
-        var (start, end) = ResolveRange(from, to, 180);
+        var (start, end) = await ResolveRangeAsync(from, to, 180, ct);
 
         // ── 1. Pull raw GPS observations ─────────────────────────────────────
         var obsQ = db.SessionObservations
@@ -363,7 +374,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         [FromQuery] Guid?     pestId,
         CancellationToken ct = default)
     {
-        var (start, end) = ResolveRange(from, to, 180);
+        var (start, end) = await ResolveRangeAsync(from, to, 180, ct);
 
         var obsQ = db.SessionObservations
             .Where(o => !o.IsUnknownPest
@@ -523,7 +534,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         [FromQuery] int       weeksAhead = 4,
         CancellationToken ct = default)
     {
-        var (start, end) = ResolveRange(from, to, 180);
+        var (start, end) = await ResolveRangeAsync(from, to, 180, ct);
         weeksAhead = Math.Clamp(weeksAhead, 1, 12);
 
         var obsQ = db.SessionObservations
@@ -673,9 +684,10 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         [FromQuery] Guid?     farmId,
         [FromQuery] Guid?     fieldId,
         [FromQuery] Guid?     pestId,
-        [FromQuery] double    radiusKm = 5.0)
+        [FromQuery] double    radiusKm = 5.0,
+        CancellationToken ct = default)
     {
-        var (start, end) = ResolveRange(from, to, 180);
+        var (start, end) = await ResolveRangeAsync(from, to, 180, ct);
         radiusKm = Math.Clamp(radiusKm, 0.5, 100.0);
 
         // ── 1. Load all fields with farm GPS ──────────────────────────────
@@ -735,7 +747,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         var fieldMap       = allFields.ToDictionary(f => f.FieldId);
 
         // ── 4. Group breaches by pest × field ─────────────────────────────
-        var now    = DateTime.Now;
+        var now    = DateTime.UtcNow;
         var alerts = breachObs
             .GroupBy(o => new { o.PestId, o.FieldId })
             .Select(g =>
@@ -859,9 +871,10 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         [FromQuery] DateTime? to,
         [FromQuery] Guid?     farmId,
         [FromQuery] Guid?     pestId,
-        [FromQuery] int       minFarms = 2)
+        [FromQuery] int       minFarms = 2,
+        CancellationToken ct = default)
     {
-        var (start, end) = ResolveRange(from, to, 365);
+        var (start, end) = await ResolveRangeAsync(from, to, 365, ct);
         minFarms = Math.Clamp(minFarms, 2, 20);
 
         // ── 1. Aggregate weekly totals per pest × farm in SQL ────────────────
@@ -1068,7 +1081,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         [FromQuery] Guid?     pestId,
         CancellationToken ct = default)
     {
-        var (windowStart, windowEnd) = ResolveRange(from, to, 180);
+        var (windowStart, windowEnd) = await ResolveRangeAsync(from, to, 180, ct);
 
         var obsQ = db.SessionObservations
             .Where(o => !o.IsUnknownPest && o.PestId != null && o.Count > 0
@@ -1200,7 +1213,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         [FromQuery] Guid?     pestId,
         CancellationToken ct = default)
     {
-        var (start, end) = ResolveRange(from, to, 180);
+        var (start, end) = await ResolveRangeAsync(from, to, 180, ct);
 
         var obsQ = db.SessionObservations
             .Where(o => !o.IsUnknownPest && o.PestId != null && o.Count > 0
@@ -1320,7 +1333,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         [FromQuery] Guid?     fieldId,
         CancellationToken ct = default)
     {
-        var (start, end) = ResolveRange(from, to, 180);
+        var (start, end) = await ResolveRangeAsync(from, to, 180, ct);
 
         // Last completed session per field
         var lastSessionQ = db.ScoutingSessions
@@ -1372,7 +1385,8 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
                 g => g.Key,
                 g => g.OrderBy(o => o.WeekIndex).Select(o => o.WeekTotal).ToList());
 
-        var today = DateTime.Now.Date;
+        var tz = await tzService.GetUserTimeZoneAsync(ct);
+        var today = ToLocalDate(DateTime.UtcNow, tz);
 
         var recommendations = sessions
             .GroupBy(s => s.FieldId)
@@ -1380,8 +1394,9 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
             {
                 var lastSession = fg.OrderByDescending(s => s.CompletedAt).First();
                 var fieldWeeks  = weeklyByField.GetValueOrDefault(fg.Key) ?? [];
+                var lastDate    = ToLocalDate(lastSession.CompletedAt, tz);
 
-                int daysSinceLast = (today - lastSession.CompletedAt.Date).Days;
+                int daysSinceLast = (today - lastDate).Days;
                 int baseInterval  = 7; // default weekly
 
                 double growthRate = 0;
@@ -1427,7 +1442,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
                     rationale = "Population stable — standard weekly visit is sufficient.";
                 }
 
-                var nextDate      = lastSession.CompletedAt.Date.AddDays(recommendedInterval);
+                var nextDate      = lastDate.AddDays(recommendedInterval);
                 int daysUntilNext = (nextDate - today).Days;
                 bool isOverdue    = daysUntilNext < 0;
 
@@ -1436,7 +1451,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
                     fieldId             = fg.Key,
                     fieldName           = lastSession.FieldName,
                     farmName            = lastSession.FarmName,
-                    lastSessionDate     = lastSession.CompletedAt.ToString("yyyy-MM-dd"),
+                    lastSessionDate     = lastDate.ToString("yyyy-MM-dd"),
                     daysSinceLastSession = daysSinceLast,
                     recommendedIntervalDays = recommendedInterval,
                     nextRecommendedDate = nextDate.ToString("yyyy-MM-dd"),
@@ -1466,7 +1481,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         [FromQuery] Guid? fieldId,
         CancellationToken ct = default)
     {
-        var end   = DateTime.Now;
+        var end   = DateTime.UtcNow;
         var start = end.AddMonths(-18);
 
         var obsQ = db.SessionObservations
@@ -1495,9 +1510,10 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         if (monthlyTotals.Count == 0)
             return Ok(ApiResponse<object>.Ok(new { calendar = Array.Empty<object>(), peakPests = Array.Empty<object>() }));
 
-        var now         = DateTime.Now;
+        // "Current month" follows the user's local calendar
+        var nowLocal    = ToLocalDate(DateTime.UtcNow, await tzService.GetUserTimeZoneAsync(ct));
         var next6Months = Enumerable.Range(0, 6)
-            .Select(i => new DateTime(now.Year, now.Month, 1).AddMonths(i))
+            .Select(i => new DateTime(nowLocal.Year, nowLocal.Month, 1).AddMonths(i))
             .ToList();
 
         // Build monthly profiles per pest from the already-aggregated data
@@ -1585,7 +1601,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         [FromQuery] Guid?     pestId,
         CancellationToken ct = default)
     {
-        var (start, end) = ResolveRange(from, to, 180);
+        var (start, end) = await ResolveRangeAsync(from, to, 180, ct);
 
         var obsQ = db.SessionObservations
             .Where(o => !o.IsUnknownPest && o.PestId != null && o.Count > 0
@@ -1706,7 +1722,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         [FromQuery] Guid?     farmId,
         CancellationToken ct = default)
     {
-        var (start, end) = ResolveRange(from, to, 90);
+        var (start, end) = await ResolveRangeAsync(from, to, 90, ct);
 
         var trapQ = db.Traps.Where(t => t.IsEnabled && t.DeletedAt == null);
         if (farmId.HasValue) trapQ = trapQ.Where(t => t.Field != null && t.Field.FarmId == farmId);
@@ -1827,7 +1843,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         [FromQuery] Guid?     pestId,
         CancellationToken ct = default)
     {
-        var (start, end) = ResolveRange(from, to, 180);
+        var (start, end) = await ResolveRangeAsync(from, to, 180, ct);
 
         var obsQ = db.SessionObservations
             .Where(o => !o.IsUnknownPest && o.PestId != null && o.Count > 0
@@ -1980,8 +1996,9 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         [FromQuery] Guid?     fieldId,
         CancellationToken ct = default)
     {
-        var (start, end) = ResolveRange(from, to, 180);
-        var today = DateTime.Now.Date;
+        var (start, end) = await ResolveRangeAsync(from, to, 180, ct);
+        var tz    = await tzService.GetUserTimeZoneAsync(ct);
+        var today = ToLocalDate(DateTime.UtcNow, tz);
 
         // ── 1. Observation trend per field
         var obsQ = db.SessionObservations
@@ -2091,7 +2108,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
             int daysSinceLast   = -1;
             if (lastSessionByField.TryGetValue(fid, out var lastSess))
             {
-                daysSinceLast = (today - lastSess.Date).Days;
+                daysSinceLast = (today - ToLocalDate(lastSess, tz)).Days;
                 recencyScore  = Math.Min(35, daysSinceLast * 35.0 / 30.0); // caps at 30 days
             }
             else
@@ -2176,7 +2193,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         CancellationToken ct = default)
     {
         // Use a wider look-back so we can capture sessions both before and after breaches
-        var (start, end) = ResolveRange(from, to, 365);
+        var (start, end) = await ResolveRangeAsync(from, to, 365, ct);
 
         var obsQ = db.SessionObservations
             .Where(o => !o.IsUnknownPest && o.PestId != null && o.Count > 0
@@ -2210,6 +2227,9 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
                 summary = new { total = 0, effective = 0, partial = 0, ineffective = 0, insufficient = 0 },
             }));
 
+        var tz = await tzService.GetUserTimeZoneAsync(ct);
+        var (startLocalDate, endLocalDate) = (ToLocalDate(start, tz), ToLocalDate(end, tz));
+
         var scores = obs
             .GroupBy(o => (o.PestId, o.FieldId))
             .Select(grp =>
@@ -2218,8 +2238,9 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
                 var threshold = grp.Max(o => o.ThresholdCount) ?? 0;
 
                 // All sessions with obs for this pest+field, ordered chronologically
+                // (one "session day" = the user's local calendar day)
                 var bySession = grp
-                    .GroupBy(o => o.CompletedAt.Date)
+                    .GroupBy(o => ToLocalDate(o.CompletedAt, tz))
                     .OrderBy(g => g.Key)
                     .Select(sg => (Date: sg.Key, Total: sg.Sum(o => o.Count ?? 0), IsAbove: sg.Sum(o => o.Count ?? 0) > threshold))
                     .ToList();
@@ -2227,7 +2248,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
                 // Find the first breach point within the queried range
                 var breachIdx = bySession
                     .Select((s, i) => (s, i))
-                    .Where(x => x.s.IsAbove && x.s.Date >= start && x.s.Date <= end)
+                    .Where(x => x.s.IsAbove && x.s.Date >= startLocalDate && x.s.Date <= endLocalDate)
                     .Select(x => (int?)x.i)
                     .FirstOrDefault();
 
@@ -2322,8 +2343,8 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         [FromQuery] Guid?     fieldId,
         CancellationToken ct = default)
     {
-        var (start, end) = ResolveRange(from, to, 90);
-        var now = DateTime.Now;
+        var (start, end) = await ResolveRangeAsync(from, to, 90, ct);
+        var now = DateTime.UtcNow;
 
         // ── 1. All threshold breaches in period
         var obsQ = db.SessionObservations
@@ -2448,8 +2469,11 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         [FromQuery] Guid?     farmId,
         CancellationToken ct = default)
     {
-        var (start, end) = ResolveRange(from, to, 90);
-        var monthStart   = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1, 0, 0, 0);
+        var (start, end) = await ResolveRangeAsync(from, to, 90, ct);
+        // "This month" = the user's local calendar month, as a UTC boundary instant
+        var tz           = await tzService.GetUserTimeZoneAsync(ct);
+        var nowLocal     = ToLocalDate(DateTime.UtcNow, tz);
+        var monthStart   = LocalToUtc(new DateTime(nowLocal.Year, nowLocal.Month, 1, 0, 0, 0), tz);
 
         // ── 1. Sessions this month per field ─────────────────────────────────
         var sessQ = db.ScoutingSessions
@@ -2591,7 +2615,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         [FromQuery] Guid?     pestId,
         CancellationToken ct = default)
     {
-        var (start, end) = ResolveRange(from, to, 365);
+        var (start, end) = await ResolveRangeAsync(from, to, 365, ct);
 
         var obsQ = db.SessionObservations
             .Where(o => !o.IsUnknownPest && o.PestId != null && o.Count > 0
@@ -2734,7 +2758,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         [FromQuery] Guid?     pestId,
         CancellationToken ct = default)
     {
-        var (start, end) = ResolveRange(from, to, 365);
+        var (start, end) = await ResolveRangeAsync(from, to, 365, ct);
 
         // Pull weekly average temperature per session week
         var sessQ = db.ScoutingSessions
@@ -2911,7 +2935,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         [FromQuery] Guid?     pestId,
         CancellationToken ct = default)
     {
-        var (start, end) = ResolveRange(from, to, 365);
+        var (start, end) = await ResolveRangeAsync(from, to, 365, ct);
 
         var obsQ = db.SessionObservations
             .Where(o => !o.IsUnknownPest && o.PestId != null
@@ -2924,13 +2948,15 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         if (fieldId.HasValue) obsQ = obsQ.Where(o => o.Session.FieldId == fieldId);
         if (pestId.HasValue)  obsQ = obsQ.Where(o => o.PestId == pestId);
 
-        // Aggregate in SQL: per session-date + pest — total count, threshold, avg temp
+        // Aggregate in SQL: per session-date + pest — total count, threshold, avg temp.
+        // "Session date" follows the user's local calendar (offset shift translates to DATEADD).
+        var tzOffsetMinutes = (int)(await tzService.GetUserTimeZoneAsync(ct)).GetUtcOffset(DateTime.UtcNow).TotalMinutes;
         var sessionAgg = await obsQ
             .GroupBy(o => new
             {
                 o.PestId,
                 PestName    = o.Pest!.CommonName,
-                SessionDate = o.Session.CompletedAt!.Value.Date,
+                SessionDate = o.Session.CompletedAt!.Value.AddMinutes(tzOffsetMinutes).Date,
                 Temp        = o.Session.TemperatureCelsius!.Value,
             })
             .Select(g => new
@@ -3077,7 +3103,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         [FromQuery] Guid?      pestId,
         CancellationToken ct = default)
     {
-        var (start, end) = ResolveRange(from, to, 180);
+        var (start, end) = await ResolveRangeAsync(from, to, 180, ct);
         var tenantId = Guid.Parse(User.FindFirst("tid")?.Value ?? User.FindFirst("TenantId")?.Value ?? Guid.Empty.ToString());
 
         // Weekly GPS centroids per pest (same as spread-direction)
@@ -3253,7 +3279,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         [FromQuery] Guid?      fieldId,
         CancellationToken ct = default)
     {
-        var (start, end) = ResolveRange(from, to, 180);
+        var (start, end) = await ResolveRangeAsync(from, to, 180, ct);
 
         // ── Query 1: observations within the selected period ONLY ─────────────
         // The date predicate lets SQL Server use the CompletedAt index — no full-table scan.
@@ -3389,7 +3415,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
             fieldMetaMap.TryGetValue(r.FieldId, out var fm);
 
             bool newToTenant = !notNewToTenantSet.Contains(r.PestId);
-            int  daysSince   = (int)(DateTime.Now - r.MinDate).TotalDays;
+            int  daysSince   = (int)(DateTime.UtcNow - r.MinDate).TotalDays;
 
             string introType = newToTenant ? "New to tenant" : "New to field";
             string riskLevel = newToTenant                   ? "High"
@@ -3450,7 +3476,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         [FromQuery] Guid?      pestId,
         CancellationToken ct = default)
     {
-        var (start, end) = ResolveRange(from, to, 365);
+        var (start, end) = await ResolveRangeAsync(from, to, 365, ct);
         var tenantId = Guid.Parse(User.FindFirst("tid")?.Value ?? User.FindFirst("TenantId")?.Value ?? Guid.Empty.ToString());
 
         var obsQ = db.SessionObservations
@@ -3608,7 +3634,7 @@ public sealed class IntelligenceController(ApplicationDbContext db) : Controller
         [FromQuery] Guid?      pestId,
         CancellationToken ct = default)
     {
-        var (start, end) = ResolveRange(from, to, 730); // default 2 years
+        var (start, end) = await ResolveRangeAsync(from, to, 730, ct); // default 2 years
 
         var obsQ = db.SessionObservations
             .Where(o => !o.IsUnknownPest && o.PestId != null

@@ -15,13 +15,12 @@ namespace Pestlook.Tests.Integration.Auth;
 [Collection("Integration")]
 public sealed class SignUpControllerTests(TestWebApplicationFactory factory)
 {
-    // Produces a fully valid request; each call gets a fresh slug + email.
+    // Produces a fully valid request; each call gets a fresh tenant name + email.
     private static SignUpRequest Valid(
         SubscriptionPlan plan = SubscriptionPlan.Free,
-        string? slug  = null,
+        string? tenantName = null,
         string? email = null) => new(
-            TenantName:       "Acme Farms",
-            TenantSlug:       slug  ?? $"acme-{Guid.NewGuid():N}",
+            TenantName:       tenantName ?? $"Acme Farms {Guid.NewGuid():N}",
             SubscriptionPlan: plan,
             Email:            email ?? $"owner_{Guid.NewGuid():N}@acme.com",
             Password:         "P@ssw0rd1!",
@@ -41,8 +40,8 @@ public sealed class SignUpControllerTests(TestWebApplicationFactory factory)
         body.Data.Should().NotBeNull();
         body.Data!.AccessToken.Should().NotBeNullOrEmpty();
         body.Data.RefreshToken.Should().NotBeNullOrEmpty();
-        body.Data.AccessTokenExpiry.Should().BeAfter(DateTime.Now);
-        body.Data.RefreshTokenExpiry.Should().BeAfter(DateTime.Now);
+        body.Data.AccessTokenExpiry.Should().BeAfter(DateTime.UtcNow);
+        body.Data.RefreshTokenExpiry.Should().BeAfter(DateTime.UtcNow);
         body.Message.Should().Be("Account created successfully.");
     }
 
@@ -86,8 +85,9 @@ public sealed class SignUpControllerTests(TestWebApplicationFactory factory)
     public async Task SignUp_EachPlan_SetsCorrectMonitoringPointQuota(
         SubscriptionPlan plan, int expectedQuota)
     {
+        // Slug is server-generated from TenantName; a slug-form name maps to itself
         var slug = $"plan-{Guid.NewGuid():N}";
-        await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/sign-up", Valid(plan: plan, slug: slug));
+        await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/sign-up", Valid(plan: plan, tenantName: slug));
 
         using var scope = factory.Services.CreateScope();
         var db     = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -123,16 +123,21 @@ public sealed class SignUpControllerTests(TestWebApplicationFactory factory)
     // ── Conflict cases ────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task SignUp_WithDuplicateSlug_ShouldReturn409()
+    public async Task SignUp_WithDuplicateTenantName_ShouldAutoSuffixSlug()
     {
-        var slug  = $"dup-slug-{Guid.NewGuid():N}";
-        var first  = Valid(slug: slug);
-        var second = Valid(slug: slug); // different email, same slug
+        // Slugs are server-generated; a name collision yields "<slug>-2", not a 409
+        var name   = $"dup-slug-{Guid.NewGuid():N}";
+        var first  = Valid(tenantName: name);
+        var second = Valid(tenantName: name); // different email, same tenant name
 
         await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/sign-up", first);
         var response = await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/sign-up", second);
 
-        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        (await db.Tenants.SingleOrDefaultAsync(t => t.Slug == $"{name}-2")).Should().NotBeNull();
     }
 
     [Fact]
@@ -152,30 +157,25 @@ public sealed class SignUpControllerTests(TestWebApplicationFactory factory)
 
     [Theory]
     // Tenant name
-    [InlineData("",      "valid-slug", "owner@test.com", "P@ssw0rd1!", "Jane", "Farmer")] // empty name
-    // Slug format
-    [InlineData("Acme",  "",           "owner@test.com", "P@ssw0rd1!", "Jane", "Farmer")] // empty slug
-    [InlineData("Acme",  "HasUpper",   "owner@test.com", "P@ssw0rd1!", "Jane", "Farmer")] // uppercase
-    [InlineData("Acme",  "has space",  "owner@test.com", "P@ssw0rd1!", "Jane", "Farmer")] // space
-    [InlineData("Acme",  "under_score","owner@test.com", "P@ssw0rd1!", "Jane", "Farmer")] // underscore
+    [InlineData("",      "owner@test.com", "P@ssw0rd1!", "Jane", "Farmer")] // empty name
     // Email
-    [InlineData("Acme",  "valid-slug", "",               "P@ssw0rd1!", "Jane", "Farmer")] // empty email
-    [InlineData("Acme",  "valid-slug", "not-an-email",   "P@ssw0rd1!", "Jane", "Farmer")] // not an email
+    [InlineData("Acme",  "",               "P@ssw0rd1!", "Jane", "Farmer")] // empty email
+    [InlineData("Acme",  "not-an-email",   "P@ssw0rd1!", "Jane", "Farmer")] // not an email
     // Password rules
-    [InlineData("Acme",  "valid-slug", "owner@test.com", "Short1!",    "Jane", "Farmer")] // < 8 chars
-    [InlineData("Acme",  "valid-slug", "owner@test.com", "nouppercase1!","Jane","Farmer")]// no uppercase
-    [InlineData("Acme",  "valid-slug", "owner@test.com", "NOLOWERCASE1!","Jane","Farmer")]// no lowercase
-    [InlineData("Acme",  "valid-slug", "owner@test.com", "NoDigitHere!", "Jane","Farmer")]// no digit
-    [InlineData("Acme",  "valid-slug", "owner@test.com", "NoSpecial123", "Jane","Farmer")]// no special char
+    [InlineData("Acme",  "owner@test.com", "Short1!",    "Jane", "Farmer")] // < 8 chars
+    [InlineData("Acme",  "owner@test.com", "nouppercase1!","Jane","Farmer")]// no uppercase
+    [InlineData("Acme",  "owner@test.com", "NOLOWERCASE1!","Jane","Farmer")]// no lowercase
+    [InlineData("Acme",  "owner@test.com", "NoDigitHere!", "Jane","Farmer")]// no digit
+    [InlineData("Acme",  "owner@test.com", "NoSpecial123", "Jane","Farmer")]// no special char
     // Name fields
-    [InlineData("Acme",  "valid-slug", "owner@test.com", "P@ssw0rd1!", "",     "Farmer")] // empty first name
-    [InlineData("Acme",  "valid-slug", "owner@test.com", "P@ssw0rd1!", "Jane", "")]       // empty last name
+    [InlineData("Acme",  "owner@test.com", "P@ssw0rd1!", "",     "Farmer")] // empty first name
+    [InlineData("Acme",  "owner@test.com", "P@ssw0rd1!", "Jane", "")]       // empty last name
     public async Task SignUp_WhenRequestIsInvalid_ShouldReturn400(
-        string tenantName, string slug, string email, string password,
+        string tenantName, string email, string password,
         string firstName,  string lastName)
     {
         var request = new SignUpRequest(
-            tenantName, slug, SubscriptionPlan.Free, email, password, firstName, lastName);
+            tenantName, SubscriptionPlan.Free, email, password, firstName, lastName);
 
         var response = await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/sign-up", request);
 
@@ -188,7 +188,7 @@ public sealed class SignUpControllerTests(TestWebApplicationFactory factory)
     public async Task SignUp_CreatedTenantShouldBeActive()
     {
         var slug = $"active-check-{Guid.NewGuid():N}";
-        await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/sign-up", Valid(slug: slug));
+        await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/sign-up", Valid(tenantName: slug));
 
         using var scope = factory.Services.CreateScope();
         var db     = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -200,15 +200,14 @@ public sealed class SignUpControllerTests(TestWebApplicationFactory factory)
     [Fact]
     public async Task SignUp_CreatedTenantShouldHaveCorrectName()
     {
-        var slug = $"name-check-{Guid.NewGuid():N}";
-        var request = Valid(slug: slug) with { TenantName = "Green Leaf Farms" };
-        await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/sign-up", request);
+        var name = $"name-check-{Guid.NewGuid():N}";
+        await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/sign-up", Valid(tenantName: name));
 
         using var scope = factory.Services.CreateScope();
         var db     = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var tenant = await db.Tenants.SingleAsync(t => t.Slug == slug);
+        var tenant = await db.Tenants.SingleAsync(t => t.Slug == name);
 
-        tenant.Name.Should().Be("Green Leaf Farms");
+        tenant.Name.Should().Be(name);
     }
 
     // ── Post sign-up flows ────────────────────────────────────────────────────

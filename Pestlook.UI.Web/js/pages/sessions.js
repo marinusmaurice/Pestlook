@@ -5,7 +5,7 @@ import { getFields } from '../api/fields.js';
 import { openModal, closeModal } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
 import { tag } from '../components/tag.js';
-import { escapeHtml, formatDateTime, formatTemperature } from '../utils/helpers.js';
+import { escapeHtml, formatDateTime, formatTemperature, toDateTimeLocalValue, toUtcIso } from '../utils/helpers.js';
 import { getUser } from '../utils/storage.js';
 import { navigate } from '../utils/router.js';
 
@@ -380,7 +380,7 @@ async function showPlannedSessionModal(existing = null) {
       </div>
       <div>
         <label class="input-label">Scheduled Date & Time <span style="color:var(--red);">*</span></label>
-        <input class="input-field" type="datetime-local" id="sessionDate" value="${existing?.scheduledDate ? existing.scheduledDate.substring(0, 16) : ''}">
+        <input class="input-field" type="datetime-local" id="sessionDate" value="${toDateTimeLocalValue(existing?.scheduledDate)}">
       </div>
       <div>
         <label class="input-label">Notes (optional)</label>
@@ -414,8 +414,8 @@ async function showPlannedSessionModal(existing = null) {
     const fieldId = document.getElementById('sessionField').value || null;
     const scouterId = document.getElementById('sessionScout').value || null;
     const scheduledDateRaw = document.getElementById('sessionDate').value || null;
-    // datetime-local gives "YYYY-MM-DDTHH:mm" — append seconds so the API parses it as a full DateTime
-    const scheduledDate = scheduledDateRaw ? scheduledDateRaw + ':00' : null;
+    // datetime-local is the user's local wall-clock time — convert to UTC ISO with Z before sending
+    const scheduledDate = toUtcIso(scheduledDateRaw);
 
     if (!farmId)        { showToast('Please select a farm.', 'error'); return; }
     if (!fieldId)       { showToast('Please select a field.', 'error'); return; }

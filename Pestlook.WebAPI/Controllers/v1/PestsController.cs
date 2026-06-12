@@ -97,7 +97,7 @@ public sealed class PestsController(
         if (pest is null) return NotFound(ApiResponse<object>.Fail("Pest not found."));
         if (pest.IsSystemPest) return BadRequest(ApiResponse<object>.Fail("System pests cannot be deleted."));
 
-        pest.DeletedAt = DateTime.Now;
+        pest.DeletedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
         return NoContent();
     }

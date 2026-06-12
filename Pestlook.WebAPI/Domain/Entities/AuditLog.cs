@@ -11,5 +11,5 @@ public sealed class AuditLog
     public string? OldValues { get; set; }
     public string? NewValues { get; set; }
     public string? IpAddress { get; set; }
-    public DateTime Timestamp { get; set; } = DateTime.Now;
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 }

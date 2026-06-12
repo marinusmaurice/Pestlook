@@ -20,5 +20,5 @@ public sealed class BillingSnapshot : IHasTenant
     /// <summary>pending | paid | failed</summary>
     public string Status { get; set; } = "pending";
 
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

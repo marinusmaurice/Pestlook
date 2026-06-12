@@ -7,6 +7,7 @@ using Pestlook.WebAPI.Data;
 using Pestlook.WebAPI.Domain.Enums;
 using Pestlook.WebAPI.DTOs.Common;
 using Pestlook.WebAPI.DTOs.ScoutingSessions;
+using Pestlook.WebAPI.Infrastructure.Services.Interfaces;
 
 namespace Pestlook.WebAPI.Controllers.v1;
 
@@ -14,46 +15,51 @@ namespace Pestlook.WebAPI.Controllers.v1;
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/analytics")]
 [Authorize]
-public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBase
+public sealed class AnalyticsController(ApplicationDbContext db, IUserTimezoneService tzService) : ControllerBase
 {
-    // ── Shared filter helper ────────────────────────────────────────────────
+    // ── Shared filter helpers ───────────────────────────────────────────────
 
     /// <summary>
     /// Returns the start/end UTC range from the query params.
     /// <paramref name="dateRange"/> accepts: "7", "30", "90", "365", "all".
-    /// <paramref name="from"/> / <paramref name="to"/> explicit ISO dates take priority.
-    /// Start date is normalized to 00:00:00, end date to 23:59:59.
+    /// <paramref name="from"/> / <paramref name="to"/> explicit ISO dates take priority
+    /// and are interpreted as calendar dates in the user's timezone.
+    /// Day boundaries (00:00:00 / 23:59:59) are the user's local day converted to UTC.
     /// </summary>
     private static (DateTime From, DateTime To) ResolveRange(
-        string? dateRange, DateTime? from, DateTime? to)
+        string? dateRange, DateTime? from, DateTime? to, TimeZoneInfo tz)
     {
-        var now = DateTime.Now;
-        
-        // Normalize end date to 23:59:59
-        var end = to.HasValue 
-            ? to.Value.Date.AddDays(1).AddSeconds(-1) 
-            : now.Date.AddDays(1).AddSeconds(-1);
+        var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
 
-        // Normalize start date to 00:00:00
-        DateTime start;
-        if (from.HasValue)
-        {
-            start = from.Value.Date;
-        }
-        else
-        {
-            start = dateRange switch
-            {
-                "7"   => now.AddDays(-7).Date,
-                "30"  => now.AddDays(-30).Date,
-                "90"  => now.AddDays(-90).Date,
-                "365" => now.AddDays(-365).Date,
-                "all" => DateTime.UnixEpoch,
-                _     => now.AddDays(-90).Date,
-            };
-        }
+        // Normalize end date to local 23:59:59
+        var endLocal = (to?.Date ?? nowLocal.Date).AddDays(1).AddSeconds(-1);
 
-        return (start, end);
+        // Normalize start date to local 00:00:00
+        var startLocal = from?.Date ?? dateRange switch
+        {
+            "7"   => nowLocal.AddDays(-7).Date,
+            "30"  => nowLocal.AddDays(-30).Date,
+            "90"  => nowLocal.AddDays(-90).Date,
+            "365" => nowLocal.AddDays(-365).Date,
+            "all" => DateTime.UnixEpoch,
+            _     => nowLocal.AddDays(-90).Date,
+        };
+
+        return (LocalToUtc(startLocal, tz), LocalToUtc(endLocal, tz));
+    }
+
+    private static DateTime LocalToUtc(DateTime local, TimeZoneInfo tz) =>
+        TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(local, DateTimeKind.Unspecified), tz);
+
+    /// <summary>Local calendar date (midnight, Kind=Unspecified) of a UTC instant — bucket label only.</summary>
+    private static DateTime ToLocalDate(DateTime utc, TimeZoneInfo tz) =>
+        TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), tz).Date;
+
+    /// <summary>Start (Sunday) of the user-local week containing a UTC instant — bucket label only.</summary>
+    private static DateTime ToLocalWeekStart(DateTime utc, TimeZoneInfo tz)
+    {
+        var d = ToLocalDate(utc, tz);
+        return d.AddDays(-(int)d.DayOfWeek);
     }
 
     // ── Legacy full-payload endpoint (kept for backward compat) ────────────
@@ -165,7 +171,8 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         [FromQuery] string? scoutId,
         CancellationToken ct = default)
     {
-        var (start, end) = ResolveRange(dateRange, from, to);
+        var tz = await tzService.GetUserTimeZoneAsync(ct);
+        var (start, end) = ResolveRange(dateRange, from, to, tz);
 
         var sessQ = db.ScoutingSessions
             .Where(ss => ss.CompletedAt >= start && ss.CompletedAt <= end);
@@ -193,14 +200,19 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         var totalObservations = await obsBase.SumAsync(o => (int?)(o.Count ?? 0), ct) ?? 0;
         var thresholdBreaches = await obsBase.CountAsync(o => o.ThresholdCount != null && o.Count > o.ThresholdCount, ct);
 
-        // Trend — bucket size adapts to the selected range
+        // Trend — bucket size adapts to the selected range.
+        // Buckets follow the user's local calendar: timestamps are shifted by the
+        // timezone's current UTC offset inside SQL (translates to DATEADD).
+        // Note: a fixed offset is exact for zones without DST (e.g. Africa/Johannesburg);
+        // for DST zones, instants within ~1h of a transition may land in the adjacent bucket.
+        var tzOffsetMinutes = (int)tz.GetUtcOffset(DateTime.UtcNow).TotalMinutes;
         var spanDays = (end - start).TotalDays;
         List<object> weeklyObs;
         if (spanDays <= 14)
         {
             // Daily buckets
             var raw = await obsBase
-                .GroupBy(o => o.Session.CompletedAt!.Value.Date)
+                .GroupBy(o => o.Session.CompletedAt!.Value.AddMinutes(tzOffsetMinutes).Date)
                 .Select(g => new { BucketDate = g.Key, TotalObs = g.Sum(o => o.Count ?? 0) })
                 .OrderBy(x => x.BucketDate)
                 .ToListAsync(ct);
@@ -208,9 +220,9 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         }
         else if (spanDays <= 180)
         {
-            // Weekly buckets — group by week-of-year
+            // Weekly buckets — group by local week-of-year
             var raw = await obsBase
-                .GroupBy(o => o.Session.CompletedAt!.Value.DayOfYear / 7)
+                .GroupBy(o => o.Session.CompletedAt!.Value.AddMinutes(tzOffsetMinutes).DayOfYear / 7)
                 .Select(g => new { WeekIndex = g.Key, TotalObs = g.Sum(o => o.Count ?? 0), WeekStart = g.Min(o => o.Session.CompletedAt) })
                 .OrderBy(x => x.WeekIndex)
                 .ToListAsync(ct);
@@ -220,7 +232,7 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         {
             // Monthly buckets
             var raw = await obsBase
-                .GroupBy(o => new { o.Session.CompletedAt!.Value.Year, o.Session.CompletedAt!.Value.Month })
+                .GroupBy(o => new { o.Session.CompletedAt!.Value.AddMinutes(tzOffsetMinutes).Year, o.Session.CompletedAt!.Value.AddMinutes(tzOffsetMinutes).Month })
                 .Select(g => new { g.Key.Year, g.Key.Month, TotalObs = g.Sum(o => o.Count ?? 0) })
                 .OrderBy(x => x.Year).ThenBy(x => x.Month)
                 .ToListAsync(ct);
@@ -262,7 +274,8 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         [FromQuery] string? scoutId,
         CancellationToken ct = default)
     {
-        var (start, end) = ResolveRange(dateRange, from, to);
+        var tz = await tzService.GetUserTimeZoneAsync(ct);
+        var (start, end) = ResolveRange(dateRange, from, to, tz);
 
         var obsQ = db.SessionObservations
             .Where(o => !o.IsUnknownPest
@@ -299,13 +312,13 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
             .OrderByDescending(x => x.BreachCount)
             .ToList();
 
-        var eightWeeksAgo = DateTime.Now.AddDays(-56);
+        var eightWeeksAgo = DateTime.UtcNow.AddDays(-56);
         var weeklyTrend = await db.SessionObservations
             .Where(o => !o.IsUnknownPest
                      && o.ThresholdCount != null
                      && o.Count > o.ThresholdCount
                      && o.Session.CompletedAt >= eightWeeksAgo)
-            .GroupBy(o => o.Session.CompletedAt!.Value.DayOfYear / 7)
+            .GroupBy(o => o.Session.CompletedAt!.Value.AddMinutes((int)tz.GetUtcOffset(DateTime.UtcNow).TotalMinutes).DayOfYear / 7)
             .Select(g => new
             {
                 WeekIndex = g.Key,
@@ -330,7 +343,8 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         [FromQuery] string? scoutId,
         CancellationToken ct = default)
     {
-        var (start, end) = ResolveRange(dateRange, from, to);
+        var tz = await tzService.GetUserTimeZoneAsync(ct);
+        var (start, end) = ResolveRange(dateRange, from, to, tz);
 
         var obsQ = db.SessionObservations
             .Where(o => o.Session.CompletedAt >= start && o.Session.CompletedAt <= end);
@@ -408,8 +422,9 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         [FromQuery] string? scoutId,
         CancellationToken ct = default)
     {
-        var (start, end) = ResolveRange(dateRange, from, to);
-        var now = DateTime.Now;
+        var tz = await tzService.GetUserTimeZoneAsync(ct);
+        var (start, end) = ResolveRange(dateRange, from, to, tz);
+        var now = DateTime.UtcNow;
 
         var sessQ = db.ScoutingSessions
             .Where(ss => (ss.CompletedAt ?? ss.StartedAt ?? ss.ScheduledDate) >= start
@@ -471,11 +486,7 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         var eightWeeksAgo = now.AddDays(-56);
         var weeklyStacked = sessions
             .Where(s => (s.CompletedAt ?? s.StartedAt ?? s.ScheduledDate) >= eightWeeksAgo)
-            .GroupBy(s =>
-            {
-                var d = (s.CompletedAt ?? s.StartedAt ?? s.ScheduledDate)!.Value;
-                return new DateTime(d.Year, d.Month, d.Day).AddDays(-(int)d.DayOfWeek);
-            })
+            .GroupBy(s => ToLocalWeekStart((s.CompletedAt ?? s.StartedAt ?? s.ScheduledDate)!.Value, tz))
             .Select(g => new
             {
                 WeekStart = g.Key,
@@ -518,7 +529,8 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         [FromQuery] string? scoutId,
         CancellationToken ct = default)
     {
-        var (start, end) = ResolveRange(dateRange, from, to);
+        var tz = await tzService.GetUserTimeZoneAsync(ct);
+        var (start, end) = ResolveRange(dateRange, from, to, tz);
 
         var obsQ = db.SessionObservations
             .Where(o => !o.IsUnknownPest
@@ -587,7 +599,8 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         [FromQuery] string? scoutId,
         CancellationToken ct = default)
     {
-        var (start, end) = ResolveRange(dateRange, from, to);
+        var tz = await tzService.GetUserTimeZoneAsync(ct);
+        var (start, end) = ResolveRange(dateRange, from, to, tz);
 
         var trapsQ = db.Traps.AsQueryable();
         if (farmId.HasValue)  trapsQ = trapsQ.Where(t => t.Field != null && t.Field.FarmId == farmId);
@@ -642,7 +655,7 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
             .Select(g => new { TrapType = g.Key, TotalCatches = g.Sum(o => o.Count ?? 0) })
             .ToListAsync(ct);
 
-        var now = DateTime.Now;
+        var now = DateTime.UtcNow;
         var statMap = obsStats.ToDictionary(x => x.TrapId);
 
         var result = traps.Select(t =>
@@ -683,8 +696,9 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         [FromQuery] string? scoutId,
         CancellationToken ct = default)
     {
-        var (start, end) = ResolveRange(dateRange, from, to);
-        var now = DateTime.Now;
+        var tz = await tzService.GetUserTimeZoneAsync(ct);
+        var (start, end) = ResolveRange(dateRange, from, to, tz);
+        var now = DateTime.UtcNow;
 
         var sessQ = db.ScoutingSessions
             .Where(ss => (ss.CompletedAt ?? ss.StartedAt ?? ss.ScheduledDate) >= start
@@ -781,11 +795,7 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         var eightWeeksAgo = now.AddDays(-56);
         var weeklyActivity = sessions
             .Where(s => s.CompletedAt >= eightWeeksAgo && top5.Contains(s.ScouterName))
-            .GroupBy(s =>
-            {
-                var d = s.CompletedAt!.Value;
-                return (ScouterName: s.ScouterName, WeekStart: new DateTime(d.Year, d.Month, d.Day).AddDays(-(int)d.DayOfWeek));
-            })
+            .GroupBy(s => (ScouterName: s.ScouterName, WeekStart: ToLocalWeekStart(s.CompletedAt!.Value, tz)))
             .Select(g => new { g.Key.ScouterName, g.Key.WeekStart, CompletedCount = g.Count() })
             .OrderBy(x => x.WeekStart)
             .ToList();
@@ -803,7 +813,8 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         CancellationToken ct = default)
     {
         // Always last 18 months
-        var cutoff = DateTime.Now.AddMonths(-18);
+        var tz = await tzService.GetUserTimeZoneAsync(ct);
+        var cutoff = DateTime.UtcNow.AddMonths(-18);
 
         var sessQ = db.ScoutingSessions
             .Where(ss => ss.CompletedAt >= cutoff);
@@ -826,7 +837,11 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
             .ToListAsync(ct);
 
         var monthMap = sessions
-            .GroupBy(s => new DateTime(s.CompletedAt!.Value.Year, s.CompletedAt.Value.Month, 1))
+            .GroupBy(s =>
+            {
+                var local = ToLocalDate(s.CompletedAt!.Value, tz);
+                return new DateTime(local.Year, local.Month, 1);
+            })
             .Select(g =>
             {
                 var temps     = g.Where(s => s.TemperatureCelsius.HasValue).Select(s => s.TemperatureCelsius!.Value).ToList();
@@ -866,7 +881,8 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         [FromQuery] string? scoutId,
         CancellationToken ct = default)
     {
-        var (start, end) = ResolveRange(dateRange, from, to);
+        var tz = await tzService.GetUserTimeZoneAsync(ct);
+        var (start, end) = ResolveRange(dateRange, from, to, tz);
 
         var obsQ = db.SessionObservations
             .Where(o => o.IsUnknownPest
@@ -921,14 +937,10 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
             IsPriority = (i.Count ?? 0) >= 5 || i.HasPhotos,
         });
 
-        var eightWeeksAgo = DateTime.Now.AddDays(-56);
+        var eightWeeksAgo = DateTime.UtcNow.AddDays(-56);
         var weeklyTrend = items
             .Where(i => i.CompletedAt >= eightWeeksAgo)
-            .GroupBy(i =>
-            {
-                var d = i.CompletedAt!.Value;
-                return new DateTime(d.Year, d.Month, d.Day).AddDays(-(int)d.DayOfWeek);
-            })
+            .GroupBy(i => ToLocalWeekStart(i.CompletedAt!.Value, tz))
             .Select(g => new { WeekStart = g.Key, UnknownCount = g.Count() })
             .OrderBy(x => x.WeekStart)
             .ToList();
@@ -945,8 +957,11 @@ public sealed class AnalyticsController(ApplicationDbContext db) : ControllerBas
         [FromQuery] string? scoutId,
         CancellationToken ct = default)
     {
-        var now        = DateTime.Now;
-        var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0);
+        var tz         = await tzService.GetUserTimeZoneAsync(ct);
+        var now        = DateTime.UtcNow;
+        var nowLocal   = TimeZoneInfo.ConvertTimeFromUtc(now, tz);
+        // "This month" = the user's local calendar month, as a UTC boundary instant.
+        var monthStart = LocalToUtc(new DateTime(nowLocal.Year, nowLocal.Month, 1, 0, 0, 0), tz);
         const int TargetPerMonth = 4;
 
         var fieldsQ = db.Fields.AsQueryable();

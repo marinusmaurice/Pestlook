@@ -16,7 +16,7 @@ export function renderThresholdAlerts(el, data, lookups) {
   const farmsAffected  = new Set(breaches.map(b => b.farmName).filter(Boolean)).size;
 
   const weekLabels = weeklyTrend.map(w =>
-    new Date(w.weekStart).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
+    new Date(w.weekStart).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }));
   const weekCounts = weeklyTrend.map(w => w.breaches);
 
   const offenderHtml = repeatOffenders.length ? `

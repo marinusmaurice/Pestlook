@@ -41,6 +41,47 @@ export function shortName(firstName, lastName) {
   return `${firstName} ${l ? l + '.' : ''}`.trim();
 }
 
+/**
+ * The local calendar date of a Date as "yyyy-MM-dd" — for <input type="date">
+ * defaults and from/to query params. Never use toISOString().slice(0,10) for
+ * this: it converts to UTC first, which yields the wrong date near midnight.
+ */
+export function toLocalDateString(d = new Date()) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * A UTC ISO datetime as a value for <input type="datetime-local"> — i.e. the
+ * user's local wall-clock "yyyy-MM-ddTHH:mm". Counterpart of toUtcIso().
+ */
+export function toDateTimeLocalValue(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return `${toLocalDateString(d)}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+/**
+ * A <input type="datetime-local"> value (local wall-clock time) as UTC ISO
+ * 8601 with Z, ready to POST/PUT. Never send local time to the API.
+ */
+export function toUtcIso(dateTimeLocalValue) {
+  if (!dateTimeLocalValue) return null;
+  return new Date(dateTimeLocalValue).toISOString();
+}
+
+/**
+ * Format a calendar-date bucket label (e.g. analytics weekStart/monthStart).
+ * Bucket dates from the API are calendar dates serialized at midnight UTC —
+ * format them with timeZone:'UTC' so the label never shifts a day.
+ */
+export function formatBucketDate(iso, opts = { day: 'numeric', month: 'short' }) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('en-GB', { ...opts, timeZone: 'UTC' });
+}
+
 export function formatDate(iso) {
   if (!iso) return '—';
   const d = new Date(iso);

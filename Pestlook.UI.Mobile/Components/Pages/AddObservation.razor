@@ -312,7 +312,7 @@
             ThresholdCount = captureMode == 0 ? thresholdCount : null,
             IsPlanned = false,
             IsDirty = true,
-            ObservedAt = DateTime.Now
+            ObservedAt = DateTime.UtcNow
         };
         await Db.SaveObservationAsync(localObs);
 

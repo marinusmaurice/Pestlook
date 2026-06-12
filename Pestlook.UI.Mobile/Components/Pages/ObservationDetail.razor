@@ -375,7 +375,8 @@
 
     private static string TimeAgo(DateTime dt)
     {
-        var span = DateTime.Now - dt;
+        // dt is stored in UTC
+        var span = DateTime.UtcNow - dt;
         if (span.TotalMinutes < 1) return "Just now";
         if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes}m ago";
         if (span.TotalHours < 24) return $"{(int)span.TotalHours}h ago";
@@ -410,7 +411,7 @@
         obs.TrapName = string.IsNullOrEmpty(editTrapId) ? null : traps.FirstOrDefault(t => t.Id == editTrapId)?.Name;
         obs.CapturedLat = editGpsLat;
         obs.CapturedLng = editGpsLng;
-        obs.ObservedAt ??= DateTime.Now;
+        obs.ObservedAt ??= DateTime.UtcNow;
         obs.IsDirty = true;
         await Db.SaveObservationAsync(obs);
 

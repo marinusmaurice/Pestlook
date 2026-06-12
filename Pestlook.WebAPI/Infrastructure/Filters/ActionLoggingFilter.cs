@@ -13,7 +13,7 @@ public sealed class ActionLoggingFilter : IAsyncActionFilter
         var action     = context.RouteData.Values["action"];
         var path       = context.HttpContext.Request.Path;
 
-        Write(ConsoleColor.DarkBlue, $"[{DateTime.Now:HH:mm:ss}] → {method} {controller}/{action}  {path}");
+        Write(ConsoleColor.DarkBlue, $"[{DateTime.UtcNow:HH:mm:ss}] → {method} {controller}/{action}  {path}");
 
         var executed = await next();
 
@@ -22,7 +22,7 @@ public sealed class ActionLoggingFilter : IAsyncActionFilter
                    : status >= 400                                    ? ConsoleColor.Yellow
                    :                                                    ConsoleColor.Cyan;
 
-        Write(color, $"[{DateTime.Now:HH:mm:ss}] ← {method} {controller}/{action}  {status}");
+        Write(color, $"[{DateTime.UtcNow:HH:mm:ss}] ← {method} {controller}/{action}  {status}");
     }
 
     private static void Write(ConsoleColor color, string message)

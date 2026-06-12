@@ -34,8 +34,8 @@ public sealed class AuthControllerTests(TestWebApplicationFactory factory)
         body.Data.Should().NotBeNull();
         body.Data!.AccessToken.Should().NotBeNullOrEmpty();
         body.Data.RefreshToken.Should().NotBeNullOrEmpty();
-        body.Data.AccessTokenExpiry.Should().BeAfter(DateTime.Now);
-        body.Data.RefreshTokenExpiry.Should().BeAfter(DateTime.Now);
+        body.Data.AccessTokenExpiry.Should().BeAfter(DateTime.UtcNow);
+        body.Data.RefreshTokenExpiry.Should().BeAfter(DateTime.UtcNow);
     }
 
     [Theory]
@@ -220,8 +220,7 @@ public sealed class AuthControllerTests(TestWebApplicationFactory factory)
 
         var signUpResp = await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/sign-up",
             new SignUpRequest(
-                TenantName: "Test Org",
-                TenantSlug: slug,
+                TenantName: $"Test Org {slug}",
                 SubscriptionPlan: SubscriptionPlan.Free,
                 Email: email,
                 Password: "P@ssw0rd1!",

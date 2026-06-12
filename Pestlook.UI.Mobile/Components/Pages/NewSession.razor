@@ -195,7 +195,7 @@
             FieldName = string.IsNullOrEmpty(selectedFieldId) ? null : SelectedFieldName,
             ScouterId = Api.CurrentUser?.Id,
             TenantId = Api.CurrentUser?.TenantId.ToString(),
-            StartedAt = DateTime.Now,
+            StartedAt = DateTime.UtcNow,
             Status = 0, // Active
             WeatherCondition = weather,
             Temperature = tempCelsius,

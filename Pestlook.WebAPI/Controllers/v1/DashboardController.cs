@@ -90,7 +90,7 @@ public sealed class DashboardController(ApplicationDbContext db, ITenantContext 
             .Select(t => new DashboardTrap(t.Id, t.Name, t.IsEnabled, t.Latitude, t.Longitude))
             .ToListAsync(ct);
 
-        var threeMonthsAgo = DateTime.Now.AddMonths(-3);
+        var threeMonthsAgo = DateTime.UtcNow.AddMonths(-3);
 
         var topPests = await db.SessionObservations
             .Where(o => !o.IsUnknownPest

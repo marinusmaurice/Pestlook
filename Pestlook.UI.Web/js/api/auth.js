@@ -43,3 +43,13 @@ export function registerUser(request) {
 export function updatePreferences(request) {
   return patch('/auth/me/preferences', request);
 }
+
+/** Save the user's IANA timezone (e.g. "Africa/Johannesburg"). Used server-side only for day-grouped analytics. */
+export function updateTimezone(timezone) {
+  return patch('/users/timezone', { timezone });
+}
+
+/** The browser's IANA timezone, e.g. "Africa/Johannesburg". */
+export function detectBrowserTimezone() {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
+}

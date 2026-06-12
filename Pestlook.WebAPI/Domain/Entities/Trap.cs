@@ -23,8 +23,8 @@ public sealed class Trap : IHasTenant, IAuditableByUser
     public bool IsEnabled { get; set; } = true;
     public string? Notes { get; set; }
 
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
-    public DateTime UpdatedAt { get; set; } = DateTime.Now;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? DeletedAt { get; set; }
 
     public string? CreatedByUserId { get; set; }

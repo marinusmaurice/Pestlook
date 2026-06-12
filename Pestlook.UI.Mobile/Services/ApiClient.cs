@@ -17,7 +17,9 @@ public class ApiClient
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
         PropertyNameCaseInsensitive = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        // All DateTime values cross the wire as UTC ISO 8601 with a trailing Z
+        Converters = { new UtcDateTimeJsonConverter() }
     };
 
     // IMPORTANT: trailing slash is required for HttpClient relative URI resolution
@@ -347,7 +349,7 @@ public class ApiClient
 
     private async Task EnsureTokenAsync()
     {
-        if (_tokenExpiry > DateTime.Now.AddMinutes(1) || string.IsNullOrEmpty(_refreshToken))
+        if (_tokenExpiry > DateTime.UtcNow.AddMinutes(1) || string.IsNullOrEmpty(_refreshToken))
             return;
         try
         {

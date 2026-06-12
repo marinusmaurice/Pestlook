@@ -1,7 +1,7 @@
-﻿import { getFarms }  from '../api/farms.js';
+import { getFarms }  from '../api/farms.js';
 import { getFields } from '../api/fields.js';
 import { showToast } from '../components/toast.js';
-import { escapeHtml } from '../utils/helpers.js';
+import { escapeHtml, toLocalDateString } from '../utils/helpers.js';
 import { emptyState } from './reports/utils.js';
 
 import {
@@ -69,7 +69,7 @@ export async function renderPredictive(container) {
   const today    = new Date();
   const sixMoAgo = new Date(today);
   sixMoAgo.setDate(sixMoAgo.getDate() - 180);
-  const fmt = d => d.toISOString().slice(0, 10);
+  const fmt = d => toLocalDateString(d);
 
   pFilters.from    = fmt(sixMoAgo);
   pFilters.to      = fmt(today);

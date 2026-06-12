@@ -194,7 +194,7 @@ public class SyncService
                 WeatherCondition = !string.IsNullOrEmpty(detail.WeatherConditions) ? detail.WeatherConditions : existing?.WeatherCondition,
                 Temperature      = detail.TemperatureCelsius.HasValue ? (int)detail.TemperatureCelsius.Value : (existing?.Temperature ?? 0),
                 Notes            = detail.Notes ?? existing?.Notes,
-                StartedAt        = detail.StartedAt ?? existing?.StartedAt ?? DateTime.Now,
+                StartedAt        = detail.StartedAt ?? existing?.StartedAt ?? DateTime.UtcNow,
                 CompletedAt      = isLocallyCompleted ? existing!.CompletedAt : detail.CompletedAt,
                 SyncedAt         = existing?.SyncedAt
             });
@@ -328,7 +328,7 @@ public class SyncService
                 session.Notes,
                 session.StartedAt != default ? session.StartedAt : null);
             session.Status   = SessionStatus.Synced;
-            session.SyncedAt = DateTime.Now;
+            session.SyncedAt = DateTime.UtcNow;
             await _db.SaveSessionAsync(session);
         }
     }
@@ -378,7 +378,7 @@ public class SyncService
                     session.Notes,
                     session.StartedAt != default ? session.StartedAt : null);
                 session.Status   = SessionStatus.Synced;
-                session.SyncedAt = DateTime.Now;
+                session.SyncedAt = DateTime.UtcNow;
                 await _db.SaveSessionAsync(session);
             }
         }
@@ -449,7 +449,7 @@ public class SyncService
                     {
                         var photo = unuploaded[i];
                         photo.RemoteUrl    = i < newUrls.Count ? newUrls[i] : res.Data.LastOrDefault();
-                        photo.UploadedAt   = DateTime.Now;
+                        photo.UploadedAt   = DateTime.UtcNow;
                         await _db.SavePhotoAsync(photo);
                     }
                 }

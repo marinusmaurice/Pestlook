@@ -15,5 +15,12 @@ public sealed class ApplicationUser : IdentityUser, IHasTenant
     /// <summary>Display unit for temperatures: "C" (Celsius) or "F" (Fahrenheit). Values are always stored in Celsius.</summary>
     public string TemperatureUnit { get; set; } = "C";
 
+    /// <summary>
+    /// IANA timezone id (e.g. "Africa/Johannesburg"). Used ONLY for server-side
+    /// analytics that group by day/week; storage stays UTC. Null until the
+    /// frontend detects and saves the browser timezone on first login.
+    /// </summary>
+    public string? Timezone { get; set; }
+
     public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
 }

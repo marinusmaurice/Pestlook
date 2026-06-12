@@ -14,7 +14,7 @@ export function renderUnknownPests(el, data, lookups) {
   const priority = items.filter(i => i.isPriority);
 
   const weekLabels = weeklyTrend.map(w =>
-    new Date(w.weekStart).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
+    new Date(w.weekStart).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }));
   const weekCounts = weeklyTrend.map(w => w.unknownCount);
 
   const priorityHtml = priority.length ? `

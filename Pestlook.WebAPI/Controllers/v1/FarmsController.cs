@@ -98,7 +98,7 @@ public sealed class FarmsController(
             if (centroid.HasValue) { farm.Longitude = centroid.Value.Lon; farm.Latitude = centroid.Value.Lat; }
         }
 
-        farm.UpdatedAt = DateTime.Now;
+        farm.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
 
         return Ok(ApiResponse<FarmResponse>.Ok(mapper.Map<FarmResponse>(farm)));
@@ -182,7 +182,7 @@ public sealed class FarmsController(
 
         if (farm is null) return NotFound(ApiResponse<object>.Fail("Farm not found."));
 
-        var now = DateTime.Now;
+        var now = DateTime.UtcNow;
         var fieldIds = farm.Fields.Select(f => f.Id).ToList();
 
         foreach (var field in farm.Fields)

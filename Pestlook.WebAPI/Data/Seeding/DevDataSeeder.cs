@@ -31,7 +31,7 @@ public static class DevDataSeeder
             IsActive             = true,
             SubscriptionPlan     = SubscriptionPlan.Free,
             MonitoringPointQuota = 10000,
-            CreatedAt            = DateTime.Now
+            CreatedAt            = DateTime.UtcNow
         };
         db.Tenants.Add(tenant);
         await db.SaveChangesAsync();
@@ -160,7 +160,7 @@ public static class DevDataSeeder
     // ─────────────────────────────────────────────────────────────────────────
     private static List<Pest> BuildPests(Guid tenantId, string userId)
     {
-        var now = DateTime.Now;
+        var now = DateTime.UtcNow;
 
         var data = new (string Common, string? Scientific, PestCategory Cat, CaptureMode Mode, int? Threshold)[]
         {
@@ -265,7 +265,7 @@ public static class DevDataSeeder
     private static (List<Farm> Farms, Dictionary<Guid, GeoRect> Regions) BuildFarms(
         Guid tenantId, string userId, Random rng)
     {
-        var now     = DateTime.Now;
+        var now     = DateTime.UtcNow;
         var farms   = new List<Farm>();
         var regions = new Dictionary<Guid, GeoRect>();
 
@@ -346,7 +346,7 @@ public static class DevDataSeeder
         Guid tenantId, string userId,
         List<Farm> farms, Dictionary<Guid, GeoRect> farmRegions, Random rng)
     {
-        var now     = DateTime.Now;
+        var now     = DateTime.UtcNow;
         var fields  = new List<Field>();
         var regions = new Dictionary<Guid, GeoRect>();
 
@@ -429,7 +429,7 @@ public static class DevDataSeeder
         Guid tenantId, string userId,
         List<Field> fields, Dictionary<Guid, GeoRect> fieldRegions, Random rng)
     {
-        var now     = DateTime.Now;
+        var now     = DateTime.UtcNow;
         var list    = new List<Trap>();
         int counter = 1;
 
@@ -484,7 +484,7 @@ public static class DevDataSeeder
     {
         var list       = new List<ScoutingSession>(farms.Count * SessionsPerFarm);
         var conditions = new[] { "Sunny", "Partly Cloudy", "Overcast", "Light Rain", "Windy" };
-        var baseDate   = DateTime.Now.AddYears(-2);
+        var baseDate   = DateTime.UtcNow.AddYears(-2);
         const int spanDays = 730;
 
         foreach (var farm in farms)

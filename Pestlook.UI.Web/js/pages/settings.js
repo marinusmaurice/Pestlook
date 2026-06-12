@@ -1,6 +1,6 @@
 import { getTrapTypes, createTrapType, updateTrapType, deleteTrapType } from '../api/trap-types.js';
 import { getUsers, updateUser } from '../api/roles.js';
-import { registerUser, updatePreferences } from '../api/auth.js';
+import { registerUser, updatePreferences, updateTimezone, detectBrowserTimezone } from '../api/auth.js';
 import { getUser, saveUser } from '../utils/storage.js';
 import { openModal, closeModal } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
@@ -78,11 +78,18 @@ function renderOrgInfo(container) {
 function renderPreferences(container) {
   const user = getUser();
   const currentUnit = user?.temperatureUnit || 'C';
+  const currentTz = user?.timezone || '';
+  const browserTz = detectBrowserTimezone();
   const prefsBox = container.querySelector('#settings-prefs');
+
+  const timezones = Intl.supportedValuesOf('timeZone');
+  const tzOptions = timezones
+    .map(tz => `<option value="${tz}" ${tz === currentTz ? 'selected' : ''}>${tz.replace(/_/g, ' ')}</option>`)
+    .join('');
 
   prefsBox.innerHTML = `
     <div class="section-title" style="margin-bottom:16px;">Preferences</div>
-    <div>
+    <div style="margin-bottom:18px;">
       <div class="input-label">Temperature Unit</div>
       <div style="display:flex;gap:8px;margin-top:8px;" id="temp-unit-toggle">
         <button class="btn-outline temp-unit-btn ${currentUnit === 'C' ? 'active' : ''}" data-unit="C" style="flex:1;justify-content:center;padding:10px;font-size:0.85rem;">
@@ -96,7 +103,35 @@ function renderPreferences(container) {
         Temperatures are always stored in Celsius. This setting only affects how values are displayed.
       </div>
     </div>
+    <div>
+      <div class="input-label">Timezone</div>
+      <select class="input-field" id="tz-select" style="margin-top:8px;">
+        ${currentTz ? '' : '<option value="" selected disabled>Select your timezone…</option>'}
+        ${tzOptions}
+      </select>
+      <div style="font-size:0.7rem;color:var(--text-dim);margin-top:8px;">
+        Used for date-based reports like "sessions this week" and seasonal trends.
+        All data is stored in UTC — this never changes what is recorded.
+        ${currentTz !== browserTz ? `<br>Your browser reports <strong>${escapeHtml(browserTz)}</strong>.` : ''}
+      </div>
+    </div>
   `;
+
+  prefsBox.querySelector('#tz-select').addEventListener('change', async (e) => {
+    const tz = e.target.value;
+    if (!tz || tz === currentTz) return;
+    e.target.disabled = true;
+    try {
+      const res = await updateTimezone(tz);
+      saveUser({ ...getUser(), timezone: res.data.timezone });
+      showToast(`Timezone set to ${tz.replace(/_/g, ' ')}`);
+      renderPreferences(container);
+    } catch (err) {
+      showToast(err.message || 'Failed to update timezone', 'error');
+      e.target.value = currentTz;
+      e.target.disabled = false;
+    }
+  });
 
   prefsBox.querySelectorAll('.temp-unit-btn').forEach(btn => {
     btn.addEventListener('click', async () => {

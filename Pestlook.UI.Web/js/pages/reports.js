@@ -7,7 +7,7 @@ import { getTraps }  from '../api/traps.js';
 import { getFarms }  from '../api/farms.js';
 import { getFields } from '../api/fields.js';
 import { showToast } from '../components/toast.js';
-import { escapeHtml } from '../utils/helpers.js';
+import { escapeHtml, toLocalDateString } from '../utils/helpers.js';
 
 import {
   loadChartJs, destroyCharts, filters, emptyState,
@@ -81,7 +81,7 @@ export async function renderReports(container) {
   const _today    = new Date();
   const _90dAgo   = new Date(_today);
   _90dAgo.setDate(_90dAgo.getDate() - 90);
-  const _fmt = d => d.toISOString().slice(0, 10);
+  const _fmt = d => toLocalDateString(d);
 
   filters.from    = _fmt(_90dAgo);
   filters.to      = _fmt(_today);
@@ -189,7 +189,7 @@ export async function renderReports(container) {
       const _t  = new Date();
       const _f  = new Date(_t);
       _f.setDate(_f.getDate() - 90);
-      const _fmt2 = d => d.toISOString().slice(0, 10);
+      const _fmt2 = d => toLocalDateString(d);
       filters.from = _fmt2(_f); filters.to = _fmt2(_t);
       filters.farmId = ''; filters.fieldId = ''; filters.scoutId = '';
       document.getElementById('rpt-from').value = filters.from;

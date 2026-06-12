@@ -75,7 +75,7 @@ public sealed class TrapTypesController(
 
         trapType.Name = request.Name;
         trapType.Description = request.Description;
-        trapType.UpdatedAt = DateTime.Now;
+        trapType.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
 
         return Ok(ApiResponse<TrapTypeResponse>.Ok(mapper.Map<TrapTypeResponse>(trapType)));
@@ -92,7 +92,7 @@ public sealed class TrapTypesController(
         if (trapType.TenantId is null)
             return BadRequest(ApiResponse<object>.Fail("System trap types cannot be deleted."));
 
-        trapType.DeletedAt = DateTime.Now;
+        trapType.DeletedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
         return NoContent();
     }

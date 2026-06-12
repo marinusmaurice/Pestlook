@@ -191,7 +191,7 @@ public sealed class TrapsController(
         trap.Longitude = request.Longitude;
         trap.IsEnabled = request.IsEnabled;
         trap.Notes = request.Notes;
-        trap.UpdatedAt = DateTime.Now;
+        trap.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
 
         var updated = await db.Traps
@@ -212,7 +212,7 @@ public sealed class TrapsController(
         if (trap is null) return NotFound(ApiResponse<object>.Fail("Trap not found."));
 
         trap.IsEnabled = !trap.IsEnabled;
-        trap.UpdatedAt = DateTime.Now;
+        trap.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
 
         return Ok(ApiResponse<TrapResponse>.Ok(mapper.Map<TrapResponse>(trap),
@@ -227,7 +227,7 @@ public sealed class TrapsController(
         var trap = await db.Traps.FirstOrDefaultAsync(t => t.Id == id, ct);
         if (trap is null) return NotFound(ApiResponse<object>.Fail("Trap not found."));
 
-        trap.DeletedAt = DateTime.Now;
+        trap.DeletedAt = DateTime.UtcNow;
         trap.IsEnabled = false;
         await db.SaveChangesAsync(ct);
         return NoContent();
