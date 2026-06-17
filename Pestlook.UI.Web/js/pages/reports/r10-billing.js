@@ -12,6 +12,7 @@ export function renderBilling(el, data, lookups) {
   const latest      = sorted[0];
   const prev        = sorted[1];
 
+  const unlimitedBeta = true;
   const quota      = latest ? Math.ceil(latest.activePointCount * 1.5) : 200;
   const quotaPct   = quota > 0 ? Math.min(100, Math.round((activeTraps / quota) * 100)) : 0;
   const quotaColor = quotaPct >= 90 ? C.red : quotaPct >= 70 ? C.amber : C.green;
@@ -52,12 +53,12 @@ export function renderBilling(el, data, lookups) {
         `Total amount billed for all invoices in ${thisYear} so far. YoY compares against the same invoices from ${thisYear - 1}.`),
       kpiCard('Latest Invoice', latest ? fmtAmount(latest.amountCents) : '—', `${fmtMonth(latest?.billingMonth)} · vs prev: ${momHtml}`, '',
         'The most recent billing snapshot amount. MoM compares it against the previous month\'s invoice.'),
-      kpiCard('Monitoring Quota', quota, 'Max active monitoring points', '',
-        'The maximum number of active trap/monitoring points permitted under your current plan. Estimated as 1.5× last month\'s active point count.'),
-      kpiCard('Active / Quota', `${activeTraps} / ${quota}`, `${quotaPct}% utilised`, quotaColor,
-        `You currently have ${activeTraps} enabled traps out of a quota of ${quota}. At 90%+ you are approaching the plan limit.`),
+      kpiCard('Monitoring Quota', unlimitedBeta ? 'Unlimited' : quota, unlimitedBeta ? 'While in beta' : 'Max active monitoring points', '',
+        unlimitedBeta ? 'No quota limit applies during the beta period.' : 'The maximum number of active trap/monitoring points permitted under your current plan. Estimated as 1.5× last month\'s active point count.'),
+      kpiCard('Active Points', `${activeTraps}`, unlimitedBeta ? 'No quota limit while in beta' : `${quotaPct}% of ${quota} utilised`, unlimitedBeta ? C.green : quotaColor,
+        unlimitedBeta ? `You currently have ${activeTraps} enabled traps. No quota limit applies during the beta period.` : `You currently have ${activeTraps} enabled traps out of a quota of ${quota}. At 90%+ you are approaching the plan limit.`),
     ])}
-    <div class="card card-p card-static" style="margin-bottom:16px;">
+    ${!unlimitedBeta ? `<div class="card card-p card-static" style="margin-bottom:16px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
         <div class="section-title">Monitoring point utilisation</div>
         <span style="font-size:0.8rem;color:var(--text-dim);">${activeTraps} of ${quota} points</span>
@@ -70,7 +71,7 @@ export function renderBilling(el, data, lookups) {
           : quotaPct >= 70 ? 'Quota at moderate utilisation'
           : 'Quota well within limits'}
       </div>
-    </div>
+    </div>` : ''}
     ${chartCard('Monthly billing amounts (last 12 months)', 'c-billing', 200, 'Green = paid · Blue = pending')}
     ${tableCard(
       ['Month', 'Active Points', 'Amount', 'vs Prev Month', 'Status'],
