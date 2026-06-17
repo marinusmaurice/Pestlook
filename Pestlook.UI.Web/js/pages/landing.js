@@ -332,7 +332,7 @@ function _getLandingHTML() {
       <div id="pricingView" class="view">
         <div style="text-align:center;margin:40px 0 20px;">
           <h1 style="font-size:2.5rem;">PestLook is free</h1>
-          <p style="font-size:1.2rem;color:var(--text-muted);">One plan, no payment, full platform &mdash; every report, every intelligence feature, every tool. 10,000 observations per month, on us.</p>
+          <p style="font-size:1.2rem;color:var(--text-muted);">One plan, no payment, full platform &mdash; every report, every intelligence feature, every tool. Unlimited observations (while in beta), on us.</p>
         </div>
         <div class="pricing-grid" style="max-width:480px;margin:0 auto;">
           <div class="pricing-card popular">
@@ -340,8 +340,7 @@ function _getLandingHTML() {
             <div class="price">$0<span style="font-size:1rem;"> /month</span></div>
             <p style="color:var(--text-muted);margin-bottom:8px;">For every farmer, scout and agronomist</p>
             <div style="background:var(--primary-light);border-radius:12px;padding:12px 16px;margin:16px 0;text-align:center;">
-              <strong style="font-size:1.4rem;color:var(--primary);">10,000 observations</strong><br>
-              <span style="font-size:0.85rem;color:var(--text-muted);">per month</span>
+              <strong style="font-size:1.4rem;color:var(--primary);">Unlimited observations (while in beta)</strong>
             </div>
             <ul class="feature-list">
               <li><i class="fas fa-check"></i> Full analytics &amp; intelligence suite</li>
@@ -403,7 +402,7 @@ function _getLandingHTML() {
             <div class="price">Custom</div>
             <p style="color:var(--text-muted);margin-bottom:8px;">For large estates, co-ops &amp; advisory firms</p>
             <div style="background:var(--primary-light);border-radius:12px;padding:12px 16px;margin:16px 0;text-align:center;">
-              <strong style="font-size:1.4rem;color:var(--primary);">Unlimited observations</strong><br>
+              <strong style="font-size:1.4rem;color:var(--primary);">Unlimited observations (while in beta)</strong><br>
               <span style="font-size:0.85rem;color:var(--text-muted);">tailored to your volume</span>
             </div>
             <ul class="feature-list">

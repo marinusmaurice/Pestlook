@@ -27,7 +27,7 @@ export function renderSignUp(container) {
             <div class="form-group">
               <label class="input-label">Subscription Plan</label>
               <select class="input-field" id="subPlan">
-                <option value="0" selected>Free &mdash; 10,000 observations / month</option>
+                <option value="0" selected>Free &mdash; Unlimited observations (while in beta)</option>
                 <!-- Paid plans disabled:
                 <option value="0">Basic</option>
                 <option value="1">Professional</option>
