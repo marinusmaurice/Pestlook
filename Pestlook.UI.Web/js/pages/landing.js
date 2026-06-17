@@ -338,9 +338,9 @@ function _getLandingHTML() {
           <p>Everything you need to know before you start.</p>
 
           <details class="faq-item">
-            <summary>Does PestLook work on iPhone / iOS?</summary>
+            <summary>Does PestLook work on a Mac or iPhone?</summary>
             <div class="faq-answer">
-              The web dashboard works in any browser including Safari on iPhone — you can view reports, manage farms, and review observations from iOS without installing anything. The offline-first mobile app is currently Android only. iOS users can still use PestLook via the browser; native iOS support is on the roadmap.
+              Yes — the full PestLook web application works on any Mac in any browser (Chrome, Safari, Firefox, Edge). There is currently no native iOS mobile app; the offline-first mobile app is Android only. iPad users can access the web dashboard through Safari, but for in-field offline logging and barcode scanning you'll need an Android device.
             </div>
           </details>
 
