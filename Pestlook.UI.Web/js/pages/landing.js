@@ -138,6 +138,18 @@ const LANDING_CSS = `
   .auth-toggle { text-align: center; margin-top: 16px; color: var(--primary); cursor: pointer; font-weight: 500; }
   .error-msg { color: var(--danger); font-size: 0.85rem; margin-top: 8px; }
 
+  /* faq */
+  .faq-section { margin: 64px 0; }
+  .faq-section h2 { font-size: 2rem; text-align: center; margin-bottom: 8px; }
+  .faq-section > p { text-align: center; color: var(--text-muted); margin-bottom: 32px; }
+  .faq-item { border: 1px solid var(--gray-border); border-radius: 14px; margin-bottom: 10px; background: white; overflow: hidden; }
+  .faq-item summary { padding: 18px 20px; font-weight: 600; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+  .faq-item summary::-webkit-details-marker { display: none; }
+  .faq-item summary::after { content: '+'; font-size: 1.4rem; color: var(--primary); transition: transform 0.2s; flex-shrink: 0; }
+  .faq-item[open] summary::after { transform: rotate(45deg); }
+  .faq-item[open] summary { color: var(--primary); }
+  .faq-answer { padding: 0 20px 18px; color: var(--text-muted); line-height: 1.7; }
+
   footer { border-top: 1px solid var(--gray-border); margin-top: 80px; padding: 32px 0; text-align: center; color: var(--text-muted); }
 
   @media (max-width: 768px) {
@@ -318,6 +330,61 @@ function _getLandingHTML() {
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- FAQ -->
+        <div class="faq-section">
+          <h2>Frequently asked questions</h2>
+          <p>Everything you need to know before you start.</p>
+
+          <details class="faq-item">
+            <summary>Does PestLook work on iPhone / iOS?</summary>
+            <div class="faq-answer">
+              The web dashboard works in any browser including Safari on iPhone — you can view reports, manage farms, and review observations from iOS without installing anything. The offline-first mobile app is currently Android only. iOS users can still use PestLook via the browser; native iOS support is on the roadmap.
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>What happens when the beta ends? Will it cost money?</summary>
+            <div class="faq-answer">
+              We haven't locked in post-beta pricing yet. What we can promise: every current user will receive advance notice before any paid tier is introduced, and we won't flip a switch on you without warning. The goal is to keep a meaningful free tier permanently — the platform is designed to be accessible to individual farmers, not just large agri-businesses.
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>How does offline sync actually work?</summary>
+            <div class="faq-answer">
+              When you open the Android app with a connection, it pulls down your farms, fields, pest library, trap locations, and any assigned scouting sessions and caches them locally on the device. From that point you can work entirely offline — log pest counts, scan trap barcodes, attach photos, and record GPS coordinates. The moment the device detects connectivity again, everything queued locally is pushed to the server automatically in the background. No manual export, no waiting at the gate.
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>Is my farm data private? Who can see it?</summary>
+            <div class="faq-answer">
+              Each organisation is fully isolated — your farms, observations, photos, and reports are never visible to other tenants. We do not sell or share your data with third parties. Scouts within your organisation can only access what their role permits; admins control all permissions. Full details are in our <a href="/privacy.html">Privacy Policy</a>.
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>Can I have multiple scouts or users on one account?</summary>
+            <div class="faq-answer">
+              Yes. Admins can add as many scouts as needed to their organisation, assign them to scouting sessions, and manage their roles from the web dashboard. There is no per-seat charge — unlimited team members are included on every plan.
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>What crops and pests does it support?</summary>
+            <div class="faq-answer">
+              PestLook is entirely crop-agnostic. You define your own pest library (species, life stages, economic thresholds), your own trap types, and your own field names. It works for row crops, orchards, vegetables, viticulture, and anything else — for any pest, in any region of the world.
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>Do I need a smartphone in the field?</summary>
+            <div class="faq-answer">
+              For the best in-field experience, yes — the Android app is built for field work: offline logging, barcode/QR trap scanning, GPS tagging, and photo capture. If you only need the web dashboard (reports, session planning, analytics), any device with a browser works fine, including tablets and laptops.
+            </div>
+          </details>
         </div>
 
         <!-- FINAL CTA -->
@@ -523,6 +590,11 @@ function _getLandingHTML() {
         <p>&copy; 2026 PestLook &mdash; Complete pest scouting &amp; trap monitoring. Built for farmers, agronomists, and the field.</p>
         <p style="margin-top:8px;"><i class="fas fa-envelope"></i> admin@pestlook.com
           &nbsp;·&nbsp; <a href="/downloads/com.pestlook.ui.mobile-Signed.apk" download style="color:var(--primary);font-weight:600;"><i class="fab fa-android"></i> Android app (.apk)</a></p>
+        <p style="margin-top:12px;font-size:0.85rem;">
+          <a href="/privacy.html" style="color:var(--text-muted);">Privacy Policy</a>
+          &nbsp;·&nbsp;
+          <a href="/terms.html" style="color:var(--text-muted);">Terms of Service</a>
+        </p>
       </div>
     </footer>
   `;
