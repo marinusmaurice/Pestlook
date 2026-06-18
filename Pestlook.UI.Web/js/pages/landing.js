@@ -187,9 +187,9 @@ function _getLandingHTML() {
       <div id="homeView" class="view">
         <div class="hero">
           <div class="hero-content">
-            <div class="hero-badge"><i class="fas fa-seedling"></i> Built for the field, not the office</div>
+            <div class="hero-badge"><i class="fas fa-seedling"></i> Built for the field</div>
             <h1>One platform to <span style="color:var(--accent);">scout, trap, and protect</span> every hectare</h1>
-            <p>PestLook gives farmers and agronomists a complete system to manage farms, deploy traps, run scouting sessions, record pest observations with GPS and photos, and turn field data into actionable analytics reports &mdash; even offline.</p>
+            <p>PestLook gives farmers and agronomists a complete system to manage farms, deploy traps, run scouting sessions, record pest observations with GPS and photos, and turn field data into actionable analytics reports.</p>
             <div style="display:flex;gap:12px;flex-wrap:wrap;">
               <a href="#account" class="btn-primary" id="heroCtaBtn"><i class="fas fa-tractor"></i> Start free scouting</a>
               <a href="/downloads/com.pestlook.ui.mobile-Signed.apk" class="btn-outline" download><i class="fab fa-android" style="color:var(--primary);"></i> Download Android app</a>
