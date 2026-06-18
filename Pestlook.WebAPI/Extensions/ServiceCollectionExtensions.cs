@@ -1,6 +1,7 @@
 using System.Text;
 using System.Threading.RateLimiting;
 using Asp.Versioning;
+using Resend;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -154,6 +155,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserTimezoneService, UserTimezoneService>();
 
         services.Configure<EmailOptions>(config.GetSection(EmailOptions.SectionName));
+        services.AddHttpClient<ResendClient>();
+        services.Configure<ResendClientOptions>(o => o.ApiToken = config["Resend:ApiKey"]!);
+        services.AddTransient<IResend, ResendClient>();
 
         return services;
     }

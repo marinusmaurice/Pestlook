@@ -1,12 +1,13 @@
 using System.Net;
-using System.Net.Mail;
 using Microsoft.Extensions.Options;
 using Pestlook.WebAPI.Infrastructure.Services.Interfaces;
 using Pestlook.WebAPI.Options;
+using Resend;
 
 namespace Pestlook.WebAPI.Infrastructure.Services;
 
 public sealed class EmailService(
+    IResend resend,
     IOptions<EmailOptions> emailOptions,
     ILogger<EmailService> logger) : IEmailService
 {
@@ -14,59 +15,43 @@ public sealed class EmailService(
 
     public async Task SendActivationEmailAsync(string toEmail, string firstName, string activationUrl, CancellationToken ct = default)
     {
-        await SendAsync(toEmail, "Activate your PestLook account", BuildActivationHtml(firstName, activationUrl), ct);
+        var msg = new EmailMessage
+        {
+            From = $"{_opts.FromName} <{_opts.FromAddress}>",
+            To = { toEmail },
+            Subject = "Activate your PestLook account",
+            HtmlBody = BuildActivationHtml(firstName, activationUrl)
+        };
+        await resend.EmailSendAsync(msg, ct);
         logger.LogInformation("Activation email sent to {Email}", toEmail);
     }
 
     public async Task SendPasswordResetEmailAsync(string toEmail, string firstName, string resetUrl, CancellationToken ct = default)
     {
-        await SendAsync(toEmail, "Reset your PestLook password", BuildPasswordResetHtml(firstName, resetUrl), ct);
+        var msg = new EmailMessage
+        {
+            From = $"{_opts.FromName} <{_opts.FromAddress}>",
+            To = { toEmail },
+            Subject = "Reset your PestLook password",
+            HtmlBody = BuildPasswordResetHtml(firstName, resetUrl)
+        };
+        await resend.EmailSendAsync(msg, ct);
         logger.LogInformation("Password reset email sent to {Email}", toEmail);
     }
 
     public async Task SendFeedbackEmailAsync(string userEmail, string userName, string category, string subject, string message, CancellationToken ct = default)
     {
-        using var client = new SmtpClient(_opts.Host, _opts.Port)
+        // Resend requires From to be a verified domain address; ReplyTo routes replies back to the user.
+        var msg = new EmailMessage
         {
-            EnableSsl = _opts.EnableSsl,
-            Credentials = new NetworkCredential(_opts.Username, _opts.Password)
-        };
-
-        // From the submitting user and CC'd to them, so the admin can simply
-        // reply-all and the conversation includes the user.
-        using var mail = new MailMessage
-        {
-            From = new MailAddress(userEmail, userName),
+            From = $"{_opts.FromName} <{_opts.FromAddress}>",
+            To = { _opts.AdminAddress },
+            ReplyTo = $"{userName} <{userEmail}>",
             Subject = $"[PestLook Feedback] [{category}] {subject}",
-            Body = BuildFeedbackHtml(userEmail, userName, category, subject, message),
-            IsBodyHtml = true
+            HtmlBody = BuildFeedbackHtml(userEmail, userName, category, subject, message)
         };
-        mail.To.Add(_opts.AdminAddress);
-        mail.CC.Add(new MailAddress(userEmail, userName));
-        mail.ReplyToList.Add(new MailAddress(userEmail, userName));
-
-        await client.SendMailAsync(mail, ct);
+        await resend.EmailSendAsync(msg, ct);
         logger.LogInformation("Feedback email sent to {Admin} from {Email}", _opts.AdminAddress, userEmail);
-    }
-
-    private async Task SendAsync(string toEmail, string subject, string htmlBody, CancellationToken ct)
-    {
-        using var client = new SmtpClient(_opts.Host, _opts.Port)
-        {
-            EnableSsl = _opts.EnableSsl,
-            Credentials = new NetworkCredential(_opts.Username, _opts.Password)
-        };
-
-        using var message = new MailMessage
-        {
-            From = new MailAddress(_opts.FromAddress, _opts.FromName),
-            Subject = subject,
-            Body = htmlBody,
-            IsBodyHtml = true
-        };
-        message.To.Add(toEmail);
-
-        await client.SendMailAsync(message, ct);
     }
 
     private static string BuildFeedbackHtml(string userEmail, string userName, string category, string subject, string message) => $"""
