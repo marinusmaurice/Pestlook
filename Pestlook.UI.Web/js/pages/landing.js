@@ -150,6 +150,24 @@ const LANDING_CSS = `
   .faq-item[open] summary { color: var(--primary); }
   .faq-answer { padding: 0 20px 18px; color: var(--text-muted); line-height: 1.7; }
 
+  /* screenshots carousel */
+  .screenshots-section { margin: 64px 0; }
+  .carousel-wrap { position: relative; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.13); background: #1a2620; line-height: 0; }
+  .carousel-track { display: flex; transition: transform 0.45s cubic-bezier(.4,0,.2,1); will-change: transform; }
+  .carousel-slide { min-width: 100%; }
+  .carousel-slide img { width: 100%; height: auto; display: block; }
+  .carousel-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.92); border: none; width: 44px; height: 44px; border-radius: 50%; box-shadow: 0 4px 16px rgba(0,0,0,0.18); cursor: pointer; font-size: 1.5rem; line-height: 1; color: var(--primary-dark); z-index: 3; display: flex; align-items: center; justify-content: center; transition: 0.15s; }
+  .carousel-btn:hover { background: white; box-shadow: 0 6px 20px rgba(0,0,0,0.22); }
+  .carousel-prev { left: 14px; }
+  .carousel-next { right: 14px; }
+  .carousel-caption { text-align: center; margin-top: 14px; color: var(--text-muted); font-size: 0.95rem; font-weight: 500; min-height: 22px; }
+  .carousel-dots { display: flex; justify-content: center; gap: 7px; margin-top: 14px; }
+  .carousel-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gray-border); border: none; cursor: pointer; padding: 0; transition: all 0.25s; }
+  .carousel-dot.active { background: var(--primary); width: 24px; border-radius: 4px; }
+  .mobile-frames { display: flex; gap: 20px; justify-content: center; margin-top: 48px; flex-wrap: wrap; }
+  .mobile-frame { background: #1a2620; border-radius: 26px; padding: 9px; box-shadow: 0 12px 40px rgba(0,0,0,0.16); flex: 0 1 180px; }
+  .mobile-frame img { width: 100%; border-radius: 18px; display: block; }
+
   footer { border-top: 1px solid var(--gray-border); margin-top: 80px; padding: 32px 0; text-align: center; color: var(--text-muted); }
 
   @media (max-width: 768px) {
@@ -258,6 +276,38 @@ function _getLandingHTML() {
             <i class="fas fa-users-cog"></i>
             <h3>Multi-tenant team management</h3>
             <p>Each organisation is fully isolated. Admins manage scouts, assign roles, configure trap types, and review billing snapshots &mdash; all from the web dashboard.</p>
+          </div>
+        </div>
+
+        <!-- SCREENSHOTS -->
+        <div class="screenshots-section">
+          <div style="text-align:center;margin-bottom:32px;">
+            <h2 style="font-size:2rem;">See it in action</h2>
+            <p style="color:var(--text-muted);margin-top:8px;max-width:560px;margin-left:auto;margin-right:auto;">Real screens from the live platform — no mockups, no stock photos.</p>
+          </div>
+          <div class="carousel-wrap">
+            <div class="carousel-track" id="carouselTrack">
+              <div class="carousel-slide"><img src="/images/dashboard.png" alt="PestLook dashboard overview" loading="lazy"></div>
+              <div class="carousel-slide"><img src="/images/field.png" alt="Farm and field management" loading="lazy"></div>
+              <div class="carousel-slide"><img src="/images/pests.png" alt="Pest library with thresholds" loading="lazy"></div>
+              <div class="carousel-slide"><img src="/images/traps.png" alt="Trap management and GPS" loading="lazy"></div>
+              <div class="carousel-slide"><img src="/images/analytics.png" alt="Analytics dashboards" loading="lazy"></div>
+              <div class="carousel-slide"><img src="/images/predictive.png" alt="Predictive intelligence" loading="lazy"></div>
+            </div>
+            <button class="carousel-btn carousel-prev" id="carouselPrev" aria-label="Previous">&#8249;</button>
+            <button class="carousel-btn carousel-next" id="carouselNext" aria-label="Next">&#8250;</button>
+          </div>
+          <div class="carousel-caption" id="carouselCaption"></div>
+          <div class="carousel-dots" id="carouselDots"></div>
+
+          <div style="text-align:center;margin-top:52px;margin-bottom:20px;">
+            <p style="font-weight:700;font-size:1.05rem;"><i class="fab fa-android" style="color:#3DDC84;"></i> Android app — built for the field</p>
+            <p style="color:var(--text-muted);font-size:0.9rem;margin-top:4px;">Offline-first logging, GPS tagging, and barcode scanning — even without signal.</p>
+          </div>
+          <div class="mobile-frames">
+            <div class="mobile-frame"><img src="/images/mobile1.png" alt="Mobile scouting session" loading="lazy"></div>
+            <div class="mobile-frame"><img src="/images/mobile2.png" alt="Mobile observation logging" loading="lazy"></div>
+            <div class="mobile-frame"><img src="/images/mobile3.png" alt="Mobile GPS mapping" loading="lazy"></div>
           </div>
         </div>
 
@@ -782,6 +832,48 @@ function _initLandingApp() {
       navigateTo(target === 'dashboard' && !currentUser ? 'account' : target);
     });
   });
+
+  // Screenshot carousel
+  (function initCarousel() {
+    const track    = document.getElementById('carouselTrack');
+    const dotsEl   = document.getElementById('carouselDots');
+    const captionEl = document.getElementById('carouselCaption');
+    if (!track) return;
+
+    const captions = [
+      'Real-time dashboard — KPIs across all your farms at a glance',
+      'Farm & field management — GPS boundaries, crops, and seasons',
+      'Pest library — custom species, life stages, and economic thresholds',
+      'Trap management — deploy, GPS-tag, and barcode-scan your traps',
+      'Analytics — 11 dashboards from threshold alerts to seasonal trends',
+      'Predictive intelligence — forecast outbreaks before they arrive',
+    ];
+    const total = captions.length;
+    let current = 0;
+    let timer;
+
+    for (let i = 0; i < total; i++) {
+      const dot = document.createElement('button');
+      dot.className = 'carousel-dot';
+      dot.setAttribute('aria-label', `Slide ${i + 1}`);
+      dot.addEventListener('click', () => goTo(i));
+      dotsEl.appendChild(dot);
+    }
+
+    function goTo(index) {
+      current = ((index % total) + total) % total;
+      track.style.transform = `translateX(-${current * 100}%)`;
+      captionEl.textContent = captions[current];
+      dotsEl.querySelectorAll('.carousel-dot').forEach((d, i) => d.classList.toggle('active', i === current));
+      clearInterval(timer);
+      timer = setInterval(() => goTo(current + 1), 4500);
+    }
+
+    document.getElementById('carouselPrev')?.addEventListener('click', () => goTo(current - 1));
+    document.getElementById('carouselNext')?.addEventListener('click', () => goTo(current + 1));
+
+    goTo(0);
+  })();
 
   initUsers();
   loadCurrentSession();
