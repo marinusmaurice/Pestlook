@@ -633,6 +633,31 @@ public sealed class CustomReportController(
 
     // ── Sort + page ───────────────────────────────────────────────────────────
 
+    // Null-safe comparer: nulls sort last, DateTime/numeric compared by value, rest by string.
+    private static readonly Comparer<object?> _sortComparer = Comparer<object?>.Create((a, b) =>
+    {
+        if (a is null && b is null) return 0;
+        if (a is null) return 1;
+        if (b is null) return -1;
+        if (a is DateTime dtA && b is DateTime dtB) return dtA.CompareTo(dtB);
+        var da = ToDoubleStatic(a);
+        var db = ToDoubleStatic(b);
+        if (da.HasValue && db.HasValue) return da.Value.CompareTo(db.Value);
+        return string.Compare(a.ToString(), b.ToString(), StringComparison.OrdinalIgnoreCase);
+    });
+
+    private static double? ToDoubleStatic(object? v) => v switch
+    {
+        int     i => i,
+        double  d => d,
+        float   f => f,
+        long    l => l,
+        decimal m => (double)m,
+        bool    b => b ? 1 : 0,
+        string  s when double.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var p) => p,
+        _ => null,
+    };
+
     private static (List<Dictionary<string, object?>> Rows, int Total) ApplySortPage(
         List<Dictionary<string, object?>> rows,
         string? orderBy, bool desc, int page, int pageSize)
@@ -640,26 +665,17 @@ public sealed class CustomReportController(
         if (!string.IsNullOrEmpty(orderBy))
         {
             rows = desc
-                ? rows.OrderByDescending(r => SortKey(r.GetValueOrDefault(orderBy))).ToList()
-                : rows.OrderBy(r => SortKey(r.GetValueOrDefault(orderBy))).ToList();
+                ? rows.OrderByDescending(r => r.GetValueOrDefault(orderBy), _sortComparer).ToList()
+                : rows.OrderBy(r => r.GetValueOrDefault(orderBy), _sortComparer).ToList();
         }
 
-        var total  = rows.Count;
-        var paged  = pageSize > 0
+        var total = rows.Count;
+        var paged = pageSize > 0
             ? rows.Skip((Math.Max(1, page) - 1) * pageSize).Take(pageSize).ToList()
             : rows;
 
         return (paged, total);
     }
-
-    private static IComparable SortKey(object? v) => v switch
-    {
-        DateTime dt => dt,
-        int      i  => (double)i,
-        double   d  => d,
-        bool     b  => b ? 1.0 : 0.0,
-        _           => v?.ToString() ?? "",
-    };
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
