@@ -190,20 +190,32 @@ function renderSidebar(sidebar) {
   const row2 = document.createElement('div');
   row2.style.cssText = 'display:flex;gap:8px;';
 
-  const expBtn = document.createElement('button');
-  expBtn.className = 'btn-outline';
-  expBtn.style.flex = '1';
-  expBtn.textContent = 'Export CSV';
-  expBtn.addEventListener('click', exportCsv);
+  const expCsvBtn = document.createElement('button');
+  expCsvBtn.className = 'btn-outline';
+  expCsvBtn.style.flex = '1';
+  expCsvBtn.textContent = 'CSV';
+  expCsvBtn.title = 'Export as CSV';
+  expCsvBtn.addEventListener('click', exportCsv);
+
+  const expPdfBtn = document.createElement('button');
+  expPdfBtn.className = 'btn-outline';
+  expPdfBtn.style.flex = '1';
+  expPdfBtn.textContent = 'PDF';
+  expPdfBtn.title = 'Export as PDF';
+  expPdfBtn.addEventListener('click', exportPdf);
+
+  const row3 = document.createElement('div');
+  row3.style.cssText = 'display:flex;gap:8px;';
 
   const saveBtn = document.createElement('button');
   saveBtn.className = 'btn-outline';
-  saveBtn.style.flex = '1';
-  saveBtn.textContent = S.editingId ? 'Update' : 'Save';
+  saveBtn.style.cssText = 'flex:1;justify-content:center;';
+  saveBtn.textContent = S.editingId ? 'Update' : 'Save Report';
   saveBtn.addEventListener('click', promptSave);
 
-  row2.append(expBtn, saveBtn);
-  actions.append(runBtn, row2);
+  row2.append(expCsvBtn, expPdfBtn);
+  row3.append(saveBtn);
+  actions.append(runBtn, row2, row3);
   sidebar.append(actions);
 
   sidebar.append(savedPanel());
@@ -534,6 +546,78 @@ function exportCsv() {
       setTimeout(() => URL.revokeObjectURL(url), 5000);
     })
     .catch(e => showToast(e.message, 'error'));
+}
+
+const JSPDF_CDNS = [
+  'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',
+  'https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+];
+const AUTOTABLE_CDNS = [
+  'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js',
+  'https://unpkg.com/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js',
+];
+
+function loadScriptWithFallback(cdns) {
+  return new Promise((resolve, reject) => {
+    const tryLoad = (idx) => {
+      if (idx >= cdns.length) { reject(new Error('PDF library unavailable — check your connection and try again.')); return; }
+      if (document.querySelector(`script[src="${cdns[idx]}"]`)) { resolve(); return; }
+      const s = Object.assign(document.createElement('script'), { src: cdns[idx] });
+      s.onload = resolve;
+      s.onerror = () => { s.remove(); tryLoad(idx + 1); };
+      document.head.appendChild(s);
+    };
+    tryLoad(0);
+  });
+}
+
+async function exportPdf() {
+  if (!S.entity) { showToast('Pick a table first.', 'warning'); return; }
+  showToast('Building PDF…', 'info');
+  try {
+    const res = await customReportsApi.run({ ...buildDef(), page: 1, pageSize: 0 });
+    if (!res.success) throw new Error(res.message ?? 'Export failed');
+    const { columns, rows } = res.data;
+
+    await loadScriptWithFallback(JSPDF_CDNS);
+    await loadScriptWithFallback(AUTOTABLE_CDNS);
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: columns.length > 5 ? 'landscape' : 'portrait' });
+    const entityLabel = S.schema[S.entity]?.label ?? S.entity;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.text(`PestLook — ${entityLabel}`, 14, 16);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text(`${rows.length.toLocaleString()} rows  ·  Generated ${new Date().toLocaleString()}`, 14, 23);
+
+    doc.autoTable({
+      head: [columns.map(c => c.label)],
+      body: rows.map(row => columns.map(col => {
+        const v = row[col.key];
+        if (v == null) return '';
+        if (col.type === 'bool') return v ? 'Yes' : 'No';
+        if (col.type === 'date' && typeof v === 'string' && v.includes('T'))
+          return new Date(v).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+        if (col.type === 'date' && typeof v === 'string')
+          return new Date(v).toLocaleDateString();
+        return String(v);
+      })),
+      startY: 28,
+      styles: { fontSize: 7.5, cellPadding: 2, overflow: 'linebreak' },
+      headStyles: { fillColor: [43, 110, 79], textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [249, 247, 240] },
+      margin: { left: 14, right: 14 },
+    });
+
+    doc.save(`pestlook-report-${new Date().toLocaleDateString('en-CA')}.pdf`);
+  } catch (e) {
+    showToast(e.message, 'error');
+  }
 }
 
 async function promptSave() {
