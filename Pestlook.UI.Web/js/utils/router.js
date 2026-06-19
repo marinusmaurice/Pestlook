@@ -53,6 +53,12 @@ async function onHashChange() {
   if (matched) {
     currentRoute = path;
     await matched.handler(matched.params);
+    if (typeof gtag === 'function') {
+      gtag('event', 'page_view', {
+        page_path: path,
+        page_location: window.location.href,
+      });
+    }
   } else {
     navigate('/');
   }
