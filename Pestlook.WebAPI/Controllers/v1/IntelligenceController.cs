@@ -2242,7 +2242,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 var bySession = grp
                     .GroupBy(o => ToLocalDate(o.CompletedAt, tz))
                     .OrderBy(g => g.Key)
-                    .Select(sg => (Date: sg.Key, Total: sg.Sum(o => o.Count ?? 0), IsAbove: sg.Sum(o => o.Count ?? 0) > threshold))
+                    .Select(sg => (Date: sg.Key, Total: sg.Sum(o => o.Count ?? 0), IsAbove: sg.Any(o => (o.Count ?? 0) > threshold)))
                     .ToList();
 
                 // Find the first breach point within the queried range

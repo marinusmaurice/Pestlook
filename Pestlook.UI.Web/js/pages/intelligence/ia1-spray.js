@@ -52,9 +52,6 @@ export async function renderSprayTiming(el, data) {
   const rows = recommendations.map(r => {
     const col = URGENCY_COLOUR[r.urgency] ?? 'var(--text)';
     const bg  = URGENCY_BG[r.urgency]    ?? 'transparent';
-    const pct = r.threshold > 0 ? Math.round(r.currentCount / r.threshold * 100) : 0;
-    const barW = Math.min(100, pct);
-    const barCol = pct >= 100 ? '#c0392b' : pct >= 70 ? '#e67e22' : '#3498db';
 
     return `
       <div class="card card-p" style="border-left:4px solid ${col};margin-bottom:10px;">
@@ -66,24 +63,14 @@ export async function renderSprayTiming(el, data) {
           <span style="padding:4px 12px;border-radius:20px;font-size:0.75rem;font-weight:700;background:${bg};color:${col};white-space:nowrap;">${r.urgency}</span>
         </div>
 
-        <!-- Progress bar: current vs threshold -->
-        <div style="margin:10px 0 4px;">
-          <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-dim);margin-bottom:4px;">
-            <span>Current: <strong style="color:var(--text);">${r.currentCount.toLocaleString()}</strong></span>
-            <span>Threshold: <strong style="color:var(--text);">${r.threshold.toLocaleString()}</strong></span>
-          </div>
-          <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden;">
-            <div style="height:100%;width:${barW}%;background:${barCol};border-radius:4px;transition:width .3s;"></div>
-          </div>
-          <div style="font-size:0.72rem;color:var(--text-dim);margin-top:3px;">${pct}% of threshold</div>
-        </div>
-
-        <!-- Projections -->
-        <div style="display:flex;gap:16px;flex-wrap:wrap;margin:8px 0;font-size:0.8rem;">
+        <!-- Weekly trend stats -->
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin:10px 0;font-size:0.8rem;">
+          <span style="color:var(--text-dim);">Per-obs threshold: <strong style="color:var(--text);">${r.threshold.toLocaleString()}</strong></span>
+          <span style="color:var(--text-dim);">Weekly total (now): <strong style="color:var(--text);">${r.currentCount.toLocaleString()}</strong></span>
           <span style="color:var(--text-dim);">Trend: <strong style="color:${r.weeklySlope > 0 ? '#e67e22' : '#27ae60'};">${r.weeklySlope > 0 ? '+' : ''}${r.weeklySlope}/wk</strong></span>
           <span style="color:var(--text-dim);">4-wk projection: <strong style="color:var(--text);">${r.projectedAt4Weeks.toLocaleString()}</strong></span>
-          <span style="color:var(--text-dim);">8-wk projection: <strong style="color:${r.multiplierAt8Weeks >= 1 ? '#c0392b' : 'var(--text)'};">${r.projectedAt8Weeks.toLocaleString()} (${r.multiplierAt8Weeks}× threshold)</strong></span>
-          ${r.weeksUntilBreach < 99 ? `<span style="color:var(--text-dim);">Breach in: <strong style="color:${col};">${r.weeksUntilBreach === 0 ? 'Now' : r.weeksUntilBreach + ' wk'}</strong></span>` : ''}
+          <span style="color:var(--text-dim);">8-wk projection: <strong style="color:var(--text);">${r.projectedAt8Weeks.toLocaleString()}</strong></span>
+          ${r.weeksUntilBreach < 99 ? `<span style="color:var(--text-dim);">Trend breach in: <strong style="color:${col};">${r.weeksUntilBreach === 0 ? 'Now' : r.weeksUntilBreach + ' wk'}</strong></span>` : ''}
         </div>
 
         <!-- Recommendation -->
