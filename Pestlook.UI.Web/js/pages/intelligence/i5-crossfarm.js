@@ -23,8 +23,7 @@ const PALETTE = [
 
 function fmtWeek(iso) {
   if (!iso) return '—';
-  const d = new Date(iso);
-  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 }
 
 function regionalBadge(isRegional, farmCount) {

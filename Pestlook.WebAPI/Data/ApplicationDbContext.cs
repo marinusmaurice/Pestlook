@@ -30,6 +30,7 @@ public sealed class ApplicationDbContext(
     public DbSet<SessionObservation> SessionObservations => Set<SessionObservation>();
     public DbSet<BillingSnapshot> BillingSnapshots => Set<BillingSnapshot>();
     public DbSet<Feedback> Feedbacks => Set<Feedback>();
+    public DbSet<SavedReport> SavedReports => Set<SavedReport>();
 
     private static SubscriptionPlan ParseSubscriptionPlan(string value) =>
         Enum.TryParse<SubscriptionPlan>(value, out var parsed) ? parsed : SubscriptionPlan.Free;
@@ -342,6 +343,18 @@ public sealed class ApplicationDbContext(
             e.HasQueryFilter(f => f.DeletedAt == null &&
                 (tenantContext.TenantId == null || f.TenantId == tenantContext.TenantId));
             e.HasIndex(f => new { f.TenantId, f.CreatedAt });
+        });
+
+        builder.Entity<SavedReport>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.Property(r => r.Name).HasMaxLength(200).IsRequired();
+            e.Property(r => r.Description).HasMaxLength(500);
+            e.Property(r => r.DefinitionJson).IsRequired();
+            e.Property(r => r.CreatedByUserId).HasMaxLength(450).IsRequired();
+            e.HasIndex(r => new { r.TenantId, r.DeletedAt });
+            e.HasQueryFilter(r => r.DeletedAt == null &&
+                (tenantContext.TenantId == null || r.TenantId == tenantContext.TenantId));
         });
 
         // ── User audit FK configuration ──────────────────────────────────────

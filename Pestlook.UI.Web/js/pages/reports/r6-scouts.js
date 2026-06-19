@@ -16,7 +16,7 @@ export function renderScoutProductivity(el, data, lookups) {
   // Build top-5 weekly stacked chart
   const top5Names = scouts.slice(0, 5).map(s => s.scouterName);
   const weekSet   = [...new Set(weeklyActivity.map(w => w.weekStart))].sort();
-  const weekLabels = weekSet.map(w => new Date(w).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
+  const weekLabels = weekSet.map(w => new Date(w).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }));
 
   const datasets = top5Names.map((name, i) => ({
     label: name,

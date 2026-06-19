@@ -17,14 +17,15 @@ export function renderBilling(el, data, lookups) {
   const quotaPct   = quota > 0 ? Math.min(100, Math.round((activeTraps / quota) * 100)) : 0;
   const quotaColor = quotaPct >= 90 ? C.red : quotaPct >= 70 ? C.amber : C.green;
 
-  const fmtMonth  = iso => iso ? new Date(iso).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : '—';
+  const fmtMonth  = iso => iso ? new Date(iso).toLocaleDateString('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' }) : '—';
   const fmtAmount = cents => cents != null ? 'R ' + (cents / 100).toLocaleString('en-ZA', { minimumFractionDigits: 2 }) : '—';
 
   const thisYear = new Date().getFullYear();
-  const ytd      = sorted.filter(b => b.billingMonth && new Date(b.billingMonth).getFullYear() === thisYear);
+  const billingYear = iso => Number(new Date(iso).toLocaleDateString('en-CA', { year: 'numeric', timeZone: 'UTC' }));
+  const ytd      = sorted.filter(b => b.billingMonth && billingYear(b.billingMonth) === thisYear);
   const ytdAmt   = ytd.reduce((s, b) => s + (b.amountCents ?? 0), 0);
 
-  const lastYr    = sorted.filter(b => b.billingMonth && new Date(b.billingMonth).getFullYear() === thisYear - 1);
+  const lastYr    = sorted.filter(b => b.billingMonth && billingYear(b.billingMonth) === thisYear - 1);
   const yoyHtml   = lastYr.length > 0 ? trendArrow(ytdAmt, lastYr.reduce((s, b) => s + (b.amountCents ?? 0), 0)) : '<span style="color:var(--text-dim);">No prior year data</span>';
   const momHtml   = prev ? trendArrow(latest?.amountCents ?? 0, prev.amountCents ?? 0) : '<span style="color:var(--text-dim);">First invoice</span>';
 

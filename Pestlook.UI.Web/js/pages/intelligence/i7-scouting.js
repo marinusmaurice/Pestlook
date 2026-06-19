@@ -20,7 +20,7 @@ export async function renderNextScouting(el, data) {
     return;
   }
 
-  const fmtDate = iso => iso ? new Date(iso).toLocaleDateString() : '—';
+  const fmtDate = iso => iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : '—';
   const colour  = u => URGENCY_COLOUR[u] ?? '#555';
 
   el.innerHTML = `

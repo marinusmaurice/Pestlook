@@ -678,6 +678,66 @@ const GROUPS = [
     ],
   },
   {
+    id: 'custom-reports',
+    icon: '🔍',
+    title: 'Custom Reports',
+    intro: 'Custom Reports lets you build ad-hoc queries across your data without writing SQL. Every result is automatically scoped to your organisation — you can never accidentally see another tenant\'s data.',
+    items: [
+      {
+        heading: 'Picking a table',
+        body: 'Use the <strong>Table</strong> dropdown in the left panel to choose what data you want to query. The available tables are: <strong>Farms</strong>, <strong>Fields</strong>, <strong>Pests</strong>, <strong>Scouting Sessions</strong>, <strong>Session Observations</strong>, <strong>Traps</strong>, <strong>Trap Types</strong>, and <strong>Users</strong>. Once you pick a table the column list, filter builder, and sort options all update automatically.',
+      },
+      {
+        heading: 'Columns',
+        body: 'Tick the columns you want to see in the result. Leave all boxes unticked to return every column. The column list is grouped by the source of the data — for example, the <em>Session Observations</em> table includes columns from related tables such as <em>Farm</em>, <em>Field</em>, <em>Scout</em>, <em>Pest</em>, and <em>Trap</em> that are automatically joined for you.',
+      },
+      {
+        heading: 'Joins are automatic',
+        body: 'You do not need to join tables manually. Related data is already available as columns on the relevant table. For example, selecting <em>Session Observations</em> gives you <strong>Farm</strong>, <strong>Field</strong>, <strong>Scout</strong>, <strong>Pest</strong>, <strong>Trap</strong>, and <strong>Trap Type</strong> columns — all derived from the joined records behind the scenes.',
+      },
+      {
+        heading: 'Filters',
+        body: 'Click <strong>+ Add filter</strong> to add a condition. Each filter has three parts: the <strong>column</strong> to test, an <strong>operator</strong>, and a <strong>value</strong>. Available operators depend on the column type: text columns support <em>equals, not equals, contains, starts with, ends with, is empty, is not empty</em>; number and date columns support <em>equals, not equals, >, ≥, &lt;, ≤</em>; boolean columns support <em>equals / not equals</em>. Multiple filters are combined with AND — all conditions must be true for a row to appear.',
+      },
+      {
+        heading: 'Group By & Aggregates',
+        body: 'To summarise data, tick one or more columns under <strong>Group By</strong>, then click <strong>+ Add aggregate</strong> to define the calculation. Each aggregate has a <strong>function</strong> (<em>count, sum, avg, min, max</em>) and the <strong>column</strong> to apply it to. For example: group by <em>Farm Name</em> and aggregate <em>count</em> on <em>ID</em> to get the number of observations per farm. Group By and Aggregates only activate when you have set at least one column in each.',
+      },
+      {
+        heading: 'Sort',
+        body: 'Pick a column to sort by from the <strong>Sort</strong> dropdown and optionally tick <strong>Descending</strong>. You can also click any column header in the results table to sort by that column — click again to reverse the direction.',
+      },
+      {
+        heading: 'Page size',
+        body: 'Controls how many rows are returned per page. Options are 25, 50, 100, 250, and 500. Use a smaller page size for large tables to keep queries fast.',
+      },
+      {
+        heading: 'Running a report',
+        body: 'Click <strong>Run Report</strong> to execute the query. The result shows the total row count, current page, and all matching rows in a table. Date and time values are shown in your local timezone. Use the <strong>← Prev</strong> and <strong>Next →</strong> buttons to page through results.',
+      },
+      {
+        heading: 'Exporting to CSV',
+        body: 'Click <strong>Export CSV</strong> to download the full result set as a comma-separated file. The export applies your current filters, grouping, and sort — but returns all rows, ignoring the page size limit. The file is named with today\'s local date.',
+      },
+      {
+        heading: 'Saving a report',
+        body: 'Once your query is configured, click <strong>Save</strong>. Enter a name (required) and an optional description. The report definition is saved to your organisation — any admin or user with access can load it. Saved reports appear in the <strong>Saved Reports</strong> panel at the bottom of the left sidebar.',
+      },
+      {
+        heading: 'Loading a saved report',
+        body: 'Click any report name in the <strong>Saved Reports</strong> panel to restore its table, columns, filters, grouping, and sort. The query is not run automatically — review or adjust the settings then click <strong>Run Report</strong>.',
+      },
+      {
+        heading: 'Updating a saved report',
+        body: 'Load a saved report, make your changes, then click <strong>Update</strong> (the Save button changes label when a report is loaded). The existing definition is overwritten.',
+      },
+      {
+        heading: 'Deleting a saved report',
+        body: 'Click the <strong>×</strong> button next to the report name in the Saved Reports panel and confirm. This cannot be undone.',
+      },
+    ],
+  },
+  {
     id: 'settings',
     icon: '⚙️',
     title: 'Settings',
@@ -2015,7 +2075,7 @@ export function renderHelp(container) {
         activeGroup   = btn.dataset.tab;
         activeSection = GROUPS.find(g => g.id === activeGroup).sections[0].id;
         render();
-        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        container.scrollTop = 0;
       });
     });
 
@@ -2024,7 +2084,7 @@ export function renderHelp(container) {
       btn.addEventListener('click', () => {
         activeSection = btn.dataset.section;
         render();
-        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        container.scrollTop = 0;
       });
     });
 
@@ -2036,7 +2096,7 @@ export function renderHelp(container) {
         activeGroup   = gid;
         activeSection = sid;
         render();
-        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        container.scrollTop = 0;
       });
     });
   }

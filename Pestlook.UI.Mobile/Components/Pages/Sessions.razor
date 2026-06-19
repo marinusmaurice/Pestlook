@@ -48,7 +48,7 @@
                                 <span style="font-size:16px;">📋</span>
                                 <div style="flex:1;">
                                     <div style="font-size:13px;font-weight:600;color:var(--green);">@(s.FieldName ?? s.FarmName ?? "Planned session")</div>
-                                    <div style="font-size:11px;color:var(--text-dim);">@(s.ScheduledDate?.ToString("d MMM yyyy") ?? "Unscheduled")</div>
+                                    <div style="font-size:11px;color:var(--text-dim);">@(s.ScheduledDate?.ToLocalTime().ToString("d MMM yyyy") ?? "Unscheduled")</div>
                                 </div>
                                 <span class="ch cw">Planned</span>
                             </div>

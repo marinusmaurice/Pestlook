@@ -26,6 +26,7 @@ import { renderPredictive } from './pages/predictive.js';
 import { renderActionable }    from './pages/actionable.js';
 import { renderEnvironmental } from './pages/environmental.js';
 import { renderContainment }   from './pages/containment.js';
+import { renderCustomReports } from './pages/custom-reports.js';
 
 const appRoot = document.getElementById('app-root');
 
@@ -185,6 +186,10 @@ registerRoute('/environmental', authedRoute(async (content) => {
 
 registerRoute('/containment', authedRoute(async (content) => {
   await renderContainment(content);
+}));
+
+registerRoute('/custom-reports', authedRoute(async (content) => {
+  await renderCustomReports(content);
 }));
 
 // Redirect legacy /reports links to /analytics

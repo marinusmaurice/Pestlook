@@ -277,6 +277,11 @@ function _getLandingHTML() {
             <h3>Multi-tenant team management</h3>
             <p>Each organisation is fully isolated. Admins manage scouts, assign roles, configure trap types, and review billing snapshots &mdash; all from the web dashboard.</p>
           </div>
+          <div class="feature-card">
+            <i class="fas fa-table"></i>
+            <h3>Custom reporting</h3>
+            <p>Build ad-hoc queries across farms, fields, pests, sessions, observations, and traps. Filter, group, aggregate, sort, and export to CSV &mdash; all scoped automatically to your organisation.</p>
+          </div>
         </div>
 
         <!-- SCREENSHOTS -->
