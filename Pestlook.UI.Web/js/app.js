@@ -126,6 +126,7 @@ function authedRoute(handler) {
     ensureShell('app');
     const content = getContent();
     content._cleanup?.();   // cancel any in-flight async renderer
+    content.style.cssText = ''; // reset inline style overrides left by the previous page
     const path = currentPath();
     updateActiveNav(path);
     await handler(content, params);
