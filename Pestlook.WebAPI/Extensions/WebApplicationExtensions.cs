@@ -67,7 +67,8 @@ public static class WebApplicationExtensions
 
     public static WebApplication UseDevDataSeeding(this WebApplication app)
     {
-        if (!app.Environment.IsDevelopment())
+        var force = app.Configuration.GetValue<bool>("DevSeed:RunOnce");
+        if (!app.Environment.IsDevelopment() && !force)
             return app;
 
         DevDataSeeder.SeedAsync(app.Services).GetAwaiter().GetResult();
