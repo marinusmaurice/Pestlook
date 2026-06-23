@@ -27,6 +27,7 @@ import { renderActionable }    from './pages/actionable.js';
 import { renderEnvironmental } from './pages/environmental.js';
 import { renderContainment }   from './pages/containment.js';
 import { renderCustomReports } from './pages/custom-reports.js';
+import { startTourIfNeeded, resumeTour } from './utils/tour.js';
 
 const appRoot = document.getElementById('app-root');
 
@@ -123,6 +124,7 @@ registerRoute('/reset-password', async (params) => {
 
 function authedRoute(handler) {
   return async (params) => {
+    const isFirstShell = currentShell !== 'app';
     ensureShell('app');
     const content = getContent();
     content._cleanup?.();   // cancel any in-flight async renderer
@@ -130,6 +132,8 @@ function authedRoute(handler) {
     const path = currentPath();
     updateActiveNav(path);
     await handler(content, params);
+    if (isFirstShell) startTourIfNeeded();
+    else resumeTour(path.split('?')[0]);
   };
 }
 

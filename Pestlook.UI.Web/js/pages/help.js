@@ -1999,9 +1999,12 @@ export function renderHelp(container) {
 
     // ── Render ───────────────────────────────────────────────────────────────
     container.innerHTML = `
-      <div style="margin-bottom:20px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
-        <div style="font-family:'Fraunces',serif;font-size:1.6rem;font-weight:600;color:var(--text);letter-spacing:-0.02em;">Help & User Guide 📖</div>
-        <div style="font-size:0.85rem;color:var(--text-dim);">Everything you need to know about Pestlook</div>
+      <div style="margin-bottom:20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-family:'Fraunces',serif;font-size:1.6rem;font-weight:600;color:var(--text);letter-spacing:-0.02em;">Help & User Guide 📖</div>
+          <div style="font-size:0.85rem;color:var(--text-dim);">Everything you need to know about Pestlook</div>
+        </div>
+        <button id="retake-tour-btn" class="btn-outline" style="white-space:nowrap;flex-shrink:0;">🚀 Retake Tour</button>
       </div>
 
       <!-- Mobile app download -->
@@ -2098,6 +2101,11 @@ export function renderHelp(container) {
         render();
         container.scrollTop = 0;
       });
+    });
+
+    // Wire retake tour button
+    container.querySelector('#retake-tour-btn')?.addEventListener('click', () => {
+      import('../utils/tour.js').then(({ startTour }) => startTour());
     });
   }
 
