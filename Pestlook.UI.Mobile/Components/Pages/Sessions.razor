@@ -42,15 +42,30 @@
                 {
                     @foreach (var s in planned)
                     {
-                        <div class="sess-card" style="border-color:rgba(109,222,132,.15);"
-                             @onclick="() => OpenSession(s)">
-                            <div class="sess-head" style="background:var(--green-glow);">
-                                <span style="font-size:16px;">📋</span>
+                        var locked = s.ScheduledDate.HasValue && s.ScheduledDate.Value > DateTime.UtcNow;
+                        <div class="sess-card" style="border-color:@(locked ? "rgba(150,150,150,.15)" : "rgba(109,222,132,.15)");@(locked ? "opacity:.75;cursor:default;" : "")"
+                             @onclick="() => { if (!locked) OpenSession(s); }">
+                            <div class="sess-head" style="background:@(locked ? "rgba(150,150,150,.06)" : "var(--green-glow)");">
+                                <span style="font-size:16px;">@(locked ? "🔒" : "📋")</span>
                                 <div style="flex:1;">
-                                    <div style="font-size:13px;font-weight:600;color:var(--green);">@(s.FieldName ?? s.FarmName ?? "Planned session")</div>
-                                    <div style="font-size:11px;color:var(--text-dim);">@(s.ScheduledDate?.ToLocalTime().ToString("d MMM yyyy") ?? "Unscheduled")</div>
+                                    <div style="font-size:13px;font-weight:600;color:@(locked ? "var(--text-dim)" : "var(--green)");">@(s.FieldName ?? s.FarmName ?? "Planned session")</div>
+                                    @if (locked)
+                                    {
+                                        <div style="font-size:11px;color:var(--text-dim);">Available @s.ScheduledDate!.Value.ToLocalTime().ToString("d MMM, HH:mm")</div>
+                                    }
+                                    else
+                                    {
+                                        <div style="font-size:11px;color:var(--text-dim);">@(s.ScheduledDate?.ToLocalTime().ToString("d MMM yyyy") ?? "Unscheduled")</div>
+                                    }
                                 </div>
-                                <span class="ch cw">Planned</span>
+                                @if (locked)
+                                {
+                                    <span class="ch" style="background:rgba(150,150,150,.12);color:var(--text-dim);">Locked</span>
+                                }
+                                else
+                                {
+                                    <span class="ch cw">Planned</span>
+                                }
                             </div>
                             <div class="sess-stats">
                                 <div class="sess-stat">

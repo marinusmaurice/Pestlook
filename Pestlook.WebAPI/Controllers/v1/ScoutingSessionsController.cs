@@ -155,7 +155,8 @@ public sealed class ScoutingSessionsController(
                     o.ObservationGroupId,
                     CreatedByName  = o.CreatedBy != null ? o.CreatedBy.FirstName + " " + o.CreatedBy.LastName : null,
                     UpdatedByName  = o.UpdatedBy != null ? o.UpdatedBy.FirstName + " " + o.UpdatedBy.LastName : null,
-                    o.ObservedAt
+                    o.ObservedAt,
+                    o.CreatedAt
                 }).ToList()
             })
             .ToListAsync(ct);
@@ -176,7 +177,7 @@ public sealed class ScoutingSessionsController(
                 o.PhotoUrlsJson is not null
                     ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(o.PhotoUrlsJson) ?? []
                     : [],
-                o.ObservationGroupId, o.CreatedByName, o.UpdatedByName, o.ObservedAt)).ToList(),
+                o.ObservationGroupId, o.CreatedByName, o.UpdatedByName, o.ObservedAt, o.CreatedAt)).ToList(),
             p.CreatedByName, p.UpdatedByName)).ToList();
 
         return Ok(ApiResponse<List<ScoutingSessionResponse>>.Ok(sessions));

@@ -131,7 +131,8 @@ public sealed class AnalyticsController(ApplicationDbContext db, IUserTimezoneSe
                     o.ObservationGroupId,
                     CreatedByName = o.CreatedBy != null ? o.CreatedBy.FirstName + " " + o.CreatedBy.LastName : null,
                     UpdatedByName = o.UpdatedBy != null ? o.UpdatedBy.FirstName + " " + o.UpdatedBy.LastName : null,
-                    o.ObservedAt
+                    o.ObservedAt,
+                    o.CreatedAt
                 }).ToList()
             })
             .ToListAsync(ct);
@@ -152,7 +153,7 @@ public sealed class AnalyticsController(ApplicationDbContext db, IUserTimezoneSe
                 o.PhotoUrlsJson is not null
                     ? JsonSerializer.Deserialize<List<string>>(o.PhotoUrlsJson) ?? []
                     : [],
-                o.ObservationGroupId, o.CreatedByName, o.UpdatedByName, o.ObservedAt)).ToList(),
+                o.ObservationGroupId, o.CreatedByName, o.UpdatedByName, o.ObservedAt, o.CreatedAt)).ToList(),
             p.CreatedByName, p.UpdatedByName)).ToList();
 
         var paged = new PagedResult<ScoutingSessionResponse>(sessions, totalCount, page, pageSize);

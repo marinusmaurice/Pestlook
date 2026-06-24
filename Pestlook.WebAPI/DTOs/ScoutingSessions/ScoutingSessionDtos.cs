@@ -107,7 +107,8 @@ public sealed record SessionObservationResponse(
     Guid? ObservationGroupId,
     string? CreatedByName,
     string? UpdatedByName,
-    DateTime? ObservedAt)
+    DateTime? ObservedAt,
+    DateTime CreatedAt)
 {
-    public SessionObservationResponse() : this(default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, [], default, default, default, default) { }
+    public SessionObservationResponse() : this(default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, [], default, default, default, default, default) { }
 }

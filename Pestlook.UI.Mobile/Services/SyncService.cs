@@ -253,6 +253,7 @@ public class SyncService
                     ObservationGroupId  = o.ObservationGroupId?.ToString(),
                     SortOrder           = o.SortOrder,
                     IsDirty             = false,
+                    CreatedAt           = o.CreatedAt == default ? DateTime.UtcNow : o.CreatedAt,
                     ObservedAt          = o.ObservedAt
                 });
                 saved++;

@@ -20,6 +20,18 @@
         {
             <div style="text-align:center;padding:40px 20px;color:var(--text-dim);font-size:13px;">Session not found</div>
         }
+        else if (IsLocked)
+        {
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:40px 24px;text-align:center;">
+                <div style="font-size:52px;margin-bottom:16px;">🔒</div>
+                <div style="font-size:16px;font-weight:700;margin-bottom:6px;">Session locked</div>
+                <div style="font-size:13px;color:var(--text-dim);margin-bottom:20px;">@(session.FieldName ?? session.FarmName ?? "This session") is not available until</div>
+                <div style="background:var(--surface2);border:.5px solid var(--border);border-radius:12px;padding:14px 28px;">
+                    <div style="font-size:13px;color:var(--text-dim);margin-bottom:2px;">@session.ScheduledDate!.Value.ToLocalTime().ToString("dddd, d MMM yyyy")</div>
+                    <div style="font-size:32px;font-weight:700;color:var(--green);">@session.ScheduledDate!.Value.ToLocalTime().ToString("HH:mm")</div>
+                </div>
+            </div>
+        }
         else
         {
             <!-- Session info card -->
@@ -168,7 +180,7 @@
                                      @onclick="() => ViewObservation(obs)">
                                     <div style="flex:1;">
                                         <div style="font-size:12px;font-weight:500;">Point #@(obs.SortOrder + 1)</div>
-                                        <div style="font-size:11px;color:var(--text-dim);">@obs.CreatedAt.ToLocalTime().ToString("HH:mm")</div>
+                                        <div style="font-size:11px;color:var(--text-dim);">@((obs.ObservedAt ?? obs.CreatedAt).ToLocalTime().ToString("HH:mm"))</div>
                                     </div>
                                     @if (obs.CaptureMode == 0)
                                     {
@@ -217,7 +229,7 @@
                             <span style="font-size:16px;">@(obs.IsUnknownPest ? "❓" : "🦟")</span>
                             <div style="flex:1;">
                                 <div style="font-size:12px;font-weight:600;@(obs.IsUnknownPest ? "color:var(--amber);" : "")">@DisplayName(obs)</div>
-                                <div style="font-size:10px;color:var(--text-dim);">@obs.CreatedAt.ToLocalTime().ToString("HH:mm") · @CaptureModeLabel(obs.CaptureMode)</div>
+                                <div style="font-size:10px;color:var(--text-dim);">@((obs.ObservedAt ?? obs.CreatedAt).ToLocalTime().ToString("HH:mm")) · @CaptureModeLabel(obs.CaptureMode)</div>
                             </div>
                             @if (obs.Count.HasValue)
                             {
@@ -265,7 +277,7 @@
     }
 
     <!-- Bottom actions -->
-    @if (session is not null)
+    @if (session is not null && !IsLocked)
     {
         <div style="padding:8px 10px;border-top:.5px solid var(--border);display:flex;gap:6px;flex-shrink:0;">
             @if (session.Status == SessionStatus.Active && !session.IsPlanned)
@@ -306,6 +318,7 @@
     private string StatusLabel => session?.Status switch { SessionStatus.Synced => "☁ Synced", SessionStatus.Completed => "✓ Completed", _ => session?.IsPlanned == true ? "Planned" : "● Active" };
     private string StatusChipClass => session?.Status switch { SessionStatus.Synced => "ci", SessionStatus.Completed => "cs", _ => session?.IsPlanned == true ? "cw" : "ce" };
     private string TempUnit => Api.CurrentUser?.TemperatureUnit ?? "C";
+    private bool IsLocked => session?.IsPlanned == true && session.ScheduledDate.HasValue && session.ScheduledDate.Value > DateTime.UtcNow;
 
     private string FormatWeather()
     {
