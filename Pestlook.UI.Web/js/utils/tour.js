@@ -74,12 +74,13 @@ function completeTour()          { localStorage.setItem(TOUR_KEY, '1'); localSto
 // Chapter 0 = welcome (no specific page), chapters 1-6 each own a page.
 
 const PAGE_CHAPTER = {
-  '/settings':  1,
-  '/pests':     2,
-  '/farms':     3,
-  '/traps':     4,
-  '/sessions':  5,
-  '/dashboard': 6,
+  '/settings':        1,
+  '/pests':           2,
+  '/farms':           3,
+  '/traps':           4,
+  '/sessions':        5,
+  '/dashboard':       6,
+  '/observation-log': 7,
 };
 
 // Guard selector that must exist before a chapter's steps can run
@@ -90,6 +91,7 @@ const CHAPTER_GUARD = {
   4: '#addTrapBtn',
   5: '#planSessionBtn',
   6: '#dashStats',
+  7: '#obs-log-filter-bar',
 };
 
 // ── Driver factory ────────────────────────────────────────────────────────────
@@ -525,17 +527,68 @@ function runChapter6() {
     },
     {
       popover: {
-        title: "🚀 You're All Set!",
+        title: '🚀 Nearly Done — One More Stop!',
         description: `
           <p style="margin:0 0 10px;line-height:1.7;font-size:0.88rem;">
-            That's the complete setup flow. Here's your checklist:
+            That's the setup flow covered. One last thing to show you — the
+            <strong>Observation Log</strong>, your cross-session data explorer.
           </p>
           <ol style="margin:0 0 12px;padding-left:20px;line-height:2;font-size:0.85rem;">
-            <li>⚙️ Settings — add <strong>trap types</strong> and <strong>scout users</strong></li>
-            <li>🦗 Pest Catalogue — add pests with <strong>thresholds</strong></li>
-            <li>🌾 Farms — add farms and their <strong>fields</strong></li>
-            <li>🕸️ Traps — register traps and <strong>pin them on the map</strong></li>
-            <li>🥾 Sessions — plan sessions and <strong>log observations</strong></li>
+            <li>⚙️ Settings — trap types &amp; team</li>
+            <li>🦗 Pest Catalogue — pests &amp; thresholds</li>
+            <li>🌾 Farms — farms &amp; fields</li>
+            <li>🕸️ Traps — registered &amp; pinned</li>
+            <li>🥾 Sessions — planned &amp; logged</li>
+          </ol>
+          <p style="margin:0;font-size:0.8rem;color:#5a6b62;">
+            Click <strong>Next →</strong> and we'll show you the Observation Log.
+          </p>`,
+        side: 'over', align: 'center',
+        onNextClick: () => {
+          setChapter(7);
+          d.destroy();
+          navigate('/observation-log');
+        },
+      },
+    },
+  ];
+
+  const d = makeDriver(steps);
+  d.drive();
+}
+
+// ── Chapter 7: Observation Log ────────────────────────────────────────────────
+function runChapter7() {
+  const steps = [
+    {
+      element: '#obs-log-filter-bar',
+      popover: {
+        title: '📋 Observation Log',
+        description: `
+          <p style="margin:0 0 8px;line-height:1.7;font-size:0.88rem;">
+            The <strong>Observation Log</strong> lets you search across <em>all</em> sessions at once.
+            Filter by date range, farm, field, trap, pest, or scout name — then hit <strong>Apply</strong>.
+          </p>
+          <p style="margin:0;font-size:0.8rem;color:#5a6b62;">
+            Farm selection cascades automatically — picking a farm narrows the field and trap dropdowns.
+          </p>`,
+        side: 'bottom', align: 'start',
+      },
+    },
+    {
+      popover: {
+        title: "✅ You're All Set!",
+        description: `
+          <p style="margin:0 0 10px;line-height:1.7;font-size:0.88rem;">
+            That's everything! Your complete checklist:
+          </p>
+          <ol style="margin:0 0 12px;padding-left:20px;line-height:2;font-size:0.85rem;">
+            <li>⚙️ Settings — add trap types and scout users</li>
+            <li>🦗 Pest Catalogue — pests with thresholds</li>
+            <li>🌾 Farms — farms and fields</li>
+            <li>🕸️ Traps — registered and pinned on the map</li>
+            <li>🥾 Sessions — plan and log observations</li>
+            <li>📋 Observation Log — search across all sessions</li>
           </ol>
           <p style="margin:0;font-size:0.8rem;color:#5a6b62;">
             This tour is always available again from <strong>Help → Retake Tour</strong>.
@@ -564,6 +617,7 @@ const CHAPTER_RUNNERS = {
   4: runChapter4,
   5: runChapter5,
   6: runChapter6,
+  7: runChapter7,
 };
 
 // ── Public API ────────────────────────────────────────────────────────────────

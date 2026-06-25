@@ -571,6 +571,58 @@ const GROUPS = [
     ],
   },
   {
+    id: 'observation-log',
+    icon: '📋',
+    title: 'Observation Log',
+    intro: 'The Observation Log is a cross-session observation explorer. Where the session detail page shows observations for a single session, the Observation Log lets you query and filter observations across all sessions at once — by date range, farm, field, trap, pest, or scout.',
+    items: [
+      {
+        heading: 'Opening the page',
+        body: 'Click <strong>Observation Log</strong> under Operations in the sidebar. The page loads all your farms, fields, traps, and pests automatically so you can filter without typing IDs.',
+      },
+      {
+        heading: 'Date range filter',
+        body: 'Use the <strong>From</strong> and <strong>To</strong> date pickers to limit results to a specific calendar window. Leave both blank to return all observations. Dates are interpreted in your local timezone.',
+      },
+      {
+        heading: 'Farm & Field filters (cascading)',
+        body: 'Selecting a farm automatically narrows the <strong>Field</strong> and <strong>Trap</strong> dropdowns to only show fields and traps that belong to that farm. This prevents selecting a field that doesn\'t exist on the chosen farm.',
+      },
+      {
+        heading: 'Trap, Pest & Scout filters',
+        body: 'Filter by a specific <strong>Trap</strong> (shows only observations against that trap), a specific <strong>Pest</strong> (only observations targeting that pest), or a <strong>Scout</strong> by name — partial names are supported and the search is case-insensitive.',
+      },
+      {
+        heading: 'Applying and clearing filters',
+        body: 'Click <strong>Apply</strong> to run the query with the current filter values. Click <strong>Clear</strong> to reset all filters and reload the full unfiltered set.',
+      },
+      {
+        heading: 'Result table columns',
+        body: 'Each row represents a single observation item. Columns are: <strong>#</strong> (row number for the current page), <strong>Date</strong> (ObservedAt timestamp if available, otherwise CreatedAt), <strong>Farm</strong>, <strong>Field</strong>, <strong>Scout</strong>, <strong>Type</strong> (Trap or AdHoc + Planned/Unplanned badge), <strong>Trap</strong>, <strong>Pest</strong>, <strong>Mode</strong> (Count or Presence), <strong>Count</strong> (red and bold if threshold exceeded), <strong>Threshold</strong>, <strong>Present</strong> (for presence-mode observations), <strong>Life Stage</strong>, <strong>Notes</strong>, <strong>Photos</strong>, and <strong>Session</strong> (link to the parent session).',
+      },
+      {
+        heading: 'Threshold breaches',
+        body: 'Rows where the observation count exceeds the pest\'s threshold are highlighted in red and the Count cell is shown in bold red. This lets you spot problem observations at a glance without needing to open individual sessions.',
+      },
+      {
+        heading: 'Navigating to a session',
+        body: 'The <strong>Session</strong> column shows the first 8 characters of the session ID as a link. Click it to jump directly to that session\'s detail page.',
+      },
+      {
+        heading: 'Photo viewer',
+        body: 'If photos were taken for an observation, a <strong>📷 N</strong> button appears in the Photos column. Click it to open an inline gallery showing all photos for that observation.',
+      },
+      {
+        heading: 'Pagination',
+        body: 'Results are returned 50 per page. Use the <strong>«</strong> / <strong>»</strong> buttons to jump to the first or last page, <strong>← Prev</strong> / <strong>Next →</strong> to step through pages, or type a page number directly into the input box and press Enter.',
+      },
+      {
+        heading: 'Exporting to CSV',
+        body: 'Click <strong>⬇ Export CSV</strong> at the top right to download every matching observation as a CSV file — all records, not just the current page. The export honours your active filters. The file is named with today\'s date.',
+      },
+    ],
+  },
+  {
     id: 'analytics',
     icon: '📈',
     title: 'Analytics',

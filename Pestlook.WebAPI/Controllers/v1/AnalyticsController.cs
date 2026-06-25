@@ -160,6 +160,106 @@ public sealed class AnalyticsController(ApplicationDbContext db, IUserTimezoneSe
         return Ok(ApiResponse<PagedResult<ScoutingSessionResponse>>.Ok(paged));
     }
 
+    // ── Observation Log ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Flat, cross-session observation log with cascading filters.
+    /// </summary>
+    [HttpGet("observation-log")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<ObservationLogItemResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetObservationLog(
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to,
+        [FromQuery] Guid? farmId,
+        [FromQuery] Guid? fieldId,
+        [FromQuery] Guid? trapId,
+        [FromQuery] Guid? pestId,
+        [FromQuery] string? scoutId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        CancellationToken ct = default)
+    {
+        page     = Math.Max(1, page);
+        pageSize = Math.Max(1, pageSize);
+
+        var tz = await tzService.GetUserTimeZoneAsync(ct);
+        var (start, end) = ResolveRange(null, from, to, tz);
+
+        var q = db.SessionObservations.AsQueryable();
+
+        if (from.HasValue || to.HasValue)
+        {
+            q = q.Where(o => o.CreatedAt >= start && o.CreatedAt <= end);
+        }
+        if (farmId.HasValue)
+            q = q.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
+        if (fieldId.HasValue)
+            q = q.Where(o => o.Session.FieldId == fieldId);
+        if (trapId.HasValue)
+            q = q.Where(o => o.TrapId == trapId);
+        if (pestId.HasValue)
+            q = q.Where(o => o.PestId == pestId);
+        if (!string.IsNullOrWhiteSpace(scoutId))
+        {
+            var term = scoutId.ToLower();
+            q = q.Where(o => o.Session.Scouter != null &&
+                (o.Session.Scouter.FirstName + " " + o.Session.Scouter.LastName).ToLower().Contains(term));
+        }
+
+        var totalCount = await q.CountAsync(ct);
+
+        var projected = await q
+            .OrderByDescending(o => o.ObservedAt ?? o.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(o => new
+            {
+                o.Id,
+                o.SessionId,
+                SessionDate       = o.Session.CompletedAt ?? o.Session.StartedAt ?? o.Session.CreatedAt,
+                FarmName          = o.Session.Farm != null ? o.Session.Farm.Name
+                                  : o.Session.Field != null && o.Session.Field.Farm != null ? o.Session.Field.Farm.Name : null,
+                FieldName         = o.Session.Field != null ? o.Session.Field.Name : null,
+                ScoutName         = o.Session.Scouter != null ? o.Session.Scouter.FirstName + " " + o.Session.Scouter.LastName : null,
+                o.ObservationType,
+                o.IsPlanned,
+                o.TrapId,
+                TrapName          = o.Trap != null ? o.Trap.Name : null,
+                o.PestId,
+                PestName          = o.Pest != null ? o.Pest.CommonName : null,
+                o.CaptureMode,
+                o.Count,
+                o.IsPresent,
+                o.ThresholdCount,
+                o.IsUnknownPest,
+                o.LifeStage,
+                o.Notes,
+                o.Latitude,
+                o.Longitude,
+                o.PhotoUrlsJson,
+                o.ObservedAt,
+                o.CreatedAt,
+                CreatedByName     = o.CreatedBy != null ? o.CreatedBy.FirstName + " " + o.CreatedBy.LastName : null,
+            })
+            .ToListAsync(ct);
+
+        var items = projected.Select(o => new ObservationLogItemResponse(
+            o.Id, o.SessionId, o.SessionDate,
+            o.FarmName, o.FieldName, o.ScoutName,
+            o.ObservationType, o.IsPlanned,
+            o.TrapId, o.TrapName, o.PestId, o.PestName,
+            o.CaptureMode, o.Count, o.IsPresent, o.ThresholdCount,
+            o.IsUnknownPest, o.LifeStage, o.Notes,
+            o.Latitude, o.Longitude,
+            o.PhotoUrlsJson is not null
+                ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(o.PhotoUrlsJson) ?? []
+                : [],
+            o.ObservedAt, o.CreatedAt, o.CreatedByName)).ToList();
+
+        return Ok(ApiResponse<PagedResult<ObservationLogItemResponse>>.Ok(
+            new PagedResult<ObservationLogItemResponse>(items, totalCount, page, pageSize)));
+    }
+
     // ── R0 Overview ─────────────────────────────────────────────────────────
 
     [HttpGet("overview")]

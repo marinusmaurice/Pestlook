@@ -112,3 +112,30 @@ public sealed record SessionObservationResponse(
 {
     public SessionObservationResponse() : this(default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, default, [], default, default, default, default, default) { }
 }
+
+public sealed record ObservationLogItemResponse(
+    Guid Id,
+    Guid SessionId,
+    DateTime SessionDate,
+    string? FarmName,
+    string? FieldName,
+    string? ScoutName,
+    ObservationType ObservationType,
+    bool IsPlanned,
+    Guid? TrapId,
+    string? TrapName,
+    Guid? PestId,
+    string? PestName,
+    CaptureMode? CaptureMode,
+    int? Count,
+    bool? IsPresent,
+    int? ThresholdCount,
+    bool IsUnknownPest,
+    LifeStage? LifeStage,
+    string? Notes,
+    double? Latitude,
+    double? Longitude,
+    List<string> PhotoUrls,
+    DateTime? ObservedAt,
+    DateTime CreatedAt,
+    string? CreatedByName);
