@@ -91,7 +91,7 @@ export function formatDate(iso) {
 export function formatDateTime(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ' ' +
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) + ' ' +
     d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 }
 
