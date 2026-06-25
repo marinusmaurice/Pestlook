@@ -298,6 +298,7 @@ function _getLandingHTML() {
               <div class="carousel-slide"><img src="/images/traps.png" alt="Trap management and GPS" loading="lazy"></div>
               <div class="carousel-slide"><img src="/images/analytics.png" alt="Analytics dashboards" loading="lazy"></div>
               <div class="carousel-slide"><img src="/images/predictive.png" alt="Predictive intelligence" loading="lazy"></div>
+              <div class="carousel-slide"><img src="/images/observationlog.png" alt="Observation Log — cross-session explorer" loading="lazy"></div>
             </div>
             <button class="carousel-btn carousel-prev" id="carouselPrev" aria-label="Previous">&#8249;</button>
             <button class="carousel-btn carousel-next" id="carouselNext" aria-label="Next">&#8250;</button>
@@ -852,6 +853,7 @@ function _initLandingApp() {
       'Trap management — deploy, GPS-tag, and barcode-scan your traps',
       'Analytics — 11 dashboards from threshold alerts to seasonal trends',
       'Predictive intelligence — forecast outbreaks before they arrive',
+      'Observation Log — filter and export observations across all sessions',
     ];
     const total = captions.length;
     let current = 0;

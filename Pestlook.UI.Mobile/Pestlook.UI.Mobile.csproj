@@ -36,6 +36,8 @@
     <!-- Versions -->
     <ApplicationDisplayVersion>1.0.3</ApplicationDisplayVersion>
     <ApplicationVersion>3</ApplicationVersion>
+    <AssemblyVersion>$(ApplicationDisplayVersion).0</AssemblyVersion>
+    <FileVersion>$(ApplicationDisplayVersion).0</FileVersion>
     <!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
     <WindowsPackageType>None</WindowsPackageType>
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
