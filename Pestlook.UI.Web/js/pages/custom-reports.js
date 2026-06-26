@@ -76,7 +76,7 @@ function mount(container) {
 
   const main = document.createElement('div');
   main.id = 'cr-main';
-  main.style.cssText = 'flex:1;overflow:auto;padding:20px 28px;';
+  main.style.cssText = 'flex:1;overflow:hidden;padding:20px 28px;display:flex;flex-direction:column;';
 
   body.append(sidebar, main);
   container.append(header, body);
@@ -397,7 +397,7 @@ function renderMain(main) {
   }
 
   if (S.loading) {
-    main.innerHTML = `<div style="padding:20px;"><div class="skeleton skeleton-title" style="width:180px;"></div><div class="skeleton skeleton-card" style="margin-top:12px;height:240px;"></div></div>`;
+    main.innerHTML = `<div class="card card-p" style="flex:1;"><div class="skeleton skeleton-title" style="width:180px;"></div><div class="skeleton skeleton-card" style="margin-top:12px;height:240px;"></div></div>`;
     return;
   }
 
@@ -413,13 +413,6 @@ function renderMain(main) {
 
   const { columns, rows, totalRows, page, pageSize, totalPages } = S.result;
 
-  // Meta bar
-  const meta = document.createElement('div');
-  meta.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;';
-  meta.innerHTML = `
-    <span class="page-desc"><strong style="color:var(--text);">${totalRows.toLocaleString()}</strong> row${totalRows !== 1 ? 's' : ''} · page ${page} of ${totalPages}</span>`;
-  main.append(meta);
-
   if (!rows.length) {
     const em = document.createElement('div');
     em.className = 'empty-state';
@@ -428,9 +421,18 @@ function renderMain(main) {
     return;
   }
 
-  // Table
+  const start = (page - 1) * pageSize + 1;
+  const end   = Math.min(page * pageSize, totalRows);
+
+  // Card wrapper
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.style.cssText = 'flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;';
+
+  // Scrollable table area
   const tableWrap = document.createElement('div');
-  tableWrap.style.cssText = 'overflow-x:auto;border:1px solid var(--border);border-radius:10px;';
+  tableWrap.style.cssText = 'flex:1;overflow-x:auto;overflow-y:auto;min-height:0;';
+
   const table = document.createElement('table');
   table.className = 'data-table';
   table.style.width = '100%';
@@ -439,7 +441,7 @@ function renderMain(main) {
   const hrow  = document.createElement('tr');
   columns.forEach(col => {
     const th = document.createElement('th');
-    th.style.cssText = 'white-space:nowrap;cursor:pointer;user-select:none;';
+    th.style.cssText = 'white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;z-index:2;';
     const isActive = S.orderBy === col.key;
     th.innerHTML = `${escapeHtml(col.label)}${isActive ? (S.orderDesc ? ' <span style="color:var(--green);">▼</span>' : ' <span style="color:var(--green);">▲</span>') : ' <span style="opacity:.3;">↕</span>'}`;
     th.addEventListener('click', () => {
@@ -467,35 +469,49 @@ function renderMain(main) {
   });
   table.append(tbody);
   tableWrap.append(table);
-  main.append(tableWrap);
+  card.append(tableWrap);
 
-  // Pagination
-  if (totalPages > 1) {
-    const pg = document.createElement('div');
-    pg.style.cssText = 'display:flex;gap:8px;align-items:center;margin-top:14px;';
+  // Pinned pagination footer (inside card, outside scroll)
+  const pg = document.createElement('div');
+  pg.style.cssText = 'display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:10px 14px;border-top:1px solid var(--border);flex-shrink:0;font-size:0.8rem;color:var(--text-dim);';
 
-    const prev = document.createElement('button');
-    prev.className = 'btn-outline';
-    prev.textContent = '← Prev';
-    prev.disabled = page <= 1;
-    prev.style.padding = '5px 12px';
-    prev.addEventListener('click', () => { S.page--; runReport(); });
+  const rangeSpan = document.createElement('span');
+  rangeSpan.textContent = `${start}–${end} of ${totalRows.toLocaleString()} rows`;
 
-    const info = document.createElement('span');
-    info.className = 'page-desc';
-    info.style.cssText = 'flex:1;text-align:center;';
-    info.textContent = `Page ${page} / ${totalPages}`;
+  const nav = document.createElement('div');
+  nav.style.cssText = 'display:flex;align-items:center;gap:6px;';
+  nav.innerHTML = `
+    <button class="btn-outline" id="crFirst" style="padding:4px 10px;" ${page <= 1 ? 'disabled' : ''}>«</button>
+    <button class="btn-outline" id="crPrev"  style="padding:4px 10px;" ${page <= 1 ? 'disabled' : ''}>‹ Prev</button>
+    <span style="font-size:0.78rem;">Page
+      <input type="number" id="crPageInput" value="${page}" min="1" max="${totalPages}"
+        style="width:64px;padding:3px 6px;font-size:0.78rem;margin:0 4px;display:inline-block;" class="input-field" />
+      of ${totalPages}
+    </span>
+    <button class="btn-outline" id="crNext" style="padding:4px 10px;" ${page >= totalPages ? 'disabled' : ''}>Next ›</button>
+    <button class="btn-outline" id="crLast" style="padding:4px 10px;" ${page >= totalPages ? 'disabled' : ''}>»</button>
+    <select class="input-field" id="crPerPage" style="margin:0;padding:4px 8px;font-size:0.78rem;width:auto;">
+      ${[25, 50, 100, 250, 500].map(n => `<option value="${n}"${n === pageSize ? ' selected' : ''}>${n} / page</option>`).join('')}
+    </select>`;
 
-    const next = document.createElement('button');
-    next.className = 'btn-outline';
-    next.textContent = 'Next →';
-    next.disabled = page >= totalPages;
-    next.style.padding = '5px 12px';
-    next.addEventListener('click', () => { S.page++; runReport(); });
+  pg.append(rangeSpan, nav);
+  card.append(pg);
 
-    pg.append(prev, info, next);
-    main.append(pg);
-  }
+  main.append(card);
+
+  pg.querySelector('#crFirst').addEventListener('click', () => { S.page = 1; runReport(); });
+  pg.querySelector('#crPrev').addEventListener('click',  () => { if (S.page > 1) { S.page--; runReport(); } });
+  pg.querySelector('#crNext').addEventListener('click',  () => { if (S.page < totalPages) { S.page++; runReport(); } });
+  pg.querySelector('#crLast').addEventListener('click',  () => { S.page = totalPages; runReport(); });
+  pg.querySelector('#crPageInput').addEventListener('change', e => {
+    const v = parseInt(e.target.value, 10);
+    if (!isNaN(v) && v >= 1 && v <= totalPages) { S.page = v; runReport(); }
+  });
+  pg.querySelector('#crPerPage').addEventListener('change', e => {
+    S.pageSize = parseInt(e.target.value, 10);
+    S.page = 1;
+    runReport();
+  });
 }
 
 function formatCell(v, type) {

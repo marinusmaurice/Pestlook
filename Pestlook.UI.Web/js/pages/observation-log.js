@@ -369,6 +369,8 @@ function showPhotosModal(urls, name) {
 /* ── CSV export ─────────────────────────────────────────────────────────── */
 
 async function exportCsv() {
+  const btn = document.getElementById('obsLogExportBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Exporting…'; }
   showToast('Preparing export…', 'info');
   try {
     const res = await getObservationLog({
@@ -416,8 +418,10 @@ async function exportCsv() {
     a.download = `observation-log-${new Date().toISOString().slice(0,10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    showToast(`Exported ${items.length} rows`, 'success');
+    showToast(`✓ Exported ${items.length.toLocaleString()} rows successfully`, 'success');
   } catch (e) {
     showToast('Export failed: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '⬇ Export CSV'; }
   }
 }
