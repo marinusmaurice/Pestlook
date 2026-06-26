@@ -21,10 +21,20 @@ const S = {
 
 export async function renderObservationLog(container) {
   let alive = true;
-  container._cleanup = () => { alive = false; };
-  container.style.cssText = 'display:flex;flex-direction:column;overflow:hidden;height:100%;';
+  const prevCssText = container.style.cssText;
+  container._cleanup = () => { container.style.cssText = prevCssText; };
+  container.style.cssText = 'display:flex;flex-direction:column;overflow:hidden;flex:1;min-height:0;padding:20px 28px;';
 
-  container.innerHTML = `<div style="padding:28px;"><div class="skeleton skeleton-title" style="width:260px;"></div><div class="skeleton skeleton-text" style="width:380px;margin-top:8px;"></div></div>`;
+  container.innerHTML = `
+    <div class="section-head" style="margin-bottom:16px;flex-shrink:0;">
+      <div>
+        <div class="skeleton skeleton-title" style="width:220px;"></div>
+        <div class="skeleton skeleton-text" style="width:360px;margin-top:8px;"></div>
+      </div>
+    </div>
+    <div class="card" style="flex:1;min-height:0;">
+      <div class="skeleton skeleton-card" style="height:100%;border-radius:0;"></div>
+    </div>`;
 
   try {
     const [farmsRes, fieldsRes, trapsRes, pestsRes] = await Promise.all([
@@ -48,65 +58,70 @@ export async function renderObservationLog(container) {
 
 function mount(container) {
   container.innerHTML = `
-    <div style="padding:24px 28px 0;flex-shrink:0;">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:4px;">
-        <div>
-          <div class="page-heading">Observation Log</div>
-          <div class="page-desc">Cross-session observation explorer — filter by date, location, pest, or scout</div>
+    <div class="section-head" style="margin-bottom:16px;flex-shrink:0;">
+      <div>
+        <div class="page-heading">Observation Log</div>
+        <div class="page-desc">Cross-session observation explorer — filter by date, location, pest, or scout</div>
+      </div>
+      <button class="btn-primary" id="obsLogExportBtn" style="padding:6px 14px;font-size:0.8rem;white-space:nowrap;">⬇ Export CSV</button>
+    </div>
+
+    <div class="card" style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;transform:none;transition:none;">
+
+      <!-- Filter bar -->
+      <div id="obs-log-filter-bar" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;padding:10px 14px;border-bottom:1px solid var(--border);flex-shrink:0;">
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <label style="font-size:0.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;">From</label>
+          <input type="date" id="obsLogFrom" class="input-field" style="padding:5px 8px;font-size:0.8rem;width:140px;margin:0;" />
         </div>
-        <button class="btn-outline" id="obsLogExportBtn" style="padding:6px 14px;font-size:0.8rem;white-space:nowrap;">⬇ Export CSV</button>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <label style="font-size:0.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;">To</label>
+          <input type="date" id="obsLogTo" class="input-field" style="padding:5px 8px;font-size:0.8rem;width:140px;margin:0;" />
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <label style="font-size:0.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;">Farm</label>
+          <select id="obsLogFarm" class="input-field" style="padding:5px 8px;font-size:0.8rem;width:160px;margin:0;">
+            <option value="">All farms</option>
+            ${S.farms.map(f => `<option value="${f.id}">${escapeHtml(f.name)}</option>`).join('')}
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <label style="font-size:0.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;">Field</label>
+          <select id="obsLogField" class="input-field" style="padding:5px 8px;font-size:0.8rem;width:160px;margin:0;">
+            <option value="">All fields</option>
+            ${S.fields.map(f => `<option value="${f.id}">${escapeHtml(f.name)}</option>`).join('')}
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <label style="font-size:0.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;">Trap</label>
+          <select id="obsLogTrap" class="input-field" style="padding:5px 8px;font-size:0.8rem;width:150px;margin:0;">
+            <option value="">All traps</option>
+            ${S.traps.map(t => `<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('')}
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <label style="font-size:0.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;">Pest</label>
+          <select id="obsLogPest" class="input-field" style="padding:5px 8px;font-size:0.8rem;width:160px;margin:0;">
+            <option value="">All pests</option>
+            ${S.pests.map(p => `<option value="${p.id}">${escapeHtml(p.commonName)}</option>`).join('')}
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <label style="font-size:0.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;">Scout</label>
+          <input type="text" id="obsLogScout" class="input-field" placeholder="Scout name…" style="padding:5px 8px;font-size:0.8rem;width:140px;margin:0;" />
+        </div>
+        <button class="btn-primary" id="obsLogApply" style="padding:6px 18px;font-size:0.8rem;align-self:flex-end;">Apply</button>
+        <button class="btn-outline" id="obsLogClear" style="padding:6px 12px;font-size:0.8rem;align-self:flex-end;">Clear</button>
       </div>
-    </div>
 
-    <!-- Filter bar -->
-    <div id="obs-log-filter-bar" style="padding:12px 28px;flex-shrink:0;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;">
-      <div style="display:flex;flex-direction:column;gap:3px;">
-        <label style="font-size:0.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;">From</label>
-        <input type="date" id="obsLogFrom" class="input-field" style="padding:5px 8px;font-size:0.8rem;width:140px;margin:0;" />
+      <!-- Table (scrolls) -->
+      <div id="obsLogTableArea" style="overflow-x:auto;overflow-y:auto;flex:1;min-height:0;">
+        <div style="text-align:center;padding:60px 0;color:var(--text-dim);">Loading…</div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:3px;">
-        <label style="font-size:0.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;">To</label>
-        <input type="date" id="obsLogTo" class="input-field" style="padding:5px 8px;font-size:0.8rem;width:140px;margin:0;" />
-      </div>
-      <div style="display:flex;flex-direction:column;gap:3px;">
-        <label style="font-size:0.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;">Farm</label>
-        <select id="obsLogFarm" class="input-field" style="padding:5px 8px;font-size:0.8rem;width:160px;margin:0;">
-          <option value="">All farms</option>
-          ${S.farms.map(f => `<option value="${f.id}">${escapeHtml(f.name)}</option>`).join('')}
-        </select>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:3px;">
-        <label style="font-size:0.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;">Field</label>
-        <select id="obsLogField" class="input-field" style="padding:5px 8px;font-size:0.8rem;width:160px;margin:0;">
-          <option value="">All fields</option>
-          ${S.fields.map(f => `<option value="${f.id}">${escapeHtml(f.name)}</option>`).join('')}
-        </select>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:3px;">
-        <label style="font-size:0.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;">Trap</label>
-        <select id="obsLogTrap" class="input-field" style="padding:5px 8px;font-size:0.8rem;width:150px;margin:0;">
-          <option value="">All traps</option>
-          ${S.traps.map(t => `<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('')}
-        </select>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:3px;">
-        <label style="font-size:0.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;">Pest</label>
-        <select id="obsLogPest" class="input-field" style="padding:5px 8px;font-size:0.8rem;width:160px;margin:0;">
-          <option value="">All pests</option>
-          ${S.pests.map(p => `<option value="${p.id}">${escapeHtml(p.commonName)}</option>`).join('')}
-        </select>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:3px;">
-        <label style="font-size:0.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;">Scout</label>
-        <input type="text" id="obsLogScout" class="input-field" placeholder="Scout name…" style="padding:5px 8px;font-size:0.8rem;width:140px;margin:0;" />
-      </div>
-      <button class="btn-primary" id="obsLogApply" style="padding:6px 18px;font-size:0.8rem;align-self:flex-end;">Apply</button>
-      <button class="btn-outline" id="obsLogClear" style="padding:6px 12px;font-size:0.8rem;align-self:flex-end;">Clear</button>
-    </div>
 
-    <!-- Table area -->
-    <div style="flex:1;overflow:auto;padding:16px 28px 28px;" id="obsLogTableArea">
-      <div style="text-align:center;padding:60px 0;color:var(--text-dim);">Loading…</div>
+      <!-- Pagination (pinned, never scrolls) -->
+      <div id="obsLogPagination"></div>
+
     </div>
   `;
 
@@ -170,8 +185,10 @@ async function runQuery(container) {
   if (S.loading) return;
   S.loading = true;
 
-  const area = document.getElementById('obsLogTableArea');
+  const area  = document.getElementById('obsLogTableArea');
+  const pagEl = document.getElementById('obsLogPagination');
   if (area) area.innerHTML = `<div style="text-align:center;padding:60px 0;"><span class="spinner"></span></div>`;
+  if (pagEl) pagEl.innerHTML = '';
 
   try {
     const res = await getObservationLog({
@@ -202,7 +219,9 @@ function renderTable(container) {
   if (!area) return;
   const paged = S.result;
   if (!paged || paged.items.length === 0) {
-    area.innerHTML = `<div style="text-align:center;padding:60px 0;font-size:0.88rem;color:var(--text-dim);">No observations match the selected filters.</div>`;
+    area.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><h3>No observations found</h3><p>Try adjusting your filters</p></div>`;
+    const pagEl = document.getElementById('obsLogPagination');
+    if (pagEl) pagEl.innerHTML = '';
     return;
   }
 
@@ -249,63 +268,69 @@ function renderTable(container) {
     </tr>`;
   });
 
-  const paginationHtml = totalPages > 1 ? `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding-top:14px;font-size:0.82rem;color:var(--text-dim);flex-wrap:wrap;gap:8px;">
-      <span>${start}–${end} of ${totalCount.toLocaleString()}</span>
-      <div style="display:flex;gap:4px;align-items:center;">
-        <button class="btn-outline" id="obsLogFirst" style="padding:4px 10px;" ${page <= 1 ? 'disabled' : ''}>«</button>
-        <button class="btn-outline" id="obsLogPrev"  style="padding:4px 10px;" ${page <= 1 ? 'disabled' : ''}>← Prev</button>
-        <input type="number" id="obsLogPageInput" value="${page}" min="1" max="${totalPages}"
-          style="width:54px;padding:4px 6px;font-size:0.8rem;text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);" />
-        <span style="white-space:nowrap;">/ ${totalPages}</span>
-        <button class="btn-outline" id="obsLogNext"  style="padding:4px 10px;" ${page >= totalPages ? 'disabled' : ''}>Next →</button>
-        <button class="btn-outline" id="obsLogLast"  style="padding:4px 10px;" ${page >= totalPages ? 'disabled' : ''}>»</button>
-      </div>
-    </div>` : `<div style="padding-top:8px;font-size:0.8rem;color:var(--text-dim);">${totalCount.toLocaleString()} result${totalCount !== 1 ? 's' : ''}</div>`;
-
   area.innerHTML = `
-    <div style="overflow-x:auto;">
-      <table class="data-table" style="min-width:1100px;">
-        <thead>
-          <tr>
-            <th style="width:36px;">#</th>
-            <th>Date</th>
-            <th>Farm</th>
-            <th>Field</th>
-            <th>Scout</th>
-            <th>Type</th>
-            <th>Trap</th>
-            <th>Pest</th>
-            <th>Mode</th>
-            <th>Count</th>
-            <th>Threshold</th>
-            <th>Present</th>
-            <th>Life Stage</th>
-            <th>Notes</th>
-            <th>Photos</th>
-            <th>Session</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>
-    ${paginationHtml}
+    <table class="data-table" style="width:100%;min-width:1100px;">
+      <thead style="position:sticky;top:0;z-index:1;background:var(--surface);">
+        <tr>
+          <th style="width:36px;">#</th>
+          <th>Date</th>
+          <th>Farm</th>
+          <th>Field</th>
+          <th>Scout</th>
+          <th>Type</th>
+          <th>Trap</th>
+          <th>Pest</th>
+          <th>Mode</th>
+          <th>Count</th>
+          <th>Threshold</th>
+          <th>Present</th>
+          <th>Life Stage</th>
+          <th>Notes</th>
+          <th>Photos</th>
+          <th>Session</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
   `;
 
-  // Pagination events
-  document.getElementById('obsLogFirst')?.addEventListener('click', () => { S.page = 1; runQuery(container); });
-  document.getElementById('obsLogPrev')?.addEventListener('click',  () => { S.page--; runQuery(container); });
-  document.getElementById('obsLogNext')?.addEventListener('click',  () => { S.page++; runQuery(container); });
-  document.getElementById('obsLogLast')?.addEventListener('click',  () => { S.page = totalPages; runQuery(container); });
-  document.getElementById('obsLogPageInput')?.addEventListener('keydown', e => {
-    if (e.key !== 'Enter') return;
-    const v = parseInt(e.target.value, 10);
-    if (!isNaN(v) && v >= 1 && v <= totalPages) { S.page = v; runQuery(container); }
-  });
-  document.getElementById('obsLogPageInput')?.addEventListener('blur', e => {
-    const v = parseInt(e.target.value, 10);
-    if (!isNaN(v) && v >= 1 && v <= totalPages && v !== page) { S.page = v; runQuery(container); }
-  });
+  // Pagination (pinned outside scroll area)
+  const pagEl = document.getElementById('obsLogPagination');
+  if (pagEl) {
+    pagEl.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;
+                  padding:10px 14px;border-top:1px solid var(--border);font-size:0.8rem;color:var(--text-dim);">
+        <span>${start}–${end} of ${totalCount.toLocaleString()} observations</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button class="btn-outline" id="obsLogFirst" style="padding:4px 10px;" ${page <= 1 ? 'disabled' : ''}>«</button>
+          <button class="btn-outline" id="obsLogPrev"  style="padding:4px 10px;" ${page <= 1 ? 'disabled' : ''}>‹ Prev</button>
+          <span style="font-size:0.78rem;">Page
+            <input type="number" id="obsLogPageInput" value="${page}" min="1" max="${totalPages}"
+              style="width:52px;padding:3px 6px;font-size:0.78rem;margin:0 4px;display:inline-block;" class="input-field" />
+            of ${totalPages}
+          </span>
+          <button class="btn-outline" id="obsLogNext"  style="padding:4px 10px;" ${page >= totalPages ? 'disabled' : ''}>Next ›</button>
+          <button class="btn-outline" id="obsLogLast"  style="padding:4px 10px;" ${page >= totalPages ? 'disabled' : ''}>»</button>
+          <select class="input-field pg-size" style="margin:0;padding:4px 8px;font-size:0.78rem;width:auto;">
+            ${[25, 50, 100].map(n => `<option value="${n}"${n === S.pageSize ? ' selected' : ''}>${n} / page</option>`).join('')}
+          </select>
+        </div>
+      </div>`;
+
+    pagEl.querySelector('#obsLogFirst').addEventListener('click', () => { S.page = 1; runQuery(container); });
+    pagEl.querySelector('#obsLogPrev').addEventListener('click',  () => { if (S.page > 1) { S.page--; runQuery(container); } });
+    pagEl.querySelector('#obsLogNext').addEventListener('click',  () => { if (S.page < totalPages) { S.page++; runQuery(container); } });
+    pagEl.querySelector('#obsLogLast').addEventListener('click',  () => { S.page = totalPages; runQuery(container); });
+    pagEl.querySelector('#obsLogPageInput').addEventListener('change', e => {
+      const v = parseInt(e.target.value, 10);
+      if (!isNaN(v) && v >= 1 && v <= totalPages) { S.page = v; runQuery(container); }
+    });
+    pagEl.querySelector('.pg-size').addEventListener('change', e => {
+      S.pageSize = parseInt(e.target.value, 10);
+      S.page = 1;
+      runQuery(container);
+    });
+  }
 
   // Photo modal
   area.querySelectorAll('.obs-log-photos-btn').forEach(btn => {
