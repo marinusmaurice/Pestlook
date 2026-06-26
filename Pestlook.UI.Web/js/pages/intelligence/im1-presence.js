@@ -2,7 +2,7 @@ import { escapeHtml } from '../../utils/helpers.js';
 import { C, kpiGrid, kpiCard, emptyState } from '../reports/utils.js';
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   IM1 — Presence Map
+   IM1 — Pest Presence
    data = {
      summary: { pestsTracked, newIntroductions, newlyClear, activePresence, confirmedAbsent },
      pests: [{

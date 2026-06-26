@@ -51,7 +51,7 @@ const SECTIONS = [
   {
     id:    'presence',
     group: '🧭 Spread & Movement',
-    label: '👁 Presence Map',
+    label: '👁 Pest Presence',
     desc:  'Track confirmed presence and absence per field × pest. Highlights new introductions and fields newly confirmed clear.',
   },
 ];

@@ -397,7 +397,7 @@ const SVG = {
 
   'intel-presence': `
   <div style="margin:16px 0 20px;padding:16px;background:#1a2820;border-radius:10px;overflow:hidden;">
-    <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#4ade80;margin-bottom:12px;">Presence Map — Field × Pest Status Grid</div>
+    <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#4ade80;margin-bottom:12px;">Pest Presence — Field × Pest Status Grid</div>
     <svg viewBox="0 0 460 170" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:460px;display:block;">
       <defs><style>text{font-family:Inter,sans-serif;}</style></defs>
       <rect width="460" height="170" rx="8" fill="#1a2e22"/>
@@ -1214,7 +1214,7 @@ const GROUPS = [
       {
         id:    'intel-presence',
         icon:  '👁',
-        title: 'Presence Map',
+        title: 'Pest Presence',
         intro: 'Tracks which pest species have been explicitly confirmed present or absent on each field, using presence-type observations recorded by scouts. Unlike count-based analytics, this tab answers a binary question per field: is this pest actually here right now, or has it been confirmed absent? The date range determines which observations are used to derive the current status.',
         items: [
           {
@@ -1263,15 +1263,15 @@ const GROUPS = [
           },
           {
             heading: 'Pest filter',
-            body: 'Use the <strong>Pest</strong> dropdown in the shared filter bar at the top of the page to narrow the Presence Map to a single species. This is useful when you manage many pests and want to focus on the status of one across all your fields.',
+            body: 'Use the <strong>Pest</strong> dropdown in the shared filter bar at the top of the page to narrow the Pest Presence to a single species. This is useful when you manage many pests and want to focus on the status of one across all your fields.',
           },
           {
             heading: 'Why a field might not appear',
-            body: 'A field only appears in the Presence Map if a scout has recorded at least one Presence-mode observation (Confirmed Present or Confirmed Absent) for that pest on that field. If scouts record observations in Count mode only, those records do not contribute to this tab. To populate the Presence Map, scouts should explicitly select Presence mode and mark the result when doing presence/absence checks.',
+            body: 'A field only appears in the Pest Presence if a scout has recorded at least one Presence-mode observation (Confirmed Present or Confirmed Absent) for that pest on that field. If scouts record observations in Count mode only, those records do not contribute to this tab. To populate the Pest Presence, scouts should explicitly select Presence mode and mark the result when doing presence/absence checks.',
           },
           {
             heading: 'Relationship to count-based analytics',
-            body: 'The Presence Map and the count-based analytics tabs (Threshold Alerts, Pest Pressure, Population Forecast) are complementary but independent. A field can show a high count in Pest Pressure without appearing in the Presence Map if scouts have never recorded a Presence-mode observation there. Conversely, a field can show "Absent" in the Presence Map even if older count observations exist, because the most recent explicit check confirmed absence.',
+            body: 'The Pest Presence and the count-based analytics tabs (Threshold Alerts, Pest Pressure, Population Forecast) are complementary but independent. A field can show a high count in Pest Pressure without appearing in the Pest Presence if scouts have never recorded a Presence-mode observation there. Conversely, a field can show "Absent" in the Pest Presence even if older count observations exist, because the most recent explicit check confirmed absence.',
           },
         ],
       },
