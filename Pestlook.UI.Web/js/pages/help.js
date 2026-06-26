@@ -459,6 +459,64 @@ const SVG = {
     </svg>
   </div>`,
 
+  'intel-hotspot': `
+  <div style="margin:16px 0 20px;padding:16px;background:#1a2820;border-radius:10px;overflow:hidden;">
+    <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#60a5fa;margin-bottom:12px;">Hotspot Map — GPS Scatter Map of Observations</div>
+    <svg viewBox="0 0 460 180" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:460px;display:block;">
+      <defs><style>text{font-family:Inter,sans-serif;}</style></defs>
+      <rect width="460" height="180" rx="8" fill="#1a2e22"/>
+      <!-- Toggle bar -->
+      <rect x="8" y="8" width="444" height="22" rx="4" fill="#243428"/>
+      <rect x="14" y="11" width="58" height="16" rx="8" fill="#3b82f6"/>
+      <text x="43" y="22" text-anchor="middle" fill="#fff" font-size="7" font-weight="700">📊 Count</text>
+      <rect x="76" y="11" width="62" height="16" rx="8" fill="#2d3f35"/>
+      <text x="107" y="22" text-anchor="middle" fill="#64748b" font-size="7">👁 Presence</text>
+      <rect x="160" y="11" width="1" height="16" fill="#334155"/>
+      <rect x="168" y="11" width="48" height="16" rx="8" fill="#2d3f35"/>
+      <text x="192" y="22" text-anchor="middle" fill="#64748b" font-size="7">⬡ Farms</text>
+      <rect x="220" y="11" width="50" height="16" rx="8" fill="#2d3f35"/>
+      <text x="245" y="22" text-anchor="middle" fill="#64748b" font-size="7">⬡ Fields</text>
+      <rect x="274" y="11" width="46" height="16" rx="8" fill="#2d3f35"/>
+      <text x="297" y="22" text-anchor="middle" fill="#64748b" font-size="7">📍 Traps</text>
+      <rect x="380" y="11" width="66" height="16" rx="8" fill="#243428" stroke="#334155"/>
+      <text x="413" y="22" text-anchor="middle" fill="#94a3b8" font-size="7">⬇ Export CSV</text>
+      <!-- Map background -->
+      <rect x="8" y="36" width="444" height="118" rx="4" fill="#1c2f24"/>
+      <!-- Farm boundary (dashed) -->
+      <rect x="40" y="50" width="200" height="90" rx="4" fill="none" stroke="#3aad5a" stroke-width="1.2" stroke-dasharray="5,3"/>
+      <!-- Field boundary -->
+      <rect x="55" y="62" width="80" height="64" rx="3" fill="#f0b84011" stroke="#f0b840" stroke-width="1"/>
+      <rect x="148" y="62" width="78" height="64" rx="3" fill="#f0b84011" stroke="#f0b840" stroke-width="1"/>
+      <!-- Observation dots — count mode -->
+      <circle cx="80"  cy="85"  r="6" fill="#60a5fa" opacity="0.85"/>
+      <circle cx="105" cy="100" r="6" fill="#60a5fa" opacity="0.85"/>
+      <circle cx="72"  cy="115" r="6" fill="#f59e0b" opacity="0.85"/>
+      <circle cx="118" cy="78"  r="6" fill="#ef4444" opacity="0.9"/>
+      <circle cx="92"  cy="118" r="6" fill="#60a5fa" opacity="0.85"/>
+      <circle cx="170" cy="90"  r="6" fill="#ef4444" opacity="0.9"/>
+      <circle cx="192" cy="110" r="6" fill="#f59e0b" opacity="0.85"/>
+      <circle cx="210" cy="76"  r="6" fill="#60a5fa" opacity="0.85"/>
+      <circle cx="155" cy="118" r="6" fill="#60a5fa" opacity="0.85"/>
+      <circle cx="300" cy="88"  r="6" fill="#ef4444" opacity="0.9"/>
+      <circle cx="330" cy="110" r="6" fill="#60a5fa" opacity="0.85"/>
+      <circle cx="355" cy="72"  r="6" fill="#f59e0b" opacity="0.85"/>
+      <circle cx="310" cy="130" r="6" fill="#60a5fa" opacity="0.85"/>
+      <circle cx="380" cy="95"  r="6" fill="#ef4444" opacity="0.9"/>
+      <!-- Trap markers (blue dots, smaller) -->
+      <circle cx="90"  cy="70" r="4" fill="#3b82f6" stroke="#fff" stroke-width="1.2"/>
+      <circle cx="175" cy="65" r="4" fill="#3b82f6" stroke="#fff" stroke-width="1.2"/>
+      <!-- Legend row -->
+      <circle cx="20"  cy="166" r="4" fill="#60a5fa"/>
+      <text x="28"  y="169" fill="#94a3b8" font-size="7">Within threshold</text>
+      <circle cx="110" cy="166" r="4" fill="#f59e0b"/>
+      <text x="118" y="169" fill="#94a3b8" font-size="7">Approaching</text>
+      <circle cx="190" cy="166" r="4" fill="#ef4444"/>
+      <text x="198" y="169" fill="#94a3b8" font-size="7">Breach</text>
+      <circle cx="255" cy="166" r="3" fill="#3b82f6" stroke="#fff" stroke-width="1"/>
+      <text x="263" y="169" fill="#94a3b8" font-size="7">Trap</text>
+    </svg>
+  </div>`,
+
   'intel-velocity': `
   <div style="margin:16px 0 20px;padding:16px;background:#1a2820;border-radius:10px;overflow:hidden;">
     <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#4ade80;margin-bottom:12px;">Velocity Sparkline — Reading Guide</div>
@@ -1272,6 +1330,58 @@ const GROUPS = [
           {
             heading: 'Relationship to count-based analytics',
             body: 'The Pest Presence and the count-based analytics tabs (Threshold Alerts, Pest Pressure, Population Forecast) are complementary but independent. A field can show a high count in Pest Pressure without appearing in the Pest Presence if scouts have never recorded a Presence-mode observation there. Conversely, a field can show "Absent" in the Pest Presence even if older count observations exist, because the most recent explicit check confirmed absence.',
+          },
+        ],
+      },
+      {
+        id:    'intel-hotspot',
+        icon:  '🗺',
+        title: 'Hotspot Map',
+        intro: 'Plots every GPS-tagged observation as a dot on an interactive map, coloured by pest severity. Instead of looking at tables, you see at a glance where on your land the pest pressure is highest — and where it is under control. Use the layer toggles to overlay farm and field boundaries and trap locations for full spatial context.',
+        items: [
+          {
+            heading: 'What shows on the map',
+            body: 'Each dot represents a single scout observation that was recorded with GPS coordinates. Observations without GPS data are excluded — the map only shows what was explicitly geo-tagged. The dot colour changes depending on which mode is active: <strong>Count mode</strong> colours by how the count compares to the action threshold; <strong>Presence mode</strong> colours by whether the pest was confirmed present or absent.',
+          },
+          {
+            heading: 'KPI cards',
+            body: '<strong>GPS Points</strong> — total observations with coordinates in the selected period. <strong>Threshold Breaches</strong> — observations where the count exceeded the action threshold (red when greater than 0). <strong>Confirmed Present</strong> — observations recorded in Presence mode with a "confirmed present" result. <strong>Confirmed Absent</strong> — observations recorded in Presence mode with a "confirmed absent" result.',
+          },
+          {
+            heading: 'Count mode (📊)',
+            body: 'Dots are coloured on a three-tier scale: <strong style="color:#60a5fa;">blue</strong> = count is within threshold; <strong style="color:#f59e0b;">amber</strong> = count is within 80–100 % of the threshold (approaching); <strong style="color:#ef4444;">red</strong> = count exceeds the threshold (breach). If an observation has no count recorded, the dot is grey. This mode is most useful for trap-based monitoring where you are tracking numeric pest counts per inspection.',
+          },
+          {
+            heading: 'Presence mode (👁)',
+            body: 'Dots are coloured by presence status: <strong style="color:#ef4444;">red</strong> = pest confirmed present; <strong style="color:#94a3b8;">grey</strong> = pest confirmed absent; <strong style="color:#f59e0b;">amber</strong> = observation has no presence data. Switch to this mode when you want to see the geographic distribution of confirmed-present versus confirmed-absent findings rather than numeric counts.',
+          },
+          {
+            heading: 'Farm boundaries layer (⬡ Farms)',
+            body: 'Toggle on to overlay the GeoJSON boundary of each farm on the map. Farm boundaries are drawn as dashed outlines in the farm\'s configured boundary colour. This helps you see which observations fall within a specific farm at a glance. Boundaries only appear if a farm has a boundary polygon configured — farms with no GeoJSON boundary are skipped.',
+          },
+          {
+            heading: 'Field boundaries layer (⬡ Fields)',
+            body: 'Toggle on to overlay individual field boundaries. Each field polygon is drawn in the field\'s configured colour with a light fill. Hovering a boundary shows the field name as a tooltip. Use this layer in combination with Count mode to see exactly which field sub-areas are generating breach observations.',
+          },
+          {
+            heading: 'Trap locations layer (📍 Traps)',
+            body: 'Toggle on to show all active traps as small blue markers on the map. Clicking a trap marker shows its name and trap type. This lets you cross-reference where traps are positioned relative to the observation hotspots — if breaches are clustering away from traps, it may indicate gaps in monitoring coverage.',
+          },
+          {
+            heading: 'Clicking a dot',
+            body: 'Click any observation dot to open a popup showing the pest name, field and farm, the status label (breach / approaching / within threshold in Count mode, or present / absent in Presence mode), the scout who recorded it, the date, and the exact GPS coordinates. This gives you traceability from a map hotspot back to the specific scouting event.',
+          },
+          {
+            heading: 'Export CSV (⬇)',
+            body: 'Exports all GPS-tagged observations currently shown on the map — respecting all active filters — to a CSV file. Columns include date, farm, field, pest, scout, count, threshold, whether the threshold was breached, presence status, and the raw latitude/longitude. Use this to share hotspot data with agronomists or to do further analysis in a spreadsheet.',
+          },
+          {
+            heading: 'Filters',
+            body: 'The Hotspot Map respects all shared filters at the top of the page: date range, farm, field, and pest. Narrowing the date range focuses the map on a specific scouting campaign; selecting a single pest lets you see its spatial distribution across the whole operation; selecting a farm zooms the data to that farm\'s observations only.',
+          },
+          {
+            heading: 'Why an observation might not appear',
+            body: 'Only observations with GPS coordinates recorded at the time of the observation are plotted. If a scout recorded an observation without GPS (for example, in an area with no signal or with GPS disabled on the device), that observation will not appear on the map — it will still count in all other analytics tabs. Encourage scouts to enable GPS on the mobile app before starting a session to maximise map coverage.',
           },
         ],
       },
