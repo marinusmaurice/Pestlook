@@ -395,6 +395,70 @@ const SVG = {
     </svg>
   </div>`,
 
+  'intel-presence': `
+  <div style="margin:16px 0 20px;padding:16px;background:#1a2820;border-radius:10px;overflow:hidden;">
+    <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#4ade80;margin-bottom:12px;">Presence Map — Field × Pest Status Grid</div>
+    <svg viewBox="0 0 460 170" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:460px;display:block;">
+      <defs><style>text{font-family:Inter,sans-serif;}</style></defs>
+      <rect width="460" height="170" rx="8" fill="#1a2e22"/>
+      <!-- Header row -->
+      <rect x="8" y="8" width="444" height="22" rx="4" fill="#243428"/>
+      <text x="20" y="22" fill="#64748b" font-size="7.5" font-weight="700">FIELD</text>
+      <text x="160" y="22" fill="#64748b" font-size="7.5" font-weight="700">STATUS</text>
+      <text x="280" y="22" fill="#64748b" font-size="7.5" font-weight="700">LAST CONFIRMED</text>
+      <text x="390" y="22" fill="#64748b" font-size="7.5" font-weight="700">CHECKS</text>
+      <!-- Row 1: New Introduction (amber) -->
+      <rect x="8" y="33" width="444" height="26" rx="3" fill="#1e3028"/>
+      <text x="20" y="47" fill="#e2e8f0" font-size="8" font-weight="600">North Paddock</text>
+      <text x="20" y="57" fill="#64748b" font-size="7">Green Valley Farm</text>
+      <rect x="150" y="37" width="90" height="14" rx="7" fill="#f59e0b22" stroke="#f59e0b88"/>
+      <text x="195" y="47" text-anchor="middle" fill="#f59e0b" font-size="7" font-weight="700">⚠ New Introduction</text>
+      <text x="286" y="47" fill="#64748b" font-size="7.5">12 Jun 2025</text>
+      <text x="395" y="47" fill="#f87171" font-size="7.5">8 ✓</text>
+      <text x="412" y="47" fill="#64748b" font-size="7.5"> / </text>
+      <text x="422" y="47" fill="#64748b" font-size="7.5">2 ✗</text>
+      <!-- Row 2: Present (red) -->
+      <rect x="8" y="62" width="444" height="26" rx="3" fill="#1e3028"/>
+      <text x="20" y="76" fill="#e2e8f0" font-size="8" font-weight="600">South Block</text>
+      <text x="20" y="86" fill="#64748b" font-size="7">Sunrise Estate</text>
+      <rect x="150" y="66" width="62" height="14" rx="7" fill="#f8717122" stroke="#f8717188"/>
+      <text x="181" y="76" text-anchor="middle" fill="#f87171" font-size="7" font-weight="700">● Present</text>
+      <text x="286" y="76" fill="#64748b" font-size="7.5">8 Jun 2025</text>
+      <text x="395" y="76" fill="#f87171" font-size="7.5">12 ✓</text>
+      <text x="412" y="76" fill="#64748b" font-size="7.5"> / </text>
+      <text x="422" y="76" fill="#64748b" font-size="7.5">3 ✗</text>
+      <!-- Row 3: Newly Clear (teal) -->
+      <rect x="8" y="91" width="444" height="26" rx="3" fill="#1e3028"/>
+      <text x="20" y="105" fill="#e2e8f0" font-size="8" font-weight="600">East Ridge</text>
+      <text x="20" y="115" fill="#64748b" font-size="7">Green Valley Farm</text>
+      <rect x="150" y="95" width="68" height="14" rx="7" fill="#14b8a622" stroke="#14b8a688"/>
+      <text x="184" y="105" text-anchor="middle" fill="#14b8a6" font-size="7" font-weight="700">✓ Newly Clear</text>
+      <text x="286" y="105" fill="#64748b" font-size="7.5">3 Jun 2025</text>
+      <text x="395" y="105" fill="#f87171" font-size="7.5">5 ✓</text>
+      <text x="412" y="105" fill="#64748b" font-size="7.5"> / </text>
+      <text x="422" y="105" fill="#64748b" font-size="7.5">9 ✗</text>
+      <!-- Row 4: Absent (grey) -->
+      <rect x="8" y="120" width="444" height="26" rx="3" fill="#1e3028"/>
+      <text x="20" y="134" fill="#e2e8f0" font-size="8" font-weight="600">West Field</text>
+      <text x="20" y="144" fill="#64748b" font-size="7">Sunrise Estate</text>
+      <rect x="150" y="124" width="54" height="14" rx="7" fill="#47556922" stroke="#47556988"/>
+      <text x="177" y="134" text-anchor="middle" fill="#94a3b8" font-size="7" font-weight="700">○ Absent</text>
+      <text x="286" y="134" fill="#64748b" font-size="7.5">28 May 2025</text>
+      <text x="395" y="134" fill="#f87171" font-size="7.5">1 ✓</text>
+      <text x="412" y="134" fill="#64748b" font-size="7.5"> / </text>
+      <text x="422" y="134" fill="#64748b" font-size="7.5">6 ✗</text>
+      <!-- Legend -->
+      <rect x="8" y="150" width="84" height="14" rx="3" fill="#f59e0b22" stroke="#f59e0b88"/>
+      <text x="50" y="160" text-anchor="middle" fill="#f59e0b" font-size="6.5" font-weight="700">⚠ New Introduction</text>
+      <rect x="98" y="150" width="50" height="14" rx="3" fill="#f8717122" stroke="#f8717188"/>
+      <text x="123" y="160" text-anchor="middle" fill="#f87171" font-size="6.5" font-weight="700">● Present</text>
+      <rect x="154" y="150" width="56" height="14" rx="3" fill="#14b8a622" stroke="#14b8a688"/>
+      <text x="182" y="160" text-anchor="middle" fill="#14b8a6" font-size="6.5" font-weight="700">✓ Newly Clear</text>
+      <rect x="216" y="150" width="46" height="14" rx="3" fill="#47556922" stroke="#47556988"/>
+      <text x="239" y="160" text-anchor="middle" fill="#94a3b8" font-size="6.5" font-weight="700">○ Absent</text>
+    </svg>
+  </div>`,
+
   'intel-velocity': `
   <div style="margin:16px 0 20px;padding:16px;background:#1a2820;border-radius:10px;overflow:hidden;">
     <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#4ade80;margin-bottom:12px;">Velocity Sparkline — Reading Guide</div>
@@ -869,7 +933,7 @@ const GROUPS = [
     id: 'intelligence',
     icon: '🧭',
     title: 'Spread & Movement Intelligence',
-    intro: 'The Spread & Movement section uses GPS-tagged observation history to show how pest populations are physically moving across your farms — where outbreaks originate, which fields are at risk from a nearby breach, and when a simultaneous multi-farm spike signals a regional event.',
+    intro: 'The Spread & Movement section uses GPS-tagged observation history to show how pest populations are physically moving across your farms — where outbreaks originate, which fields are at risk from a nearby breach, when a simultaneous multi-farm spike signals a regional event, and which fields have confirmed presence or confirmed absence of each pest species.',
     sections: [
       {
         id:    'intel-spread',
@@ -1144,6 +1208,70 @@ const GROUPS = [
           {
             heading: 'Data requirements',
             body: 'Velocity requires at least two consecutive weeks of observation data to compute a change. A pest with only one week of data shows velocity 0 and status Contained by default. The selected date range determines the period analysed — a narrow range (e.g. 2 weeks) will show very limited velocity history.',
+          },
+        ],
+      },
+      {
+        id:    'intel-presence',
+        icon:  '👁',
+        title: 'Presence Map',
+        intro: 'Tracks which pest species have been explicitly confirmed present or absent on each field, using presence-type observations recorded by scouts. Unlike count-based analytics, this tab answers a binary question per field: is this pest actually here right now, or has it been confirmed absent? The date range determines which observations are used to derive the current status.',
+        items: [
+          {
+            heading: 'What is a presence-type observation?',
+            body: 'When a scout records an observation, they can set the <strong>mode</strong> to either <em>Count</em> (entering a numeric quantity) or <em>Presence</em> (recording a confirmed yes/no finding). Only observations in Presence mode — explicitly marked "Confirmed Present" or "Confirmed Absent" — contribute to this tab. Count-based observations are not used here.',
+          },
+          {
+            heading: 'KPI Cards',
+            body: '<strong>Pests Tracked</strong> — the number of distinct pest species that have at least one confirmed-present or confirmed-absent presence observation within the selected period. <strong>New Introductions</strong> — field × pest combinations where the very first ever confirmed-present observation falls inside the current date range, meaning this is the first time the pest has been positively confirmed on that field. Shown in amber when greater than 0. <strong>Newly Clear</strong> — field × pest combinations where the pest was confirmed present at some point in the period but the most recent check confirmed it absent — a possible containment success. Shown in teal when greater than 0. <strong>Active Presence</strong> — combinations where the most recent presence check confirmed the pest is still present. Shown in red when greater than 0.',
+          },
+          {
+            heading: 'Status badges — ⚠ New Introduction (amber)',
+            body: 'The first ever confirmed-present observation for this pest on this field falls within the selected date range. This is not just "observed recently" — it means the pest has never been confirmed here before. A new introduction warrants immediate attention: check whether it arrived from an adjacent field (cross-reference the Spread Direction and Neighbour Risk tabs) and consider early intervention before the population establishes.',
+          },
+          {
+            heading: 'Status badges — ● Present (red)',
+            body: 'The most recent presence-type observation for this pest on this field recorded a confirmed-present finding. The pest is considered currently present. The <strong>Last Confirmed</strong> column shows when that most recent check took place — the older the date, the less certain the current status.',
+          },
+          {
+            heading: 'Status badges — ✓ Newly Clear (teal)',
+            body: 'The pest was confirmed present at some earlier point within the selected period, but the most recent presence check came back absent. This is a signal of possible containment success — treatment may be working or the population may have declined naturally. The status is provisional: confirm with one or two more "Confirmed Absent" checks before treating the field as cleared.',
+          },
+          {
+            heading: 'Status badges — ○ Absent (grey)',
+            body: 'The most recent presence-type check confirmed the pest was not found on this field. The field is not necessarily pest-free — it means a scout looked and did not find it. Continue routine scouting to maintain confidence in the absent status.',
+          },
+          {
+            heading: 'How the status is determined',
+            body: 'For each field × pest pair, the system finds all presence-type observations within the selected period and takes the most recent one. If its value is "Confirmed Present" the status is <em>Present</em>; if "Confirmed Absent" the status is <em>Absent</em>. The <em>Newly Clear</em> flag is set when the most recent check is Absent but at least one earlier check in the period was Present. The <em>New Introduction</em> flag is set when the all-time earliest confirmed-present observation for that pair falls inside the current date range.',
+          },
+          {
+            heading: 'First Detected column',
+            body: 'The date of the first ever confirmed-present observation for this pest on this field, across all time — not limited to the current date range. A dash (—) means no confirmed-present observation has ever been recorded. If this column shows a date within the current filter period, the row will also carry the <em>New Introduction</em> badge.',
+          },
+          {
+            heading: 'Checks ✓ / ✗ column',
+            body: 'Shows how many times scouts recorded this pest as <em>Confirmed Present</em> (✓, in red) versus <em>Confirmed Absent</em> (✗, in grey) within the selected period. A ratio that is heavily skewed toward ✓ with many checks is a strong signal of an established presence. A single ✓ in twenty checks may indicate an isolated sighting — worth monitoring but not necessarily alarming. Hover over either number for a tooltip clarifying what it counts.',
+          },
+          {
+            heading: 'Field sort order within each pest card',
+            body: 'Fields are sorted by urgency: <em>New Introduction</em> first (highest priority — new arrival), then <em>Present</em>, then <em>Newly Clear</em>, then <em>Absent</em>. Within each status tier, fields are listed alphabetically.',
+          },
+          {
+            heading: 'Pest sort order',
+            body: 'Pest cards are sorted by urgency: pests with the most new introductions appear first, then by active-presence count, then alphabetically. This puts your most alarming situations at the top without you needing to scroll or sort manually.',
+          },
+          {
+            heading: 'Pest filter',
+            body: 'Use the <strong>Pest</strong> dropdown in the shared filter bar at the top of the page to narrow the Presence Map to a single species. This is useful when you manage many pests and want to focus on the status of one across all your fields.',
+          },
+          {
+            heading: 'Why a field might not appear',
+            body: 'A field only appears in the Presence Map if a scout has recorded at least one Presence-mode observation (Confirmed Present or Confirmed Absent) for that pest on that field. If scouts record observations in Count mode only, those records do not contribute to this tab. To populate the Presence Map, scouts should explicitly select Presence mode and mark the result when doing presence/absence checks.',
+          },
+          {
+            heading: 'Relationship to count-based analytics',
+            body: 'The Presence Map and the count-based analytics tabs (Threshold Alerts, Pest Pressure, Population Forecast) are complementary but independent. A field can show a high count in Pest Pressure without appearing in the Presence Map if scouts have never recorded a Presence-mode observation there. Conversely, a field can show "Absent" in the Presence Map even if older count observations exist, because the most recent explicit check confirmed absence.',
           },
         ],
       },
