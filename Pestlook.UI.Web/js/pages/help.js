@@ -1397,7 +1397,7 @@ const GROUPS = [
         id:    'intel-forecast',
         icon:  '📈',
         title: 'Population Forecast',
-        intro: 'Uses a linear regression model fitted to your weekly observation history to project pest counts for the next four weeks per pest per field. Each projection comes with a confidence interval and a breach probability score.',
+        intro: 'Uses a linear regression model fitted to individual observation counts — never aggregated or summed — to project where pest populations are heading for each pest × field combination. Each bar on the chart is one recorded observation, plotted directly against the action threshold so the comparison is always apples-to-apples.',
         items: [
           {
             heading: 'KPI Cards',
@@ -1405,11 +1405,11 @@ const GROUPS = [
           },
           {
             heading: 'Risk table — Trend column',
-            body: '<span style="color:#c75146;font-weight:700;">↑ Rising</span> means the weekly count is trending upward (regression slope > 0.5 per week). <span style="color:#e5a52f;font-weight:700;">→ Stable</span> means counts are broadly flat (slope between −0.5 and +0.5). <span style="color:#2b6e4f;font-weight:700;">↓ Falling</span> means counts are declining (slope below −0.5). Click the Trend column header to sort.',
+            body: '<span style="color:#c75146;font-weight:700;">↑ Rising</span> means the regression slope projects an increase of more than 0.5 counts per week on average. <span style="color:#e5a52f;font-weight:700;">→ Stable</span> means counts are broadly flat (weekly-equivalent slope between −0.5 and +0.5). <span style="color:#2b6e4f;font-weight:700;">↓ Falling</span> means counts are declining by more than 0.5 per week on average. Click the Trend column header to sort.',
           },
           {
             heading: 'Risk table — Historical peak',
-            body: 'The highest single-week total observation count recorded for this pest on this field within the selected date range. This is the worst week seen so far, not an average.',
+            body: 'The highest count recorded in any single observation for this pest on this field within the selected date range. Because counts are never summed, this figure is directly comparable to the action threshold.',
           },
           {
             heading: 'Risk table — Projected (4 wk)',
@@ -1425,7 +1425,7 @@ const GROUPS = [
           },
           {
             heading: 'Detail chart — blue bars',
-            body: 'The blue bars show the actual observed total pest count for each historical week. Each bar represents all observations of this pest on this field summed across any scouting sessions that were completed in that calendar week.',
+            body: 'Each blue bar is a single recorded observation — the raw count exactly as the scout entered it. Observations are never summed or grouped, so the threshold line is directly comparable to each bar. Multiple observations on the same date each get their own bar.',
           },
           {
             heading: 'Detail chart — grey trend line',
@@ -1433,7 +1433,7 @@ const GROUPS = [
           },
           {
             heading: 'Detail chart — dashed amber line',
-            body: 'The dashed amber line is the forecast — the regression line extended into the future for the next four weeks. The amber dots mark each weekly projection point. Hover over a point to see the exact projected count for that week.',
+            body: 'The dashed amber line is the forecast — the regression line extended into the future in weekly steps. The amber dots mark each projected point. Hover over a dot to see the projected individual observation count for that week.',
           },
           {
             heading: 'Detail chart — shaded confidence band',
@@ -1449,7 +1449,7 @@ const GROUPS = [
           },
           {
             heading: 'How the forecast is calculated',
-            body: 'The system groups all observations for a pest × field combination into weekly totals (one value per Monday-to-Sunday window), then fits a straight-line trend through those values using ordinary least-squares regression. The line is extrapolated forward by the chosen number of weeks. The confidence interval width is derived from the residual standard error of the fit — how much the historical data scattered around the regression line. At least one week of observations is required; more weeks produce a more reliable forecast.',
+            body: 'The system takes every individual observation for a pest × field combination, plots each count against the number of days since the first observation, then fits a straight-line trend using ordinary least-squares regression. Counts are never summed or bucketed — each observation contributes one point to the regression. The trend line is extrapolated forward in weekly steps for the chosen forecast horizon. The confidence interval is derived from the residual standard error of the fit — how much individual observations scattered around the trend. The more consistent the scouting data, the narrower the band.',
           },
           {
             heading: 'Limitations',
@@ -1473,7 +1473,7 @@ const GROUPS = [
           },
           {
             heading: 'How breach probability is calculated',
-            body: 'The system fits a linear trend through the weekly observation history for each pest × field pair (the same regression used in Population Forecast). It then projects the count for the next week and computes the probability that the true count will exceed the threshold, taking into account how much the historical data scattered around the trend line. A steep rising trend combined with counts already close to the threshold produces a high probability; a flat or falling trend far below the threshold produces a low probability.',
+            body: 'The system fits a linear trend through individual observation counts for each pest × field pair (the same regression used in Population Forecast). It then projects the expected individual count for the next visit and computes the probability that the true count will exceed the threshold, taking into account how much historical observations scattered around the trend line. A steep rising trend with counts already close to the threshold produces a high probability; a flat or falling trend well below the threshold produces a low probability.',
           },
           {
             heading: 'Breach Probability column',
@@ -2200,7 +2200,7 @@ const FAQ = {
     { q: 'The Cross-Farm chart shows no outbreak weeks.', a: 'Try widening the date range to at least 12 months, or lower the Min Farms threshold to 2. All observations must come from at least two farms for cross-farm correlation to work.' },
   ],
   predictive: [
-    { q: 'The Population Forecast shows a wide confidence band.', a: 'A wide band means the historical data is noisy — pest counts vary significantly week to week. More consistent scouting data (same fields, same intervals) will narrow the band over time.' },
+    { q: 'The Population Forecast shows a wide confidence band.', a: 'A wide band means the historical data is noisy — individual observation counts vary significantly. More consistent scouting (same fields, similar intervals, similar conditions) will narrow the band over time as the regression has more data to work with.' },
     { q: 'A trap shows "Unknown" risk on the Trap Saturation page.', a: 'The trap had no catch observations in the selected period. Verify scouts are linking observations to the specific trap in Session Detail, and that the trap has been checked at least twice.' },
     { q: 'The scouting interval recommendation seems too short.', a: 'The recommended interval is based on the growth rate of pest populations on that field. A very rapid growth rate (≥100%) triggers a 3-day interval. If counts were unusually high in one week due to a data entry error, correct the observation and the interval will recalculate.' },
   ],

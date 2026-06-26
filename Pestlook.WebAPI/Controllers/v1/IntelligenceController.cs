@@ -575,51 +575,54 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 var first     = grp.First();
                 var threshold = grp.Max(o => o.ThresholdCount);
 
-                // Weekly totals, ordered chronologically
-                var weekly = grp
-                    .GroupBy(o => Monday(o.CompletedAt))
-                    .OrderBy(g => g.Key)
-                    .Select(wg => new { WeekStart = wg.Key, Total = wg.Sum(o => o.Count ?? 0) })
+                // Individual observations ordered chronologically
+                var pts = grp
+                    .OrderBy(o => o.CompletedAt)
+                    .Select(o => (Date: o.CompletedAt, Count: (double)(o.Count ?? 0)))
                     .ToList();
 
-                if (weekly.Count == 0) return null;
+                if (pts.Count == 0) return null;
 
-                // OLS linear regression: x = week index (0‥n-1), y = total count
-                int    n        = weekly.Count;
-                double xMean    = (n - 1) / 2.0;
-                double yMean    = weekly.Average(w => (double)w.Total);
-                double ssXX     = Enumerable.Range(0, n).Sum(i => Math.Pow(i - xMean, 2));
-                double ssXY     = weekly.Select((w, i) => (i - xMean) * (w.Total - yMean)).Sum();
-                double slope    = ssXX > 0 ? ssXY / ssXX : 0;
+                // OLS linear regression: x = days since first observation, y = individual count
+                var origin = pts[0].Date;
+                var xs     = pts.Select(p => (p.Date - origin).TotalDays).ToList();
+                double xMean    = xs.Average();
+                double yMean    = pts.Average(p => p.Count);
+                double ssXX     = xs.Sum(x => Math.Pow(x - xMean, 2));
+                double ssXY     = pts.Select((p, i) => (xs[i] - xMean) * (p.Count - yMean)).Sum();
+                double slope    = ssXX > 0 ? ssXY / ssXX : 0; // per day
                 double intercept = yMean - slope * xMean;
 
-                // Residual standard error for the 90 % CI (z = 1.645)
-                double sse = weekly.Select((w, i) => Math.Pow(w.Total - (intercept + slope * i), 2)).Sum();
-                double se  = n > 2 ? Math.Sqrt(sse / (n - 2)) : Math.Max(yMean * 0.2, 1);
+                // Residual SE for 90 % CI (z = 1.645)
+                double sse = pts.Select((p, i) => Math.Pow(p.Count - (intercept + slope * xs[i]), 2)).Sum();
+                double se  = pts.Count > 2 ? Math.Sqrt(sse / (pts.Count - 2)) : Math.Max(yMean * 0.2, 1);
 
-                var history = weekly.Select((w, i) => new
+                // History: one entry per individual observation
+                var history = pts.Select((p, i) => new
                 {
-                    weekStart   = w.WeekStart.ToString("yyyy-MM-dd"),
-                    totalCount  = w.Total,
-                    fittedCount = (int)Math.Max(0, Math.Round(intercept + slope * i)),
+                    observedAt  = p.Date.ToString("yyyy-MM-dd"),
+                    count       = (int)p.Count,
+                    fittedCount = (int)Math.Max(0, Math.Round(intercept + slope * xs[i])),
                 }).ToList();
 
+                // Forecast: weekly steps from last observation
+                double lastX = xs[^1];
                 var forecastPts = Enumerable.Range(1, weeksAhead).Select(k =>
                 {
-                    int    xi    = n - 1 + k;
+                    double xi    = lastX + 7 * k;
                     double proj  = Math.Max(0, intercept + slope * xi);
                     double lower = Math.Max(0, proj - 1.645 * se);
                     double upper = proj + 1.645 * se;
                     return new
                     {
-                        weekStart      = weekly.Last().WeekStart.AddDays(7 * k).ToString("yyyy-MM-dd"),
+                        forecastDate   = pts[^1].Date.AddDays(7 * k).ToString("yyyy-MM-dd"),
                         projectedCount = (int)Math.Round(proj),
                         lower          = (int)Math.Round(lower),
                         upper          = (int)Math.Round(upper),
                     };
                 }).ToList();
 
-                // Breach probability = fraction of forecast weeks whose upper-CI crosses threshold
+                // Breach probability = fraction of forecast points where upper CI >= threshold
                 double breachProbability = 0;
                 if (threshold.HasValue && threshold.Value > 0)
                 {
@@ -627,10 +630,10 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                     breachProbability = Math.Round((double)atRisk / weeksAhead, 2);
                 }
 
-                // Last projected count (week N)
                 int projectedPeak = forecastPts.Max(f => f.projectedCount);
 
-                string trend = slope > 0.5 ? "rising" : slope < -0.5 ? "falling" : "stable";
+                // Trend based on weekly-equivalent slope
+                string trend = slope * 7 > 0.5 ? "rising" : slope * 7 < -0.5 ? "falling" : "stable";
 
                 return (object?)new
                 {
@@ -642,7 +645,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                     threshold,
                     trend,
                     breachProbability,
-                    peakCount         = weekly.Max(w => w.Total),
+                    peakCount         = (int)pts.Max(p => p.Count),
                     projectedPeak,
                     history,
                     forecast          = forecastPts,

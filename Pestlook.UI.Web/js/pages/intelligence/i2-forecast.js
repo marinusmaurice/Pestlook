@@ -6,8 +6,8 @@ import { C, PALETTE, kpiGrid, kpiCard,
    I2 — Pest Population Forecast
    data = { forecasts: [ { pestId, pestName, fieldId, fieldName, farmName,
              threshold, trend, breachProbability, peakCount, projectedPeak,
-             history: [{ weekStart, totalCount, fittedCount }],
-             forecast: [{ weekStart, projectedCount, lower, upper }] } ] }
+             history: [{ observedAt, count, fittedCount }],
+             forecast: [{ forecastDate, projectedCount, lower, upper }] } ] }
 ───────────────────────────────────────────────────────────────────────────── */
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
@@ -73,7 +73,7 @@ export async function renderForecast(el, data) {
 
   /* ── Shell ───────────────────────────────────────────────────────────────── */
   el.innerHTML = `
-    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Applies ordinary least-squares (OLS) linear regression to weekly observation totals to project pest populations up to 12 weeks ahead. Each forecast includes a 90% confidence interval and a <strong>breach probability</strong> — the share of projected weeks where the upper confidence bound crosses the configured action threshold. Combinations are ranked highest-risk first so you can act before a breach occurs.</div>
+    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Applies ordinary least-squares (OLS) linear regression to individual observation counts to project pest populations up to 12 weeks ahead. Each dot on the chart is a single recorded observation — counts are never summed or aggregated, so the threshold line is directly comparable. Each forecast includes a 90% confidence interval and a <strong>breach probability</strong> — the share of projected weeks where the upper confidence bound crosses the configured action threshold. Combinations are ranked highest-risk first so you can act before a breach occurs.</div>
     ${kpiGrid([
       kpiCard('Pests Tracked',   pestCount,  'species with forecast data', '',
         'Number of distinct pest species for which at least one week of observation data exists, enabling a population trend projection.'),
@@ -331,7 +331,7 @@ export async function renderForecast(el, data) {
       <div style="border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
         <div style="font-size:0.7rem;color:var(--text-dim);margin-bottom:4px;">Historical peak</div>
         <div style="font-size:1.3rem;font-weight:700;">${(f.peakCount ?? 0).toLocaleString()}</div>
-        <div style="font-size:0.78rem;color:var(--text-dim);">any single week</div>
+        <div style="font-size:0.78rem;color:var(--text-dim);">any single observation</div>
       </div>
       <div style="border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
         <div style="font-size:0.7rem;color:var(--text-dim);margin-bottom:4px;">Projected peak</div>
@@ -343,12 +343,12 @@ export async function renderForecast(el, data) {
     // Build chart data
     await loadChartJs();
 
-    const histLabels  = f.history.map(h => h.weekStart);
-    const fcLabels    = f.forecast.map(p => p.weekStart);
+    const histLabels  = f.history.map(h => h.observedAt);
+    const fcLabels    = f.forecast.map(p => p.forecastDate);
     const allLabels   = [...histLabels, ...fcLabels];
     const histLen     = histLabels.length;
 
-    const histCounts  = f.history.map(h => h.totalCount);
+    const histCounts  = f.history.map(h => h.count);
     const fittedLine  = [
       ...f.history.map(h => h.fittedCount),
       ...f.forecast.map(p => p.projectedCount),
@@ -473,7 +473,7 @@ export async function renderForecast(el, data) {
           plugins: {
             legend:  { display: false },
             tooltip: {
-              callbacks: { title: ctx => `Week of ${ctx[0].label}` },
+              callbacks: { title: ctx => `Observation: ${ctx[0].label}` },
               filter: item => item.dataset.label !== 'Upper CI'
                            && item.dataset.label !== 'Lower CI',
             },
