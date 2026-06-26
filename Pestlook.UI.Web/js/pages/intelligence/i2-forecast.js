@@ -142,17 +142,7 @@ export async function renderForecast(el, data) {
       </div>
       <!-- Pagination bar -->
       <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-top:1px solid var(--border);background:var(--surface);flex-wrap:wrap;gap:8px;">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span id="fc-page-info" style="font-size:0.75rem;color:var(--text-dim);"></span>
-          <label style="font-size:0.75rem;color:var(--text-dim);display:flex;align-items:center;gap:4px;">
-            Rows
-            <select id="fc-pagesize" class="input-field" style="margin-top:0;padding:2px 6px;font-size:0.75rem;width:auto;">
-              <option value="10">10</option>
-              <option value="20" selected>20</option>
-              <option value="50">50</option>
-            </select>
-          </label>
-        </div>
+        <span id="fc-page-info" style="font-size:0.75rem;color:var(--text-dim);"></span>
         <div style="display:flex;gap:4px;">
           <button id="fc-prev" class="btn-outline" style="padding:4px 10px;font-size:0.75rem;">‹ Prev</button>
           <div id="fc-page-nums" style="display:flex;gap:2px;"></div>
