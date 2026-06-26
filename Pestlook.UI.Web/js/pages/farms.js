@@ -54,39 +54,38 @@ function renderFarmGrid(farms, fields) {
     const farmFields = fields.filter(f => f.farmId === farm.id);
     const c     = farmColors[i % farmColors.length];
     const emoji = farmEmojis[i % farmEmojis.length];
-    const farmHa  = parseFloat(farm.areaHectares) || 0;
-    const haText  = farmHa > 0
-      ? (farmHa % 1 === 0 ? farmHa : farmHa.toFixed(2)) + ' ha'
-      : '';
-    const crop = farmFields[0]?.cropType || '';
+    const farmHa     = parseFloat(farm.areaHectares) || 0;
+    const haText     = farmHa > 0 ? (farmHa % 1 === 0 ? farmHa : farmHa.toFixed(2)) + ' ha' : '';
+    const fieldsHaSum = farmFields.reduce((s, f) => s + (parseFloat(f.areaHectares) || 0), 0);
+    const allCrops   = [...new Set(farmFields.map(f => f.cropType).filter(Boolean))];
+    const crops      = allCrops.length > 4 ? allCrops.slice(0, 4).join(', ') + ' …' : allCrops.join(', ');
+
+    const fieldsMeta = [
+      `<strong style="color:var(--green);">${farmFields.length}</strong> field${farmFields.length !== 1 ? 's' : ''}`,
+      fieldsHaSum > 0 ? `${fieldsHaSum.toFixed(2)} ha` : '',
+      crops || '',
+    ].filter(Boolean).join(' · ');
 
     html += `
       <div class="card" style="display:flex;flex-direction:column;" data-farm-idx="${i}">
-        <div class="farm-card-header" style="background:linear-gradient(135deg,${c[0]},${c[1]});">
-          <div class="grid-overlay"></div>
-          ${emoji}
-        </div>
         <div class="card-p" style="flex:1;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
             <div style="display:flex;align-items:baseline;gap:8px;">
               <div style="font-weight:600;color:var(--text);font-size:0.95rem;">${escapeHtml(farm.name)}</div>
               ${haText ? `<span style="font-size:0.75rem;color:var(--text-dim);">${haText}</span>` : ''}
             </div>
             ${farm.isActive !== false ? tag('Active', 'green') : tag('Inactive', 'red')}
           </div>
-          <div style="font-size:0.78rem;color:var(--text-dim);margin-bottom:12px;">📍 ${escapeHtml(farm.address || 'No address')}</div>
-          <div style="background:var(--surface2);border-radius:8px;padding:8px 10px;display:flex;align-items:center;justify-content:space-between;">
-            <div>
-              <div style="font-size:0.65rem;color:var(--text-dim);margin-bottom:2px;text-transform:uppercase;letter-spacing:0.06em;">Fields</div>
-              <div style="font-family:'Fraunces',serif;font-weight:700;color:var(--green);font-size:1.2rem;">${farmFields.length}</div>
-            </div>
-            <span data-manage-farm="${farm.id}" style="font-size:0.72rem;color:var(--green);font-weight:500;cursor:pointer;">Manage fields →</span>
-          </div>
+          <div style="font-size:0.78rem;color:var(--text-dim);margin-bottom:10px;">📍 ${escapeHtml(farm.address || 'No address')}</div>
+          <div style="font-size:0.78rem;color:var(--text-dim);background:var(--surface2);border-radius:8px;padding:7px 10px;">🌿 ${fieldsMeta}</div>
+        </div>
+        <div style="padding:0 14px 10px;flex-shrink:0;">
+          <button class="btn-primary" style="width:100%;justify-content:center;font-size:0.82rem;" data-manage-farm="${farm.id}">🌿 Manage Fields</button>
         </div>
         <div style="display:flex;gap:6px;padding:10px 14px;border-top:1px solid var(--border);">
           <button class="btn-outline" style="flex:1;padding:5px 0;font-size:0.75rem;justify-content:center;" data-edit-farm="${farm.id}">✏️ Edit</button>
-          ${farm.boundaryGeoJson ? `<button class="btn-outline" style="padding:5px 8px;font-size:0.75rem;" data-map-farm="${farm.id}" title="View boundary map">🗺</button>` : ''}
-          <button class="btn-danger"  style="flex:1;padding:5px 0;font-size:0.75rem;" data-delete-farm="${farm.id}">🗑 Delete</button>
+          ${farm.boundaryGeoJson ? `<button class="btn-outline" style="flex:1;padding:5px 0;font-size:0.75rem;justify-content:center;" data-map-farm="${farm.id}">🗺 View Map</button>` : ''}
+          <button class="btn-danger" style="flex:1;padding:5px 0;font-size:0.75rem;" data-delete-farm="${farm.id}">🗑 Delete</button>
         </div>
       </div>`;
   });
