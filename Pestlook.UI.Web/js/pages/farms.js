@@ -238,7 +238,7 @@ function renderFieldsPanel(farm, farmIdx, fields) {
           <td style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:var(--text-dim);white-space:nowrap;">${formatDate(f.createdAt)}</td>
           <td style="white-space:nowrap;text-align:right;">
             <div style="display:inline-flex;gap:6px;align-items:center;">
-              ${f.geoBoundary ? `<button class="btn-outline" style="padding:4px 8px;font-size:0.75rem;" data-map-field="${f.id}" title="View / edit boundary">🗺</button>` : ''}
+              ${f.geoBoundary ? `<button class="btn-outline" style="padding:4px 10px;font-size:0.75rem;" data-map-field="${f.id}" title="View / edit boundary">🗺 Map</button>` : ''}
               <button class="btn-outline" style="padding:4px 10px;font-size:0.75rem;" data-edit-field="${f.id}">✏ Edit</button>
               <button class="btn-outline" style="padding:4px 10px;font-size:0.75rem;color:var(--red);border-color:var(--red);" data-delete-field="${f.id}">Delete</button>
             </div>
