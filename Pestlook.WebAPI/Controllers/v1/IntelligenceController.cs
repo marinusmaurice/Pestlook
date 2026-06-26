@@ -1252,46 +1252,49 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 var first     = grp.First();
                 var threshold = grp.Max(o => o.ThresholdCount) ?? 0;
 
-                var weekly = grp
-                    .GroupBy(o => Monday(o.CompletedAt))
-                    .OrderBy(g => g.Key)
-                    .Select(wg => new { WeekStart = wg.Key, Total = wg.Sum(o => o.Count ?? 0) })
+                // Individual observations ordered chronologically — no weekly summing
+                var pts = grp
+                    .OrderBy(o => o.CompletedAt)
+                    .Select(o => (Date: o.CompletedAt, Count: (double)(o.Count ?? 0)))
                     .ToList();
 
-                int n = weekly.Count;
+                int n = pts.Count;
                 if (n == 0) return null;
 
-                // OLS slope
-                double xMean = (n - 1) / 2.0;
-                double yMean = weekly.Average(w => (double)w.Total);
-                double ssXX  = Enumerable.Range(0, n).Sum(i => Math.Pow(i - xMean, 2));
-                double ssXY  = weekly.Select((w, i) => (i - xMean) * (w.Total - yMean)).Sum();
-                double slope = ssXX > 0 ? ssXY / ssXX : 0;
+                // OLS: x = days since first observation, y = individual count
+                var origin = pts[0].Date;
+                var xs     = pts.Select(p => (p.Date - origin).TotalDays).ToList();
+                double xMean    = xs.Average();
+                double yMean    = pts.Average(p => p.Count);
+                double ssXX     = xs.Sum(x => Math.Pow(x - xMean, 2));
+                double ssXY     = pts.Select((p, i) => (xs[i] - xMean) * (p.Count - yMean)).Sum();
+                double slope    = ssXX > 0 ? ssXY / ssXX : 0; // per day
                 double intercept = yMean - slope * xMean;
-                double projected = Math.Max(0, intercept + slope * n);
 
-                double sse = weekly.Select((w, i) => Math.Pow(w.Total - (intercept + slope * i), 2)).Sum();
+                // Project one week ahead from the last observation
+                double lastX    = xs[^1];
+                double projected = Math.Max(0, intercept + slope * (lastX + 7));
+
+                double sse = pts.Select((p, i) => Math.Pow(p.Count - (intercept + slope * xs[i]), 2)).Sum();
                 double se  = n > 2 ? Math.Sqrt(sse / (n - 2)) : Math.Max(yMean * 0.2, 1);
 
-                // Probability that the next session's count will exceed threshold
+                // P(next individual observation > threshold)
                 double prob = 0.5;
                 if (threshold > 0)
                 {
-                    // z-score of (threshold - projected) / se, then 1 - Φ(z)
                     double z = (threshold - projected) / Math.Max(se, 1);
                     prob = 1.0 - NormalCdf(z);
                 }
                 else if (projected > 0)
                 {
-                    // No threshold set — use relative change as proxy
-                    prob = Math.Min(1.0, Math.Max(0, slope / Math.Max(yMean, 1)));
+                    prob = Math.Min(1.0, Math.Max(0, (slope * 7) / Math.Max(yMean, 1)));
                 }
 
-                string risk = prob >= 0.6 ? "High" : prob >= 0.3 ? "Medium" : "Low";
-                string trend = slope > 0.5 ? "Rising" : slope < -0.5 ? "Falling" : "Stable";
+                string risk  = prob >= 0.6 ? "High" : prob >= 0.3 ? "Medium" : "Low";
+                string trend = slope * 7 > 0.5 ? "Rising" : slope * 7 < -0.5 ? "Falling" : "Stable";
 
                 int daysToNext = slope > 0 && threshold > 0 && projected < threshold
-                    ? (int)Math.Ceiling((threshold - projected) / Math.Max(slope / 7.0, 0.01))
+                    ? (int)Math.Ceiling((threshold - projected) / Math.Max(slope, 0.001))
                     : slope <= 0 ? -1 : 0;
 
                 return (object?)new
@@ -1302,13 +1305,13 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                     fieldName         = first.FieldName,
                     farmName          = first.FarmName,
                     threshold,
-                    currentLevel      = weekly.Last().Total,
+                    currentLevel      = (int)pts[^1].Count,
                     projectedNext     = (int)Math.Round(projected),
                     breachProbability = Math.Round(prob, 3),
                     risk,
                     trend,
                     daysToBreachEstimate = daysToNext,
-                    weeklyHistory     = weekly.Select(w => new { weekStart = w.WeekStart.ToString("yyyy-MM-dd"), total = w.Total }).ToList<object>(),
+                    weeklyHistory     = pts.Select(p => new { observedAt = p.Date.ToString("yyyy-MM-dd"), count = (int)p.Count }).ToList<object>(),
                 };
             })
             .Where(c => c != null)

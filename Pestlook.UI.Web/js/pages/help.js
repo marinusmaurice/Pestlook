@@ -1461,55 +1461,43 @@ const GROUPS = [
         id:    'intel-breach',
         icon:  '🚦',
         title: 'Threshold Breach Probability',
-        intro: 'Calculates the statistical probability that the very next scouting session on each field will record a pest count above the configured action threshold. Unlike the Population Forecast which shows trends over weeks, this tab focuses on one question: is this field likely to breach its threshold at the next visit?',
+        intro: 'For each pest × field combination, fits a trend line through individual scouting counts, projects 7 days forward, and calculates the probability that next observation will exceed your action threshold. One question: is this field likely to breach at the next visit?',
         items: [
           {
             heading: 'What is an action threshold?',
-            body: 'An action threshold is the pest count above which the economic cost of crop damage exceeds the cost of treatment. For example, if the threshold for aphids on a field is 50, any single observation recording 51 or more aphids means control action is warranted. Thresholds are configured per pest in the Pest Catalogue.',
-          },
-          {
-            heading: 'KPI Cards',
-            body: '<strong>Combinations Assessed</strong> — the total number of pest × field pairs analysed. <strong>High Risk</strong> — pairs where breach probability is 60% or higher; shown in red. <strong>Medium Risk</strong> — pairs at 30–59%; shown in amber. <strong>Low Risk</strong> — pairs below 30%; shown in green.',
+            body: 'The pest count above which treatment cost is justified by crop damage risk. Thresholds are compared against individual observation counts — a single session recording above the threshold constitutes a breach. Set thresholds in the Pest Catalogue.',
           },
           {
             heading: 'How breach probability is calculated',
-            body: 'The system fits a linear trend through individual observation counts for each pest × field pair (the same regression used in Population Forecast). It then projects the expected individual count for the next visit and computes the probability that the true count will exceed the threshold, taking into account how much historical observations scattered around the trend line. A steep rising trend with counts already close to the threshold produces a high probability; a flat or falling trend well below the threshold produces a low probability.',
+            body: 'OLS linear regression is fitted to all individual observation counts for the pest × field pair (same approach as Population Forecast — one data point per scouting session, not weekly totals). The trend line is extended 7 days beyond the last observation. A z-score is then computed as <em>(threshold − projected) ÷ residual standard error</em> and converted via the normal CDF to a breach probability. Rising trend + counts near the threshold → high probability. Flat or falling trend well below threshold → low probability.',
           },
           {
-            heading: 'Breach Probability column',
-            body: 'Shown as a percentage. <span style="color:#c75146;font-weight:600;">60%+</span> = High risk — treat this field as a priority for the next scouting run. <span style="color:#e5a52f;font-weight:600;">30–59%</span> = Medium risk — schedule a visit and monitor closely. <span style="color:#2b6e4f;font-weight:600;">Below 30%</span> = Low risk — maintain normal frequency. The column is sorted highest-first by default.',
+            heading: 'KPI cards',
+            body: '<strong>Combinations</strong> — total pest × field pairs assessed. <strong style="color:#c0392b;">High ≥ 60%</strong> — act now. <strong style="color:#e67e22;">Medium 30–59%</strong> — monitor closely. <strong style="color:#27ae60;">Low &lt; 30%</strong> — routine scouting.',
           },
           {
-            heading: 'Risk column',
-            body: 'A quick colour-coded label: <span style="color:#c75146;font-weight:700;">High</span> / <span style="color:#e5a52f;font-weight:700;">Medium</span> / <span style="color:#2b6e4f;font-weight:700;">Low</span>. Click the Risk column header to group rows by risk level.',
+            heading: 'Current column',
+            body: 'The pest count from the most recent scouting session for that pest on that field — a single observation count, not a cumulative or weekly total. This is the last real measurement; everything to the right is model-derived.',
           },
           {
-            heading: 'Current Level column',
-            body: 'The total pest count recorded in the most recent scouting week for this pest on this field. This is the last known real measurement — everything to the right of this is model-derived.',
-          },
-          {
-            heading: 'Projected Next column',
-            body: 'The model\'s best estimate of next week\'s count, based on the current trend. If this already exceeds the threshold, the pest has likely already breached — check when the last session was completed and whether a visit is overdue.',
+            heading: 'Projected column',
+            body: 'The model\'s estimate of the individual count 7 days from the last observation. If this already exceeds the threshold, breach has likely already occurred — check whether a visit is overdue.',
           },
           {
             heading: 'Trend column',
-            body: '<span style="color:#c75146;font-weight:700;">↑ Rising</span>, <span style="color:#94a3b8;font-weight:700;">→ Stable</span>, or <span style="color:#4ade80;font-weight:700;">↓ Falling</span> — the direction of the underlying trend line. A falling trend can still produce a high breach probability if the current level is already very close to the threshold.',
+            body: '<span style="color:#c75146;font-weight:700;">↑ Rising</span> — population growing week-on-week. <span style="color:#94a3b8;font-weight:700;">→ Stable</span> — minimal change. <span style="color:#4ade80;font-weight:700;">↓ Falling</span> — declining. A falling trend can still produce a high breach probability if counts are persistently close to the threshold.',
           },
           {
-            heading: 'Days-to-Breach Estimate column',
-            body: 'When the trend is rising and the current projected count is still below the threshold, this shows how many days it would take (at the current rate of growth) for the projected count to reach the threshold. A value of <strong>−1</strong> means the trend is falling — no breach is expected at the current trajectory. A value of <strong>0</strong> means the count is already at or above the threshold. Use this to schedule field visits before the breach date.',
+            heading: 'Days-to-Breach estimate',
+            body: 'For rising trends below the threshold, the estimated number of days until the projection reaches the threshold at the current growth rate. <strong>0</strong> = already at or above threshold. <strong>−1</strong> = trend is falling, no breach expected on current trajectory.',
           },
           {
-            heading: 'Weekly History sparkline',
-            body: 'Each row has a small bar chart showing the week-by-week history. A flat or declining sparkline with a high breach probability means the current level is persistently close to the threshold even without growing — no upward push is needed for the threshold to be crossed.',
+            heading: 'What to do when High Risk',
+            body: '1. Check Days-to-Breach — under 7 means schedule a visit immediately. 2. Cross-reference Population Forecast for the 4-week confidence interval. 3. Always confirm with a physical inspection before initiating treatment — models project trends, not certainties.',
           },
           {
-            heading: 'What to do when a field is High Risk',
-            body: '1. Look at the Days-to-Breach estimate — if it is less than 7, an urgent visit should be scheduled immediately. 2. Check the Population Forecast tab for this field to see the 4-week trajectory and confidence interval. 3. If the Trend is Rising, consider whether any recent scouting observations were taken during unusually favourable conditions for the pest (check the Weather Risk tab). 4. Consult your agronomist before initiating a treatment based solely on the model — always verify with a physical inspection.',
-          },
-          {
-            heading: 'What if there is no threshold configured?',
-            body: 'If a pest has no action threshold set in the Pest Catalogue, the system uses the rate of population change relative to the average count as a proxy risk score. The result is less precise. Set a threshold in the Pest Catalogue to get accurate probabilities for all pests.',
+            heading: 'No threshold configured?',
+            body: 'When no threshold is set in the Pest Catalogue, the system uses population growth rate relative to average count as a proxy. Results are less precise. Set a threshold to get accurate probabilities.',
           },
         ],
       },
