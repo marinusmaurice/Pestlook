@@ -1,19 +1,22 @@
 import { getFarms }  from '../api/farms.js';
 import { getFields } from '../api/fields.js';
 import { getPests }  from '../api/pests.js';
+import { getTraps }  from '../api/traps.js';
 import { showToast } from '../components/toast.js';
 import { escapeHtml, toLocalDateString } from '../utils/helpers.js';
 import { emptyState } from './reports/utils.js';
 
 import { getSpreadDirection, getSpreadVelocity,
          getOriginDetection, getNeighbourRisk,
-         getCrossFarmCorrelation, getPresenceMap }    from '../api/intelligence.js';
+         getCrossFarmCorrelation, getPresenceMap,
+         getHotspotMap }                              from '../api/intelligence.js';
 import { renderSpreadDirection }      from './intelligence/i1-spread.js';
 import { renderSpreadVelocity }       from './intelligence/i5b-velocity.js';
 import { renderOriginDetection }      from './intelligence/i3-origin.js';
 import { renderNeighbourRisk }        from './intelligence/i4-neighbour.js';
 import { renderCrossFarmCorrelation } from './intelligence/i5-crossfarm.js';
 import { renderPresenceMap }          from './intelligence/im1-presence.js';
+import { renderHotspotMap }           from './intelligence/im2-hotspot.js';
 
 /* ── Tab registry ──────────────────────────────────────────────────────────── */
 
@@ -53,6 +56,12 @@ const SECTIONS = [
     group: '🧭 Spread & Movement',
     label: '👁 Pest Presence',
     desc:  'Track confirmed presence and absence per field × pest. Highlights new introductions and fields newly confirmed clear.',
+  },
+  {
+    id:    'hotspot',
+    group: '🧭 Spread & Movement',
+    label: '🗺 Hotspot Map',
+    desc:  'GPS scatter map of all observations. Colour by count vs threshold or by presence status. Toggle farm/field boundaries and trap locations.',
   },
 ];
 
@@ -128,21 +137,24 @@ export async function renderIntelligence(container) {
     </div>
   `;
 
-  // ── Load farm/field/pest lookups ─────────────────────────────────────────
+  // ── Load farm/field/pest/trap lookups ────────────────────────────────────
   let farms  = [];
   let fields = [];
   let pests  = [];
+  let traps  = [];
 
   try {
-    const [farmsRes, fieldsRes, pestsRes] = await Promise.all([
+    const [farmsRes, fieldsRes, pestsRes, trapsRes] = await Promise.all([
       getFarms().catch(() => ({ data: [] })),
       getFields().catch(() => ({ data: [] })),
       getPests().catch(() => ({ data: [] })),
+      getTraps(true).catch(() => ({ data: [] })),
     ]);
     if (!alive) return;
     farms  = farmsRes.data  ?? [];
     fields = fieldsRes.data ?? [];
     pests  = pestsRes.data  ?? [];
+    traps  = trapsRes.data  ?? [];
   } catch { /* non-fatal */ }
 
   // Populate farm dropdown
@@ -279,6 +291,13 @@ export async function renderIntelligence(container) {
         const data = res?.data ?? { summary: {}, pests: [] };
         body.innerHTML = '';
         renderPresenceMap(body, data);
+
+      } else if (activeId === 'hotspot') {
+        const res  = await getHotspotMap({ ...iFilters }, signal);
+        if (!alive || signal.aborted) return;
+        const data = res?.data ?? { summary: {}, points: [] };
+        body.innerHTML = '';
+        await renderHotspotMap(body, data, { farms, fields, traps });
       }
     } catch (err) {
       if (err.name === 'AbortError' || !alive || signal.aborted) return;

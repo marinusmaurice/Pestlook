@@ -3938,6 +3938,68 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
         return Ok(ApiResponse<object>.Ok(new { summary, pests = byPest }));
     }
 
+    // ── IM2 · GPS Hotspot Map ────────────────────────────────────────────────
+
+    [HttpGet("hotspot-map")]
+    public async Task<IActionResult> GetHotspotMap(
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to,
+        [FromQuery] Guid?     farmId,
+        [FromQuery] Guid?     fieldId,
+        [FromQuery] Guid?     pestId,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var (start, end) = await ResolveRangeAsync(from, to, 180, ct);
+
+            var q = db.SessionObservations
+                .Where(o => !o.IsUnknownPest
+                         && o.PestId != null
+                         && o.Session.CompletedAt != null
+                         && o.Session.CompletedAt >= start
+                         && o.Session.CompletedAt <= end
+                         && o.Latitude  != null
+                         && o.Longitude != null);
+
+            if (farmId.HasValue)  q = q.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
+            if (fieldId.HasValue) q = q.Where(o => o.Session.FieldId == fieldId);
+            if (pestId.HasValue)  q = q.Where(o => o.PestId == pestId);
+
+            var points = await q
+                .OrderBy(o => o.Session.CompletedAt)
+                .Select(o => new
+                {
+                    PestName      = o.Pest!.CommonName,
+                    FieldName     = o.Session.Field != null ? o.Session.Field.Name : null,
+                    FarmName      = o.Session.Farm  != null ? o.Session.Farm.Name
+                                  : o.Session.Field != null && o.Session.Field.Farm != null ? o.Session.Field.Farm.Name : null,
+                    ScoutName     = o.Session.Scouter != null ? o.Session.Scouter.UserName : null,
+                    o.Count,
+                    o.ThresholdCount,
+                    o.IsPresent,
+                    ObservedAt    = (DateTime?)(o.ObservedAt ?? o.Session.CompletedAt),
+                    Lat           = o.Latitude!.Value,
+                    Lng           = o.Longitude!.Value,
+                })
+                .ToListAsync(ct);
+
+            var summary = new
+            {
+                TotalPoints      = points.Count,
+                Breaches         = points.Count(p => p.ThresholdCount != null && p.Count > p.ThresholdCount),
+                ConfirmedPresent = points.Count(p => p.IsPresent == true),
+                ConfirmedAbsent  = points.Count(p => p.IsPresent == false),
+            };
+
+            return Ok(ApiResponse<object>.Ok(new { summary, points }));
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            return NoContent();
+        }
+    }
+
     // ── Private record ──────────────────────────────────────────────────────
 
     private sealed record RawObs(
