@@ -3806,6 +3806,138 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
         return R * 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
     }
 
+    // ── Presence Map ────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// For each field × pest combination that has at least one presence-type
+    /// observation (IsPresent != null), returns the current status (Present /
+    /// Absent), first-ever detection date, and whether this is a new introduction
+    /// or a newly cleared field within the selected period.
+    /// </summary>
+    [HttpGet("presence-map")]
+    public async Task<IActionResult> GetPresenceMap(
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to,
+        [FromQuery] Guid?     farmId,
+        [FromQuery] Guid?     fieldId,
+        [FromQuery] Guid?     pestId,
+        CancellationToken ct = default)
+    {
+        var (start, end) = await ResolveRangeAsync(from, to, 180, ct);
+
+        // ── All presence observations within the filter period ───────────────
+        var q = db.SessionObservations
+            .Where(o => o.IsPresent != null
+                     && !o.IsUnknownPest
+                     && o.PestId != null
+                     && o.Session.FieldId != null
+                     && o.Session.CompletedAt != null
+                     && o.Session.CompletedAt >= start
+                     && o.Session.CompletedAt <= end);
+
+        if (farmId.HasValue)  q = q.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
+        if (fieldId.HasValue) q = q.Where(o => o.Session.FieldId == fieldId);
+        if (pestId.HasValue)  q = q.Where(o => o.PestId == pestId);
+
+        var rows = await q
+            .Select(o => new
+            {
+                o.PestId,
+                PestName  = o.Pest!.CommonName,
+                FieldId   = o.Session.FieldId!.Value,
+                FieldName = o.Session.Field!.Name,
+                FarmName  = o.Session.Farm != null ? o.Session.Farm.Name
+                          : o.Session.Field.Farm != null ? o.Session.Field.Farm.Name : null,
+                o.IsPresent,
+                ObservedAt = o.Session.CompletedAt!.Value,
+            })
+            .ToListAsync(ct);
+
+        // ── First-ever detection (all time, same scope filters) ──────────────
+        var firstQ = db.SessionObservations
+            .Where(o => o.IsPresent == true
+                     && !o.IsUnknownPest
+                     && o.PestId != null
+                     && o.Session.FieldId != null
+                     && o.Session.CompletedAt != null);
+
+        if (farmId.HasValue)  firstQ = firstQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
+        if (fieldId.HasValue) firstQ = firstQ.Where(o => o.Session.FieldId == fieldId);
+        if (pestId.HasValue)  firstQ = firstQ.Where(o => o.PestId == pestId);
+
+        var firstDetections = await firstQ
+            .GroupBy(o => new { o.PestId, FieldId = o.Session.FieldId!.Value })
+            .Select(g => new { g.Key.PestId, g.Key.FieldId, FirstAt = g.Min(o => o.Session.CompletedAt) })
+            .ToListAsync(ct);
+
+        var firstMap = firstDetections.ToDictionary(x => (x.PestId, x.FieldId), x => x.FirstAt);
+
+        // ── Group and derive status ──────────────────────────────────────────
+        var byPest = rows
+            .GroupBy(r => (r.PestId, r.PestName))
+            .Select(pg =>
+            {
+                var fields = pg
+                    .GroupBy(r => (r.FieldId, r.FieldName, r.FarmName))
+                    .Select(fg =>
+                    {
+                        var lastPresent = fg.Where(r => r.IsPresent == true) .MaxBy(r => r.ObservedAt);
+                        var lastAbsent  = fg.Where(r => r.IsPresent == false).MaxBy(r => r.ObservedAt);
+
+                        string   status;
+                        DateTime? statusAt;
+                        if      (lastPresent == null && lastAbsent == null) { status = "Unknown"; statusAt = null; }
+                        else if (lastPresent == null)                        { status = "Absent";  statusAt = lastAbsent!.ObservedAt; }
+                        else if (lastAbsent  == null)                        { status = "Present"; statusAt = lastPresent.ObservedAt; }
+                        else if (lastPresent.ObservedAt >= lastAbsent.ObservedAt) { status = "Present"; statusAt = lastPresent.ObservedAt; }
+                        else                                                  { status = "Absent";  statusAt = lastAbsent.ObservedAt; }
+
+                        firstMap.TryGetValue((pg.Key.PestId, fg.Key.FieldId), out var firstAt);
+
+                        return new
+                        {
+                            fg.Key.FieldId,
+                            fg.Key.FieldName,
+                            fg.Key.FarmName,
+                            Status                = status,
+                            StatusAt              = statusAt,
+                            FirstDetectedAt       = firstAt,
+                            IsNewIntroduction     = firstAt.HasValue && firstAt >= start,
+                            IsNewlyClear          = status == "Absent" && lastPresent != null,
+                            ConfirmedPresentCount = fg.Count(r => r.IsPresent == true),
+                            ConfirmedAbsentCount  = fg.Count(r => r.IsPresent == false),
+                        };
+                    })
+                    .OrderBy(f => f.FarmName).ThenBy(f => f.FieldName)
+                    .ToList();
+
+                return new
+                {
+                    pg.Key.PestId,
+                    pg.Key.PestName,
+                    Fields              = fields,
+                    NewIntroductions    = fields.Count(f => f.IsNewIntroduction),
+                    ActivePresenceCount = fields.Count(f => f.Status == "Present"),
+                };
+            })
+            .OrderByDescending(p => p.NewIntroductions)
+            .ThenByDescending(p => p.ActivePresenceCount)
+            .ThenBy(p => p.PestName)
+            .ToList();
+
+        var allFields = byPest.SelectMany(p => p.Fields).ToList();
+        var summary = new
+        {
+            PestsTracked     = byPest.Count,
+            NewIntroductions = allFields.Count(f => f.IsNewIntroduction),
+            NewlyClear       = allFields.Count(f => f.IsNewlyClear),
+            ActivePresence   = allFields.Count(f => f.Status == "Present"),
+            ConfirmedAbsent  = allFields.Count(f => f.Status == "Absent"),
+        };
+
+        return Ok(ApiResponse<object>.Ok(new { summary, pests = byPest }));
+    }
+
     // ── Private record ──────────────────────────────────────────────────────
 
     private sealed record RawObs(

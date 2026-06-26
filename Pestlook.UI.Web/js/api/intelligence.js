@@ -15,6 +15,7 @@ function buildParams(filters = {}) {
 export const getSpreadDirection  = (f, signal) => get(`/intelligence/spread-direction${buildParams(f)}`,  undefined, true, signal);
 export const getSpreadVelocity   = (f, signal) => get(`/intelligence/spread-velocity${buildParams(f)}`,   undefined, true, signal);
 export const getOriginDetection  = (f, signal) => get(`/intelligence/origin-detection${buildParams(f)}`,  undefined, true, signal);
+export const getPresenceMap      = (f, signal) => get(`/intelligence/presence-map${buildParams(f)}`,      undefined, true, signal);
 
 export function getNeighbourRisk(filters = {}, radiusKm = 5, signal) {
   const p = new URLSearchParams();

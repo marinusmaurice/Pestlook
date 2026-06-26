@@ -1,17 +1,19 @@
 import { getFarms }  from '../api/farms.js';
 import { getFields } from '../api/fields.js';
+import { getPests }  from '../api/pests.js';
 import { showToast } from '../components/toast.js';
 import { escapeHtml, toLocalDateString } from '../utils/helpers.js';
 import { emptyState } from './reports/utils.js';
 
 import { getSpreadDirection, getSpreadVelocity,
          getOriginDetection, getNeighbourRisk,
-         getCrossFarmCorrelation }                    from '../api/intelligence.js';
+         getCrossFarmCorrelation, getPresenceMap }    from '../api/intelligence.js';
 import { renderSpreadDirection }      from './intelligence/i1-spread.js';
 import { renderSpreadVelocity }       from './intelligence/i5b-velocity.js';
 import { renderOriginDetection }      from './intelligence/i3-origin.js';
 import { renderNeighbourRisk }        from './intelligence/i4-neighbour.js';
 import { renderCrossFarmCorrelation } from './intelligence/i5-crossfarm.js';
+import { renderPresenceMap }          from './intelligence/im1-presence.js';
 
 /* ── Tab registry ──────────────────────────────────────────────────────────── */
 
@@ -46,7 +48,12 @@ const SECTIONS = [
     label: '📡 Spread Velocity',
     desc:  'Score how fast each pest is spreading field-to-field. A score of 0 means contained; a rising score signals active spread.',
   },
-  // Future spread & movement tabs will be added here
+  {
+    id:    'presence',
+    group: '🧭 Spread & Movement',
+    label: '👁 Presence Map',
+    desc:  'Track confirmed presence and absence per field × pest. Highlights new introductions and fields newly confirmed clear.',
+  },
 ];
 
 /* ── State shared across renders ───────────────────────────────────────────── */
@@ -111,6 +118,7 @@ export async function renderIntelligence(container) {
       </label>
       <select id="int-farm"  class="input-field" style="margin-top:0;width:auto;padding:6px 10px;font-size:0.8rem;"><option value="">All Farms</option></select>
       <select id="int-field" class="input-field" style="margin-top:0;width:auto;padding:6px 10px;font-size:0.8rem;"><option value="">All Fields</option></select>
+      <select id="int-pest"  class="input-field" style="margin-top:0;width:auto;padding:6px 10px;font-size:0.8rem;"><option value="">All Pests</option></select>
       <button id="int-clear" class="btn-outline" style="padding:6px 12px;font-size:0.8rem;">✕ Clear</button>
     </div>
 
@@ -120,18 +128,21 @@ export async function renderIntelligence(container) {
     </div>
   `;
 
-  // ── Load farm/field lookups ───────────────────────────────────────────────
+  // ── Load farm/field/pest lookups ─────────────────────────────────────────
   let farms  = [];
   let fields = [];
+  let pests  = [];
 
   try {
-    const [farmsRes, fieldsRes] = await Promise.all([
+    const [farmsRes, fieldsRes, pestsRes] = await Promise.all([
       getFarms().catch(() => ({ data: [] })),
       getFields().catch(() => ({ data: [] })),
+      getPests().catch(() => ({ data: [] })),
     ]);
     if (!alive) return;
     farms  = farmsRes.data  ?? [];
     fields = fieldsRes.data ?? [];
+    pests  = pestsRes.data  ?? [];
   } catch { /* non-fatal */ }
 
   // Populate farm dropdown
@@ -141,6 +152,15 @@ export async function renderIntelligence(container) {
     opt.value       = f.id;
     opt.textContent = f.name;
     farmSel.appendChild(opt);
+  }
+
+  // Populate pest dropdown
+  const pestSel = document.getElementById('int-pest');
+  for (const p of pests.slice().sort((a, b) => a.commonName.localeCompare(b.commonName))) {
+    const opt = document.createElement('option');
+    opt.value       = p.id;
+    opt.textContent = p.commonName;
+    pestSel.appendChild(opt);
   }
 
   function populateFields(farmId) {
@@ -168,6 +188,7 @@ export async function renderIntelligence(container) {
   document.getElementById('int-to').addEventListener('change',   e => { if (e.target.value) { iFilters.to   = e.target.value; rerender(); } });
   farmSel.addEventListener('change', e => { iFilters.farmId = e.target.value; populateFields(e.target.value); rerender(); });
   document.getElementById('int-field').addEventListener('change', e => { iFilters.fieldId = e.target.value; rerender(); });
+  pestSel.addEventListener('change', e => { iFilters.pestId = e.target.value; rerender(); });
   document.getElementById('int-clear').addEventListener('click', () => {
     iFilters.from    = fmt(sixMoAgo);
     iFilters.to      = fmt(today);
@@ -177,6 +198,7 @@ export async function renderIntelligence(container) {
     document.getElementById('int-from').value = iFilters.from;
     document.getElementById('int-to').value   = iFilters.to;
     farmSel.value = '';
+    pestSel.value = '';
     populateFields('');
     rerender();
   });
@@ -250,8 +272,14 @@ export async function renderIntelligence(container) {
         const data = res?.data ?? { pests: [], summary: {} };
         body.innerHTML = '';
         await renderSpreadVelocity(body, data);
+
+      } else if (activeId === 'presence') {
+        const res  = await getPresenceMap({ ...iFilters }, signal);
+        if (!alive || signal.aborted) return;
+        const data = res?.data ?? { summary: {}, pests: [] };
+        body.innerHTML = '';
+        renderPresenceMap(body, data);
       }
-      // Additional tab handlers will go here as features are built
     } catch (err) {
       if (err.name === 'AbortError' || !alive || signal.aborted) return;
       showToast('Intelligence load failed: ' + err.message, 'error');
