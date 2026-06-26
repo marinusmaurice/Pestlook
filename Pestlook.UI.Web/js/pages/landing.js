@@ -214,7 +214,7 @@ function _getLandingHTML() {
               <a href="#pricing" class="btn-outline" id="heroPricingBtn">View plans</a>
             </div>
             <div class="hero-stats">
-              <div class="stat-item"><strong>11</strong><br>analytics reports</div>
+              <div class="stat-item"><strong>Analytics</strong><br>&amp; intelligence suite</div>
               <div class="stat-item"><strong>100%</strong><br>offline capable</div>
               <div class="stat-item"><strong>GPS</strong><br>every observation</div>
             </div>
@@ -269,8 +269,8 @@ function _getLandingHTML() {
           </div>
           <div class="feature-card">
             <i class="fas fa-chart-pie"></i>
-            <h3>11 analytics dashboards</h3>
-            <p>From threshold alerts and pest pressure trends to trap performance, scout productivity, seasonal patterns, field coverage, and billing &mdash; all filterable by date, farm, or scout.</p>
+            <h3>Analytics &amp; intelligence suite</h3>
+            <p>Threshold alerts, pest pressure trends, trap performance, scout productivity, seasonal patterns, field coverage, spread direction, origin detection, neighbour risk, population forecasts, GPS hotspot maps, and more &mdash; all filterable by date, farm, field, or scout.</p>
           </div>
           <div class="feature-card">
             <i class="fas fa-users-cog"></i>
