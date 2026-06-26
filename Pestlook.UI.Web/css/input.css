@@ -565,13 +565,13 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-dim);
-  padding: 10px 14px;
+  padding: 7px 14px !important;
   border-bottom: 1px solid var(--border);
   font-weight: 600;
   font-family: 'JetBrains Mono', monospace;
 }
 .data-table td {
-  padding: 12px 14px;
+  padding: 4px 7px !important;
   font-size: 0.84rem;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
