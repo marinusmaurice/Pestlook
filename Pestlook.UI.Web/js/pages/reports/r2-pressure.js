@@ -105,7 +105,21 @@ export function renderPestPressure(el, data, lookups) {
         }),
         borderRadius: 4,
       }],
-    }, { indexAxis: 'y', scales: { x: { beginAtZero: true, ticks: { font: { size: 11 } } }, y: { ticks: { font: { size: 11 } } } } });
+    }, {
+      indexAxis: 'y',
+      scales: { x: { beginAtZero: true, ticks: { font: { size: 11 } } }, y: { ticks: { font: { size: 11 } } } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: ctx => {
+              const r = top10[ctx[0].dataIndex];
+              return r.farmName ? `${r.farmName} · ${r.fieldName ?? '—'}` : (r.fieldName ?? '—');
+            },
+          },
+        },
+      },
+    });
 
     // ── Interactive field breakdown grid ──────────────────────────────────────
     let sortCol  = 'avg';
