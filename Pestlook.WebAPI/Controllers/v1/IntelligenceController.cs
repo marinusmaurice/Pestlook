@@ -625,14 +625,6 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                     };
                 }).ToList();
 
-                // Breach probability = fraction of forecast points where upper CI >= threshold
-                double breachProbability = 0;
-                if (threshold.HasValue && threshold.Value > 0)
-                {
-                    int atRisk = forecastPts.Count(f => f.upper >= threshold.Value);
-                    breachProbability = Math.Round((double)atRisk / weeksAhead, 2);
-                }
-
                 int projectedPeak = forecastPts.Max(f => f.projectedCount);
 
                 // Trend based on weekly-equivalent slope
@@ -647,7 +639,6 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                     farmName          = first.FarmName,
                     threshold,
                     trend,
-                    breachProbability,
                     peakCount         = (int)pts.Max(p => p.Count),
                     projectedPeak,
                     history,
@@ -655,7 +646,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 };
             })
             .Where(f => f != null)
-            .OrderByDescending(f => ((dynamic)f!).breachProbability)
+            .OrderByDescending(f => ((dynamic)f!).projectedPeak)
             .ThenBy(f => ((dynamic)f!).pestName)
             .ToList<object>();
 
@@ -1371,30 +1362,25 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
         if (farmId.HasValue)  obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
         if (fieldId.HasValue) obsQ = obsQ.Where(o => o.Session.FieldId == fieldId);
 
-        // Aggregate weekly totals per field directly in SQL using DateDiffDay,
-        // which EF Core translates to DATEDIFF(DAY, @start, CompletedAt) / 7.
-        // This avoids pulling every raw row and is significantly faster.
+        // Aggregate weekly totals per field × pest
         var obsAgg = await obsQ
             .GroupBy(o => new
             {
                 FieldId   = o.Session.FieldId!.Value,
+                o.PestId,
+                PestName  = o.Pest!.CommonName,
                 WeekIndex = EF.Functions.DateDiffDay(start, o.Session.CompletedAt!.Value) / 7,
             })
             .Select(g => new
             {
                 g.Key.FieldId,
+                g.Key.PestId,
+                g.Key.PestName,
                 g.Key.WeekIndex,
                 WeekTotal = g.Sum(o => o.Count ?? 0),
             })
             .OrderBy(g => g.WeekIndex)
             .ToListAsync(ct);
-
-        // Group into per-field ordered lists of weekly totals (already ordered by WeekIndex)
-        var weeklyByField = obsAgg
-            .GroupBy(o => o.FieldId)
-            .ToDictionary(
-                g => g.Key,
-                g => g.OrderBy(o => o.WeekIndex).Select(o => o.WeekTotal).ToList());
 
         var tz = await tzService.GetUserTimeZoneAsync(ct);
         var today = ToLocalDate(DateTime.UtcNow, tz);
@@ -1404,20 +1390,31 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             .Select(fg =>
             {
                 var lastSession = fg.OrderByDescending(s => s.CompletedAt).First();
-                var fieldWeeks  = weeklyByField.GetValueOrDefault(fg.Key) ?? [];
                 var lastDate    = ToLocalDate(lastSession.CompletedAt, tz);
-
                 int daysSinceLast = (today - lastDate).Days;
-                int baseInterval  = 7; // default weekly
 
-                double growthRate = 0;
-                if (fieldWeeks.Count >= 2)
-                {
-                    double first = fieldWeeks[0], last = fieldWeeks[^1];
-                    growthRate = first > 0 ? (last - first) / first : last > 0 ? 1 : 0;
-                }
+                // Per-pest OLS growth rates for this field — pick the fastest-growing pest
+                var pestGroups = obsAgg.Where(o => o.FieldId == fg.Key)
+                    .GroupBy(o => (o.PestId, o.PestName))
+                    .Select(pg =>
+                    {
+                        var weeks = pg.OrderBy(w => w.WeekIndex).Select(w => (double)w.WeekTotal).ToList();
+                        if (weeks.Count < 2) return (PestName: pg.Key.PestName, Rate: 0.0);
+                        int nw = weeks.Count;
+                        double wxMean = (nw - 1) / 2.0;
+                        double wyMean = weeks.Average();
+                        double wssXX  = Enumerable.Range(0, nw).Sum(i => Math.Pow(i - wxMean, 2));
+                        double wssXY  = weeks.Select((w, i) => (i - wxMean) * (w - wyMean)).Sum();
+                        double wSlope = wssXX > 0 ? wssXY / wssXX : 0;
+                        return (PestName: pg.Key.PestName, Rate: wyMean > 0 ? wSlope / wyMean : 0.0);
+                    })
+                    .ToList();
 
-                // Adjust interval by growth rate
+                var worst = pestGroups.OrderByDescending(p => p.Rate).FirstOrDefault();
+                double growthRate = worst.Rate;
+                string? drivingPest = worst.PestName;
+
+                // Adjust interval by the worst-case pest growth rate
                 int recommendedInterval;
                 string urgency;
                 string rationale;
@@ -1426,31 +1423,31 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 {
                     recommendedInterval = 3;
                     urgency = "Critical";
-                    rationale = "Population has doubled or more — visit within 3 days.";
+                    rationale = $"{drivingPest} has doubled or more — visit within 3 days.";
                 }
                 else if (growthRate >= 0.5)
                 {
                     recommendedInterval = 4;
                     urgency = "High";
-                    rationale = "Rapid growth detected — visit within 4 days.";
+                    rationale = $"{drivingPest} is growing rapidly — visit within 4 days.";
                 }
                 else if (growthRate >= 0.2)
                 {
                     recommendedInterval = 5;
                     urgency = "Medium";
-                    rationale = "Moderate growth — standard 5-day interval recommended.";
+                    rationale = $"{drivingPest} shows moderate growth — 5-day interval recommended.";
                 }
                 else if (growthRate <= -0.2)
                 {
                     recommendedInterval = 10;
                     urgency = "Low";
-                    rationale = "Population declining — can safely wait up to 10 days.";
+                    rationale = "All pest populations declining — can safely wait up to 10 days.";
                 }
                 else
                 {
-                    recommendedInterval = baseInterval;
+                    recommendedInterval = 7;
                     urgency = "Low";
-                    rationale = "Population stable — standard weekly visit is sufficient.";
+                    rationale = "All pest populations stable — standard weekly visit is sufficient.";
                 }
 
                 var nextDate      = lastDate.AddDays(recommendedInterval);
@@ -1471,6 +1468,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                     urgency,
                     rationale,
                     growthRate          = Math.Round(growthRate, 3),
+                    drivingPest,
                 };
             })
             .Where(r => r != null)

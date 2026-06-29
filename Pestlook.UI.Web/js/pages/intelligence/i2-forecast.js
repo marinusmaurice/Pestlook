@@ -14,26 +14,8 @@ import { C, PALETTE, kpiGrid, kpiCard,
 function trendIcon(t)  { return t === 'rising' ? '↑' : t === 'falling' ? '↓' : '→'; }
 function trendColor(t) { return t === 'rising' ? C.red : t === 'falling' ? C.green : C.amber; }
 
-function bpColor(bp) {
-  if (bp >= 0.6) return C.red;
-  if (bp >= 0.3) return C.amber;
-  return C.green;
-}
-
-function bpBar(bp) {
-  const pct   = Math.round(bp * 100);
-  const color = bpColor(bp);
-  return `
-    <div style="display:flex;align-items:center;gap:6px;">
-      <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
-        <div style="width:${pct}%;height:100%;background:${color};border-radius:3px;"></div>
-      </div>
-      <span style="font-size:0.78rem;font-weight:600;color:${color};width:32px;text-align:right;">${pct}%</span>
-    </div>`;
-}
-
 /* ── Sort state ──────────────────────────────────────────────────────────── */
-let _sortKey = 'breachProbability';
+let _sortKey = 'projectedPeak';
 let _sortDir = -1; // -1 = desc, 1 = asc
 
 function sortForecasts(rows) {
@@ -60,9 +42,9 @@ export async function renderForecast(el, data) {
   /* ── KPIs ───────────────────────────────────────────────────────────────── */
   const pestCount  = new Set(all.map(f => f.pestId)).size;
   const fieldCount = new Set(all.map(f => f.fieldId)).size;
-  const highRisk   = all.filter(f => f.breachProbability >= 0.6).length;
+  const risingCount = all.filter(f => f.trend === 'rising').length;
   const fastest    = [...all].filter(f => f.trend === 'rising')
-                             .sort((a, b) => b.breachProbability - a.breachProbability)[0] ?? null;
+                             .sort((a, b) => b.projectedPeak - a.projectedPeak)[0] ?? null;
 
   /* ── Pest list for in-page filter ─────────────────────────────────────── */
   const pestMap = new Map(all.map(f => [String(f.pestId), f.pestName]));
@@ -73,21 +55,21 @@ export async function renderForecast(el, data) {
 
   /* ── Shell ───────────────────────────────────────────────────────────────── */
   el.innerHTML = `
-    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Applies ordinary least-squares (OLS) linear regression to individual observation counts to project pest populations up to 12 weeks ahead. Each dot on the chart is a single recorded observation — counts are never summed or aggregated, so the threshold line is directly comparable. Each forecast includes a 90% confidence interval and a <strong>breach probability</strong> — the share of projected weeks where the upper confidence bound crosses the configured action threshold. Combinations are ranked highest-risk first so you can act before a breach occurs.</div>
+    <div style="font-size:0.75rem;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">Applies OLS linear regression to individual observation counts to project pest populations up to 12 weeks ahead. Each bar on the chart is a single recorded count — never summed or aggregated — so the threshold line is directly comparable. The forecast includes a 90% confidence interval (shaded band). Click a row to see the full chart. For breach probability analysis, see the <strong>Breach Probability</strong> tab.</div>
     ${kpiGrid([
       kpiCard('Pests Tracked',   pestCount,  'species with forecast data', '',
         'Number of distinct pest species for which at least one week of observation data exists, enabling a population trend projection.'),
       kpiCard('Fields Covered',  fieldCount, 'distinct fields with observations', '',
         'Total number of fields included in the forecast, each analysed independently per pest species.'),
-      kpiCard('High Risk',       highRisk,
-        'fields with ≥ 60 % breach probability', highRisk > 0 ? C.red : '',
-        'Pest × field combinations where the OLS projection shows a 60% or higher probability of exceeding the configured action threshold within the forecast horizon.'),
+      kpiCard('Rising Trends',   risingCount,
+        'populations trending upward', risingCount > 0 ? C.red : '',
+        'Pest × field combinations where the OLS slope indicates an increasing population over the selected period.'),
       fastest
         ? kpiCard('Fastest Rising',
             escapeHtml(fastest.pestName),
-            `${escapeHtml(fastest.fieldName)} · ${Math.round(fastest.breachProbability * 100)}% breach risk`,
+            `${escapeHtml(fastest.fieldName)} · projected peak ${fastest.projectedPeak}`,
             C.red,
-            'The pest × field combination with the highest breach probability among all rising populations — the most urgent case requiring pre-emptive intervention.')
+            'The rising pest × field combination with the highest projected peak count — the most urgent case requiring pre-emptive intervention.')
         : kpiCard('Fastest Rising', '—', 'no rising trends detected', '',
             'No pest populations are currently on a rising trajectory in the selected period.'),
     ])}
@@ -133,7 +115,6 @@ export async function renderForecast(el, data) {
               <th data-col="trend"             style="cursor:pointer;white-space:nowrap;padding:7px 10px;">Trend ⇅</th>
               <th data-col="peakCount"         style="cursor:pointer;white-space:nowrap;padding:7px 10px;">Peak ⇅</th>
               <th data-col="projectedPeak"     style="cursor:pointer;white-space:nowrap;padding:7px 10px;">Proj. ⇅</th>
-              <th data-col="breachProbability" style="cursor:pointer;white-space:nowrap;padding:7px 10px;min-width:100px;">Breach ⇅</th>
               <th style="padding:7px 10px;">Threshold</th>
             </tr>
           </thead>
@@ -193,7 +174,7 @@ export async function renderForecast(el, data) {
     counter.textContent = `${total} row${total !== 1 ? 's' : ''}`;
 
     if (total === 0) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--text-dim);padding:24px;">No rows match the selected filters.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text-dim);padding:24px;">No rows match the selected filters.</td></tr>`;
     } else {
       tbody.innerHTML = pageRows.map(f => {
         const key      = `${f.pestId}:${f.fieldId}`;
@@ -210,7 +191,6 @@ export async function renderForecast(el, data) {
             <td style="text-align:right;font-size:0.78rem;padding:6px 10px;">${(f.peakCount ?? 0).toLocaleString()}</td>
             <td style="text-align:right;font-weight:600;font-size:0.78rem;padding:6px 10px;color:${f.projectedPeak > f.peakCount ? C.red : 'var(--text)'};">
               ${(f.projectedPeak ?? 0).toLocaleString()}</td>
-            <td style="min-width:100px;padding:6px 10px;">${bpBar(f.breachProbability)}</td>
             <td style="text-align:right;font-size:0.78rem;padding:6px 10px;color:var(--text-dim);">${f.threshold ?? '—'}</td>
           </tr>`;
       }).join('');
@@ -304,19 +284,12 @@ export async function renderForecast(el, data) {
     `;
 
     // Stat chips
-    const bp     = Math.round(f.breachProbability * 100);
-    const bpCol  = bpColor(f.breachProbability);
     const tColor = trendColor(f.trend);
     document.getElementById('fc-detail-stats').innerHTML = `
       <div style="border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
         <div style="font-size:0.7rem;color:var(--text-dim);margin-bottom:4px;">Trend</div>
         <div style="font-size:1.3rem;font-weight:700;color:${tColor};">${trendIcon(f.trend)}</div>
         <div style="font-size:0.78rem;color:${tColor};">${f.trend}</div>
-      </div>
-      <div style="border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
-        <div style="font-size:0.7rem;color:var(--text-dim);margin-bottom:4px;">Breach risk</div>
-        <div style="font-size:1.3rem;font-weight:700;color:${bpCol};">${bp}%</div>
-        <div style="font-size:0.78rem;color:var(--text-dim);">next ${f.forecast.length} weeks</div>
       </div>
       <div style="border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
         <div style="font-size:0.7rem;color:var(--text-dim);margin-bottom:4px;">Historical peak</div>

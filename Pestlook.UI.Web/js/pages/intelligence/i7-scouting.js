@@ -24,7 +24,17 @@ export async function renderNextScouting(el, data) {
   const colour  = u => URGENCY_COLOUR[u] ?? '#555';
 
   el.innerHTML = `
-    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Calculates the recommended interval between scouting visits for each field by measuring the <strong>pest population growth rate</strong> — the relative change in weekly observation totals from first to last in the period. Rapidly growing populations trigger shorter intervals (as few as 3 days); declining populations allow longer gaps (up to 10 days). Fields already overdue for a visit are listed first.</div>
+    <div style="font-size:0.75rem;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">
+      For each field, fits a trend line (OLS) through weekly counts <strong>per pest species</strong> and picks the <strong>fastest-growing pest</strong> to drive the recommendation — so one surging pest triggers an urgent visit even if others are declining.
+      Growth rate = OLS slope ÷ average weekly count.
+      <strong>≥ 100%</strong> → 3 days (Critical) ·
+      <strong>≥ 50%</strong> → 4 days (High) ·
+      <strong>≥ 20%</strong> → 5 days (Medium) ·
+      <strong>≤ −20%</strong> → 10 days (Low, declining) ·
+      <strong>otherwise</strong> → 7 days (stable).
+      <em>Example: Whitefly trend rises by 200/week with an average of 4 000 → 200 ÷ 4 000 = 5% → stable → 7-day interval.</em>
+      Next scouting = last visit + interval. Overdue fields are listed first.
+    </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;">
       <div class="card card-p has-kpi-tip" style="text-align:center;" data-kpi-tip="Total number of fields for which a next scouting visit recommendation was generated in the selected period.">
         <div style="font-size:1.8rem;font-weight:700;">${summary.total ?? 0}</div>
@@ -48,13 +58,14 @@ export async function renderNextScouting(el, data) {
       <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
         <thead>
           <tr style="border-bottom:2px solid var(--border);text-align:left;">
-            <th style="padding:8px 10px;color:var(--text-dim);">Field</th>
-            <th style="padding:8px 10px;color:var(--text-dim);">Farm</th>
-            <th style="padding:8px 10px;color:var(--text-dim);text-align:right;">Last Visit</th>
-            <th style="padding:8px 10px;color:var(--text-dim);text-align:right;">Growth/wk</th>
-            <th style="padding:8px 10px;color:var(--text-dim);text-align:right;">Interval (days)</th>
-            <th style="padding:8px 10px;color:var(--text-dim);text-align:right;">Next Scouting</th>
-            <th style="padding:8px 10px;color:var(--text-dim);">Urgency</th>
+            <th style="padding:8px 10px;color:var(--text-dim);" title="Field name">Field</th>
+            <th style="padding:8px 10px;color:var(--text-dim);" title="Farm the field belongs to">Farm</th>
+            <th style="padding:8px 10px;color:var(--text-dim);text-align:right;" title="Date of the most recent completed scouting session on this field">Last Visit</th>
+            <th style="padding:8px 10px;color:var(--text-dim);" title="The pest species with the fastest-growing weekly trend on this field — the one driving the recommended interval">Driving Pest</th>
+            <th style="padding:8px 10px;color:var(--text-dim);text-align:right;" title="OLS weekly growth rate of the driving pest, as a percentage of its average weekly count">Growth/wk</th>
+            <th style="padding:8px 10px;color:var(--text-dim);text-align:right;" title="Recommended days between visits based on the driving pest's growth rate">Interval</th>
+            <th style="padding:8px 10px;color:var(--text-dim);text-align:right;" title="Last visit date plus the recommended interval">Next Scouting</th>
+            <th style="padding:8px 10px;color:var(--text-dim);" title="Critical (3 days) · High (4 days) · Medium (5 days) · Low (7–10 days)">Urgency</th>
           </tr>
         </thead>
         <tbody>
@@ -63,6 +74,7 @@ export async function renderNextScouting(el, data) {
               <td style="padding:8px 10px;font-weight:600;">${escapeHtml(r.fieldName ?? '—')}</td>
               <td style="padding:8px 10px;color:var(--text-dim);">${escapeHtml(r.farmName ?? '—')}</td>
               <td style="padding:8px 10px;text-align:right;">${fmtDate(r.lastSessionDate)}</td>
+              <td style="padding:8px 10px;">${escapeHtml(r.drivingPest ?? '—')}</td>
               <td style="padding:8px 10px;text-align:right;">${r.growthRate > 0 ? '+' : ''}${(r.growthRate * 100).toFixed(0)}%</td>
               <td style="padding:8px 10px;text-align:right;">${r.recommendedIntervalDays}</td>
               <td style="padding:8px 10px;text-align:right;font-weight:600;">${fmtDate(r.nextRecommendedDate)}</td>
