@@ -1748,10 +1748,12 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             })
             .ToListAsync(ct);
 
+        var tz2 = await tzService.GetUserTimeZoneAsync(ct);
+
         var predictions = traps.Select(trap =>
         {
             var checks = obs.Where(o => o.TrapId == trap.Id)
-                .GroupBy(o => Monday(o.CompletedAt))
+                .GroupBy(o => Monday(TimeZoneInfo.ConvertTimeFromUtc(o.CompletedAt, tz2)))
                 .OrderBy(g => g.Key)
                 .Select(wg => new { WeekStart = wg.Key, Total = wg.Sum(o => o.Count ?? 0) })
                 .ToList();

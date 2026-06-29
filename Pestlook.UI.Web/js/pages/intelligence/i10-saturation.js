@@ -23,7 +23,7 @@ export async function renderTrapSaturation(el, data) {
   const colour = r => RISK_COLOUR[r] ?? '#888';
 
   el.innerHTML = `
-    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Tracks weekly catch totals for each active trap and uses OLS linear regression to project how many weeks until the catch rate reaches <strong>saturation</strong> — defined as 20% above the trap's own historic peak catch, or 500 insects, whichever is higher. A saturated trap loses effectiveness as adhesive or bait is exhausted; this tab flags traps that need servicing before that point is reached.</div>
+    <div style="font-size:0.75rem;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">Tracks weekly catch totals for each active trap and uses OLS linear regression to project how many weeks until the catch rate reaches <strong>saturation</strong> — defined as 20% above the trap's own historic peak catch, or 500 insects, whichever is higher. A saturated trap loses effectiveness as adhesive or bait is exhausted; this tab flags traps that need servicing before that point is reached.</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;">
       <div class="card card-p" style="text-align:center;">
         <div style="font-size:1.8rem;font-weight:700;">${summary.totalTraps ?? 0}</div>
@@ -47,15 +47,15 @@ export async function renderTrapSaturation(el, data) {
       <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
         <thead>
           <tr style="border-bottom:2px solid var(--border);text-align:left;">
-            <th style="padding:8px 10px;color:var(--text-dim);">Trap</th>
-            <th style="padding:8px 10px;color:var(--text-dim);">Farm</th>
-            <th style="padding:8px 10px;color:var(--text-dim);text-align:right;">Checks</th>
-            <th style="padding:8px 10px;color:var(--text-dim);text-align:right;">Current Rate</th>
-            <th style="padding:8px 10px;color:var(--text-dim);text-align:right;">Peak Rate</th>
-            <th style="padding:8px 10px;color:var(--text-dim);">Trend</th>
-            <th style="padding:8px 10px;color:var(--text-dim);text-align:right;">Sat. Threshold</th>
-            <th style="padding:8px 10px;color:var(--text-dim);text-align:right;">Weeks to Full</th>
-            <th style="padding:8px 10px;color:var(--text-dim);">Risk</th>
+            <th style="padding:8px 10px;color:var(--text-dim);" title="Trap name">Trap</th>
+            <th style="padding:8px 10px;color:var(--text-dim);" title="Farm the trap belongs to">Farm</th>
+            <th style="padding:8px 10px;color:var(--text-dim);text-align:right;" title="Number of weeks with recorded catches in the selected period">Checks</th>
+            <th style="padding:8px 10px;color:var(--text-dim);text-align:right;" title="Estimated current weekly catch rate from the OLS trend line (fitted value at the most recent week)">Current Rate</th>
+            <th style="padding:8px 10px;color:var(--text-dim);text-align:right;" title="Highest weekly catch total recorded for this trap in the selected period">Peak Rate</th>
+            <th style="padding:8px 10px;color:var(--text-dim);" title="Direction of the weekly catch trend — Rising means catches are increasing week-on-week">Trend</th>
+            <th style="padding:8px 10px;color:var(--text-dim);text-align:right;" title="Saturation point: 20% above the historic peak catch, or 500 insects, whichever is higher. Beyond this the trap loses effectiveness.">Sat. Threshold</th>
+            <th style="padding:8px 10px;color:var(--text-dim);text-align:right;" title="Projected weeks until the catch rate reaches the saturation threshold at the current growth rate. Dash means trend is flat or falling.">Weeks to Full</th>
+            <th style="padding:8px 10px;color:var(--text-dim);" title="Critical (≤4 wks) = service immediately · High (5–12 wks) = plan servicing · Medium (13–26 wks) = monitor · Low = no concern">Risk</th>
           </tr>
         </thead>
         <tbody>
