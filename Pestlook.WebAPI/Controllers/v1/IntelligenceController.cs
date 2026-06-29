@@ -1483,12 +1483,13 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
 
     [HttpGet("seasonal-pressure")]
     public async Task<IActionResult> GetSeasonalPressure(
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to,
         [FromQuery] Guid? farmId,
         [FromQuery] Guid? fieldId,
         CancellationToken ct = default)
     {
-        var end   = DateTime.UtcNow;
-        var start = end.AddMonths(-18);
+        var (start, end) = await ResolveRangeAsync(from, to, 548, ct); // ~18 months default
 
         var obsQ = db.SessionObservations
             .Where(o => !o.IsUnknownPest && o.PestId != null && o.Count > 0
@@ -1496,30 +1497,40 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
         if (farmId.HasValue)  obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
         if (fieldId.HasValue) obsQ = obsQ.Where(o => o.Session.FieldId == fieldId);
 
-        // Aggregate in SQL — one row per pest × calendar-month × year
-        var monthlyRaw = await obsQ
-            .GroupBy(o => new
+        var tz = await tzService.GetUserTimeZoneAsync(ct);
+
+        // Fetch raw rows, then group by LOCAL month/year in memory (UTC month can differ near midnight)
+        var rawRows = await obsQ
+            .Select(o => new
             {
                 o.PestId,
                 PestName = o.Pest!.CommonName,
-                Month    = o.Session.CompletedAt!.Value.Month,
-                Year     = o.Session.CompletedAt!.Value.Year,
+                CompletedAtUtc = o.Session.CompletedAt!.Value,
+                Count = o.Count ?? 0,
             })
+            .ToListAsync(ct);
+
+        if (rawRows.Count == 0)
+            return Ok(ApiResponse<object>.Ok(new { calendar = Array.Empty<object>(), peakPests = Array.Empty<object>() }));
+
+        var monthlyRaw = rawRows
+            .Select(r =>
+            {
+                var local = TimeZoneInfo.ConvertTimeFromUtc(r.CompletedAtUtc, tz);
+                return new { r.PestId, r.PestName, Month = local.Month, Year = local.Year, r.Count };
+            })
+            .GroupBy(r => new { r.PestId, r.PestName, r.Month, r.Year })
             .Select(g => new
             {
                 g.Key.PestId,
                 g.Key.PestName,
                 g.Key.Month,
                 g.Key.Year,
-                Total = g.Sum(o => o.Count ?? 0),
+                Total = g.Sum(r => r.Count),
             })
-            .ToListAsync(ct);
+            .ToList();
 
-        if (monthlyRaw.Count == 0)
-            return Ok(ApiResponse<object>.Ok(new { calendar = Array.Empty<object>(), peakPests = Array.Empty<object>() }));
-
-        // "Current month" follows the user's local calendar
-        var nowLocal = ToLocalDate(DateTime.UtcNow, await tzService.GetUserTimeZoneAsync(ct));
+        var nowLocal = ToLocalDate(DateTime.UtcNow, tz);
 
         // Build per-pest profiles: average across years for each calendar month
         var byPest = monthlyRaw

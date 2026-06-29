@@ -24,7 +24,7 @@ export async function renderBreachProbability(el, data) {
   const colour = r => RISK_COLOUR[r] ?? '#888';
 
   el.innerHTML = `
-    <div style="font-size:0.75rem;color:var(--text-dim);line-height:1.6;margin-bottom:16px;max-width:900px;">
+    <div style="font-size:0.75rem;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">
       Uses OLS regression on individual scouting counts to project each pest × field combination <strong>7 days forward</strong>, then calculates the probability that projection exceeds the action threshold (z-score against residual error).
       <strong>Current</strong> = last recorded count · <strong>Projected</strong> = model estimate in 7 days · <strong>Trend</strong> = population direction · Risk: <strong style="color:#c0392b;">High ≥ 60%</strong> act now · <strong style="color:#e67e22;">Medium 30–59%</strong> monitor closely · <strong style="color:#27ae60;">Low &lt; 30%</strong> routine scouting.
     </div>
