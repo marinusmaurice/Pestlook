@@ -1,5 +1,6 @@
 import { escapeHtml } from '../../utils/helpers.js';
 import { C, kpiGrid, kpiCard, emptyState } from '../reports/utils.js';
+import { drawBoundaries } from './map-boundaries.js';
 
 /* ── Leaflet loader (CDN with fallback) ──────────────────────────────────── */
 let leafletLoading = null;
@@ -46,7 +47,7 @@ function velocityColor(v) {
    filters = current filter state (from, to, farmId, fieldId, pestId)
    onPestChange = callback(pestId) → re-fetch + re-render
 ───────────────────────────────────────────────────────────────────────── */
-export async function renderSpreadDirection(el, data, onPestChange) {
+export async function renderSpreadDirection(el, data, onPestChange, lookups = {}) {
   const pests          = data.pests          ?? [];
   const weeklySnaps    = data.weeklySnapshots ?? [];
   const spreadVectors  = data.spreadVectors   ?? [];
@@ -72,8 +73,12 @@ export async function renderSpreadDirection(el, data, onPestChange) {
     `<option value="${escapeHtml(p.pestId)}">${escapeHtml(p.pestName)}</option>`).join('');
 
   el.innerHTML = `
-    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">
-      Uses GPS-tagged scouting observations grouped into weekly centroids to visualise how each pest is moving across your fields. A <strong>spread vector</strong> is calculated from the earliest to the latest weekly centroid, giving a compass bearing and estimated velocity in new fields per week. Unaffected fields near the current spread front are highlighted as elevated-risk neighbours.
+    <div style="font-size:0.75rem;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">
+      Groups GPS-tagged scouting observations into <strong>weekly centroids</strong> (average lat/lng of all observations that week) per pest.
+      The <strong>bearing</strong> is the compass direction from the earliest to the latest centroid — showing the net direction the pest population has moved.
+      <strong>Velocity</strong> is the OLS slope of cumulative distinct fields over time — how many new fields are being reached per week on average.
+      A velocity of 0 means the pest is contained to the same fields; a rising value signals active geographic expansion.
+      Fields within 5 km of the latest centroid that haven't recorded the pest are flagged as <strong>neighbour risk</strong>.
     </div>
     ${kpiGrid([
       kpiCard('Pests Tracked', pestsWithVectors, 'species with spread data', '',
@@ -88,20 +93,12 @@ export async function renderSpreadDirection(el, data, onPestChange) {
             `${escapeHtml(fastestSpreader.pestName)} ${bearingArrow(fastestSpreader.bearingDeg)}`,
             `${fastestSpreader.velocityFieldsPerWeek} new fields/week · moving ${escapeHtml(fastestSpreader.bearingLabel)}`,
             C.red,
-            'The pest species currently spreading into new fields at the highest rate, measured as new fields per week based on weekly observation centroid movement.')
+            'The pest species spreading into new fields at the highest rate. Velocity is the OLS slope of cumulative distinct fields per week — a value of 0.5 means roughly one new field every two weeks.')
         : kpiCard('Fastest Spreading', '—', 'insufficient data', '',
             'Requires at least two weeks of GPS-tagged observations to calculate a spread rate.'),
     ])}
 
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
-      <label style="font-size:0.82rem;color:var(--text-dim);display:flex;align-items:center;gap:6px;">
-        Show pest
-        <select id="spread-pest-sel" class="input-field"
-          style="margin-top:0;width:auto;padding:5px 10px;font-size:0.82rem;">
-          <option value="">All pests</option>
-          ${pestOptions}
-        </select>
-      </label>
       <span style="font-size:0.75rem;color:var(--text-dim);">
         Week ${weeklySnaps.length > 0 ? weeklySnaps[0].weekStart : '—'}
         → ${weeklySnaps.length > 0 ? weeklySnaps.at(-1).weekStart : '—'}
@@ -112,10 +109,26 @@ export async function renderSpreadDirection(el, data, onPestChange) {
       </button>
     </div>
 
+    <!-- Legend -->
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;font-size:0.75rem;color:var(--text-dim);align-items:center;">
+      <span style="font-weight:600;">Map legend:</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#3b7db8;margin-right:4px;vertical-align:middle;"></span> Field (static)</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ccc;border:1px solid #aaa;margin-right:4px;vertical-align:middle;"></span> No activity this week</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#3b7db8;margin-right:4px;vertical-align:middle;opacity:0.75;"></span> Active (within threshold)</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#c75146;margin-right:4px;vertical-align:middle;"></span> Active (above threshold)</span>
+      <span style="border-left:1px solid var(--border);padding-left:12px;"><span style="display:inline-block;width:18px;height:0;border-top:3px dashed #4ade80;margin-right:4px;vertical-align:middle;"></span> Contained</span>
+      <span><span style="display:inline-block;width:18px;height:0;border-top:3px dashed #f59e0b;margin-right:4px;vertical-align:middle;"></span> Slow spread</span>
+      <span><span style="display:inline-block;width:18px;height:0;border-top:3px dashed #f87171;margin-right:4px;vertical-align:middle;"></span> Fast spread</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#4ade80;margin-right:4px;vertical-align:middle;"></span> Spread front (tip of vector)</span>
+    </div>
+
     <div class="two-col" style="gap:16px;margin-bottom:16px;">
       <!-- Map -->
-      <div class="card card-static" style="padding:0;overflow:hidden;border-radius:10px;min-height:420px;">
+      <div class="card card-static" style="padding:0;overflow:hidden;border-radius:10px;min-height:420px;position:relative;">
         <div id="spread-map" style="width:100%;height:420px;"></div>
+        <div class="week-label" style="position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:1000;
+          background:rgba(0,0,0,0.7);color:#fff;padding:4px 14px;border-radius:6px;font-size:0.82rem;font-weight:600;
+          pointer-events:none;display:none;"></div>
       </div>
 
       <!-- Vector table -->
@@ -151,11 +164,6 @@ export async function renderSpreadDirection(el, data, onPestChange) {
       <div id="spread-timeline" style="overflow-x:auto;"></div>
     </div>
   `;
-
-  // ── Wire pest selector ───────────────────────────────────────────────────
-  document.getElementById('spread-pest-sel').addEventListener('change', e => {
-    onPestChange(e.target.value || null);
-  });
 
   // ── Render vector summary cards (2-pest paginator) ─────────────────────
   const vectorList = document.getElementById('spread-vector-list');
@@ -272,6 +280,7 @@ export async function renderSpreadDirection(el, data, onPestChange) {
   try {
     await loadLeaflet();
     buildMap('spread-map', allFields, weeklySnaps, spreadVectors);
+    if (_map) drawBoundaries(_map, lookups);
   } catch (err) {
     document.getElementById('spread-map').innerHTML =
       `<div style="padding:24px;color:var(--text-dim);font-size:0.85rem;">Map unavailable: ${escapeHtml(err.message)}</div>`;
@@ -282,15 +291,20 @@ export async function renderSpreadDirection(el, data, onPestChange) {
   let animIdx    = 0;
   const playBtn  = document.getElementById('spread-play-btn');
 
+  const weekLabel = document.querySelector('#spread-map + .week-label') ??
+                    document.querySelector('.week-label');
+
   playBtn.addEventListener('click', () => {
     if (animHandle) {
       clearInterval(animHandle);
       animHandle = null;
       playBtn.textContent = '▶ Animate';
+      if (weekLabel) weekLabel.style.display = 'none';
       return;
     }
     if (weeklySnaps.length < 2) return;
     playBtn.textContent = '⏹ Stop';
+    if (weekLabel) weekLabel.style.display = 'block';
     animIdx = 0;
 
     animHandle = setInterval(() => {
@@ -298,9 +312,11 @@ export async function renderSpreadDirection(el, data, onPestChange) {
         clearInterval(animHandle);
         animHandle = null;
         playBtn.textContent = '▶ Animate';
+        if (weekLabel) { setTimeout(() => { weekLabel.style.display = 'none'; }, 2000); }
         return;
       }
       const snap = weeklySnaps[animIdx];
+      if (weekLabel) weekLabel.textContent = `Week of ${snap.weekStart}`;
       updateMapToWeek('spread-map', snap, allFields);
       animIdx++;
     }, 900);
@@ -349,8 +365,9 @@ function buildMap(containerId, fields, weeklySnaps, spreadVectors) {
       .bindPopup(`<strong>${escapeHtml(f.fieldName ?? '')}</strong><br>${escapeHtml(f.farmName ?? '')}`);
   }
 
-  // Draw spread vectors as arrows
+  // Draw spread vectors as arrows (skip single-field pests — no meaningful spread)
   for (const v of spreadVectors) {
+    if ((v.affectedFieldCount ?? 0) < 2) continue;
     const origin = fields.find(f => f.fieldId && v.originFieldId && String(f.fieldId) === String(v.originFieldId));
     if (!origin) continue;
 

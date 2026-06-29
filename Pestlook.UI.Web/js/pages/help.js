@@ -997,7 +997,7 @@ const GROUPS = [
         id:    'intel-spread',
         icon:  '🧭',
         title: 'Pest Spread Direction Mapping',
-        intro: 'This page shows a live map and analysis of how each pest species is physically moving across your fields over time. All data is derived from GPS-tagged scouting observations.',
+        intro: 'Maps how each pest species is physically moving across your fields using GPS-tagged scouting observations grouped into weekly centroids. A spread vector shows the compass bearing (first → last centroid) and a velocity score measuring how many new fields the pest reaches per week.',
         items: [
           {
             heading: 'KPI Cards',
@@ -1009,7 +1009,7 @@ const GROUPS = [
           },
           {
             heading: 'Map — Coloured dashed lines',
-            body: 'Each dashed line is a <em>spread vector</em> — it runs from the field where a pest was <strong>first observed</strong> to the centre-point (centroid) of all fields where it was <strong>most recently observed</strong>. The line colour shows how fast the pest is spreading: <span style="color:#4ade80;font-weight:600;">● Green</span> = contained or not spreading (0 or fewer new fields per week), <span style="color:#f59e0b;font-weight:600;">● Amber</span> = slow spread (less than 0.5 new fields per week), <span style="color:#f87171;font-weight:600;">● Red</span> = fast spread (0.5 or more new fields per week). Click a line to see the pest name, compass direction, and speed.',
+            body: 'Each dashed line is a <em>spread vector</em> — it runs from the field where a pest was <strong>first observed</strong> to the centre-point (centroid) of all fields where it was <strong>most recently observed</strong>. The line colour shows how fast the pest is spreading: <span style="color:#4ade80;font-weight:600;">● Green</span> = contained (velocity ≤ 0 new fields/week), <span style="color:#f59e0b;font-weight:600;">● Amber</span> = slow spread (< 0.5 new fields/week), <span style="color:#f87171;font-weight:600;">● Red</span> = fast spread (≥ 0.5 new fields/week). Click a line to see the pest name, compass direction, and speed.',
           },
           {
             heading: 'Map — Filled circle at the tip of each line',
@@ -1036,8 +1036,8 @@ const GROUPS = [
             body: 'Each pest card shows a large compass arrow (↑ ↗ → ↘ ↓ ↙ ← ↖) in the top-right corner. This is the overall bearing from the pest\'s origin field to its current spread front, snapped to the nearest of 8 compass directions. The full bearing in degrees and the text label (N / NE / E / SE etc.) are shown in the card body.',
           },
           {
-            heading: 'Spread Summary by Pest — Velocity colour',
-            body: 'The <em>Velocity</em> figure on each card is coloured the same way as the map lines: <span style="color:#4ade80;font-weight:600;">green</span> = contained, <span style="color:#f59e0b;font-weight:600;">amber</span> = slow, <span style="color:#f87171;font-weight:600;">red</span> = fast. Use the ‹ › buttons to page through all pest cards two at a time.',
+            heading: 'Spread Summary by Pest — Velocity',
+            body: 'Velocity is the OLS slope of <strong>cumulative distinct fields</strong> over weeks — it measures how many new fields the pest reaches per week on average, not just the difference between two snapshots. A value of 0 means the pest is contained to the same fields. Colour: <span style="color:#4ade80;font-weight:600;">green</span> = contained (≤ 0), <span style="color:#f59e0b;font-weight:600;">amber</span> = slow (< 0.5), <span style="color:#f87171;font-weight:600;">red</span> = fast (≥ 0.5). Use ‹ › to page through pest cards.',
           },
           {
             heading: '⚠ Neighbour Risk panel',

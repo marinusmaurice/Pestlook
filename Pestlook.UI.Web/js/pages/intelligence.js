@@ -249,14 +249,14 @@ export async function renderIntelligence(container) {
         await renderSpreadDirection(body, data, (pestId) => {
           iFilters.pestId = pestId ?? '';
           showActiveTab();
-        });
+        }, { farms, fields });
 
       } else if (activeId === 'origin') {
         const res  = await getOriginDetection({ ...iFilters }, signal);
         if (!alive || signal.aborted) return;
         const data = res?.data ?? { origins: [] };
         body.innerHTML = '';
-        await renderOriginDetection(body, data);
+        await renderOriginDetection(body, data, { farms, fields });
 
       } else if (activeId === 'neighbour') {
         const res  = await getNeighbourRisk({ ...iFilters }, iFilters.radiusKm, signal);
@@ -266,7 +266,7 @@ export async function renderIntelligence(container) {
         await renderNeighbourRisk(body, data, (newRadius) => {
           iFilters.radiusKm = newRadius;
           showActiveTab();
-        });
+        }, { farms, fields });
 
       } else if (activeId === 'crossfarm') {
         const res  = await getCrossFarmCorrelation({ ...iFilters }, iFilters.minFarms, signal);

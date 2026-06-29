@@ -188,6 +188,9 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 spreadVectors    = Array.Empty<object>(),
             }));
 
+        var sdTz = await tzService.GetUserTimeZoneAsync(ct);
+        DateTime LocalMonday(DateTime utc) => Monday(TimeZoneInfo.ConvertTimeFromUtc(utc, sdTz));
+
         // ── 3. Distinct pests & fields ────────────────────────────────────────
         var pests = merged
             .GroupBy(o => o.PestId)
@@ -214,7 +217,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
 
         // ── 4. Weekly snapshots (centroid per pest per field per week) ────────
         var weeklySnapshots = merged
-            .GroupBy(o => Monday(o.CompletedAt))
+            .GroupBy(o => LocalMonday(o.CompletedAt))
             .OrderBy(g => g.Key)
             .Select(weekGrp => new
             {
@@ -255,9 +258,14 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             if (pestObs.Count < 2)
                 return null;
 
+            // Need observations across 2+ distinct fields for a meaningful spread vector
+            var distinctFields = pestObs.Where(o => o.FieldId.HasValue).Select(o => o.FieldId!.Value).Distinct().Count();
+            if (distinctFields < 2)
+                return null;
+
             // Group by week to get weekly centroids
             var weeklyCentroids = pestObs
-                .GroupBy(o => Monday(o.CompletedAt))
+                .GroupBy(o => LocalMonday(o.CompletedAt))
                 .OrderBy(g => g.Key)
                 .Select(g => new
                 {
@@ -273,15 +281,25 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             var last  = weeklyCentroids.Last();
             var bearingDeg = Bearing(first.Lat, first.Lng, last.Lat, last.Lng);
 
-            // Velocity: new distinct fields per week
-            var distinctFieldsByWeek = pestObs
-                .GroupBy(o => Monday(o.CompletedAt))
+            // Velocity: OLS slope on cumulative distinct fields over weeks
+            var weeklyFieldSets = pestObs
+                .GroupBy(o => LocalMonday(o.CompletedAt))
                 .OrderBy(g => g.Key)
-                .Select(g => g.Select(o => o.FieldId).Distinct().Count())
+                .Select(g => g.Where(o => o.FieldId.HasValue).Select(o => o.FieldId!.Value).Distinct().ToHashSet())
                 .ToList();
-            var velocityFieldsPerWeek = distinctFieldsByWeek.Count > 1
-                ? Math.Round((double)(distinctFieldsByWeek.Max() - distinctFieldsByWeek.First()) / (distinctFieldsByWeek.Count - 1), 2)
-                : 0;
+            var cumulative = new List<int>();
+            var seenFields = new HashSet<Guid>();
+            foreach (var wf in weeklyFieldSets) { seenFields.UnionWith(wf); cumulative.Add(seenFields.Count); }
+            double velocityFieldsPerWeek = 0;
+            if (cumulative.Count >= 2)
+            {
+                int nv = cumulative.Count;
+                double vxMean = (nv - 1) / 2.0;
+                double vyMean = cumulative.Average();
+                double vssXX  = Enumerable.Range(0, nv).Sum(i => Math.Pow(i - vxMean, 2));
+                double vssXY  = cumulative.Select((c, i) => (i - vxMean) * (c - vyMean)).Sum();
+                velocityFieldsPerWeek = Math.Round(vssXX > 0 ? vssXY / vssXX : 0, 2);
+            }
 
             // Origin: earliest field + week
             var originObs  = pestObs.First();
@@ -314,8 +332,8 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 bearingLabel           = BearingLabel(bearingDeg),
                 velocityFieldsPerWeek  = velocityFieldsPerWeek,
                 affectedFieldCount,
-                firstSeenAt            = pestObs.Min(o => o.CompletedAt).ToString("yyyy-MM-dd"),
-                lastSeenAt             = pestObs.Max(o => o.CompletedAt).ToString("yyyy-MM-dd"),
+                firstSeenAt            = TimeZoneInfo.ConvertTimeFromUtc(pestObs.Min(o => o.CompletedAt), sdTz).ToString("yyyy-MM-dd"),
+                lastSeenAt             = TimeZoneInfo.ConvertTimeFromUtc(pestObs.Max(o => o.CompletedAt), sdTz).ToString("yyyy-MM-dd"),
                 weeklyCentroidCount    = weeklyCentroids.Count,
                 neighbourRisk,
             };
@@ -412,6 +430,8 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
         if (obs.Count == 0)
             return Ok(ApiResponse<object>.Ok(new { origins = Array.Empty<object>() }));
 
+        var odTz = await tzService.GetUserTimeZoneAsync(ct);
+
         var origins = obs
             .GroupBy(o => o.PestId)
             .OrderBy(pg => pg.First().PestName)
@@ -471,7 +491,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                         farmName          = f.FarmName,
                         lat               = f.Lat,
                         lng               = f.Lng,
-                        firstSeenAt       = f.FirstSeenAt.ToString("yyyy-MM-dd"),
+                        firstSeenAt       = TimeZoneInfo.ConvertTimeFromUtc(f.FirstSeenAt, odTz).ToString("yyyy-MM-dd"),
                         firstCount        = f.FirstCount,
                         threshold         = f.Threshold,
                         wasAboveThreshold = f.WasAboveThreshold,
@@ -685,20 +705,19 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
         CancellationToken ct = default)
     {
         var (start, end) = await ResolveRangeAsync(from, to, 180, ct);
-        radiusKm = Math.Clamp(radiusKm, 0.5, 100.0);
+        radiusKm = Math.Clamp(radiusKm, 0.5, 1000.0);
 
-        // ── 1. Load all fields with farm GPS ──────────────────────────────
+        // ── 1. Load ALL fields with GPS (neighbours can be on any farm) ──
         var allFields = await db.Fields
-            .Where(f => (!farmId.HasValue  || f.FarmId == farmId)
-                     && (!fieldId.HasValue || f.Id     == fieldId))
+            .Where(f => f.DeletedAt == null)
             .Include(f => f.Farm)
             .Select(f => new {
                 FieldId   = f.Id,
                 FieldName = f.Name,
                 FarmId    = f.FarmId,
                 FarmName  = f.Farm!.Name,
-                Lat       = f.Farm!.Latitude,
-                Lng       = f.Farm!.Longitude,
+                Lat       = f.Latitude ?? f.Farm!.Latitude,
+                Lng       = f.Longitude ?? f.Farm!.Longitude,
             })
             .ToListAsync();
 
@@ -767,9 +786,10 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 var threshold    = g.First().Threshold;
                 var pestName     = g.First().PestName;
 
-                // ── 5. Find neighbours within radius ──────────────────────
+                // ── 5. Find neighbours within radius (different farm only) ─
                 var neighbours = allFields
                     .Where(f => f.FieldId != srcFieldId
+                             && f.FarmId != srcField.FarmId
                              && f.Lat.HasValue && f.Lng.HasValue
                              && f.Lat.Value != 0 && f.Lng.Value != 0
                              && HaversineKm(srcLat, srcLng, f.Lat.Value, f.Lng.Value) <= radiusKm)
@@ -912,6 +932,8 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 summary   = new { totalOutbreakPests = 0, regionalOutbreaks = 0, peakFarmCount = 0, peakPestName = (string?)null },
             }));
 
+        var cfTz = await tzService.GetUserTimeZoneAsync(ct);
+
         // ── 2. Build spike detection per pest × farm from the aggregated weekly rows ──
         var byPest = raw
             .GroupBy(r => new { r.PestId, r.PestName })
@@ -930,7 +952,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                         var threshold = fg.Max(r => r.MaxThreshold) ?? 0;
 
                         var weekly = fg
-                            .Select(r => new { WeekStart = Monday(r.WeekStart), Count = r.WeeklyCount })
+                            .Select(r => new { WeekStart = Monday(TimeZoneInfo.ConvertTimeFromUtc(r.WeekStart, cfTz)), Count = r.WeeklyCount })
                             .GroupBy(r => r.WeekStart) // collapse any same-week duplicates from WeekIndex boundary
                             .Select(wg => new { WeekStart = wg.Key, Count = wg.Sum(r => r.Count) })
                             .OrderBy(w => w.WeekStart)
@@ -1106,10 +1128,13 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 summary = new { totalPests = 0, activelySpreading = 0, retreating = 0, contained = 0 },
             }));
 
+        var svTz = await tzService.GetUserTimeZoneAsync(ct);
+        DateTime SvMonday(DateTime utc) => Monday(TimeZoneInfo.ConvertTimeFromUtc(utc, svTz));
+
         // Build a contiguous week series across the full window
         var allWeeks = new List<DateTime>();
-        var cursor   = Monday(windowStart);
-        while (cursor <= Monday(windowEnd).AddDays(7)) { allWeeks.Add(cursor); cursor = cursor.AddDays(7); }
+        var cursor   = SvMonday(windowStart);
+        while (cursor <= SvMonday(windowEnd).AddDays(7)) { allWeeks.Add(cursor); cursor = cursor.AddDays(7); }
 
         var pests = obs
             .GroupBy(o => (o.PestId, o.PestName))
@@ -1120,7 +1145,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
 
                 // Distinct fields active (Count > 0) per week
                 var activeByWeek = pg
-                    .GroupBy(o => Monday(o.SeenAt))
+                    .GroupBy(o => SvMonday(o.SeenAt))
                     .ToDictionary(g => g.Key, g => g.Select(o => o.FieldId).Distinct().Count());
 
                 // Build typed week series
@@ -3151,12 +3176,15 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             .Select(f => new { f.Id, f.Name, Lat = f.Latitude!.Value, Lng = f.Longitude!.Value })
             .ToListAsync(ct);
 
+        var czTz = await tzService.GetUserTimeZoneAsync(ct);
+        DateTime CzMonday(DateTime utc) => Monday(TimeZoneInfo.ConvertTimeFromUtc(utc, czTz));
+
         var results = raw
             .GroupBy(o => (o.PestId, o.PestName))
             .Select(pg =>
             {
                 var weeks = pg
-                    .GroupBy(o => Monday(o.CompletedAt!.Value))
+                    .GroupBy(o => CzMonday(o.CompletedAt!.Value))
                     .OrderBy(g => g.Key)
                     .Select(g => new
                     {
@@ -3186,7 +3214,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 var frontLng = last.CentLng;
 
                 // Find origin field (first week, highest count field)
-                var originField = pg.Where(o => Monday(o.CompletedAt!.Value) == first.Week)
+                var originField = pg.Where(o => CzMonday(o.CompletedAt!.Value) == first.Week)
                                     .OrderByDescending(o => o.Count)
                                     .FirstOrDefault();
 

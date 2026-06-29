@@ -1,5 +1,6 @@
 import { escapeHtml }                      from '../../utils/helpers.js';
 import { C, kpiGrid, kpiCard, emptyState } from '../reports/utils.js';
+import { drawBoundaries }                  from './map-boundaries.js';
 
 /* ─────────────────────────────────────────────────────────────────────────────
    I3 — Infestation Origin Detection
@@ -120,6 +121,7 @@ function buildOriginMap(containerId, chain) {
   }
 
   try { map.fitBounds(L.latLngBounds(gpsSteps.map(s => [s.lat, s.lng])).pad(0.3)); } catch { /* ignore */ }
+  return map;
 }
 
 /* ── Spread chain list ───────────────────────────────────────────────────── */
@@ -168,7 +170,7 @@ function chainListHtml(chain) {
 }
 
 /* ── Main export ─────────────────────────────────────────────────────────── */
-export async function renderOriginDetection(el, data) {
+export async function renderOriginDetection(el, data, lookups = {}) {
   destroyMaps();
   const origins = data.origins ?? [];
 
@@ -298,7 +300,10 @@ export async function renderOriginDetection(el, data) {
     if (mapEl) {
       mapEl.innerHTML = '';
       loadLeaflet()
-        .then(() => buildOriginMap('origin-map', origin.chain))
+        .then(() => {
+          const m = buildOriginMap('origin-map', origin.chain);
+          if (m) drawBoundaries(m, lookups);
+        })
         .catch(err => {
           mapEl.innerHTML = `<div style="padding:24px;color:var(--text-dim);font-size:0.85rem;">
             Map unavailable: ${escapeHtml(err.message)}</div>`;

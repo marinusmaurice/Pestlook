@@ -1,5 +1,6 @@
 import { escapeHtml }                      from '../../utils/helpers.js';
 import { C, kpiGrid, kpiCard, emptyState } from '../reports/utils.js';
+import { drawBoundaries }                  from './map-boundaries.js';
 
 /* ─────────────────────────────────────────────────────────────────────────────
    I4 — Neighbour Risk Alert
@@ -65,7 +66,7 @@ function fmtDate(iso) {
 }
 
 /* ── Main export ─────────────────────────────────────────────────────────── */
-export async function renderNeighbourRisk(container, data, onRadiusChange) {
+export async function renderNeighbourRisk(container, data, onRadiusChange, lookups = {}) {
   destroyMaps();
 
   const summary = data.summary ?? { breachedFields: 0, atRiskFields: 0, unscoutedRiskFields: 0 };
@@ -77,14 +78,8 @@ export async function renderNeighbourRisk(container, data, onRadiusChange) {
     return;
   }
 
-  // Collect all unique pests for the pest selector
-  const pests = [...new Map(alerts.map(a => [a.pestId, a.pestName])).entries()]
-    .map(([id, name]) => ({ id, name }));
-
-  let activePestId = pests[0]?.id ?? null;
-
   // ── KPI row ──────────────────────────────────────────────────────────────
-  container.innerHTML = '<div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Identifies fields where a pest <strong>breached its action threshold</strong> in the selected period, then finds all other fields within the configurable search radius. Neighbouring fields that have not been scouted in 7 or more days are flagged as unscouted risk — an intelligence gap next to an active infestation that needs immediate attention.</div>' + kpiGrid([
+  container.innerHTML = '<div style="font-size:0.75rem;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">Identifies fields where a pest <strong>breached its action threshold</strong>, then searches for fields on <strong>other farms</strong> within the configurable radius. Neighbouring fields that haven\'t been scouted in 7+ days are flagged as unscouted risk — a blind spot next to an active infestation. Same-farm fields are excluded since they share the same management zone.</div>' + kpiGrid([
     kpiCard('Breached Fields',    summary.breachedFields,     '',                                   summary.breachedFields > 0     ? C.red   : '',
       'Fields where the observed pest count exceeded the configured action threshold at least once in the selected period.'),
     kpiCard('At-Risk Neighbours', summary.atRiskFields,       'within radius',                      summary.atRiskFields > 0       ? C.amber : '',
@@ -99,16 +94,9 @@ export async function renderNeighbourRisk(container, data, onRadiusChange) {
     <div style="display:flex;align-items:center;gap:8px;">
       <label style="font-size:0.8rem;color:var(--text-dim);font-weight:600;">📍 Radius</label>
       <select id="nb-radius" class="input-field" style="margin-top:0;width:auto;padding:6px 10px;font-size:0.8rem;">
-        ${[3, 5, 10, 20].map(r => `<option value="${r}"${r === Math.round(radiusKm) ? ' selected' : ''}>${r} km</option>`).join('')}
+        ${[3, 5, 10, 20, 50, 100, 500, 1000].map(r => `<option value="${r}"${r === Math.round(radiusKm) ? ' selected' : ''}>${r} km</option>`).join('')}
       </select>
     </div>
-    ${pests.length > 1 ? `
-    <div style="display:flex;align-items:center;gap:8px;">
-      <label style="font-size:0.8rem;color:var(--text-dim);font-weight:600;">🐛 Pest</label>
-      <select id="nb-pest" class="input-field" style="margin-top:0;width:auto;padding:6px 10px;font-size:0.8rem;">
-        ${pests.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('')}
-      </select>
-    </div>` : ''}
   </div>
 
   <!-- Map + alerts layout -->
@@ -119,29 +107,25 @@ export async function renderNeighbourRisk(container, data, onRadiusChange) {
     if (typeof onRadiusChange === 'function') onRadiusChange(Number(e.target.value));
   });
 
-  // ── Pest selector ─────────────────────────────────────────────────────────
-  document.getElementById('nb-pest')?.addEventListener('change', e => {
-    activePestId = e.target.value;
-    renderBody(activePestId);
-  });
-
   await loadLeaflet();
-  renderBody(activePestId);
+  renderBody();
 
-  /* ── Body renderer (switches by pest) ────────────────────────────────── */
-  async function renderBody(pestId) {
+  /* ── Body renderer (shows all alerts grouped by pest) ────────────────── */
+  async function renderBody() {
     destroyMaps();
     const body = document.getElementById('nb-body');
     if (!body) return;
 
-    const pestAlerts = alerts.filter(a => a.pestId === pestId);
-    if (!pestAlerts.length) {
-      body.innerHTML = emptyState('✅', 'No alerts for this pest', '');
+    // Filter out alerts with no neighbours (nothing actionable)
+    const relevantAlerts = alerts.filter(a => (a.atRiskNeighbours ?? []).length > 0);
+
+    if (!relevantAlerts.length) {
+      body.innerHTML = emptyState('✅', 'No cross-farm neighbour risk found',
+        'No fields on neighbouring farms were found within the search radius of any breach. Try increasing the radius or widening the date range.');
       return;
     }
 
-    // Collect all unique source fields for this pest (may be more than one)
-    body.innerHTML = pestAlerts.map((alert, idx) => {
+    body.innerHTML = relevantAlerts.map((alert, idx) => {
       const src  = alert.sourceField;
       const nbrs = alert.atRiskNeighbours ?? [];
       const mapId = `nb-map-${idx}`;
@@ -154,7 +138,7 @@ export async function renderNeighbourRisk(container, data, onRadiusChange) {
         <!-- Source field header -->
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap;">
           <div>
-            <div style="font-size:0.72rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-bottom:4px;">Breach Source</div>
+            <div style="font-size:0.72rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-bottom:4px;">Breach Source — ${escapeHtml(alert.pestName)}</div>
             <div style="font-size:1rem;font-weight:700;color:var(--text);">${escapeHtml(src.fieldName)}</div>
             <div style="font-size:0.8rem;color:var(--text-dim);">${escapeHtml(src.farmName)}</div>
           </div>
@@ -183,8 +167,8 @@ export async function renderNeighbourRisk(container, data, onRadiusChange) {
     }).join('');
 
     // ── Build maps for each alert ─────────────────────────────────────────
-    for (let idx = 0; idx < pestAlerts.length; idx++) {
-      const alert = pestAlerts[idx];
+    for (let idx = 0; idx < relevantAlerts.length; idx++) {
+      const alert = relevantAlerts[idx];
       const src   = alert.sourceField;
       const nbrs  = alert.atRiskNeighbours ?? [];
       const mapId  = `nb-map-${idx}`;
@@ -252,6 +236,8 @@ export async function renderNeighbourRisk(container, data, onRadiusChange) {
       } else if (allLatLngs.length === 1) {
         map.setView(allLatLngs[0], 12);
       }
+
+      drawBoundaries(map, lookups);
 
       // ── Neighbour list ──────────────────────────────────────────────────
       const listEl = document.getElementById(listId);
