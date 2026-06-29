@@ -1496,54 +1496,47 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
         if (farmId.HasValue)  obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
         if (fieldId.HasValue) obsQ = obsQ.Where(o => o.Session.FieldId == fieldId);
 
-        // Aggregate in SQL — one row per pest × calendar-month, not one row per observation
-        var monthlyTotals = await obsQ
+        // Aggregate in SQL — one row per pest × calendar-month × year
+        var monthlyRaw = await obsQ
             .GroupBy(o => new
             {
                 o.PestId,
                 PestName = o.Pest!.CommonName,
                 Month    = o.Session.CompletedAt!.Value.Month,
+                Year     = o.Session.CompletedAt!.Value.Year,
             })
             .Select(g => new
             {
                 g.Key.PestId,
                 g.Key.PestName,
                 g.Key.Month,
+                g.Key.Year,
                 Total = g.Sum(o => o.Count ?? 0),
             })
             .ToListAsync(ct);
 
-        if (monthlyTotals.Count == 0)
+        if (monthlyRaw.Count == 0)
             return Ok(ApiResponse<object>.Ok(new { calendar = Array.Empty<object>(), peakPests = Array.Empty<object>() }));
 
         // "Current month" follows the user's local calendar
-        var nowLocal    = ToLocalDate(DateTime.UtcNow, await tzService.GetUserTimeZoneAsync(ct));
-        var next6Months = Enumerable.Range(0, 6)
-            .Select(i => new DateTime(nowLocal.Year, nowLocal.Month, 1).AddMonths(i))
-            .ToList();
+        var nowLocal = ToLocalDate(DateTime.UtcNow, await tzService.GetUserTimeZoneAsync(ct));
 
-        // Build monthly profiles per pest from the already-aggregated data
-        var byPest = monthlyTotals
+        // Build per-pest profiles: average across years for each calendar month
+        var byPest = monthlyRaw
             .GroupBy(r => (r.PestId, r.PestName))
             .Select(pg =>
             {
-                var pestId2   = pg.Key.PestId;
-                var pestName  = pg.Key.PestName;
+                var pestId2  = pg.Key.PestId;
+                var pestName = pg.Key.PestName;
+                int yearsOfData = pg.Select(r => r.Year).Distinct().Count();
 
-                // Monthly totals per calendar month (1–12) — already summed by SQL
-                var byMonth = pg.ToDictionary(r => r.Month, r => (double)r.Total);
+                // Average per calendar month across years
+                var byMonth = pg
+                    .GroupBy(r => r.Month)
+                    .ToDictionary(mg => mg.Key, mg => mg.Average(r => (double)r.Total));
 
-                // Forecast each of the next 6 months
-                var forecasts6 = next6Months.Select(m => new
-                {
-                    month       = m.ToString("yyyy-MM"),
-                    monthLabel  = m.ToString("MMMM yyyy"),
-                    predictedCount = (int)(byMonth.TryGetValue(m.Month, out var hist) ? hist / 2 : 0), // avg of historical same-month
-                    historicalAvg  = byMonth.TryGetValue(m.Month, out var h2) ? (int)h2 : 0,
-                }).ToList();
-
-                int peakMonth = byMonth.Any() ? byMonth.MaxBy(kv => kv.Value).Key : 0;
-                int peakTotal = byMonth.Any() ? (int)byMonth.Values.Max() : 0;
+                int peakMonth    = byMonth.Any() ? byMonth.MaxBy(kv => kv.Value).Key : 0;
+                double peakAvg   = byMonth.Any() ? byMonth.Values.Max() : 0;
 
                 return new
                 {
@@ -1551,43 +1544,37 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                     pestName,
                     peakMonth,
                     peakMonthName = peakMonth > 0 ? new DateTime(2000, peakMonth, 1).ToString("MMMM") : "Unknown",
-                    peakTotal,
-                    forecasts = forecasts6.Cast<object>().ToList(),
-                    monthlyProfile = byMonth.OrderBy(kv => kv.Key)
-                        .Select(kv => new { month = kv.Key, monthName = new DateTime(2000, kv.Key, 1).ToString("MMM"), total = (int)kv.Value })
-                        .ToList<object>(),
+                    avgPeakCount  = (int)Math.Round(peakAvg),
+                    yearsOfData,
+                    byMonth,
                 };
             })
-            .OrderByDescending(p => p.peakTotal)
+            .OrderByDescending(p => p.avgPeakCount)
             .ToList();
 
-        // Calendar: per forecast month — top 3 expected pests
-        var calendar = next6Months.Select(m => new
+        // Calendar: 12 months, each with all pests that have data for that month
+        var calendar = Enumerable.Range(1, 12).Select(m => new
         {
-            month      = m.ToString("yyyy-MM"),
-            monthLabel = m.ToString("MMMM yyyy"),
-            topPests   = byPest
-                .Where(p => p.peakMonth == m.Month || p.monthlyProfile.Any(mp => (int)((dynamic)mp).month == m.Month && (int)((dynamic)mp).total > 0))
-                .OrderByDescending(p =>
-                {
-                    var mp = p.monthlyProfile.FirstOrDefault(x => (int)((dynamic)x).month == m.Month);
-                    return mp != null ? (int)((dynamic)mp).total : 0;
-                })
-                .Take(3)
+            month     = m,
+            monthName = new DateTime(2000, m, 1).ToString("MMM"),
+            pests     = byPest
+                .Where(p => p.byMonth.ContainsKey(m) && p.byMonth[m] > 0)
+                .OrderByDescending(p => p.byMonth[m])
                 .Select(p => new
                 {
                     pestId   = p.pestId,
                     pestName = p.pestName,
-                    expectedCount = p.monthlyProfile
-                        .Where(x => (int)((dynamic)x).month == m.Month)
-                        .Select(x => (int)((dynamic)x).total)
-                        .FirstOrDefault(),
-                    isPeak = p.peakMonth == m.Month,
+                    avgCount = (int)Math.Round(p.byMonth[m]),
                 })
                 .ToList<object>(),
         }).ToList<object>();
 
-        return Ok(ApiResponse<object>.Ok(new { calendar, peakPests = byPest.Take(10).ToList<object>() }));
+        var peakPests = byPest.Take(10).Select(p => new
+        {
+            p.pestId, p.pestName, p.peakMonth, p.peakMonthName, p.avgPeakCount, p.yearsOfData,
+        }).ToList<object>();
+
+        return Ok(ApiResponse<object>.Ok(new { calendar, peakPests }));
     }
 
     // ── I9 · Predictive — Weather-Correlated Risk Index ────────────────────────
