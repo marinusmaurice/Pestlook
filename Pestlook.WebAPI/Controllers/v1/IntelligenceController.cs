@@ -568,6 +568,8 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
         if (obs.Count == 0)
             return Ok(ApiResponse<object>.Ok(new { forecasts = Array.Empty<object>() }));
 
+        var fcTz = await tzService.GetUserTimeZoneAsync(ct);
+
         var forecasts = obs
             .GroupBy(o => (o.PestId, o.FieldId))
             .Select(grp =>
@@ -597,16 +599,17 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 double sse = pts.Select((p, i) => Math.Pow(p.Count - (intercept + slope * xs[i]), 2)).Sum();
                 double se  = pts.Count > 2 ? Math.Sqrt(sse / (pts.Count - 2)) : Math.Max(yMean * 0.2, 1);
 
-                // History: one entry per individual observation
+                // History: one entry per individual observation (dates in user's local timezone)
                 var history = pts.Select((p, i) => new
                 {
-                    observedAt  = p.Date.ToString("yyyy-MM-dd"),
+                    observedAt  = TimeZoneInfo.ConvertTimeFromUtc(p.Date, fcTz).ToString("yyyy-MM-dd"),
                     count       = (int)p.Count,
                     fittedCount = (int)Math.Max(0, Math.Round(intercept + slope * xs[i])),
                 }).ToList();
 
                 // Forecast: weekly steps from last observation
                 double lastX = xs[^1];
+                var lastLocal = TimeZoneInfo.ConvertTimeFromUtc(pts[^1].Date, fcTz);
                 var forecastPts = Enumerable.Range(1, weeksAhead).Select(k =>
                 {
                     double xi    = lastX + 7 * k;
@@ -615,7 +618,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                     double upper = proj + 1.645 * se;
                     return new
                     {
-                        forecastDate   = pts[^1].Date.AddDays(7 * k).ToString("yyyy-MM-dd"),
+                        forecastDate   = lastLocal.AddDays(7 * k).ToString("yyyy-MM-dd"),
                         projectedCount = (int)Math.Round(proj),
                         lower          = (int)Math.Round(lower),
                         upper          = (int)Math.Round(upper),
@@ -1245,6 +1248,8 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
         if (obs.Count == 0)
             return Ok(ApiResponse<object>.Ok(new { combinations = Array.Empty<object>(), summary = new { total = 0, highRisk = 0, mediumRisk = 0, lowRisk = 0 } }));
 
+        var bpTz = await tzService.GetUserTimeZoneAsync(ct);
+
         var combinations = obs
             .GroupBy(o => (o.PestId, o.FieldId))
             .Select(grp =>
@@ -1311,7 +1316,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                     risk,
                     trend,
                     daysToBreachEstimate = daysToNext,
-                    weeklyHistory     = pts.Select(p => new { observedAt = p.Date.ToString("yyyy-MM-dd"), count = (int)p.Count }).ToList<object>(),
+                    weeklyHistory     = pts.Select(p => new { observedAt = TimeZoneInfo.ConvertTimeFromUtc(p.Date, bpTz).ToString("yyyy-MM-dd"), count = (int)p.Count }).ToList<object>(),
                 };
             })
             .Where(c => c != null)
@@ -1773,16 +1778,19 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 };
 
             int n = checks.Count;
-            double xMean = (n - 1) / 2.0;
+            // Use actual calendar-week offsets so gaps don't compress the timeline
+            var origin = checks[0].WeekStart;
+            var xs = checks.Select(w => (w.WeekStart - origin).TotalDays / 7.0).ToList();
+            double xMean = xs.Average();
             double yMean = checks.Average(w => (double)w.Total);
-            double ssXX  = Enumerable.Range(0, n).Sum(i => Math.Pow(i - xMean, 2));
-            double ssXY  = checks.Select((w, i) => (i - xMean) * (w.Total - yMean)).Sum();
-            double slope  = ssXX > 0 ? ssXY / ssXX : 0;
+            double ssXX  = xs.Sum(x => Math.Pow(x - xMean, 2));
+            double ssXY  = checks.Select((w, i) => (xs[i] - xMean) * (w.Total - yMean)).Sum();
+            double slope  = ssXX > 0 ? ssXY / ssXX : 0; // per calendar week
             double intercept = yMean - slope * xMean;
-            double current = Math.Max(0, intercept + slope * (n - 1));
+            double lastX = xs[^1];
+            double current = Math.Max(0, intercept + slope * lastX);
 
             // Saturation = 20% above the historic peak catch week (minimum 500).
-            // This represents the point where trap effectiveness starts to degrade.
             int peakSoFar    = checks.Max(w => w.Total);
             int satThreshold = Math.Max((int)(peakSoFar * 1.2), 500);
 
