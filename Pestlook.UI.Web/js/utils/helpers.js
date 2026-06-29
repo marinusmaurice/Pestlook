@@ -1,3 +1,5 @@
+import { getUser } from './storage.js';
+
 export const SubscriptionPlan = { 0: 'Free' };
 export const SubscriptionPlanValues = { Free: 0 };
 // Paid plans disabled — the platform is currently free:
@@ -82,23 +84,26 @@ export function formatBucketDate(iso, opts = { day: 'numeric', month: 'short' })
   return new Date(iso).toLocaleDateString('en-GB', { ...opts, timeZone: 'UTC' });
 }
 
+function _userTz() { return getUser()?.timezone || undefined; }
+
 export function formatDate(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: _userTz() });
 }
 
 export function formatDateTime(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) + ' ' +
-    d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const tz = _userTz();
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: tz }) + ' ' +
+    d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: tz });
 }
 
 export function formatTime(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
-  return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: _userTz() });
 }
 
 export function timeAgo(iso) {

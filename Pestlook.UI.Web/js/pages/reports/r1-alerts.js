@@ -22,13 +22,14 @@ export function renderThresholdAlerts(el, data, lookups) {
   const offenderHtml = repeatOffenders.length ? `
     <div class="card card-p card-static" style="margin-bottom:16px;border-left:3px solid ${C.red};">
       <div class="section-title" style="margin-bottom:8px;">⚠ Repeat Offenders</div>
-      <div style="font-size:0.78rem;color:var(--text-dim);margin-bottom:8px;">Pests breaching thresholds across multiple scouting sessions</div>
+      <div style="font-size:0.75rem;color:var(--text-dim);margin-bottom:8px;">Pest × field combinations that breached the action threshold in 2 or more sessions during the selected period. Sorted by breach count — the worst offenders first.</div>
       <div style="max-height:180px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent;">
       ${repeatOffenders.map(r => `
         <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);">
           <div style="flex:1;">
             <span style="font-weight:600;font-size:0.82rem;">${escapeHtml(r.pestName ?? '—')}</span>
             <span style="font-size:0.72rem;color:var(--text-dim);margin-left:8px;">${escapeHtml(r.fieldName ?? '—')}</span>
+            ${r.farmName ? `<span style="font-size:0.72rem;color:var(--text-dim);margin-left:4px;">· ${escapeHtml(r.farmName)}</span>` : ''}
           </div>
           ${tag(r.breachCount + ' breaches', 'red')}
         </div>`).join('')}
@@ -37,6 +38,11 @@ export function renderThresholdAlerts(el, data, lookups) {
 
   el.innerHTML = `
     ${filterBadge(lookups)}
+    <div style="font-size:0.75rem;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">
+      Lists every observation where the recorded pest count exceeded the configured action threshold for that pest.
+      <strong>Critical</strong> = count ≥ 2× threshold · <strong>Warning</strong> = count > threshold but < 2×.
+      All data respects the selected date range and farm/field filters.
+    </div>
     ${kpiGrid([
       kpiCard('Total Breaches',  breaches.length, '', breaches.length > 0 ? C.red : C.green,
         'Total number of observations in the selected period where the recorded pest count exceeded the configured alert threshold for that monitoring point.'),
@@ -47,11 +53,12 @@ export function renderThresholdAlerts(el, data, lookups) {
       kpiCard('Fields Affected', fieldsAffected, `${farmsAffected} farm${farmsAffected !== 1 ? 's' : ''}`, '',
         'Number of distinct fields containing at least one threshold breach in the selected period. The sub-label shows how many farms those fields belong to.'),
     ])}
-    ${chartCard('Threshold breaches per week', 'c-alerts-trend', 160, 'Number of breaching observations each week')}
+    ${chartCard('Threshold breaches per week', 'c-alerts-trend', 160, 'Number of breaching observations per week within the selected date range and filters')}
     ${offenderHtml}
     <div class="card" style="margin-bottom:16px;">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);">
         <span style="font-weight:600;font-size:0.88rem;">All threshold breaches</span>
+        <span style="font-size:0.72rem;color:var(--text-dim);margin-left:8px;">Individual observations where count exceeded threshold · "Over by" = how far above threshold as a percentage</span>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
           <input id="ab-search" type="text" class="input-field" placeholder="Search pest, field or scout…"
             style="margin:0;padding:5px 10px;font-size:0.78rem;width:200px;" />

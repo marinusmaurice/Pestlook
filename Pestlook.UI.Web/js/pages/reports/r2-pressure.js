@@ -96,7 +96,10 @@ export function renderPestPressure(el, data, lookups) {
   setTimeout(() => {
     const top10 = rows.slice(0, 10);
     mkChart('c-pressure', 'bar', {
-      labels: top10.map(r => (r.fieldName ?? '').length > 16 ? r.fieldName.slice(0, 14) + '…' : r.fieldName),
+      labels: top10.map(r => {
+        const lbl = r.farmName ? `${r.fieldName ?? '—'} (${r.farmName})` : (r.fieldName ?? '—');
+        return lbl.length > 28 ? lbl.slice(0, 26) + '…' : lbl;
+      }),
       datasets: [{
         data: top10.map(r => parseFloat((r.avgObsPerSession ?? 0).toFixed(1))),
         backgroundColor: top10.map(r => {

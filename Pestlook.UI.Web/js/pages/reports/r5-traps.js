@@ -87,7 +87,24 @@ export function renderTrapPerformance(el, data, lookups) {
         backgroundColor: C.teal,
         borderRadius: 4,
       }],
-    }, { indexAxis: 'y', scales: { x: { beginAtZero: true, ticks: { font: { size: 11 } } }, y: { ticks: { font: { size: 11 } } } } });
+    }, {
+      indexAxis: 'y',
+      scales: { x: { beginAtZero: true, ticks: { font: { size: 11 } } }, y: { ticks: { font: { size: 11 } } } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: ctx => {
+              const t = top10[ctx[0].dataIndex];
+              const parts = [t.trapName ?? '—'];
+              if (t.fieldName) parts.push(t.fieldName);
+              if (t.farmName) parts.push(t.farmName);
+              return parts.join(' · ');
+            },
+          },
+        },
+      },
+    });
 
     mkChart('c-traps-type', 'doughnut', {
       labels: catchesByType.map(x => x.trapType ?? 'Unknown'),

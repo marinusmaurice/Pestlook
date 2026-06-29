@@ -1,4 +1,5 @@
-import { escapeHtml } from '../../utils/helpers.js';
+import { escapeHtml, celsiusToFahrenheit } from '../../utils/helpers.js';
+import { getUser } from '../../utils/storage.js';
 import {
   C, mkChart,
   kpiGrid, kpiCard, chartCard, tableCard, filterBadge,
@@ -7,10 +8,13 @@ import {
 // data = { months: [{ monthKey, monthLabel, sessionCount, totalObs, avgTempCelsius, topPests }] }
 export function renderSeasonalTrends(el, data, lookups) {
   const months = data.months ?? [];
+  const unit   = getUser()?.temperatureUnit || 'C';
+  const deg    = unit === 'F' ? '°F' : '°C';
+  const convT  = c => c == null ? null : unit === 'F' ? +celsiusToFahrenheit(c).toFixed(1) : +Number(c).toFixed(1);
 
   const obsCounts  = months.map(m => m.totalObs    ?? 0);
   const sessCounts = months.map(m => m.sessionCount ?? 0);
-  const avgTemps   = months.map(m => m.avgTempCelsius ?? null);
+  const avgTemps   = months.map(m => convT(m.avgTempCelsius));
   const labels     = months.map(m => m.monthLabel ?? m.monthKey);
 
   const peakIdx   = obsCounts.indexOf(Math.max(...obsCounts, 0));
@@ -30,7 +34,8 @@ export function renderSeasonalTrends(el, data, lookups) {
 
   const tableRows = months.length
     ? [...months].reverse().map(m => {
-        const avgT = m.avgTempCelsius != null ? m.avgTempCelsius.toFixed(1) + ' °C' : '—';
+        const t = convT(m.avgTempCelsius);
+        const avgT = t != null ? `${t} ${deg}` : '—';
         const top3 = (m.topPests ?? []).map(p => escapeHtml(p.pestName)).join(', ') || '—';
         return `<tr>
           <td>${escapeHtml(m.monthLabel ?? m.monthKey)}</td>
@@ -54,7 +59,7 @@ export function renderSeasonalTrends(el, data, lookups) {
       kpiCard('Top Pest (Period)', escapeHtml(topPest), allPest[topPest] ? allPest[topPest].toLocaleString() + ' total' : '', '',
         'The pest species with the highest cumulative observation count across all months in the selected period.'),
     ])}
-    ${chartCard('Monthly pest counts vs avg temperature (°C)', 'c-seasonal', 250, 'Pest pressure typically rises with temperature — spot seasonal patterns')}
+    ${chartCard(`Monthly pest counts vs avg temperature (${deg})`, 'c-seasonal', 250, 'Pest pressure typically rises with temperature — spot seasonal patterns')}
     ${chartCard('Scouting sessions per month', 'c-sess-monthly', 160)}
     ${tableCard(
       ['Month', 'Total Obs', 'Sessions', 'Avg Temp', 'Top Pests'],
@@ -69,7 +74,7 @@ export function renderSeasonalTrends(el, data, lookups) {
       labels,
       datasets: [
         { label: 'Total pest count', data: obsCounts, borderColor: C.red,   backgroundColor: 'rgba(199,81,70,.06)',  fill: true, tension: 0.3, yAxisID: 'y',  pointRadius: 4 },
-        { label: 'Avg temp °C',      data: avgTemps,  borderColor: C.amber, backgroundColor: 'transparent',          fill: false, tension: 0.3, yAxisID: 'y1', borderDash: [4, 3], pointRadius: 3 },
+        { label: `Avg temp ${deg}`,  data: avgTemps,  borderColor: C.amber, backgroundColor: 'transparent',          fill: false, tension: 0.3, yAxisID: 'y1', borderDash: [4, 3], pointRadius: 3 },
       ],
     }, {
       plugins: { legend: { display: true, position: 'top', labels: { boxWidth: 10, font: { size: 11 } } } },

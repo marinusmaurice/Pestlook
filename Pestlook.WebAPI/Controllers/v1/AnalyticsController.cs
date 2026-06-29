@@ -409,28 +409,20 @@ public sealed class AnalyticsController(ApplicationDbContext db, IUserTimezoneSe
         var repeatOffenders = breaches
             .GroupBy(b => (b.PestName, b.FieldName))
             .Where(g => g.Count() >= 2)
-            .Select(g => new { g.Key.PestName, g.Key.FieldName, BreachCount = g.Count() })
+            .Select(g => new { g.Key.PestName, g.Key.FieldName, FarmName = g.First().FarmName, BreachCount = g.Count() })
             .OrderByDescending(x => x.BreachCount)
             .ToList();
 
-        var eightWeeksAgo = DateTime.UtcNow.AddDays(-56);
-        // Hoisted local: EF parameterizes it into DATEADD; TimeZoneInfo calls
-        // inside the lambda are not translatable.
-        var tzOffsetMinutes = (int)tz.GetUtcOffset(DateTime.UtcNow).TotalMinutes;
-        var weeklyTrend = await db.SessionObservations
-            .Where(o => !o.IsUnknownPest
-                     && o.ThresholdCount != null
-                     && o.Count > o.ThresholdCount
-                     && o.Session.CompletedAt >= eightWeeksAgo)
-            .GroupBy(o => o.Session.CompletedAt!.Value.AddMinutes(tzOffsetMinutes).DayOfYear / 7)
+        // Weekly trend — uses the same breaches list (respects user's date & farm/field filters)
+        var weeklyTrend = breaches
+            .GroupBy(b => ToLocalWeekStart(b.CompletedAt!.Value, tz))
             .Select(g => new
             {
-                WeekIndex = g.Key,
-                WeekStart = g.Min(o => o.Session.CompletedAt),
+                WeekStart = g.Key.ToString("yyyy-MM-dd"),
                 Breaches  = g.Count(),
             })
-            .OrderBy(x => x.WeekIndex)
-            .ToListAsync(ct);
+            .OrderBy(x => x.WeekStart)
+            .ToList();
 
         return Ok(ApiResponse<object>.Ok(new { breaches, repeatOffenders, weeklyTrend }));
     }
@@ -528,7 +520,7 @@ public sealed class AnalyticsController(ApplicationDbContext db, IUserTimezoneSe
     {
         var tz = await tzService.GetUserTimeZoneAsync(ct);
         var (start, end) = ResolveRange(dateRange, from, to, tz);
-        var now = DateTime.UtcNow;
+        var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
 
         var sessQ = db.ScoutingSessions
             .Where(ss => (ss.CompletedAt ?? ss.StartedAt ?? ss.ScheduledDate) >= start
@@ -802,7 +794,7 @@ public sealed class AnalyticsController(ApplicationDbContext db, IUserTimezoneSe
     {
         var tz = await tzService.GetUserTimeZoneAsync(ct);
         var (start, end) = ResolveRange(dateRange, from, to, tz);
-        var now = DateTime.UtcNow;
+        var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
 
         var sessQ = db.ScoutingSessions
             .Where(ss => (ss.CompletedAt ?? ss.StartedAt ?? ss.ScheduledDate) >= start
