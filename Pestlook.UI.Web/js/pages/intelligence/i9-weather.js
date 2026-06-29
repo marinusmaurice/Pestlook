@@ -25,7 +25,12 @@ export async function renderWeatherRisk(el, data) {
   const colour = r => RISK_COLOUR[r] ?? '#888';
 
   const kpis = `
-    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Correlates the temperature recorded on scouting sessions with observed pest counts using Pearson correlation and OLS regression. A <strong>Positive</strong> influence means the pest is more active in warmer conditions; <strong>Negative</strong> means it favours cooler temperatures. The risk index projects each pest's expected count at the current average temperature and compares it to the configured action threshold.</div>
+    <div style="font-size:0.75rem;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">
+      Correlates the temperature recorded on scouting sessions with observed pest counts using Pearson correlation and OLS regression.
+      <strong>Positive</strong> influence = pest is more active in warmer conditions · <strong>Negative</strong> = favours cooler temperatures.
+      The <strong>risk index</strong> projects each pest's expected count at the recent average temperature (last 10 sessions) and divides by the action threshold — values near or above 1.0 mean current conditions are conducive to a breach.
+      <strong>Peak Range</strong> shows the temperature band where the 5 highest individual counts were recorded.
+    </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;">
       <div class="card card-p has-kpi-tip" style="text-align:center;" data-kpi-tip="Number of pest species for which Pearson correlation and OLS regression could be calculated from temperature-recorded scouting sessions.">
         <div style="font-size:1.8rem;font-weight:700;">${summary.totalPests ?? 0}</div>
@@ -35,7 +40,7 @@ export async function renderWeatherRisk(el, data) {
         <div style="font-size:1.8rem;font-weight:700;color:#c0392b;">${summary.highRisk ?? 0}</div>
         <div style="font-size:0.78rem;color:var(--text-dim);">High Risk</div>
       </div>
-      <div class="card card-p has-kpi-tip" style="text-align:center;border-left:3px solid var(--accent);" data-kpi-tip="The average temperature recorded across all scouting sessions in the selected period, used to project pest counts using the regression model.">
+      <div class="card card-p has-kpi-tip" style="text-align:center;border-left:3px solid var(--accent);" data-kpi-tip="The average temperature from the 10 most recent scouting sessions, used as the 'current conditions' input for projecting pest counts via the regression model.">
         <div style="font-size:1.8rem;font-weight:700;">${summary.currentTempAvg ?? '—'}°C</div>
         <div style="font-size:0.78rem;color:var(--text-dim);">Current Avg Temp</div>
       </div>
@@ -82,16 +87,16 @@ export async function renderWeatherRisk(el, data) {
       <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
         <thead>
           <tr style="border-bottom:2px solid var(--border);text-align:left;">
-            <th style="padding:8px 10px;color:var(--text-dim);">Pest</th>
-            <th style="padding:8px 10px;color:var(--text-dim);text-align:right;">Points</th>
-            <th style="padding:8px 10px;color:var(--text-dim);text-align:center;">Temp Influence</th>
-            <th style="padding:8px 10px;color:var(--text-dim);text-align:right;">Slope/°C</th>
-            <th style="padding:8px 10px;color:var(--text-dim);text-align:center;">Peak Range</th>
-            <th style="padding:8px 10px;color:var(--text-dim);text-align:right;">Projected</th>
-            <th style="padding:8px 10px;color:var(--text-dim);text-align:right;">Threshold</th>
-            <th style="padding:8px 10px;color:var(--text-dim);text-align:right;">Risk Index</th>
-            <th style="padding:8px 10px;color:var(--text-dim);">Risk</th>
-            <th style="padding:8px 10px;color:var(--text-dim);">Temp Profile</th>
+            <th style="padding:8px 10px;color:var(--text-dim);" title="Pest species analysed">Pest</th>
+            <th style="padding:8px 10px;color:var(--text-dim);text-align:right;" title="Number of observations used to build the regression model for this pest">Points</th>
+            <th style="padding:8px 10px;color:var(--text-dim);text-align:center;" title="Positive = pest count increases with temperature · Negative = count increases in cooler conditions · None = weak or no correlation (|r| < 0.2)">Temp Influence</th>
+            <th style="padding:8px 10px;color:var(--text-dim);text-align:right;" title="OLS regression slope — how many additional pests are expected per 1°C increase in temperature. Negative values mean fewer pests as it warms.">Slope/°C</th>
+            <th style="padding:8px 10px;color:var(--text-dim);text-align:center;" title="Temperature range where the 5 highest individual pest counts were recorded">Peak Range</th>
+            <th style="padding:8px 10px;color:var(--text-dim);text-align:right;" title="Expected pest count at the current average temperature (last 10 sessions), derived from the regression model">Projected</th>
+            <th style="padding:8px 10px;color:var(--text-dim);text-align:right;" title="Configured action threshold for this pest — the count above which treatment is warranted">Threshold</th>
+            <th style="padding:8px 10px;color:var(--text-dim);text-align:right;" title="Projected count ÷ threshold — values near or above 1.0 mean current temperatures are conducive to a threshold breach">Risk Index</th>
+            <th style="padding:8px 10px;color:var(--text-dim);" title="High (≥ 0.8) = act now · Medium (0.4–0.79) = monitor closely · Low (< 0.4) = routine scouting">Risk</th>
+            <th style="padding:8px 10px;color:var(--text-dim);" title="Average pest count grouped by 5°C temperature buckets, with number of observations in parentheses">Temp Profile</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
