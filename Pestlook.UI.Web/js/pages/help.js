@@ -1941,7 +1941,7 @@ const GROUPS = [
         id:    'env-rainfall',
         icon:  '🌧',
         title: 'Rainfall Lag Effect',
-        intro: 'Many pest populations spike 7–21 days after significant rainfall — eggs hatch, larvae become active, or fungal-host plant stress conditions emerge following wet weather. Because Pestlook does not integrate a rainfall feed, the system approximates wet events as weeks where the average session temperature drops ≥ 3°C below the 4-week rolling average (a temperature drop typically accompanies rain systems). It then checks whether pest counts rose in the 1–3 weeks following each event.',
+        intro: 'Many pest populations spike 7–21 days after significant rainfall — eggs hatch, larvae become active, or fungal-host plant stress conditions emerge following wet weather. Because Pestlook does not integrate a rainfall feed, the system approximates wet events as weeks where the average session temperature drops ≥ 3°C below the 4-week rolling average (a temperature drop typically accompanies rain systems). It then checks whether pest counts rose in the 1–3 weeks following each event. Two built-in limitations: wet events within 3 weeks of your filter end date may not have a full 21-day observation window after them, so their lag assessment is based on partial data; and a spike shown as 100% when the baseline was 0 just means the pest was not recorded before the event — it does not represent a measured population doubling.',
         items: [
           {
             heading: 'KPI Cards',
@@ -1953,11 +1953,11 @@ const GROUPS = [
           },
           {
             heading: 'Wet Event pills',
-            body: 'The blue pills show each detected wet event — the week start date and the size of the temperature drop in °C. A drop of 4°C or more is a stronger rainfall proxy than a marginal 3°C drop. Events with larger drops are more likely to represent genuine rainfall, although a sudden cold front without rain can produce a similar temperature signature.',
+            body: 'The blue pills show each detected wet event — the week start date and the size of the temperature drop (displayed in your configured temperature unit). A larger drop is a stronger rainfall proxy than a marginal one. Events with larger drops are more likely to represent genuine rainfall, although a sudden cold front without rain can produce a similar temperature signature. Two pills showing the same date is a normal artefact of how weeks are grouped — the system uses 7-day blocks rather than calendar weeks, and adjacent blocks can both snap back to the same Monday label even though they represent different time windows.',
           },
           {
             heading: 'Lag confidence badge',
-            body: '<span style="color:#c0392b;font-weight:600;">🔴 Strong</span> — 3 or more wet events were followed by a spike > 50% above the 2-week baseline. Plan extra scouting visits in the 2–3 weeks following any future wet event for this pest. <span style="color:#e67e22;font-weight:600;">🟠 Moderate</span> — 2 events with a spike. Worth monitoring. <span style="color:#f1c40f;font-weight:600;">🟡 Weak</span> — only 1 event showed a spike. Could be coincidence; gather more data. <span style="color:#7f8c8d;font-weight:600;">⬜ None</span> — no consistent post-wet spike detected for this pest.',
+            body: '<span style="color:#c0392b;font-weight:600;">🔴 Strong</span> — 3 or more wet events were followed by a spike > 50% above the 2-week baseline. Plan extra scouting visits in the 2–3 weeks following any future wet event for this pest. <span style="color:#e67e22;font-weight:600;">🟠 Moderate</span> — 2 events with a spike. Worth monitoring. <span style="color:#f1c40f;font-weight:600;">🟡 Weak</span> — only 1 event showed a spike. Could be coincidence; gather more data. A Weak signal driven by a single event where the baseline was 0 carries very little weight. <span style="color:#7f8c8d;font-weight:600;">None</span> — no consistent post-wet spike detected for this pest.',
           },
           {
             heading: 'Avg Lag and Avg Spike fields',
@@ -1965,7 +1965,7 @@ const GROUPS = [
           },
           {
             heading: 'Lag Detail table',
-            body: 'Shows up to 5 of the most significant events for each pest: the wet event week, the temperature drop, which lag week had the peak, the baseline count (2-week average before the event), the peak count, and the spike percentage. Rows where spikePct > 50 are highlighted in red. This table lets you verify that the overall lag signal is consistent rather than driven by a single outlier event.',
+            body: 'Shows up to 5 of the most significant events for each pest: the wet event week, the temperature drop, which lag week had the peak, the baseline count (2-week average before the event), the peak count, and the spike percentage. Rows where spikePct > 50 are highlighted in red. This table lets you verify that the overall lag signal is consistent rather than driven by a single outlier event. If an event appears near your filter end date, check whether there are observation records for 2–3 weeks after it — a spike in the last row of the period should be treated with caution as it may reflect only a few days of follow-up data. A baseline of 0 with any positive peak count will always show as 100% spike — this means the pest was absent before the event, not that it doubled.',
           },
           {
             heading: 'Connecting to real rainfall data',
@@ -1985,7 +1985,7 @@ const GROUPS = [
           },
           {
             heading: 'Long-Term Mean temperature',
-            body: 'This is calculated from all sessions in the selected date range that have temperature recorded. It is not a fixed climate value — it is your farm\'s own session-temperature average. A farm in a tropical region will have a naturally higher LTM than one in a temperate climate. The drought threshold (LTM + 2°C) is therefore automatically calibrated to your local conditions.',
+            body: 'This is calculated from all sessions in the selected date range that have temperature recorded. It is not a fixed climate value — it is your farm\'s own session-temperature average for the chosen period. A farm in a tropical region will have a naturally higher LTM than one in a temperate climate. The drought threshold (LTM + 2°C) is therefore automatically calibrated to your local conditions. One important implication: if you filter to a single hot season, the LTM rises and drought detection is suppressed; filtering to a single cold season has the opposite effect. For the most reliable classification, use a date range that covers both warm and cool periods — ideally a full year or more.',
           },
           {
             heading: 'Drought Period pills',
@@ -1993,7 +1993,7 @@ const GROUPS = [
           },
           {
             heading: 'Breach Rate During Drought bar',
-            body: 'The red bar shows the percentage of session-days in drought conditions where this pest exceeded its action threshold. A 72% drought breach rate means nearly three-quarters of scout visits during hot periods found pest counts above the threshold.',
+            body: 'The red bar shows the percentage of session-days in drought conditions where this pest exceeded its action threshold. A 72% drought breach rate means nearly three-quarters of scout visits during hot periods found pest counts above the threshold. If no drought periods were detected in the selected date range, this bar is replaced with a "no drought sessions recorded" note — a missing bar means no data, not a safe result.',
           },
           {
             heading: 'Breach Rate in Normal Conditions bar',
@@ -2001,7 +2001,7 @@ const GROUPS = [
           },
           {
             heading: 'Drought Bias percentage',
-            body: 'The relative increase in breach rate during drought vs normal: (drought rate − normal rate) ÷ normal rate × 100. A drought bias of +150% means the pest breaches its threshold 2.5× more often during hot periods. A negative drought bias means the pest is actually less active during drought — possibly a cool-season species.',
+            body: 'The relative increase in breach rate during drought vs normal: (drought rate − normal rate) ÷ normal rate × 100. A drought bias of +150% means the pest breaches its threshold 2.5× more often during hot periods. A negative drought bias means the pest is actually less active during drought — possibly a cool-season species. A bias of exactly 100% when the normal breach rate was 0% is a special case: it means the pest was never recorded above threshold in normal conditions, so there is no baseline to divide by. This is shown as 100% by convention — it does not mean the pest is twice as dangerous in drought; it means you have no normal-conditions breach data to compare against.',
           },
           {
             heading: 'Strong / Moderate / Weak / None stress link',
@@ -2013,7 +2013,7 @@ const GROUPS = [
           },
           {
             heading: 'Data requirements',
-            body: 'Both drought and normal periods need at least 2 session-dates with threshold data for the breach rates to be meaningful. If your farm has only scouted during one temperature regime (e.g. only winter sessions recorded), the comparison will be unreliable. Widen the date range to capture both hot and cooler periods for best results.',
+            body: 'Both drought and normal periods need at least 2 session-dates with threshold data for the breach rates to be meaningful. If your farm has only scouted during one temperature regime (e.g. only winter sessions recorded), the comparison will be unreliable. Widen the date range to capture both hot and cooler periods for best results. Session dates near the very start or end of your filter range may use a partial 30-day rolling window — if fewer than 3 session-dates fall within that window the date is not classified, which can leave a small gap at each boundary of the selected period. If no drought periods are detected at all, individual pest cards are hidden and a banner explains why — this avoids showing misleading "0% drought breach rate" figures that could be mistaken for a safe result when there is simply no drought data to analyse.',
           },
         ],
       },

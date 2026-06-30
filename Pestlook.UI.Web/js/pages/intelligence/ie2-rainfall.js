@@ -1,5 +1,12 @@
-import { escapeHtml } from '../../utils/helpers.js';
+import { escapeHtml, celsiusToFahrenheit } from '../../utils/helpers.js';
 import { emptyState }  from '../reports/utils.js';
+import { getUser }     from '../../utils/storage.js';
+
+// Temperature delta conversion: a drop of N°C = N×9/5°F
+function convDelta(deltaC, unit) {
+  const v = unit === 'F' ? deltaC * 9 / 5 : deltaC;
+  return Number(v).toFixed(1);
+}
 
 /* ─────────────────────────────────────────────────────────────────────────────
    E2 — Rainfall Lag Effect
@@ -13,10 +20,12 @@ import { emptyState }  from '../reports/utils.js';
 ───────────────────────────────────────────────────────────────────────────── */
 
 const CONF_COL  = { Strong: '#c0392b', Moderate: '#e67e22', Weak: '#f1c40f', None: '#7f8c8d' };
-const CONF_ICON = { Strong: '🔴', Moderate: '🟠', Weak: '🟡', None: '⬜' };
+const CONF_ICON = { Strong: '🔴', Moderate: '🟠', Weak: '🟡', None: '' };
 
 export async function renderRainfallLag(el, data) {
   const { wetEvents = [], pests = [], summary = {} } = data;
+  const unit = getUser()?.temperatureUnit || 'C';
+  const deg  = unit === 'F' ? '°F' : '°C';
 
   if (!pests.length) {
     el.innerHTML = emptyState('🌧', 'No lag data',
@@ -32,7 +41,7 @@ export async function renderRainfallLag(el, data) {
     </div>`;
 
   const kpis = `
-    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Detects <strong>wet events</strong> — weeks where the average session temperature dropped 3°C or more below the 4-week rolling average (a proxy for rainfall in the absence of a live weather feed) — then checks whether pest populations spiked in the 1–3 weeks following each event. A strong lag signal indicates the pest consistently responds to wet conditions within that window, allowing pre-emptive treatment planning.</div>
+    <div style="font-size:0.75rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Detects <strong>wet events</strong> — weeks where the average session temperature dropped 3°C or more below the 4-week rolling average (a proxy for rainfall in the absence of a live weather feed) — then checks whether pest populations spiked in the 1–3 weeks following each event. A strong lag signal indicates the pest consistently responds to wet conditions within that window, allowing pre-emptive treatment planning. <strong>Note:</strong> wet events that fall within 3 weeks of your filter end date have incomplete follow-up data and may not reflect a full 1–3 week lag window. A spike of 100% where the baseline was zero means the pest was absent before the event — not that it doubled.</div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
       ${kpi('Wet Events Detected', summary.wetEventsFound  ?? 0, 'var(--accent)', 'temp-drop proxy',          'Weeks where session temperature dropped 3°C or more below the 4-week rolling average, used as a proxy for significant rainfall in the absence of a live weather feed.')}
       ${kpi('Pests Analysed',      summary.pestsAnalysed  ?? 0, 'var(--text)',   'with lag check',            'Number of pest species checked for a population spike in the 1–3 weeks following each detected wet event.')}
@@ -45,11 +54,14 @@ export async function renderRainfallLag(el, data) {
 
   // Wet event timeline
   const eventPills = wetEvents.length
-    ? wetEvents.map(e => `
+    ? wetEvents.map(e => {
+        const d = new Date(e.weekStart + 'T00:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+        return `
         <span style="display:inline-block;margin:3px;padding:3px 10px;border-radius:20px;font-size:0.72rem;
           background:rgba(41,128,185,0.12);color:#2980b9;border:1px solid #2980b944;">
-          💧 ${escapeHtml(e.weekStart)} (−${e.tempDrop}°C)
-        </span>`).join('')
+          💧 ${d} (−${convDelta(e.tempDrop, unit)}${deg})
+        </span>`;
+      }).join('')
     : '<span style="color:var(--text-dim);font-size:0.82rem;">No wet events detected in the selected period.</span>';
 
   const eventsBlock = `
@@ -62,17 +74,20 @@ export async function renderRainfallLag(el, data) {
     const col = CONF_COL[p.lagConfidence]  ?? '#888';
     const hasLag = p.lagConfidence !== 'None';
 
-    const detailRows = (p.lagDetail ?? []).filter(d => d.spikePct > 0).slice(0, 5).map(d => `
+    const detailRows = (p.lagDetail ?? []).filter(d => d.spikePct > 0).slice(0, 5).map(d => {
+      const ws = d.weekStart ? new Date(d.weekStart).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+      return `
       <tr style="border-bottom:1px solid var(--border);font-size:0.75rem;">
-        <td style="padding:5px 8px;">${escapeHtml(d.weekStart ?? '')}</td>
-        <td style="padding:5px 8px;text-align:right;">−${d.tempDrop}°C</td>
+        <td style="padding:5px 8px;">${ws}</td>
+        <td style="padding:5px 8px;text-align:right;">−${convDelta(d.tempDrop, unit)}${deg}</td>
         <td style="padding:5px 8px;text-align:center;">${d.peakLag} wk</td>
         <td style="padding:5px 8px;text-align:right;">${d.baseline}</td>
         <td style="padding:5px 8px;text-align:right;font-weight:700;">${d.peakCount}</td>
         <td style="padding:5px 8px;text-align:right;color:${d.spikePct > 50 ? '#c0392b' : d.spikePct > 20 ? '#e67e22' : 'var(--text)'};">
           +${d.spikePct}%
         </td>
-      </tr>`).join('');
+      </tr>`;
+    }).join('');
 
     const detailTable = detailRows ? `
       <div style="margin-top:10px;overflow-x:auto;">
@@ -106,8 +121,8 @@ export async function renderRainfallLag(el, data) {
         </div>
         ${hasLag ? `
         <div style="display:flex;gap:24px;flex-wrap:wrap;font-size:0.82rem;margin-top:10px;">
-          <span style="color:var(--text-dim);">Avg lag: <strong>${p.avgLagDays} days (~${p.avgLagWeeks} wks)</strong></span>
-          <span style="color:var(--text-dim);">Avg spike: <strong style="color:#e67e22;">+${p.avgSpikePct}%</strong></span>
+          <span style="color:var(--text-dim);cursor:help;" title="Average number of days between the wet event and when this pest's count peaked across all wet events that triggered a spike.">Avg lag: <strong>${p.avgLagDays} days (~${p.avgLagWeeks} wks)</strong></span>
+          <span style="color:var(--text-dim);cursor:help;" title="Average percentage increase in pest count during the peak lag week compared to the 2-week baseline before the wet event, across all spiking events.">Avg spike: <strong style="color:#e67e22;">+${p.avgSpikePct}%</strong></span>
         </div>` : `<div style="font-size:0.8rem;color:var(--text-dim);margin-top:8px;">No consistent spike detected after wet events.</div>`}
         ${detailTable}
       </div>`;

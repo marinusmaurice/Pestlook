@@ -3013,7 +3013,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 g.Key.Temp,
                 TotalCount    = g.Sum(o => o.Count ?? 0),
                 MaxThreshold  = g.Max(o => o.ThresholdCount) ?? 0,
-                IsAbove       = g.Sum(o => o.Count ?? 0) > (g.Max(o => o.ThresholdCount) ?? 0),
+                IsAbove       = g.Count(o => (o.Count ?? 0) > (o.ThresholdCount ?? 0)) > 0,
             })
             .ToListAsync(ct);
 
