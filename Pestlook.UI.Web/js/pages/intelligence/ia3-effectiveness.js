@@ -56,11 +56,10 @@ export async function renderTreatmentEffectiveness(el, data) {
                  : s.percentChange <= 0   ? '#f39c12'
                  : '#c0392b';
 
-    // Visual before/after bar
-    const maxVal    = Math.max(s.preBreachAvg, s.postBreachAvg, s.threshold, 1);
-    const preW      = Math.min(100, s.preBreachAvg  / maxVal * 100);
-    const postW     = Math.min(100, s.postBreachAvg / maxVal * 100);
-    const threshW   = Math.min(100, s.threshold     / maxVal * 100);
+    // Visual before/after bars (pre/post are session-day sums; threshold is per-obs and not comparable on same scale)
+    const maxVal = Math.max(s.preBreachAvg, s.postBreachAvg, 1);
+    const preW   = Math.min(100, s.preBreachAvg  / maxVal * 100);
+    const postW  = Math.min(100, s.postBreachAvg / maxVal * 100);
 
     return `
       <div class="card card-p" style="border-left:4px solid ${col};margin-bottom:10px;">
@@ -80,7 +79,7 @@ export async function renderTreatmentEffectiveness(el, data) {
           <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;">Before vs After Breach</div>
           <div style="margin-bottom:6px;">
             <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-dim);margin-bottom:3px;">
-              <span>Pre-breach avg</span><span><strong>${s.preBreachAvg.toLocaleString()}</strong></span>
+              <span style="cursor:help;" title="Average total pest count per scouting day across the two sessions immediately before the first threshold breach. Each day's value is the sum of all observations recorded on that day.">Pre-breach avg</span><span><strong>${s.preBreachAvg.toLocaleString()}</strong></span>
             </div>
             <div style="height:10px;background:var(--border);border-radius:5px;overflow:hidden;">
               <div style="height:100%;width:${preW}%;background:#3498db;border-radius:5px;"></div>
@@ -88,24 +87,17 @@ export async function renderTreatmentEffectiveness(el, data) {
           </div>
           <div style="margin-bottom:6px;">
             <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-dim);margin-bottom:3px;">
-              <span>Post-breach avg</span><span><strong>${s.postBreachAvg.toLocaleString()}</strong></span>
+              <span style="cursor:help;" title="Average total pest count per scouting day across the two sessions immediately after the breach. A lower value than the pre-breach average suggests the control response was effective.">Post-breach avg</span><span><strong>${s.postBreachAvg.toLocaleString()}</strong></span>
             </div>
             <div style="height:10px;background:var(--border);border-radius:5px;overflow:hidden;">
               <div style="height:100%;width:${postW}%;background:${col};border-radius:5px;"></div>
             </div>
           </div>
-          <div>
-            <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-dim);margin-bottom:3px;">
-              <span>Action threshold</span><span><strong>${s.threshold.toLocaleString()}</strong></span>
-            </div>
-            <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;">
-              <div style="height:100%;width:${threshW}%;background:#e74c3c;border-radius:2px;"></div>
-            </div>
-          </div>
         </div>
 
         <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:0.82rem;margin-bottom:8px;">
-          <span style="color:var(--text-dim);">Change: <strong style="color:${pctCol};">${s.percentChange > 0 ? '+' : ''}${s.percentChange.toFixed(1)}%</strong></span>
+          <span style="color:var(--text-dim);cursor:help;" title="Action threshold per observation: ${s.threshold.toLocaleString()}. A single scout recording this count or above constitutes a breach. Not shown on the bars above — the bars use session-day totals which are a different scale.">Threshold: <strong style="color:var(--text);">${s.threshold.toLocaleString()} per obs</strong></span>
+          <span style="color:var(--text-dim);cursor:help;" title="Percentage change from pre-breach average to post-breach average. Negative means pest counts fell after the breach response — the more negative, the more effective the control.">Change: <strong style="color:${pctCol};">${s.percentChange > 0 ? '+' : ''}${s.percentChange.toFixed(1)}%</strong></span>
         </div>
 
         <div style="font-size:0.75rem;color:var(--text-dim);font-style:italic;">${escapeHtml(s.dataQuality)}</div>
@@ -113,7 +105,7 @@ export async function renderTreatmentEffectiveness(el, data) {
   }).join('');
 
   el.innerHTML = `
-    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">
+    <div style="font-size:0.75rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">
       For each pest × field combination with a threshold breach, this tab compares average pest counts in the two scouting sessions before the breach versus the two sessions after. A ≥50% reduction is scored <strong>Effective</strong>; 20–49% is <strong>Partially Effective</strong>; less than 20% is <strong>Ineffective</strong>.
     </div>
     ${kpis}

@@ -62,10 +62,10 @@ export async function renderOverdueAlerts(el, data) {
         </div>
 
         <div style="display:flex;gap:16px;flex-wrap:wrap;margin:10px 0;font-size:0.82rem;">
-          <span style="color:var(--text-dim);">Breach date: <strong style="color:var(--text);">${a.breachDate}</strong></span>
-          <span style="color:var(--text-dim);">Peak count: <strong style="color:#c0392b;">${a.peakCount.toLocaleString()}</strong></span>
-          <span style="color:var(--text-dim);">Threshold: <strong style="color:var(--text);">${a.threshold.toLocaleString()}</strong></span>
-          <span style="color:var(--text-dim);">Response window: <strong style="color:var(--text);">${windowLabel}</strong></span>
+          <span style="color:var(--text-dim);cursor:help;" title="Local calendar date of the most recent threshold breach observation for this pest × field combination within the selected period.">Breach date: <strong style="color:var(--text);">${new Date(a.breachDate + 'T00:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</strong></span>
+          <span style="color:var(--text-dim);cursor:help;" title="Highest single observation count recorded above the threshold for this pest in this field during the selected period.">Peak count: <strong style="color:#c0392b;">${a.peakCount.toLocaleString()}</strong></span>
+          <span style="color:var(--text-dim);cursor:help;" title="Configured action threshold per observation for this pest. A count at or above this number triggers a breach and starts the response window.">Threshold: <strong style="color:var(--text);">${a.threshold.toLocaleString()}</strong></span>
+          <span style="color:var(--text-dim);cursor:help;" title="Time allowed after a breach before a follow-up scouting session is required: 48 hours for severe breaches (count ≥ 2× threshold), 7 days for standard breaches.">Response window: <strong style="color:var(--text);">${windowLabel}</strong></span>
         </div>
 
         <div style="background:${bg};border-radius:6px;padding:8px 12px;font-size:0.83rem;color:${col};font-weight:600;">
@@ -75,7 +75,7 @@ export async function renderOverdueAlerts(el, data) {
   }).join('');
 
   el.innerHTML = `
-    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">
+    <div style="font-size:0.75rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">
       A threshold breach is considered <strong>overdue</strong> when no follow-up scouting session has been completed on the same field within the response window: <strong>48 hours</strong> for severe breaches (count ≥ 2× threshold) and <strong>7 days</strong> for standard breaches. These fields need immediate attention.
     </div>
     ${kpis}

@@ -75,9 +75,9 @@ export async function renderUnderscoutedZones(el, data) {
         </div>
 
         <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:0.82rem;margin:8px 0;">
-          <span style="color:var(--text-dim);">Pest pressure (period): <strong style="color:${z.isHighPressure ? '#e67e22' : 'var(--text)'};">${z.totalObsInPeriod.toLocaleString()} obs</strong></span>
-          <span style="color:var(--text-dim);">Breaches: <strong style="color:${z.breachCount > 0 ? '#c0392b' : 'var(--text)'};">${z.breachCount}</strong></span>
-          ${z.topPest !== 'None' ? `<span style="color:var(--text-dim);">Top pest: <strong style="color:var(--text);">${escapeHtml(z.topPest)}</strong></span>` : ''}
+          <span style="color:var(--text-dim);cursor:help;" title="Sum of all pest counts recorded across every observation in this field during the selected filter period. Fields above the median across all fields are considered high pressure.">Pest pressure (period): <strong style="color:${z.isHighPressure ? '#e67e22' : 'var(--text)'};">${z.totalObsInPeriod.toLocaleString()} counts</strong></span>
+          <span style="color:var(--text-dim);cursor:help;" title="Number of individual observations where the pest count exceeded that pest's configured action threshold during the selected period.">Breaches: <strong style="color:${z.breachCount > 0 ? '#c0392b' : 'var(--text)'};">${z.breachCount}</strong></span>
+          ${z.topPest !== 'None' ? `<span style="color:var(--text-dim);cursor:help;" title="Pest species with the highest cumulative count in this field during the selected period.">Top pest: <strong style="color:var(--text);">${escapeHtml(z.topPest)}</strong></span>` : ''}
         </div>
 
         <div style="background:${bg};border-radius:6px;padding:8px 12px;font-size:0.83rem;color:var(--text);">
@@ -87,7 +87,7 @@ export async function renderUnderscoutedZones(el, data) {
   }).join('');
 
   el.innerHTML = `
-    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">
+    <div style="font-size:0.75rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">
       Fields below <strong>50% coverage</strong> (fewer than 2 of the 4 target sessions this month) are listed here. A <strong>Critical Blind Spot</strong> is a field that is both under-scouted <em>and</em> shows above-median pest pressure — you do not know what is happening in this field during a potentially dangerous period.
     </div>
     ${kpis}

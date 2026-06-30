@@ -2390,6 +2390,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
     {
         var (start, end) = await ResolveRangeAsync(from, to, 90, ct);
         var now = DateTime.UtcNow;
+        var oaTz = await tzService.GetUserTimeZoneAsync(ct);
 
         // ── 1. All threshold breaches in period
         var obsQ = db.SessionObservations
@@ -2470,7 +2471,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                     fieldName       = first.FieldName,
                     farmName        = first.FarmName,
                     scoutName       = first.ScoutName,
-                    breachDate      = latestBreach.ToString("yyyy-MM-dd"),
+                    breachDate      = ToLocalDate(latestBreach, oaTz).ToString("yyyy-MM-dd"),
                     peakCount       = maxCount,
                     threshold,
                     isSevere,
@@ -2619,7 +2620,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 riskLevel,
                 blindSpot         = isHighPressure,
                 message           = isHighPressure
-                    ? $"Only {sessionsThisMonth}/{TARGET_SESSIONS} sessions this month but high pest pressure detected ({totalObs} observations). This is an intelligence blind spot."
+                    ? $"Only {sessionsThisMonth}/{TARGET_SESSIONS} sessions this month but high pest pressure detected ({totalObs} total pest counts). This is an intelligence blind spot."
                     : $"Only {sessionsThisMonth}/{TARGET_SESSIONS} sessions this month. Increase scouting frequency to meet coverage target.",
             };
         })
