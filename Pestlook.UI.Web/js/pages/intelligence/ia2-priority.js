@@ -44,12 +44,13 @@ export async function renderScoutPriority(el, data) {
     </div>`;
 
   // Score breakdown bar
-  function scoreBar(label, value, max, colour) {
+  function scoreBar(label, value, max, colour, tooltip = '') {
     const w = Math.min(100, value / max * 100);
+    const tip = tooltip ? ` title="${tooltip}" style="cursor:help;"` : '';
     return `
       <div style="margin-bottom:4px;">
         <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--text-dim);margin-bottom:2px;">
-          <span>${label}</span><span>${value.toFixed(1)} / ${max}</span>
+          <span${tip}>${label}</span><span>${value.toFixed(1)} / ${max}</span>
         </div>
         <div style="height:5px;background:var(--border);border-radius:3px;overflow:hidden;">
           <div style="height:100%;width:${w}%;background:${colour};border-radius:3px;"></div>
@@ -83,22 +84,25 @@ export async function renderScoutPriority(el, data) {
         </div>
 
         <div style="display:flex;gap:16px;flex-wrap:wrap;margin:10px 0;font-size:0.8rem;">
-          <span style="color:var(--text-dim);">Last visit: <strong style="color:var(--text);">${lastVisit}</strong></span>
-          <span style="color:var(--text-dim);">Breaches: <strong style="color:${f.recentBreaches > 0 ? '#c0392b' : 'var(--text)'};">${f.recentBreaches}</strong></span>
-          <span style="color:var(--text-dim);">Total obs: <strong style="color:var(--text);">${f.totalObsCount.toLocaleString()}</strong></span>
-          <span style="color:var(--text-dim);">Growth rate: <strong style="color:${f.growthRate > 0 ? '#e67e22' : '#27ae60'};">${f.growthRate > 0 ? '+' : ''}${(f.growthRate * 100).toFixed(0)}%/wk</strong></span>
+          <span style="color:var(--text-dim);cursor:help;" title="Date of the most recent completed scouting session for this field within the selected period.">Last visit: <strong style="color:var(--text);">${lastVisit}</strong></span>
+          <span style="color:var(--text-dim);cursor:help;" title="Number of individual observation records where the pest count exceeded that pest's configured action threshold. Counted across all pest species in this field.">Breaches: <strong style="color:${f.recentBreaches > 0 ? '#c0392b' : 'var(--text)'};">${f.recentBreaches}</strong></span>
+          <span style="color:var(--text-dim);cursor:help;" title="Sum of all pest counts recorded across every observation in this field during the selected period — not the number of individual observations.">Total count: <strong style="color:var(--text);">${f.totalObsCount.toLocaleString()}</strong></span>
+          <span style="color:var(--text-dim);cursor:help;" title="Week-over-week growth rate of the total weekly pest count (OLS slope ÷ mean). Positive means populations are rising; negative means declining.">Growth rate: <strong style="color:${f.growthRate > 0 ? '#e67e22' : '#27ae60'};">${f.growthRate > 0 ? '+' : ''}${(f.growthRate * 100).toFixed(0)}%/wk</strong></span>
         </div>
 
         <div style="display:flex;flex-direction:column;gap:0;">
-          ${scoreBar('Population trend', f.trendScore, 40, '#e74c3c')}
-          ${scoreBar('Days since visit',  f.recencyScore, 35, '#e67e22')}
-          ${scoreBar('Recent breaches',   f.breachScore, 25, '#c0392b')}
+          ${scoreBar('Population trend (max 40)', f.trendScore, 40, '#e74c3c',
+            '0–40 pts. How fast is the combined pest count growing? A linear regression (OLS) is run on the weekly total pest counts for this field. The slope (change per week) is divided by the mean to get a relative growth rate. Score = growth rate × 100, capped at 40. Declining or stable = 0 pts. Growing at +10%/wk = 10 pts; +40%/wk or faster = full 40 pts.')}
+          ${scoreBar('Days since visit (max 35)',  f.recencyScore, 35, '#e67e22',
+            '0–35 pts. How long has it been since this field was last scouted? Looks up the most recent completed scouting session for this field across all time — not just the filter period. Score increases linearly: 0 days = 0 pts, 15 days ≈ 17.5 pts, 30 days or more = full 35 pts. High score means your data is stale — you have no recent picture of what is happening in this field.')}
+          ${scoreBar('Recent breaches (max 25)',   f.breachScore, 25, '#c0392b',
+            '0–25 pts. How many times did pest counts exceed the action threshold in the selected period? Counts every individual observation record where the count was above that pest\'s configured threshold, across all pest species in this field. Each breach = 5 pts, capped at 25 pts (5 or more breaches = full score). High score means confirmed infestation history — warrants monitoring even if the current trend is declining.')}
         </div>
       </div>`;
   }).join('');
 
   el.innerHTML = `
-    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">
+    <div style="font-size:0.75rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">
       Fields are ranked by a composite score (max 100) combining population growth rate (40 pts), days since last scouting visit (35 pts), and number of recent threshold breaches (25 pts). Visit the highest-scoring fields first.
     </div>
     ${kpis}

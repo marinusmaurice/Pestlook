@@ -1768,16 +1768,20 @@ const GROUPS = [
             body: '<strong>Total Fields</strong> — the number of fields assessed. <strong>Critical</strong> — fields scoring 70 or above; shown in red. <strong>High</strong> — fields scoring 45–69; shown in amber. <strong>Medium / Low</strong> — lower-priority fields.',
           },
           {
-            heading: 'Priority Score breakdown',
-            body: 'The score has three components, each capped at a maximum: <strong>Trend Score (0–40 pts)</strong> — based on the OLS growth rate across all pest observations on the field. A doubling population scores near 40. <strong>Recency Score (0–35 pts)</strong> — based on days since the last completed session, capped at 30 days (35 pts). A field never visited scores the full 35. <strong>Breach Score (0–25 pts)</strong> — 5 points per threshold breach recorded in the period, capped at 25.',
+            heading: 'Population Trend (0–40 pts)',
+            body: 'Measures how fast the combined pest count across all species is growing week-over-week using a linear regression (OLS) on weekly totals. Score = growth rate × 100, capped at 40. <strong>A declining or stable population scores 0</strong> — there is no urgency from trend direction alone. A field growing at +10%/wk scores 10 pts; +40%/wk or faster scores the full 40. A field can still rank high with 0 trend points if it has a large breach history and hasn\'t been visited recently.',
+          },
+          {
+            heading: 'Days Since Visit (0–35 pts)',
+            body: 'Based on how many days have passed since the last completed scouting session for this field — looked up <strong>all time</strong>, not just within the filter period, so a field visited 7 months ago won\'t falsely appear as "Never visited". Score increases linearly up to 30 days (full 35 pts), then caps. A field visited today scores 0; visited 15 days ago ≈ 17.5 pts; never visited = 35 pts. High recency points mean your data is stale — you don\'t know what\'s currently happening in that field.',
+          },
+          {
+            heading: 'Recent Breaches (0–25 pts)',
+            body: 'Counts how many individual observation records in this field exceeded their pest\'s configured action threshold during the selected period, across <strong>all pest species</strong>. Score = 5 pts per breach observation, capped at 25 (5 or more breach observations = full score). A field with many breaches carries a confirmed infestation history and warrants monitoring even if the population trend is currently declining.',
           },
           {
             heading: 'Rank badge',
             body: 'The large number in the top-left of each field card is the priority rank — 1 is the highest-priority field for the day. Send scouts to rank 1 first.',
-          },
-          {
-            heading: 'Days Since Last Session',
-            body: 'A value of −1 means the field has never had a completed session in the selected period. These fields score 35 recency points automatically and should be treated as unknown-risk.',
           },
           {
             heading: 'Fields missing from the list',

@@ -65,12 +65,12 @@ export async function renderSprayTiming(el, data) {
 
         <!-- Weekly trend stats -->
         <div style="display:flex;gap:16px;flex-wrap:wrap;margin:10px 0;font-size:0.8rem;">
-          <span style="color:var(--text-dim);">Per-obs threshold: <strong style="color:var(--text);">${r.threshold.toLocaleString()}</strong></span>
-          <span style="color:var(--text-dim);">Weekly total (now): <strong style="color:var(--text);">${r.currentCount.toLocaleString()}</strong></span>
-          <span style="color:var(--text-dim);">Trend: <strong style="color:${r.weeklySlope > 0 ? '#e67e22' : '#27ae60'};">${r.weeklySlope > 0 ? '+' : ''}${r.weeklySlope}/wk</strong></span>
-          <span style="color:var(--text-dim);">4-wk projection: <strong style="color:var(--text);">${r.projectedAt4Weeks.toLocaleString()}</strong></span>
-          <span style="color:var(--text-dim);">8-wk projection: <strong style="color:var(--text);">${r.projectedAt8Weeks.toLocaleString()}</strong></span>
-          ${r.weeksUntilBreach < 99 ? `<span style="color:var(--text-dim);">Trend breach in: <strong style="color:${col};">${r.weeksUntilBreach === 0 ? 'Now' : r.weeksUntilBreach + ' wk'}</strong></span>` : ''}
+          <span style="color:var(--text-dim);cursor:help;" title="The configured action threshold for a single observation in this field. When a scout records a count at or above this number, intervention is required.">Threshold: <strong style="color:var(--text);">${r.threshold.toLocaleString()}</strong></span>
+          <span style="color:var(--text-dim);cursor:help;" title="The OLS-projected average count per observation for the current week. Compares directly to the threshold — when this reaches the threshold, a typical scout visit will see action-level counts.">Avg now: <strong style="color:var(--text);">${r.currentCount.toLocaleString()}</strong></span>
+          <span style="color:var(--text-dim);cursor:help;" title="Weekly change in average observation count, derived from the OLS regression slope. Positive means the population is growing; negative means it is declining.">Trend: <strong style="color:${r.weeklySlope > 0 ? '#e67e22' : '#27ae60'};">${r.weeklySlope > 0 ? '+' : ''}${r.weeklySlope}/wk</strong></span>
+          <span style="color:var(--text-dim);cursor:help;" title="Projected average count per observation 4 weeks from now if the current trend continues unchanged.">4-wk projection: <strong style="color:var(--text);">${r.projectedAt4Weeks.toLocaleString()}</strong></span>
+          <span style="color:var(--text-dim);cursor:help;" title="Projected average count per observation 8 weeks from now if the current trend continues unchanged.">8-wk projection: <strong style="color:var(--text);">${r.projectedAt8Weeks.toLocaleString()}</strong></span>
+          ${r.weeksUntilBreach < 99 ? `<span style="color:var(--text-dim);cursor:help;" title="Weeks until the OLS trend line is projected to cross the action threshold. 'Now' means the current average is already at or above threshold.">Trend breach in: <strong style="color:${col};">${r.weeksUntilBreach === 0 ? 'Now' : r.weeksUntilBreach + ' wk'}</strong></span>` : ''}
         </div>
 
         <!-- Recommendation -->
@@ -81,8 +81,8 @@ export async function renderSprayTiming(el, data) {
   }).join('');
 
   el.innerHTML = `
-    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">
-      Based on a linear regression of weekly observation counts, this tab identifies pest × field combinations on a rising trend and calculates the treatment window before the population is projected to breach its configured action threshold.
+    <div style="font-size:0.75rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">
+      Groups observations by week and calculates the <strong>average count per observation</strong> — the same unit as the per-observation action threshold. A linear regression (OLS) on those weekly averages identifies pest × field combinations on a rising trend and projects how many weeks before the average observation is expected to breach the threshold.
     </div>
     ${kpis}
     <div>${rows}</div>`;

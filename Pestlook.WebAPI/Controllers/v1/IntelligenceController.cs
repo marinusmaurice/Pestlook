@@ -1888,6 +1888,8 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
         CancellationToken ct = default)
     {
         var (start, end) = await ResolveRangeAsync(from, to, 180, ct);
+        var stTz = await tzService.GetUserTimeZoneAsync(ct);
+        DateTime StMonday(DateTime utc) => Monday(TimeZoneInfo.ConvertTimeFromUtc(utc, stTz));
 
         var obsQ = db.SessionObservations
             .Where(o => !o.IsUnknownPest && o.PestId != null && o.Count > 0
@@ -1925,10 +1927,13 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 var threshold = grp.Max(o => o.ThresholdCount) ?? 0;
                 if (threshold == 0) return null;
 
+                // Use weekly AVERAGE count per observation — same unit as the per-observation threshold.
+                // Weekly SUM would inflate values by the number of scouts visiting that week,
+                // making everything appear to breach immediately.
                 var weekly = grp
-                    .GroupBy(o => Monday(o.CompletedAt))
+                    .GroupBy(o => StMonday(o.CompletedAt))
                     .OrderBy(g => g.Key)
-                    .Select(wg => (WeekStart: wg.Key, Total: wg.Sum(o => o.Count ?? 0)))
+                    .Select(wg => (WeekStart: wg.Key, Total: wg.Average(o => (double)(o.Count ?? 0))))
                     .ToList();
 
                 int n = weekly.Count;
@@ -2043,6 +2048,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
         var (start, end) = await ResolveRangeAsync(from, to, 180, ct);
         var tz    = await tzService.GetUserTimeZoneAsync(ct);
         var today = ToLocalDate(DateTime.UtcNow, tz);
+        DateTime SpMonday(DateTime utc) => Monday(TimeZoneInfo.ConvertTimeFromUtc(utc, tz));
 
         // ── 1. Observation trend per field
         var obsQ = db.SessionObservations
@@ -2067,10 +2073,10 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             })
             .ToListAsync(ct);
 
-        // ── 2. Latest session per field ──────────────────────────────────────
+        // ── 2. Latest session per field (all time — no date filter so fields scouted
+        //        before the observation window aren't shown as "Never visited") ────
         var sessQ = db.ScoutingSessions
-            .Where(s => s.DeletedAt == null && s.CompletedAt != null && s.FieldId != null
-                     && s.CompletedAt >= start && s.CompletedAt <= end);
+            .Where(s => s.DeletedAt == null && s.CompletedAt != null && s.FieldId != null);
 
         if (farmId.HasValue)  sessQ = sessQ.Where(s => s.FarmId == farmId || s.Field!.FarmId == farmId);
         if (fieldId.HasValue) sessQ = sessQ.Where(s => s.FieldId == fieldId);
@@ -2121,7 +2127,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             if (fieldObs.Count >= 2)
             {
                 var weekly = fieldObs
-                    .GroupBy(o => Monday(o.CompletedAt))
+                    .GroupBy(o => SpMonday(o.CompletedAt))
                     .OrderBy(g => g.Key)
                     .Select(wg => wg.Sum(o => o.Count ?? 0))
                     .ToList();
@@ -2140,11 +2146,6 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             // Breaches
             int breachCount = fieldObs.Count(o => o.IsAboveThreshold);
 
-            // Top pest by count
-            var byPest = fieldObs
-                .GroupBy(o => o.FieldName) // re-group by pest would need pestName — use count total instead
-                .OrderByDescending(g => g.Sum(o => o.Count ?? 0))
-                .FirstOrDefault();
             topPestCount = fieldObs.Sum(o => o.Count ?? 0);
 
             // ── Recency score (0–35 pts): longer since last visit = higher score ─
