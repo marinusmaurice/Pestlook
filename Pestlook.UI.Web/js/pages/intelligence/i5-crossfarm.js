@@ -73,13 +73,6 @@ export async function renderCrossFarmCorrelation(container, data, onMinFarmsChan
         ${[2,3,4,5].map(n => `<option value="${n}"${n === 2 ? ' selected' : ''}>${n}+ farms</option>`).join('')}
       </select>
     </div>
-    ${pests.length > 1 ? `
-    <div style="display:flex;align-items:center;gap:8px;">
-      <label style="font-size:0.8rem;color:var(--text-dim);font-weight:600;">🐛 Pest</label>
-      <select id="cf-pest" class="input-field" style="margin-top:0;width:auto;padding:6px 10px;font-size:0.8rem;">
-        ${pests.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('')}
-      </select>
-    </div>` : ''}
   </div>
 
   <!-- Outbreak summary cards -->
@@ -91,13 +84,6 @@ export async function renderCrossFarmCorrelation(container, data, onMinFarmsChan
   // ── Min-farms change → re-fetch ───────────────────────────────────────────
   document.getElementById('cf-minfarms')?.addEventListener('change', e => {
     if (typeof onMinFarmsChange === 'function') onMinFarmsChange(Number(e.target.value));
-  });
-
-  // ── Pest selector ─────────────────────────────────────────────────────────
-  document.getElementById('cf-pest')?.addEventListener('change', e => {
-    activePestId = e.target.value;
-    renderDetail(activePestId);
-    highlightCard(activePestId);
   });
 
   // ── Outbreak summary cards ────────────────────────────────────────────────
@@ -120,8 +106,6 @@ export async function renderCrossFarmCorrelation(container, data, onMinFarmsChan
     cardsEl.querySelectorAll('[data-pest]').forEach(card => {
       card.addEventListener('click', () => {
         activePestId = card.dataset.pest;
-        const pestSel = document.getElementById('cf-pest');
-        if (pestSel) pestSel.value = activePestId;
         renderDetail(activePestId);
         highlightCard(activePestId);
       });

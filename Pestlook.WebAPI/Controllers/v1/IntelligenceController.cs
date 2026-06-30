@@ -33,6 +33,13 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
         // Normalize start date to local 00:00:00
         var startLocal = from?.Date ?? endLocal.AddDays(-defaultDays).Date;
 
+        // Clamp to SQL Server datetime-safe range (datetime min is 1753-01-01)
+        var sqlMin = new DateTime(1753, 1, 2);
+        var sqlMax = new DateTime(9999, 12, 30);
+        if (startLocal < sqlMin) startLocal = sqlMin;
+        if (endLocal   > sqlMax) endLocal   = sqlMax;
+        if (startLocal > endLocal) startLocal = endLocal.Date;
+
         return (LocalToUtc(startLocal, tz), LocalToUtc(endLocal, tz));
     }
 

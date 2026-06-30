@@ -129,8 +129,11 @@ export async function renderHotspotMap(el, data, { farms = [], fields = [], trap
     return;
   }
 
+  /* ── Description ──────────────────────────────────────────────────────── */
+  el.innerHTML = '<div style="font-size:0.75rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Plots every GPS-tagged observation as a dot on the map. Switch between <strong>Count mode</strong> — coloured by how the count compares to the action threshold — and <strong>Presence mode</strong> — coloured by whether the pest was confirmed present or absent. Use the layer toggles to overlay farm boundaries, field boundaries, and trap locations. Click any dot for full observation details. Export the visible data as CSV for offline analysis.</div>';
+
   /* ── KPI row ───────────────────────────────────────────────────────────── */
-  el.innerHTML = kpiGrid([
+  el.innerHTML += kpiGrid([
     kpiCard('GPS Points', summary.totalPoints ?? points.length, 'observations mapped', C.blue,
       'Observations with GPS coordinates in the selected period.'),
     kpiCard('Threshold Breaches', summary.breaches ?? 0, 'above action threshold',
@@ -273,14 +276,6 @@ export async function renderHotspotMap(el, data, { farms = [], fields = [], trap
 
       dotsGroup.addLayer(marker);
     }
-
-    // Fit bounds on initial draw
-    const layers = dotsGroup.getLayers();
-    if (layers.length) {
-      try {
-        map.fitBounds(layers.map(l => l.getLatLng()), { padding: [40, 40], maxZoom: 14 });
-      } catch { /* ignore */ }
-    }
   }
 
   /* ── Draw boundary / trap layers ───────────────────────────────────────── */
@@ -344,5 +339,9 @@ export async function renderHotspotMap(el, data, { farms = [], fields = [], trap
   }
 
   refreshDots();
+  try {
+    const layers = dotsGroup.getLayers();
+    if (layers.length) map.fitBounds(layers.map(l => l.getLatLng()), { padding: [40, 40], maxZoom: 14 });
+  } catch { /* ignore */ }
   refreshLayers();
 }

@@ -153,8 +153,25 @@ export async function renderPredictive(container) {
   // ── Filter events ─────────────────────────────────────────────────────────
   const rerender = () => showActiveTab();
 
-  document.getElementById('pf-from').addEventListener('change', e => { if (e.target.value) { pFilters.from    = e.target.value; rerender(); } });
-  document.getElementById('pf-to').addEventListener('change',   e => { if (e.target.value) { pFilters.to      = e.target.value; rerender(); } });
+  const isValidDate = v => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+    const yr = parseInt(v.slice(0, 4), 10);
+    return yr >= 1900 && yr <= 2100 && !isNaN(new Date(v + 'T00:00:00Z').getTime());
+  };
+  const pfFromEl = document.getElementById('pf-from');
+  const pfToEl   = document.getElementById('pf-to');
+  pfFromEl.addEventListener('change', e => {
+    if (isValidDate(e.target.value)) { pFilters.from = e.target.value; rerender(); }
+  });
+  pfFromEl.addEventListener('blur', e => {
+    if (!isValidDate(e.target.value)) e.target.value = pFilters.from;
+  });
+  pfToEl.addEventListener('change', e => {
+    if (isValidDate(e.target.value)) { pFilters.to = e.target.value; rerender(); }
+  });
+  pfToEl.addEventListener('blur', e => {
+    if (!isValidDate(e.target.value)) e.target.value = pFilters.to;
+  });
   farmSel.addEventListener('change',                            e => { pFilters.farmId  = e.target.value; populateFields(e.target.value); rerender(); });
   document.getElementById('pf-field').addEventListener('change',e => { pFilters.fieldId = e.target.value; rerender(); });
   document.getElementById('pf-clear').addEventListener('click', () => {

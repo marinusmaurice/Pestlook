@@ -196,8 +196,25 @@ export async function renderIntelligence(container) {
   // ── Filter event handlers ─────────────────────────────────────────────────
   function rerender() { showActiveTab(); }
 
-  document.getElementById('int-from').addEventListener('change', e => { if (e.target.value) { iFilters.from = e.target.value; rerender(); } });
-  document.getElementById('int-to').addEventListener('change',   e => { if (e.target.value) { iFilters.to   = e.target.value; rerender(); } });
+  const isValidDate = v => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+    const yr = parseInt(v.slice(0, 4), 10);
+    return yr >= 1900 && yr <= 2100 && !isNaN(new Date(v + 'T00:00:00Z').getTime());
+  };
+  const fromEl = document.getElementById('int-from');
+  const toEl   = document.getElementById('int-to');
+  fromEl.addEventListener('change', e => {
+    if (isValidDate(e.target.value)) { iFilters.from = e.target.value; rerender(); }
+  });
+  fromEl.addEventListener('blur', e => {
+    if (!isValidDate(e.target.value)) e.target.value = iFilters.from;
+  });
+  toEl.addEventListener('change', e => {
+    if (isValidDate(e.target.value)) { iFilters.to = e.target.value; rerender(); }
+  });
+  toEl.addEventListener('blur', e => {
+    if (!isValidDate(e.target.value)) e.target.value = iFilters.to;
+  });
   farmSel.addEventListener('change', e => { iFilters.farmId = e.target.value; populateFields(e.target.value); rerender(); });
   document.getElementById('int-field').addEventListener('change', e => { iFilters.fieldId = e.target.value; rerender(); });
   pestSel.addEventListener('change', e => { iFilters.pestId = e.target.value; rerender(); });

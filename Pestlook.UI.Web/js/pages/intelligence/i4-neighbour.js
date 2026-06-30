@@ -264,7 +264,7 @@ export async function renderNeighbourRisk(container, data, onRadiusChange, looku
     }
 
     // ── Summary table ─────────────────────────────────────────────────────
-    const allNbrs = pestAlerts.flatMap(a => (a.atRiskNeighbours ?? []).map(n => ({ ...n, sourceName: a.sourceField.fieldName })));
+    const allNbrs = relevantAlerts.flatMap(a => (a.atRiskNeighbours ?? []).map(n => ({ ...n, sourceName: a.sourceField.fieldName })));
     if (allNbrs.length) {
       const tableHtml = `
       <div class="card card-p" style="margin-top:4px;">

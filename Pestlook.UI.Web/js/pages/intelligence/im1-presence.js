@@ -63,21 +63,23 @@ export function renderPresenceMap(container, data) {
   }
 
   container.innerHTML =
-    '<div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">' +
+    '<div style="font-size:0.75rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">' +
     'Tracks which pests have been <strong>confirmed present or absent</strong> per field, using presence-type observations (not counts). ' +
     '<span style="color:' + C.amber + ';font-weight:600;">⚠ New Introduction</span> = first confirmed presence within the selected period. ' +
     '<span style="color:' + C.teal + ';font-weight:600;">✓ Newly Clear</span> = was present but most recent check confirmed absent.' +
     '</div>' +
-    kpiGrid([
-      kpiCard('Pests Tracked',      summary.pestsTracked     ?? 0, 'with presence data',    C.blue,
-        'Number of distinct pest species that have at least one confirmed-present or confirmed-absent observation in the selected period.'),
+    `<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px;">` +
+      kpiCard('Pests Tracked',      summary.pestsTracked     ?? 0, 'with presence data',       C.blue,
+        'Number of distinct pest species that have at least one confirmed-present or confirmed-absent observation in the selected period.') +
       kpiCard('New Introductions',  summary.newIntroductions ?? 0, 'first detected in period', summary.newIntroductions > 0 ? C.amber : '',
-        'Field × pest combinations where the first ever confirmed-present observation falls within the selected date range — a new arrival.'),
-      kpiCard('Newly Clear',        summary.newlyClear       ?? 0, 'absent after presence',   summary.newlyClear > 0 ? C.teal : '',
-        'Field × pest combinations where the pest was previously confirmed present but the most recent check confirmed absent — possible containment success.'),
-      kpiCard('Active Presence',    summary.activePresence   ?? 0, 'confirmed present',        summary.activePresence > 0 ? C.red : '',
-        'Field × pest combinations where the most recent presence observation confirmed the pest is still present.'),
-    ]);
+        'Field × pest combinations where the first ever confirmed-present observation falls within the selected date range — a new arrival.') +
+      kpiCard('Newly Clear',        summary.newlyClear       ?? 0, 'absent after presence',    summary.newlyClear > 0 ? C.teal : '',
+        'Field × pest combinations where the pest was previously confirmed present but the most recent check confirmed absent — possible containment success.') +
+      kpiCard('Active Presence',    summary.activePresence   ?? 0, 'confirmed present',         summary.activePresence > 0 ? C.red : '',
+        'Field × pest combinations where the most recent presence observation confirmed the pest is still present.') +
+      kpiCard('Confirmed Absent',   summary.confirmedAbsent  ?? 0, 'not found at last check',  '',
+        'Field × pest combinations where the most recent presence observation confirmed the pest was not found — the pest may have been cleared or was never present.') +
+    `</div>`;
 
   for (const pest of pests) {
     const sorted = [...pest.fields].sort((a, b) => sortPriority(a) - sortPriority(b));
