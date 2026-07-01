@@ -70,6 +70,7 @@ public sealed class ApplicationDbContext(
             e.Property(u => u.FirstName).HasMaxLength(100);
             e.Property(u => u.LastName).HasMaxLength(100);
             e.Property(u => u.TemperatureUnit).HasMaxLength(1).HasDefaultValue("C");
+            e.Property(u => u.DistanceUnit).HasMaxLength(2).HasDefaultValue("km");
             e.Property(u => u.Timezone).HasMaxLength(100);
             e.HasQueryFilter(u => tenantContext.TenantId == null || u.TenantId == tenantContext.TenantId);
         });

@@ -6,4 +6,5 @@ public sealed record RegisterRequest(
     string FirstName,
     string LastName,
     string? Role = null,
-    string? Timezone = null);
+    string? Timezone = null,
+    string? DistanceUnit = null);

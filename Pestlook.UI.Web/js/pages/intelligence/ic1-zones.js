@@ -1,5 +1,6 @@
-import { escapeHtml } from '../../utils/helpers.js';
+import { escapeHtml, formatDistance } from '../../utils/helpers.js';
 import { emptyState }  from '../reports/utils.js';
+import { getUser }     from '../../utils/storage.js';
 
 /* ─────────────────────────────────────────────────────────────────────────────
    C1 — Containment Zone Recommendation
@@ -19,6 +20,7 @@ const DIR_ICON = { N:'↑', NE:'↗', E:'→', SE:'↘', S:'↓', SW:'↙', W:'�
 
 export async function renderContainmentZones(el, data) {
   const { pests = [], summary = {} } = data;
+  const distUnit = getUser()?.distanceUnit || 'km';
 
   if (!pests.length) {
     el.innerHTML = emptyState('🛡', 'No spread vectors detected',
@@ -59,7 +61,7 @@ export async function renderContainmentZones(el, data) {
       return `
         <tr style="border-bottom:1px solid var(--border);font-size:0.78rem;${urg ? 'background:rgba(192,57,43,0.06);' : ''}">
           <td style="padding:6px 8px;font-weight:${urg ? '700' : '400'};">${urg ? '🚨 ' : '👁 '}${escapeHtml(z.farmName)}</td>
-          <td style="padding:6px 8px;text-align:right;">${z.distanceKm} km</td>
+          <td style="padding:6px 8px;text-align:right;">${formatDistance(z.distanceKm, distUnit)}</td>
           <td style="padding:6px 8px;text-align:center;">
             <span style="padding:2px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;
               background:${urg ? 'rgba(192,57,43,0.15)' : 'rgba(230,126,34,0.12)'};
@@ -73,18 +75,18 @@ export async function renderContainmentZones(el, data) {
         <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
           <div>
             <div style="font-weight:700;font-size:0.95rem;">🛡 ${escapeHtml(p.pestName)}</div>
-            <div style="font-size:0.78rem;color:var(--text-dim);">${p.weeksObserved} weeks observed · ${p.spreadKmTotal} km total spread</div>
+            <div style="font-size:0.78rem;color:var(--text-dim);">${p.weeksObserved} weeks observed · ${formatDistance(p.spreadKmTotal, distUnit)} total spread</div>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
             <span style="font-size:1.4rem;" title="${p.spreadDirection}">${dirIcon}</span>
             <span style="padding:3px 12px;border-radius:20px;font-size:0.75rem;font-weight:700;background:rgba(192,57,43,0.12);color:#c0392b;">
-              ${p.spreadDirection} · ${p.spreadKmPerWeek} km/wk
+              ${p.spreadDirection} · ${formatDistance(p.spreadKmPerWeek, distUnit)}/wk
             </span>
           </div>
         </div>
 
         <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:0.82rem;margin-bottom:14px;padding:10px 12px;background:var(--surface);border-radius:8px;border:1px solid var(--border);">
-          <span style="color:var(--text-dim);cursor:help;" title="Search radius around the current spread front: 2× the weekly spread velocity, minimum 5 km. Farms within this radius are candidates for the containment perimeter.">Perimeter radius: <strong>${p.perimeterRadius} km</strong></span>
+          <span style="color:var(--text-dim);cursor:help;" title="Search radius around the current spread front: 2× the weekly spread velocity, minimum 5 km. Farms within this radius are candidates for the containment perimeter.">Perimeter radius: <strong>${formatDistance(p.perimeterRadius, distUnit)}</strong></span>
           <span style="color:var(--text-dim);cursor:help;" title="Compass bearing of the overall spread vector, measured from the first week's GPS centroid to the most recent week's centroid. 0° = North, 90° = East, 180° = South, 270° = West.">Bearing: <strong>${p.spreadBearing}°</strong></span>
           <span style="color:var(--text-dim);cursor:help;" title="The field name closest to the most recent weekly GPS centroid — the leading edge of the current infestation.">Front at: <strong>${escapeHtml(p.currentFront?.fieldName ?? 'Unknown')}</strong></span>
           <span style="color:var(--text-dim);cursor:help;" title="Number of unaffected farms that fall within ±60° of the spread bearing and within the perimeter radius — classified as High urgency and directly in the pest's projected path.">Zones in path: <strong style="color:${borderCol};">${p.zonesRecommended}</strong></span>

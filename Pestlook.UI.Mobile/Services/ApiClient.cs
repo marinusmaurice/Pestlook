@@ -108,6 +108,7 @@ public class ApiClient
             TenantId        = Guid.TryParse(Preferences.Default.Get("auth.user_tenant_id", ""), out var tid) ? tid : Guid.Empty,
             TenantSlug      = _tenantSlug ?? "",
             TemperatureUnit = Preferences.Default.Get("auth.user_temp_unit", "C"),
+            DistanceUnit    = Preferences.Default.Get("auth.user_dist_unit", "km"),
             Roles           = Preferences.Default.Get("auth.user_roles", "")
                                   .Split(',', StringSplitOptions.RemoveEmptyEntries)
         };
@@ -128,6 +129,7 @@ public class ApiClient
             Preferences.Default.Set("auth.user_tenant_id",    _user.TenantId.ToString());
             Preferences.Default.Set("auth.user_tenant_slug",  _user.TenantSlug);
             Preferences.Default.Set("auth.user_temp_unit",    _user.TemperatureUnit);
+            Preferences.Default.Set("auth.user_dist_unit",    _user.DistanceUnit);
             Preferences.Default.Set("auth.user_roles",        string.Join(",", _user.Roles));
         }
     }
@@ -143,7 +145,24 @@ public class ApiClient
         Preferences.Default.Remove("auth.user_last_name");
         Preferences.Default.Remove("auth.user_tenant_slug");
         Preferences.Default.Remove("auth.user_temp_unit");
+        Preferences.Default.Remove("auth.user_dist_unit");
         Preferences.Default.Remove("auth.user_roles");
+    }
+
+    // ── Preferences ───────────────────────────────────────────
+    public async Task<ApiResult<UserInfo>> UpdatePreferencesAsync(string temperatureUnit, string distanceUnit)
+    {
+        var result = await PatchAsync<UserInfo>("auth/me/preferences", new { temperatureUnit, distanceUnit });
+        if (result.Success && result.Data is not null)
+        {
+            if (_user is not null)
+            {
+                _user.TemperatureUnit = result.Data.TemperatureUnit;
+                _user.DistanceUnit    = result.Data.DistanceUnit;
+            }
+            SaveAuthState();
+        }
+        return result;
     }
 
     // ── Farms ─────────────────────────────────────────────────
@@ -411,6 +430,7 @@ public class UserInfo
     [JsonPropertyName("tenantId")] public Guid TenantId { get; set; }
     [JsonPropertyName("tenantSlug")] public string TenantSlug { get; set; } = "";
     [JsonPropertyName("temperatureUnit")] public string TemperatureUnit { get; set; } = "C";
+    [JsonPropertyName("distanceUnit")] public string DistanceUnit { get; set; } = "km";
     [JsonPropertyName("roles")] public IList<string> Roles { get; set; } = [];
 }
 

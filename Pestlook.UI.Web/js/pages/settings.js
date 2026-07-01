@@ -85,6 +85,7 @@ function tzSelectOptions(selectedTz) {
 function renderPreferences(container) {
   const user = getUser();
   const currentUnit = user?.temperatureUnit || 'C';
+  const currentDistUnit = user?.distanceUnit || 'km';
   const currentTz = user?.timezone || '';
   const browserTz = detectBrowserTimezone();
   const prefsBox = container.querySelector('#settings-prefs');
@@ -105,6 +106,20 @@ function renderPreferences(container) {
       </div>
       <div style="font-size:0.7rem;color:var(--text-dim);margin-top:8px;">
         Temperatures are always stored in Celsius. This setting only affects how values are displayed.
+      </div>
+    </div>
+    <div style="margin-bottom:18px;">
+      <div class="input-label">Distance Unit</div>
+      <div style="display:flex;gap:8px;margin-top:8px;" id="dist-unit-toggle">
+        <button class="btn-outline dist-unit-btn ${currentDistUnit === 'km' ? 'active' : ''}" data-unit="km" style="flex:1;justify-content:center;padding:10px;font-size:0.85rem;">
+          📏 Kilometres (km)
+        </button>
+        <button class="btn-outline dist-unit-btn ${currentDistUnit === 'mi' ? 'active' : ''}" data-unit="mi" style="flex:1;justify-content:center;padding:10px;font-size:0.85rem;">
+          📏 Miles (mi)
+        </button>
+      </div>
+      <div style="font-size:0.7rem;color:var(--text-dim);margin-top:8px;">
+        Distances are always stored in kilometres. This setting only affects how values are displayed.
       </div>
     </div>
     <div>
@@ -147,17 +162,40 @@ function renderPreferences(container) {
       btn.disabled = true;
 
       try {
-        const res = await updatePreferences({ temperatureUnit: unit });
-        // Update the locally cached user
-        const updatedUser = { ...getUser(), temperatureUnit: res.data.temperatureUnit };
+        const res = await updatePreferences({ temperatureUnit: unit, distanceUnit: currentDistUnit });
+        const updatedUser = { ...getUser(), temperatureUnit: res.data.temperatureUnit, distanceUnit: res.data.distanceUnit };
         saveUser(updatedUser);
         showToast(`Temperature unit set to ${unit === 'F' ? 'Fahrenheit' : 'Celsius'}`);
         renderPreferences(container);
       } catch (err) {
         showToast(err.message || 'Failed to update preference', 'error');
-        // Revert visual state
         prefsBox.querySelectorAll('.temp-unit-btn').forEach(b => b.classList.remove('active'));
         prefsBox.querySelector(`[data-unit="${currentUnit}"]`)?.classList.add('active');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
+
+  prefsBox.querySelectorAll('.dist-unit-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const unit = btn.dataset.unit;
+      if (unit === currentDistUnit) return;
+
+      prefsBox.querySelectorAll('.dist-unit-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      btn.disabled = true;
+
+      try {
+        const res = await updatePreferences({ temperatureUnit: currentUnit, distanceUnit: unit });
+        const updatedUser = { ...getUser(), temperatureUnit: res.data.temperatureUnit, distanceUnit: res.data.distanceUnit };
+        saveUser(updatedUser);
+        showToast(`Distance unit set to ${unit === 'mi' ? 'miles' : 'kilometres'}`);
+        renderPreferences(container);
+      } catch (err) {
+        showToast(err.message || 'Failed to update preference', 'error');
+        prefsBox.querySelectorAll('.dist-unit-btn').forEach(b => b.classList.remove('active'));
+        prefsBox.querySelector(`[data-unit="${currentDistUnit}"]`)?.classList.add('active');
       } finally {
         btn.disabled = false;
       }

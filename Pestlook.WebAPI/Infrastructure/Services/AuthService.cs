@@ -207,7 +207,8 @@ public sealed class AuthService(
             LastName       = request.LastName,
             TenantId       = tenant.Id,
             EmailConfirmed = true,
-            Timezone       = request.Timezone
+            Timezone       = request.Timezone,
+            DistanceUnit   = request.DistanceUnit ?? "km",
         };
 
         var result = await userManager.CreateAsync(user, request.Password);

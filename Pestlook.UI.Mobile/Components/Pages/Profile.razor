@@ -44,6 +44,23 @@
             </div>
         </div>
 
+        <!-- Display preferences -->
+        <div class="sl">Display preferences</div>
+        <div class="prof-row">
+            <span style="font-size:14px;">Temperature</span>
+            <div style="display:flex;gap:6px;">
+                <button class="pref-btn @(tempUnit == "C" ? "active" : "")" @onclick='() => SetTempUnit("C")'>°C</button>
+                <button class="pref-btn @(tempUnit == "F" ? "active" : "")" @onclick='() => SetTempUnit("F")'>°F</button>
+            </div>
+        </div>
+        <div class="prof-row" style="border-bottom:none;">
+            <span style="font-size:14px;">Distance</span>
+            <div style="display:flex;gap:6px;">
+                <button class="pref-btn @(distUnit == "km" ? "active" : "")" @onclick='() => SetDistUnit("km")'>km</button>
+                <button class="pref-btn @(distUnit == "mi" ? "active" : "")" @onclick='() => SetDistUnit("mi")'>mi</button>
+            </div>
+        </div>
+
         <!-- App settings -->
         <div class="sl">App settings</div>
         <div class="prof-row">
@@ -132,6 +149,9 @@
     private string storageSizeLabel = "—";
     private bool clearing;
 
+    private string tempUnit = "C";
+    private string distUnit = "km";
+
     private bool autoGps = true;
     private bool alertSound = true;
     private bool wifiOnly;
@@ -150,6 +170,8 @@
             initials = $"{FirstChar(user.FirstName)}{FirstChar(user.LastName)}";
             tenantSlug = user.TenantSlug;
             roles = user.Roles;
+            tempUnit = user.TemperatureUnit;
+            distUnit = user.DistanceUnit;
         }
 
         // Load stats from local DB
@@ -219,6 +241,20 @@
         await Db.ClearCacheAsync();
         await RefreshStorageSize();
         clearing = false;
+    }
+
+    private async Task SetTempUnit(string unit)
+    {
+        if (unit == tempUnit) return;
+        var res = await Api.UpdatePreferencesAsync(unit, distUnit);
+        if (res.Success) tempUnit = unit;
+    }
+
+    private async Task SetDistUnit(string unit)
+    {
+        if (unit == distUnit) return;
+        var res = await Api.UpdatePreferencesAsync(tempUnit, unit);
+        if (res.Success) distUnit = unit;
     }
 
     private void SignOut()

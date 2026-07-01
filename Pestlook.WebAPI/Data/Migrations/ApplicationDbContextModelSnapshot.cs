@@ -219,6 +219,13 @@ namespace Pestlook.WebAPI.Data.Migrations
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("DistanceUnit")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(2)
+                        .HasColumnType("nvarchar(2)")
+                        .HasDefaultValue("km");
+
                     b.Property<string>("TemperatureUnit")
                         .IsRequired()
                         .ValueGeneratedOnAdd()

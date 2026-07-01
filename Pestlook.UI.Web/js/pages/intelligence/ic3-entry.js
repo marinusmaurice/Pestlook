@@ -1,5 +1,6 @@
-import { escapeHtml } from '../../utils/helpers.js';
+import { escapeHtml, formatDistance } from '../../utils/helpers.js';
 import { emptyState }  from '../reports/utils.js';
+import { getUser }     from '../../utils/storage.js';
 
 /* ─────────────────────────────────────────────────────────────────────────────
    C3 — Entry Point Analysis
@@ -22,6 +23,7 @@ const VECTOR_LABEL = { peripheral: 'Peripheral Entry', central: 'Central Cluster
 
 export async function renderEntryPointAnalysis(el, data) {
   const { pests = [], summary = {}, clusterCentroid = {} } = data;
+  const distUnit = getUser()?.distanceUnit || 'km';
 
   if (!pests.length) {
     el.innerHTML = emptyState('🔍', 'No entry point data',
@@ -83,8 +85,8 @@ export async function renderEntryPointAnalysis(el, data) {
         </div>
 
         <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:0.82rem;margin-bottom:12px;padding:10px 12px;background:var(--surface);border-radius:8px;border:1px solid var(--border);">
-          <span style="color:var(--text-dim);cursor:help;" title="Distance from the origin farm to the geographic centroid (average lat/lng) of all your GPS-equipped farms. A larger value means the origin is further from the centre of your operation.">Origin dist from cluster centre: <strong>${p.originDistFromCentroidKm} km</strong></span>
-          <span style="color:var(--text-dim);cursor:help;" title="The median distance of all your farms from the cluster centroid. Farms beyond this distance are classified as peripheral; farms closer are classified as central. This threshold adapts to your specific farm layout rather than using a fixed km cutoff.">Cluster median dist: <strong>${p.clusterMedianDistKm} km</strong></span>
+          <span style="color:var(--text-dim);cursor:help;" title="Distance from the origin farm to the geographic centroid (average lat/lng) of all your GPS-equipped farms. A larger value means the origin is further from the centre of your operation.">Origin dist from cluster centre: <strong>${formatDistance(p.originDistFromCentroidKm, distUnit)}</strong></span>
+          <span style="color:var(--text-dim);cursor:help;" title="The median distance of all your farms from the cluster centroid. Farms beyond this distance are classified as peripheral; farms closer are classified as central. This threshold adapts to your specific farm layout rather than using a fixed km cutoff.">Cluster median dist: <strong>${formatDistance(p.clusterMedianDistKm, distUnit)}</strong></span>
         </div>
 
         <div style="padding:8px 12px;background:${col}11;border-radius:6px;font-size:0.78rem;color:var(--text);margin-bottom:14px;">

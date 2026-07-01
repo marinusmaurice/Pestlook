@@ -78,7 +78,13 @@ public sealed class AuthController(
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken ct)
     {
-        var result = await authService.RegisterAsync(request, IpAddress, ct);
+        // Inherit the creating admin's preferences as the new user's defaults
+        var creator = await userManager.FindByIdAsync(currentUserService.UserId!);
+        var effective = request with
+        {
+            DistanceUnit = request.DistanceUnit ?? creator?.DistanceUnit ?? "km",
+        };
+        var result = await authService.RegisterAsync(effective, IpAddress, ct);
         return Ok(ApiResponse<TokenResponse>.Ok(result, "Registration successful."));
     }
 
@@ -138,6 +144,7 @@ public sealed class AuthController(
         if (user is null) return Unauthorized();
 
         user.TemperatureUnit = request.TemperatureUnit;
+        user.DistanceUnit = request.DistanceUnit;
         await userManager.UpdateAsync(user);
 
         var roles = await userManager.GetRolesAsync(user);

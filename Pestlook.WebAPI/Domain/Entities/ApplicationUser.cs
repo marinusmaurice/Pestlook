@@ -15,6 +15,9 @@ public sealed class ApplicationUser : IdentityUser, IHasTenant
     /// <summary>Display unit for temperatures: "C" (Celsius) or "F" (Fahrenheit). Values are always stored in Celsius.</summary>
     public string TemperatureUnit { get; set; } = "C";
 
+    /// <summary>Display unit for distances: "km" (kilometres) or "mi" (miles). Values are always stored in kilometres.</summary>
+    public string DistanceUnit { get; set; } = "km";
+
     /// <summary>
     /// IANA timezone id (e.g. "Africa/Johannesburg"). Used ONLY for server-side
     /// analytics that group by day/week; storage stays UTC. Null until the

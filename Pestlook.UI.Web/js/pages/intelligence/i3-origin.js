@@ -1,6 +1,7 @@
-import { escapeHtml }                      from '../../utils/helpers.js';
+import { escapeHtml, formatDistance }       from '../../utils/helpers.js';
 import { C, kpiGrid, kpiCard, emptyState } from '../reports/utils.js';
 import { drawBoundaries }                  from './map-boundaries.js';
+import { getUser }                         from '../../utils/storage.js';
 
 /* ─────────────────────────────────────────────────────────────────────────────
    I3 — Infestation Origin Detection
@@ -59,7 +60,7 @@ function stepColor(step, total) {
 }
 
 /* ── Build one origin Leaflet map ────────────────────────────────────────── */
-function buildOriginMap(containerId, chain) {
+function buildOriginMap(containerId, chain, distUnit = 'km') {
   const L          = window.L;
   const gpsSteps   = chain.filter(s => s.lat && s.lng);
 
@@ -107,7 +108,7 @@ function buildOriginMap(containerId, chain) {
     });
 
     const days  = s.lagDays === 0 ? 'Origin' : `+${s.lagDays} day${s.lagDays !== 1 ? 's' : ''}`;
-    const dist  = s.distanceKm != null ? ` · ${s.distanceKm} km from origin` : '';
+    const dist  = s.distanceKm != null ? ` · ${formatDistance(s.distanceKm, distUnit)} from origin` : '';
     const above = s.wasAboveThreshold ? ' ⚠ above threshold' : '';
 
     L.marker([s.lat, s.lng], { icon })
@@ -125,7 +126,7 @@ function buildOriginMap(containerId, chain) {
 }
 
 /* ── Spread chain list ───────────────────────────────────────────────────── */
-function chainListHtml(chain) {
+function chainListHtml(chain, distUnit = 'km') {
   const total = chain.length;
   return chain.map(s => {
     const color     = stepColor(s.step, total);
@@ -135,7 +136,7 @@ function chainListHtml(chain) {
       : `<span style="background:var(--surface2,#f4f7f4);color:var(--text-dim);border:1px solid var(--border);
             border-radius:20px;padding:1px 8px;font-size:0.7rem;">+${s.lagDays}d</span>`;
     const dist  = s.distanceKm != null
-      ? `<span style="font-size:0.78rem;color:var(--text-dim);">${s.distanceKm} km from origin</span>`
+      ? `<span style="font-size:0.78rem;color:var(--text-dim);">${formatDistance(s.distanceKm, distUnit)} from origin</span>`
       : '';
     const above = s.wasAboveThreshold
       ? `<span style="font-size:0.75rem;color:${C.red};font-weight:600;">⚠ above threshold</span>`
@@ -173,6 +174,7 @@ function chainListHtml(chain) {
 export async function renderOriginDetection(el, data, lookups = {}) {
   destroyMaps();
   const origins = data.origins ?? [];
+  const distUnit = getUser()?.distanceUnit || 'km';
 
   if (origins.length === 0) {
     el.innerHTML = emptyState('🔍',
@@ -211,9 +213,9 @@ export async function renderOriginDetection(el, data, lookups = {}) {
         : kpiCard('Fastest Spread', '—', 'no multi-field outbreaks detected', '', ''),
       farthest
         ? kpiCard('Farthest Spread',
-            `${farthest.maxSpreadDistanceKm} km`,
-            `${escapeHtml(farthest.pestName)} — furthest field from origin`, '', 
-            'The greatest straight-line distance (km) between a pest\'s origin field and any other field where that pest was subsequently observed.')
+            formatDistance(farthest.maxSpreadDistanceKm, distUnit),
+            `${escapeHtml(farthest.pestName)} — furthest field from origin`, '',
+            'The greatest straight-line distance between a pest\'s origin field and any other field where that pest was subsequently observed.')
         : kpiCard('Farthest Spread', '—', 'no GPS data for distance', '', 'Requires GPS coordinates on monitoring points to calculate spread distance.'),
     ])}
 
@@ -270,7 +272,7 @@ export async function renderOriginDetection(el, data, lookups = {}) {
                   <td style="white-space:nowrap;">${chain0?.firstSeenAt ?? '—'}</td>
                   <td style="text-align:center;">${o.totalFieldsAffected}</td>
                   <td style="text-align:center;">${o.daysToSecondField != null ? o.daysToSecondField + 'd' : '—'}</td>
-                  <td style="text-align:center;">${o.maxSpreadDistanceKm != null ? o.maxSpreadDistanceKm + ' km' : '—'}</td>
+                  <td style="text-align:center;">${o.maxSpreadDistanceKm != null ? formatDistance(o.maxSpreadDistanceKm, distUnit) : '—'}</td>
                   <td>${confidenceBadge(o.outbreakConfidence)}</td>
                 </tr>`;
             }).join('')}
@@ -292,7 +294,7 @@ export async function renderOriginDetection(el, data, lookups = {}) {
 
     // Update chain list
     const list = document.getElementById('origin-chain-list');
-    if (list) list.innerHTML = chainListHtml(origin.chain);
+    if (list) list.innerHTML = chainListHtml(origin.chain, distUnit);
 
     // Rebuild map
     destroyMaps();
@@ -301,7 +303,7 @@ export async function renderOriginDetection(el, data, lookups = {}) {
       mapEl.innerHTML = '';
       loadLeaflet()
         .then(() => {
-          const m = buildOriginMap('origin-map', origin.chain);
+          const m = buildOriginMap('origin-map', origin.chain, distUnit);
           if (m) drawBoundaries(m, lookups);
         })
         .catch(err => {

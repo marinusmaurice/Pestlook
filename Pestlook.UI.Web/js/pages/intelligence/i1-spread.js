@@ -1,4 +1,5 @@
-import { escapeHtml } from '../../utils/helpers.js';
+import { escapeHtml, formatDistance } from '../../utils/helpers.js';
+import { getUser }                    from '../../utils/storage.js';
 import { C, kpiGrid, kpiCard, emptyState } from '../reports/utils.js';
 import { drawBoundaries } from './map-boundaries.js';
 
@@ -52,6 +53,7 @@ export async function renderSpreadDirection(el, data, onPestChange, lookups = {}
   const weeklySnaps    = data.weeklySnapshots ?? [];
   const spreadVectors  = data.spreadVectors   ?? [];
   const allFields      = data.fields          ?? [];
+  const distUnit       = getUser()?.distanceUnit || 'km';
 
   // ── No-data guard ────────────────────────────────────────────────────────
   if (weeklySnaps.length === 0) {
@@ -78,7 +80,7 @@ export async function renderSpreadDirection(el, data, onPestChange, lookups = {}
       The <strong>bearing</strong> is the compass direction from the earliest to the latest centroid — showing the net direction the pest population has moved.
       <strong>Velocity</strong> is the OLS slope of cumulative distinct fields over time — how many new fields are being reached per week on average.
       A velocity of 0 means the pest is contained to the same fields; a rising value signals active geographic expansion.
-      Fields within 5 km of the latest centroid that haven't recorded the pest are flagged as <strong>neighbour risk</strong>.
+      Fields within ${formatDistance(5, distUnit)} of the latest centroid that haven't recorded the pest are flagged as <strong>neighbour risk</strong>.
     </div>
     ${kpiGrid([
       kpiCard('Pests Tracked', pestsWithVectors, 'species with spread data', '',
@@ -231,7 +233,7 @@ export async function renderSpreadDirection(el, data, onPestChange, lookups = {}
   } else {
     nbrList.innerHTML = `
       <div style="font-size:0.82rem;color:var(--text-dim);margin-bottom:8px;">
-        These fields are within 5 km of an active spread front but have not yet reported this pest. Schedule an unplanned inspection.
+        These fields are within ${formatDistance(5, distUnit)} of an active spread front but have not yet reported this pest. Schedule an unplanned inspection.
       </div>
       <div style="overflow-x:auto;">
         <table class="data-table">

@@ -221,3 +221,34 @@ export function celsiusToDisplayValue(celsius, unit) {
 export function temperatureUnitLabel(unit) {
   return unit === 'F' ? '°F' : '°C';
 }
+
+// ── Distance helpers ──────────────────────────────────────────────────────────
+// Values are always stored and returned in kilometres. These helpers convert for display.
+
+/** Convert kilometres to miles. */
+export function kmToMiles(km) {
+  return km * 0.621371;
+}
+
+/** Convert miles to kilometres. */
+export function milesToKm(mi) {
+  return mi / 0.621371;
+}
+
+/**
+ * Format a kilometre value for display in the user's preferred unit.
+ * @param {number|null|undefined} km - stored value in km
+ * @param {string} unit - "km" or "mi"
+ * @param {number} [decimals=1] - decimal places
+ * @returns {string} e.g. "3.2 km" or "2.0 mi"
+ */
+export function formatDistance(km, unit, decimals = 1) {
+  if (km == null) return '—';
+  if (unit === 'mi') return `${kmToMiles(km).toFixed(decimals)} mi`;
+  return `${Number(km).toFixed(decimals)} km`;
+}
+
+/** Returns the unit label: "km" or "mi". */
+export function distanceUnitLabel(unit) {
+  return unit === 'mi' ? 'mi' : 'km';
+}

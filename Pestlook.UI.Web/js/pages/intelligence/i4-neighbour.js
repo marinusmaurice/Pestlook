@@ -1,6 +1,7 @@
-import { escapeHtml }                      from '../../utils/helpers.js';
+import { escapeHtml, formatDistance }       from '../../utils/helpers.js';
 import { C, kpiGrid, kpiCard, emptyState } from '../reports/utils.js';
 import { drawBoundaries }                  from './map-boundaries.js';
+import { getUser }                         from '../../utils/storage.js';
 
 /* ─────────────────────────────────────────────────────────────────────────────
    I4 — Neighbour Risk Alert
@@ -72,6 +73,7 @@ export async function renderNeighbourRisk(container, data, onRadiusChange, looku
   const summary = data.summary ?? { breachedFields: 0, atRiskFields: 0, unscoutedRiskFields: 0 };
   const alerts  = data.alerts  ?? [];
   const radiusKm = data.radiusKm ?? 5;
+  const distUnit = getUser()?.distanceUnit || 'km';
 
   if (!alerts.length) {
     container.innerHTML = emptyState('✅', 'No neighbour risk alerts', 'No threshold breaches were found in the selected period, or no adjacent fields have GPS coordinates set.');
@@ -86,7 +88,7 @@ export async function renderNeighbourRisk(container, data, onRadiusChange, looku
       'Unaffected fields that fall within the search radius of a breached field — they share proximity to an active infestation and need monitoring.'),
     kpiCard('Unscouted Risk',     summary.unscoutedRiskFields,'neighbours not visited in 7+ days',  summary.unscoutedRiskFields > 0 ? C.red   : '',
       'At-risk neighbour fields that have not had a completed scouting session in 7 or more days — an intelligence gap next to a live infestation.'),
-    kpiCard('Search Radius',      radiusKm + ' km',           'configurable below',                 C.blue ?? '#3b82f6',
+    kpiCard('Search Radius',      formatDistance(radiusKm, distUnit), 'configurable below',          C.blue ?? '#3b82f6',
       'The radius used to identify neighbouring fields. Increase this value to catch more distant at-risk fields; reduce it for tighter cluster analysis.'),
   ]) + `
   <!-- Controls row -->
@@ -94,7 +96,7 @@ export async function renderNeighbourRisk(container, data, onRadiusChange, looku
     <div style="display:flex;align-items:center;gap:8px;">
       <label style="font-size:0.8rem;color:var(--text-dim);font-weight:600;">📍 Radius</label>
       <select id="nb-radius" class="input-field" style="margin-top:0;width:auto;padding:6px 10px;font-size:0.8rem;">
-        ${[3, 5, 10, 20, 50, 100, 500, 1000].map(r => `<option value="${r}"${r === Math.round(radiusKm) ? ' selected' : ''}>${r} km</option>`).join('')}
+        ${[3, 5, 10, 20, 50, 100, 500, 1000].map(r => `<option value="${r}"${r === Math.round(radiusKm) ? ' selected' : ''}>${formatDistance(r, distUnit)}</option>`).join('')}
       </select>
     </div>
   </div>
@@ -155,7 +157,7 @@ export async function renderNeighbourRisk(container, data, onRadiusChange, looku
           Last breach: <strong>${fmtDate(src.lastBreachAt)}</strong> &nbsp;·&nbsp;
           Peak count: <strong>${src.maxCount}</strong> &nbsp;·&nbsp;
           Threshold: <strong>${src.threshold}</strong> &nbsp;·&nbsp;
-          ${alert.neighbourCount} neighbour${alert.neighbourCount !== 1 ? 's' : ''} within ${radiusKm} km
+          ${alert.neighbourCount} neighbour${alert.neighbourCount !== 1 ? 's' : ''} within ${formatDistance(radiusKm, distUnit)}
         </div>
 
         <!-- Map + list -->
@@ -227,7 +229,7 @@ export async function renderNeighbourRisk(container, data, onRadiusChange, looku
           radius: 10, fillColor: color, color: '#fff', weight: 2, fillOpacity: 0.85,
         }).addTo(map)
           .bindPopup(`<strong>${escapeHtml(nbr.fieldName)}</strong><br>${escapeHtml(nbr.farmName)}<br>
-            ${nbr.distanceKm} km from breach source<br>${urgencyLabel(nbr.daysSinceLastSession)}`);
+            ${formatDistance(nbr.distanceKm, distUnit)} from breach source<br>${urgencyLabel(nbr.daysSinceLastSession)}`);
       }
 
       // Fit map
@@ -243,7 +245,7 @@ export async function renderNeighbourRisk(container, data, onRadiusChange, looku
       const listEl = document.getElementById(listId);
       if (listEl) {
         if (!nbrs.length) {
-          listEl.innerHTML = `<div style="font-size:0.8rem;color:var(--text-dim);padding:12px;">No neighbouring fields with GPS found within ${radiusKm} km.</div>`;
+          listEl.innerHTML = `<div style="font-size:0.8rem;color:var(--text-dim);padding:12px;">No neighbouring fields with GPS found within ${formatDistance(radiusKm, distUnit)}.</div>`;
         } else {
           listEl.innerHTML = nbrs.map(nbr => {
             const col   = urgencyColor(nbr.daysSinceLastSession);
@@ -253,7 +255,7 @@ export async function renderNeighbourRisk(container, data, onRadiusChange, looku
               <div style="font-size:0.85rem;font-weight:600;color:var(--text);">${escapeHtml(nbr.fieldName)}</div>
               <div style="font-size:0.75rem;color:var(--text-dim);">${escapeHtml(nbr.farmName)}</div>
               <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:0.75rem;">
-                <span style="color:var(--text-dim);">${nbr.distanceKm} km away</span>
+                <span style="color:var(--text-dim);">${formatDistance(nbr.distanceKm, distUnit)} away</span>
                 <span style="color:${col};font-weight:600;">${escapeHtml(label)}</span>
               </div>
               ${nbr.lastSessionAt ? `<div style="font-size:0.72rem;color:var(--text-dim);margin-top:2px;">Last session: ${fmtDate(nbr.lastSessionAt)}</div>` : ''}
@@ -282,7 +284,7 @@ export async function renderNeighbourRisk(container, data, onRadiusChange, looku
                   <td>${escapeHtml(n.fieldName)}</td>
                   <td>${escapeHtml(n.farmName)}</td>
                   <td>${escapeHtml(n.sourceName)}</td>
-                  <td>${n.distanceKm} km</td>
+                  <td>${formatDistance(n.distanceKm, distUnit)}</td>
                   <td>${fmtDate(n.lastSessionAt)}</td>
                   <td><span style="color:${col};font-weight:600;">${escapeHtml(label)}</span></td>
                 </tr>`;

@@ -146,6 +146,8 @@ select.pk-select{width:100%;background:var(--surface2);border:.5px solid var(--b
 .toggle-knob{position:absolute;top:3px;width:16px;height:16px;background:white;border-radius:50%;transition:left .2s ease;}
 .toggle-wrap.on .toggle-knob{left:auto;right:3px;}
 .toggle-wrap.off .toggle-knob{left:3px;}
+.pref-btn{padding:4px 14px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text-dim);font-size:13px;font-family:inherit;cursor:pointer;}
+.pref-btn.active{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:600;}
 
 /* ── chip row ── */
 .chip-row{display:flex;gap:5px;padding:4px 10px 6px;border-bottom:.5px solid var(--border);overflow-x:auto;flex-shrink:0;}
