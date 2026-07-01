@@ -32,7 +32,7 @@ export async function renderQuarantineFlags(el, data) {
     </div>`;
 
   const kpis = `
-    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Flags pest species recorded on a field <strong>for the first time</strong> within the selected date range. A <strong>New to Tenant</strong> flag means the species has never been seen anywhere in your organisation before — these carry the highest risk and may warrant reporting to local agricultural authorities. A <strong>New to Field</strong> flag means the pest is established elsewhere but has now appeared on a new field.</div>
+    <div style="font-size:0.75rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Flags pest species recorded on a field <strong>for the first time</strong> within the selected date range. A <strong>New to Tenant</strong> flag means the species has never been seen anywhere in your organisation before — these carry the highest risk and may warrant reporting to local agricultural authorities. A <strong>New to Field</strong> flag means the pest is established elsewhere but has now appeared on a new field.</div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
       ${kpi('New Introductions',   summary.totalFlags         ?? 0, 'var(--text)',  'flags in period',                   'Total number of pest × field combinations where a pest was recorded on a field for the first time within the selected date range.')}
       ${kpi('New to Tenant',       summary.genuineNewSpecies  ?? 0, '#c0392b',     'never seen before — highest risk', 'Pest species that have never been recorded anywhere in your organisation before — the highest-risk category; consider notifying local agricultural authorities.')}
@@ -64,10 +64,10 @@ export async function renderQuarantineFlags(el, data) {
         </div>
 
         <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:0.82rem;margin-bottom:10px;">
-          <span style="color:var(--text-dim);">First seen: <strong>${f.firstSeen}</strong></span>
+          <span style="color:var(--text-dim);cursor:help;" title="Local calendar date of the earliest observation of this pest on this field — the first confirmed detection.">First seen: <strong>${new Date(f.firstSeen + 'T00:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</strong></span>
           <span style="color:var(--text-dim);">${f.daysSinceFirst} days ago</span>
-          <span style="color:var(--text-dim);">Observations: <strong>${f.totalObsCount}</strong></span>
-          <span style="color:var(--text-dim);">Total count: <strong>${f.totalPestCount}</strong></span>
+          <span style="color:var(--text-dim);cursor:help;" title="Number of individual observation records (scouting sessions) where this pest was recorded on this field within the selected period.">Observations: <strong>${f.totalObsCount}</strong></span>
+          <span style="color:var(--text-dim);cursor:help;" title="Sum of all pest counts recorded across those observations — the total number of individual pests counted, not the number of sessions.">Total count: <strong>${f.totalPestCount}</strong></span>
         </div>
 
         <div style="padding:8px 12px;background:${bg};border-radius:6px;font-size:0.78rem;color:var(--text);">

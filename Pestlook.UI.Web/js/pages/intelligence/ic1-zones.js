@@ -34,7 +34,7 @@ export async function renderContainmentZones(el, data) {
     </div>`;
 
   const kpis = `
-    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Computes a spread vector (compass bearing and weekly velocity) for each pest from weekly GPS centroids, then identifies unaffected farms within <strong>±60° of the spread bearing</strong> and twice the weekly spread distance. These farms form the recommended <strong>containment perimeter</strong> — the most likely next targets if the outbreak continues unchecked. Farms directly in the spread path are flagged High; nearby off-axis farms are flagged Monitor.</div>
+    <div style="font-size:0.75rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Computes a spread vector (compass bearing and weekly velocity) for each pest from weekly GPS centroids, then identifies unaffected farms within <strong>±60° of the spread bearing</strong> and twice the weekly spread distance. These farms form the recommended <strong>containment perimeter</strong> — the most likely next targets if the outbreak continues unchecked. Farms directly in the spread path are flagged High; nearby off-axis farms are flagged Monitor.</div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;">
       ${kpi('Pests Spreading',    summary.pestsWithVector   ?? 0, 'var(--text)',  'with measurable vector',     'Number of pest species for which a directional spread vector could be computed from at least two weeks of GPS-tagged observations.')}
       ${kpi('Perimeter Zones',    summary.fieldsInPerimeter ?? 0, '#c0392b',     'farms directly in spread path', 'Unaffected farms that fall within ±60° of the spread bearing and within twice the weekly spread distance — the most likely next targets of the outbreak.')}
@@ -50,7 +50,7 @@ export async function renderContainmentZones(el, data) {
       <tr style="border-bottom:1px solid var(--border);font-size:0.78rem;">
         <td style="padding:6px 8px;">${escapeHtml(z.fieldName)}</td>
         <td style="padding:6px 8px;color:var(--text-dim);">${escapeHtml(z.farmName)}</td>
-        <td style="padding:6px 8px;">${z.firstDetected}</td>
+        <td style="padding:6px 8px;">${new Date(z.firstDetected + 'T00:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</td>
         <td style="padding:6px 8px;text-align:right;font-weight:700;">${z.peakCount}</td>
       </tr>`).join('');
 
@@ -84,10 +84,10 @@ export async function renderContainmentZones(el, data) {
         </div>
 
         <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:0.82rem;margin-bottom:14px;padding:10px 12px;background:var(--surface);border-radius:8px;border:1px solid var(--border);">
-          <span style="color:var(--text-dim);">Perimeter radius: <strong>${p.perimeterRadius} km</strong></span>
-          <span style="color:var(--text-dim);">Bearing: <strong>${p.spreadBearing}°</strong></span>
-          <span style="color:var(--text-dim);">Front at: <strong>${escapeHtml(p.currentFront?.fieldName ?? 'Unknown')}</strong></span>
-          <span style="color:var(--text-dim);">Zones in path: <strong style="color:${borderCol};">${p.zonesRecommended}</strong></span>
+          <span style="color:var(--text-dim);cursor:help;" title="Search radius around the current spread front: 2× the weekly spread velocity, minimum 5 km. Farms within this radius are candidates for the containment perimeter.">Perimeter radius: <strong>${p.perimeterRadius} km</strong></span>
+          <span style="color:var(--text-dim);cursor:help;" title="Compass bearing of the overall spread vector, measured from the first week's GPS centroid to the most recent week's centroid. 0° = North, 90° = East, 180° = South, 270° = West.">Bearing: <strong>${p.spreadBearing}°</strong></span>
+          <span style="color:var(--text-dim);cursor:help;" title="The field name closest to the most recent weekly GPS centroid — the leading edge of the current infestation.">Front at: <strong>${escapeHtml(p.currentFront?.fieldName ?? 'Unknown')}</strong></span>
+          <span style="color:var(--text-dim);cursor:help;" title="Number of unaffected farms that fall within ±60° of the spread bearing and within the perimeter radius — classified as High urgency and directly in the pest's projected path.">Zones in path: <strong style="color:${borderCol};">${p.zonesRecommended}</strong></span>
         </div>
 
         <div style="display:flex;gap:14px;flex-wrap:wrap;">
@@ -121,8 +121,9 @@ export async function renderContainmentZones(el, data) {
               </table>
             </div>
             <div style="font-size:0.72rem;color:var(--text-dim);margin-top:6px;">🚨 High = directly in spread path · 👁 Monitor = nearby but off-axis</div>
-          </div>` : '<div style="color:var(--text-dim);font-size:0.82rem;">No unaffected farms detected within perimeter range — all nearby farms are already affected.</div>'}
+          </div>` : ''}
         </div>
+        ${!perimRows ? `<div style="margin-top:10px;font-size:0.82rem;color:var(--text-dim);">No unaffected farms detected within perimeter range — all nearby farms are already affected.</div>` : ''}
       </div>`;
   }).join('');
 

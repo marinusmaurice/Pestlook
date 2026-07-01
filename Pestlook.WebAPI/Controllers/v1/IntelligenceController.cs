@@ -3235,7 +3235,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                         fieldId      = g.Key.FieldId,
                         fieldName    = g.Key.FieldName ?? "Unknown",
                         farmName     = g.Key.FarmName ?? "Unknown",
-                        firstDetected = g.Min(o => o.CompletedAt!.Value).ToString("yyyy-MM-dd"),
+                        firstDetected = ToLocalDate(g.Min(o => o.CompletedAt!.Value), czTz).ToString("yyyy-MM-dd"),
                         peakCount    = g.Max(o => o.Count ?? 0),
                     })
                     .ToList<object>();
@@ -3458,6 +3458,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
         var fieldMetaMap = fieldMeta.ToDictionary(f => f.Id);
 
         // ── Build response ────────────────────────────────────────────────────
+        var qfTz = await tzService.GetUserTimeZoneAsync(ct);
         var flags = flagged.Select(r =>
         {
             pestMetaMap.TryGetValue(r.PestId, out var pm);
@@ -3479,7 +3480,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 fieldId          = r.FieldId,
                 fieldName        = fm?.FieldName ?? "Unknown",
                 farmName         = fm?.FarmName  ?? "Unknown",
-                firstSeen        = r.MinDate.ToString("yyyy-MM-dd"),
+                firstSeen        = ToLocalDate(r.MinDate, qfTz).ToString("yyyy-MM-dd"),
                 daysSinceFirst   = daysSince,
                 totalObsCount    = r.TotalObsCount,
                 totalPestCount   = r.TotalPestCount,
@@ -3579,6 +3580,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
         var farmDistances = allFarmCoords.Select(f => HaversineKm(clusterLat, clusterLng, f.Lat, f.Lng)).OrderBy(d => d).ToList();
         double medianDist = farmDistances.Count > 0 ? farmDistances[farmDistances.Count / 2] : 0;
 
+        var epTz = await tzService.GetUserTimeZoneAsync(ct);
         var pestResults = agg
             .GroupBy(r => (r.PestId, r.PestName))
             .Select(pg =>
@@ -3597,7 +3599,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                         farmName        = r.FarmName ?? "Unknown",
                         farmLat         = r.FarmLat != null ? Math.Round(r.FarmLat.Value, 4) : (double?)null,
                         farmLng         = r.FarmLng != null ? Math.Round(r.FarmLng.Value, 4) : (double?)null,
-                        firstSeen       = r.FirstSeen.ToString("yyyy-MM-dd"),
+                        firstSeen       = ToLocalDate(r.FirstSeen, epTz).ToString("yyyy-MM-dd"),
                         daysAfterOrigin = (int)(r.FirstSeen - origin.FirstSeen).TotalDays,
                         maxCount        = r.MaxCount,
                         weekCount       = r.WeekCount,
@@ -3634,7 +3636,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                         farmName     = origin.FarmName ?? "Unknown",
                         farmLat      = origin.FarmLat != null ? Math.Round(origin.FarmLat.Value, 4) : (double?)null,
                         farmLng      = origin.FarmLng != null ? Math.Round(origin.FarmLng.Value, 4) : (double?)null,
-                        firstSeen    = origin.FirstSeen.ToString("yyyy-MM-dd"),
+                        firstSeen    = ToLocalDate(origin.FirstSeen, epTz).ToString("yyyy-MM-dd"),
                         maxCount     = origin.MaxCount,
                         weekCount    = origin.WeekCount,
                     },
@@ -3661,7 +3663,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 peripheralEntries = pestResults.Count(p => (bool)((dynamic)p).isPeripheralEntry),
                 centralEntries    = pestResults.Count(p => !(bool)((dynamic)p).isPeripheralEntry && (string)((dynamic)p).entryVector != "unknown"),
                 unknownGps        = pestResults.Count(p => (string)((dynamic)p).entryVector == "unknown"),
-                dataNote          = "Entry vector is determined by comparing the outbreak origin farm's position to the median distance of all your farms from the tenant centroid. Set GPS coordinates on all farms (Farms page) for best results.",
+                dataNote          = "Origin and spread chain are based on the earliest detection within your selected date range — not your full observation history. If a pest was present before the filter start date, the true entry point will not be shown. For accurate entry point analysis, set the start date to before the pest was first ever recorded in your organisation.",
             },
         }));
     }

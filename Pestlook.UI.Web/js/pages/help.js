@@ -2029,35 +2029,35 @@ const GROUPS = [
         id:    'cont-zones',
         icon:  '🛡',
         title: 'Containment Zone Recommendation',
-        intro: 'When a pest is spreading across multiple fields, this tab calculates a spread vector (direction and speed in km/week) from the weekly GPS centroids of all observations. It then projects a containment perimeter ahead of the current infestation front — identifying unaffected farms that are directly in the pest\'s path so you can intensify scouting and apply preventive measures before the pest arrives.',
+        intro: 'Every week, the system finds the average GPS location of all observations for a pest — the geographic midpoint of where scouts found it that week. Over multiple weeks, these midpoints trace a path. The tab draws a straight line from the first week\'s midpoint to the most recent one, giving you a direction and a speed. It then asks: which of your farms lie ahead of that path? Those are the ones to scout now, before the pest arrives.',
         items: [
           {
             heading: 'KPI Cards',
-            body: '<strong>Pests Spreading</strong> — the number of pest species for which a measurable spread vector was computed (requires at least 2 weeks of observations across different locations). <strong>Perimeter Zones</strong> — the total number of unaffected farms classified as High urgency — directly in the spread path. <strong>Inside Zone</strong> — the total number of fields already confirmed affected across all pests.',
+            body: '<strong>Pests Spreading</strong> — the number of pest species for which a directional spread vector could be computed (requires at least 2 weeks of observations). <strong>Perimeter Zones</strong> — the total number of unaffected farms sitting directly in the spread path, classified High urgency. <strong>Inside Zone</strong> — the count of fields already confirmed with this pest during the selected period.',
           },
           {
             heading: 'Spread direction badge and arrow',
-            body: 'The large directional icon (↗, →, ↓, etc.) and compass bearing show the computed direction of movement. This is derived by comparing the GPS centroid of observations in the earliest week against the centroid of the most recent week. The bearing is the great-circle heading from the first centroid to the last. The km/wk figure is the total distance divided by the number of weeks observed.',
+            body: 'The large arrow (↗, →, ↓, etc.) and the km/wk badge show where the pest is heading and how fast. Direction comes from the compass bearing between the first week\'s GPS centroid and the most recent one. Speed is the straight-line distance between those two points divided by the number of weeks between them. If a pest has been moving northeast at 3 km/week for 6 weeks, the arrow points northeast and the badge reads <strong>NE · 3 km/wk</strong>.',
           },
           {
             heading: 'Info bar — perimeter radius, bearing, current front',
-            body: 'The grey info bar below the pest header shows three computed values. <strong>Perimeter radius</strong> — the search radius used to find candidate farms; it is set to 2× the average weekly spread distance, with a floor of 5 km to account for slow-moving or static infestations. <strong>Bearing</strong> — the spread direction in degrees (0° = North, 90° = East). <strong>Front at</strong> — the field name of the most recent weekly centroid; this is the leading edge of the known infestation.',
+            body: '<strong>Perimeter radius</strong> — the search radius around the current spread front: 2× the weekly velocity, with a minimum of 5 km. A fast-moving pest gets a larger search radius. <strong>Bearing</strong> — the spread direction in degrees (0° = North, 90° = East, 180° = South, 270° = West). <strong>Front at</strong> — the field closest to the most recent weekly centroid — the leading edge of the known infestation. <strong>Zones in path</strong> — how many unaffected farms lie in the ±60° cone ahead of the front.',
           },
           {
             heading: 'Affected Fields — Inside Zone table',
-            body: 'The left-hand table lists every field that has already been observed with this pest during the selected date range. Columns: <strong>Field</strong>, <strong>Farm</strong>, <strong>First Seen</strong> (date of earliest observation), <strong>Peak Count</strong> (highest single-session count). Use this table to review whether all affected fields have received follow-up sessions and treatment decisions.',
+            body: 'Lists every field that has already been found with this pest in the selected period. <strong>First Seen</strong> is the date of the earliest observation on that field — useful for tracing the order in which the pest arrived at each location. <strong>Peak Count</strong> is the highest single observation count recorded. Use this table to check that every affected field has had a follow-up session and a treatment decision.',
           },
           {
             heading: 'Containment Perimeter table — 🚨 High vs 👁 Monitor',
-            body: '<strong>🚨 High urgency</strong> — the farm is within the perimeter radius AND lies within ±60° of the spread bearing. These farms are directly in the pest\'s projected path. Schedule an inspection within the next scouting cycle and consider applying preventive measures on crop boundaries facing the infestation. <strong>👁 Monitor</strong> — the farm is within the perimeter radius but off-axis. It is less likely to be next but warrants additional vigilance. Columns show distance from the current front and the bearing from the front to that farm.',
+            body: '<strong>🚨 High urgency</strong> — this farm is within the perimeter radius and sits within ±60° of the spread bearing. It is directly in the projected path. Scout it in your next cycle and consider preventive treatment on the crop boundary facing the infestation. <strong>👁 Monitor</strong> — within range but off to the side. Less likely to be next, but worth an extra check. The table shows the distance from the current front and the bearing from the front to that farm.',
           },
           {
             heading: 'No perimeter farms shown',
-            body: 'If the perimeter list is empty, either all nearby farms are already affected (shown in the Inside Zone table) or no tenant farms have GPS coordinates set within range. Go to the Farms page and set GPS coordinates for all farms. Without coordinates, the system cannot calculate distances or identify which farms lie in the spread path.',
+            body: 'Two reasons this can happen. First, all farms within range may already be in the Inside Zone — the pest has already reached everything nearby. Second, farms may be missing GPS coordinates. Without coordinates the system cannot measure distances or identify who is in the spread path. Set GPS coordinates for all farms on the Farms page.',
           },
           {
-            heading: 'Data requirements',
-            body: 'A spread vector requires GPS coordinates on farms and at least 2 distinct weekly observation buckets for the same pest. The vector is computed from session-level GPS (using the farm or field GPS coordinates attached to each session). If all sessions for a pest occurred in the same week, no vector can be computed and the pest will not appear on this tab.',
+            heading: 'Limitations to keep in mind',
+            body: 'The spread vector is a straight-line projection — pests do not actually travel in straight lines. The centroid is also weighted by where scouts look, not by where the pest truly is. If you scout more on the eastern side of your operation, the centroid drifts east regardless of actual pest movement. Treat the bearing as a rough direction of risk, not a precise forecast. Two weeks of data is the minimum — the more weeks of observations, the more reliable the direction.',
           },
         ],
       },
@@ -2065,31 +2065,35 @@ const GROUPS = [
         id:    'cont-quarantine',
         icon:  '🔬',
         title: 'Quarantine Field Flag',
-        intro: 'This tab detects pest species that were recorded for the first time within the selected date range — either for the first time ever across your entire tenant (New to tenant) or for the first time on a specific field (New to field). Genuine new introductions require faster response than a pest simply spreading within a known population.',
+        intro: 'Every pest has a first time on every field. This tab flags the ones where that first time happened within your selected date range. There are two categories: <strong>New to Tenant</strong> — the pest has never been recorded anywhere in your organisation before, which may mean a genuinely exotic introduction from outside your operation; and <strong>New to Field</strong> — the pest is established somewhere else in your organisation but has now arrived on this specific field for the first time, which typically means local spread. These two situations require very different responses.',
         items: [
           {
             heading: 'KPI Cards',
-            body: '<strong>New Introductions</strong> — total flags raised in the selected period. <strong>New to Tenant</strong> — the most critical category: a species that has never been recorded anywhere in your organisation before this period. <strong>New to Field</strong> — the species is known to your organisation but this is the first record on this specific field. <strong>Non-catalogued</strong> — flags involving a pest that is not part of the standard system pest library (tenant-defined pests), which may indicate a truly novel or exotic species.',
-          },
-          {
-            heading: 'Data note banner',
-            body: 'The banner below the KPI cards explains the detection logic: a flag is raised whenever a pest\'s first-ever observation on a field (or across the whole tenant) falls within the selected date range. Widening the range to include the full current season will give the most complete picture.',
+            body: '<strong>New Introductions</strong> — total pest × field combinations flagged in the selected period. <strong>New to Tenant</strong> — the most critical category: a species never recorded anywhere in your organisation before. These may warrant reporting to local agricultural authorities. <strong>New to Field</strong> — the pest is known to your organisation but this is its first appearance on this specific field, indicating spread from elsewhere within your operation. <strong>Non-catalogued</strong> — flags involving a pest defined at tenant level rather than from the standard species library.',
           },
           {
             heading: 'Risk level badges — High / Elevated / Standard',
-            body: '<span style="color:#c0392b;font-weight:600;">High</span> — the pest has never been recorded anywhere in your organisation (New to tenant). These require immediate attention, potential authority notification, and intensive perimeter monitoring. <span style="color:#e67e22;font-weight:600;">Elevated</span> — the pest is known to your organisation but is non-catalogued (tenant-defined), suggesting it may not be well understood. <span style="color:#7f8c8d;font-weight:600;">Standard</span> — new to this specific field but it is a well-known system pest already recorded on other fields. Still warrants increased scouting frequency.',
+            body: '<span style="color:#c0392b;font-weight:600;">High</span> — new to the entire tenant. Treat as a potential exotic introduction: identify the specimen, increase monitoring frequency, and consider notifying your local agricultural authority. <span style="color:#e67e22;font-weight:600;">Elevated</span> — new to this field and non-catalogued. The pest is not in the standard library, so reference data is limited. <span style="color:#7f8c8d;font-weight:600;">Standard</span> — new to this field but a well-known system pest already present elsewhere in your operation. Increase scouting on the affected field and compare with the Entry Point Analysis tab to understand the spread direction.',
+          },
+          {
+            heading: 'First seen, Observations, Total count',
+            body: '<strong>First seen</strong> is the date of the earliest observation of this pest on this field — its first confirmed detection. <strong>Observations</strong> is the number of scouting sessions where it was recorded during the selected period (how many times scouts found it). <strong>Total count</strong> is the sum of all individual pests counted across those sessions — the actual population size observed, not the session count.',
           },
           {
             heading: 'Non-catalogued badge',
-            body: 'A yellow Non-catalogued badge appears alongside flags for pests that were created by your organisation rather than pulled from the built-in species library. These are pests without a validated species profile. If a cluster of unknown or non-catalogued pests appears in the same area around the same time, treat this as a potential exotic species introduction and consider sending a specimen to an identification service.',
+            body: 'A yellow Non-catalogued badge means the pest was created by your organisation rather than the built-in species library. It has no validated species profile. If several non-catalogued pests appear in the same area at the same time, treat this as a potential exotic introduction and send a specimen to an identification service before assuming it is a known local species.',
           },
           {
             heading: 'Recommendation panel',
-            body: 'Each flag card includes a tailored recommendation at the bottom. High-risk (new to tenant) flags prompt reporting to the local agricultural authority. New-to-field flags prompt comparison with neighbouring fields using the Entry Point Analysis tab. Follow these recommendations as part of your standard outbreak response procedure.',
+            body: 'Each card includes a tailored action at the bottom. High-risk flags suggest reporting to the local agricultural authority. New-to-field flags suggest comparing with neighbouring fields using the Entry Point Analysis tab. These are starting points — adjust to your own escalation procedure.',
+          },
+          {
+            heading: 'Farm filter and "New to Tenant" accuracy',
+            body: 'If you apply a farm filter, the "New to Tenant" check is scoped to that farm only — a pest present on your other farms but not on this one may incorrectly appear as New to Tenant. For the most accurate new-to-tenant classification, run this tab with All Farms selected.',
           },
           {
             heading: 'Nothing shown on this tab',
-            body: 'If no flags appear, no pest was recorded for the first time on any field within the selected date range. Shorten or widen the date range if you expected to see a recent new detection. Note that re-appearances of a pest after a season of absence are not flagged — the system uses the all-time first-seen date, not the most-recent-season first-seen date.',
+            body: 'No pest was recorded for the first time on any field in the selected period. Try widening the date range if you expected a recent new detection. Note that re-appearances after a season of absence are not flagged — the system uses the all-time first detection date. Once a pest has been seen on a field even once, it will never be flagged as new on that field again.',
           },
         ],
       },
@@ -2097,35 +2101,35 @@ const GROUPS = [
         id:    'cont-entry',
         icon:  '🔍',
         title: 'Entry Point Analysis',
-        intro: 'Entry Point Analysis works backwards from your observation data to identify the most likely field and farm where each pest was first introduced. It then classifies the origin farm\'s position relative to your farm cluster to suggest whether the pest entered via a perimeter boundary (peripheral entry) or through internal movement such as shared equipment or plant material (central entry).',
+        intro: 'When a pest shows up on multiple fields, one of them was first. This tab finds that field and asks: where is that farm relative to the rest of your operation? A farm on the geographic edge of your cluster is more likely to have been the entry point for an outside introduction — pests arriving via neighbouring properties, roads, or irrigation channels tend to hit boundary farms first. A farm in the middle of your cluster is more consistent with internal spread — shared equipment, workers moving between farms, or contaminated plant material.',
         items: [
           {
             heading: 'KPI Cards',
-            body: '<strong>Pests Analysed</strong> — number of pest species with at least 2 affected fields, enabling an origin to be distinguished from downstream spread. <strong>Peripheral Entries</strong> — pests whose origin farm is farther from the tenant cluster centre than the median farm-to-centroid distance. These likely entered via a farm boundary, road, irrigation channel, or neighbouring property. <strong>Central Entries</strong> — origin farm is within the cluster; internal vectors (equipment, workers, transplants) are more probable. <strong>GPS Not Set</strong> — pests whose origin farm has no GPS coordinates, making vector classification impossible.',
+            body: '<strong>Pests Analysed</strong> — pest species that appeared on at least 2 fields, making an origin and spread chain determinable. A pest on only 1 field has no chain to analyse and does not appear here. <strong>Peripheral Entries</strong> — origin farms farther from your cluster centre than the median farm-to-centroid distance — likely external introductions. <strong>Central Entries</strong> — origin within the cluster — more consistent with internal movement. <strong>GPS Not Set</strong> — origin farm has no coordinates, so peripheral vs central cannot be determined. Fix this on the Farms page.',
           },
           {
             heading: 'Entry Vector badge — Peripheral / Central / GPS Unknown',
-            body: '<span style="color:#c0392b;font-weight:600;">🔴 Peripheral Entry</span> — the origin farm is on the outer edge of your farm cluster. Inspect boundary hedges, roads, irrigation inlets, and neighbouring property boundaries for the likely entry route. Consider perimeter trapping on this and adjacent farms. <span style="color:#2980b9;font-weight:600;">🔵 Central Cluster</span> — the pest first appeared in a centrally located farm. This is more consistent with internal spread via shared equipment, workers, or contaminated plant material. Review hygiene protocols. <span style="color:#7f8c8d;font-weight:600;">⬜ GPS Unknown</span> — set GPS on the farm via the Farms page to enable classification.',
+            body: '<span style="color:#c0392b;font-weight:600;">🔴 Peripheral Entry</span> — the pest first appeared on a farm at the edge of your cluster. Check boundary hedges, roads, irrigation inlets, and neighbouring properties for the likely entry route. Consider perimeter trapping. <span style="color:#2980b9;font-weight:600;">🔵 Central Cluster</span> — it appeared in the middle of your operation first. Internal spread via shared equipment, workers, or plant material is the more likely explanation. Review hygiene protocols. <span style="color:#7f8c8d;font-weight:600;">GPS Unknown</span> — set GPS on the origin farm to enable classification.',
           },
           {
-            heading: 'Origin distance from cluster centre',
-            body: 'The grey info bar shows how far the origin farm is from the geometric centre of all your GPS-equipped farms, alongside the median farm-to-centroid distance. The peripherality threshold is the median: farms beyond the median distance are classified as peripheral. This is a relative measure — it adapts to your specific farm layout rather than using a fixed km cutoff.',
+            heading: 'Origin distance and Cluster median distance',
+            body: 'The grey info bar shows two numbers. <strong>Origin dist from cluster centre</strong> is how far the origin farm sits from the geographic midpoint of all your GPS-equipped farms. <strong>Cluster median dist</strong> is the median of that same measurement across all your farms — it is the peripherality threshold. If the origin distance exceeds the median, the farm is classified as peripheral. This adapts to your actual farm layout: a compact operation with all farms close together will have a smaller threshold than a widely spread one.',
           },
           {
             heading: 'Entry Point Note',
-            body: 'The coloured recommendation panel explains the classification in plain language and suggests practical containment steps. Peripheral entries recommend perimeter trapping and checking boundary vectors. Central entries recommend reviewing internal farm hygiene and equipment-sharing practices. GPS-unknown entries prompt coordinate entry.',
+            body: 'The coloured panel beneath the badge explains the classification in plain language and gives a specific action. Peripheral: inspect boundary vectors and consider perimeter trapping. Central: review equipment hygiene and worker movement between farms. GPS Unknown: add coordinates.',
           },
           {
             heading: 'Spread Chain',
-            body: 'The numbered timeline below the recommendation shows every affected field, ordered by first detection date. Field 1 is the origin (red circle). Subsequent fields show how many days after the origin they were first detected. A rapid chain (all fields within a few days) suggests fast active spread or a widespread simultaneous introduction. A slow chain (weeks between steps) suggests gradual field-by-field movement.',
+            body: 'The numbered list shows every affected field in order of first detection. The first entry (red) is the origin. Each subsequent field shows the date it was first found and how many days after the origin that was. A fast chain — all fields within days of each other — suggests rapid spread or a simultaneous introduction across multiple points rather than a single entry. A slow chain — weeks between steps — suggests gradual field-by-field movement that you could have interrupted earlier.',
           },
           {
             heading: 'Only 1 field in the chain',
-            body: 'If a pest appears in only one field, there is no spread chain to analyse and it will not appear on this tab. Use the Quarantine Flags tab to assess whether this is a new introduction, and the Containment Zones tab to model where it might spread if counts continue to rise.',
+            body: 'If a pest has been found on only one field so far, it will not appear here — there is no spread chain to analyse. Check the Quarantine Flags tab to see if it is a new introduction, and the Containment Zones tab to model where it might go next.',
           },
           {
-            heading: 'Data requirements',
-            body: 'GPS coordinates must be set on farms for the peripheral/central classification to work. The origin detection itself (earliest field) works without GPS. Set coordinates on the Farms page. The cluster centroid is calculated from all GPS-equipped farms in your tenant — adding more farm coordinates improves the accuracy of the peripherality scoring.',
+            heading: 'Data requirements and limitations',
+            body: 'GPS coordinates must be set on farms for peripheral vs central classification. The earliest-field identification works without GPS. The cluster centroid is the average lat/lng of all your GPS-equipped farms — adding coordinates for more farms makes the centroid and the median threshold more representative. <strong>Most importantly: the origin is the earliest detection within your selected date range, not your full observation history.</strong> If a pest was already present before your filter start date, the tab cannot see those records and will incorrectly identify a later field as the origin. To get an accurate entry point, set the start date to before the pest was ever first recorded in your operation. The origin is also simply the earliest-scouted field, not necessarily the earliest-infested one — if scouts visit some farms more frequently, a lightly scouted farm may appear to be downstream when it was actually first.',
           },
         ],
       },
