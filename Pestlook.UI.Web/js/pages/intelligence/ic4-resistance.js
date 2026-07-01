@@ -35,7 +35,7 @@ export async function renderResistancePatterns(el, data) {
     </div>`;
 
   const kpis = `
-    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Flags field × pest combinations where threshold breaches have recurred across <strong>two or more calendar years</strong> without sustained improvement. A worsening breach rate year-on-year is a strong indicator that current control measures are losing effectiveness and that <strong>pesticide resistance testing</strong> or rotation of mode-of-action should be considered. No treatment records are required — the analysis is based entirely on observation counts and configured thresholds.</div>
+    <div style="font-size:0.75rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Flags field × pest combinations where threshold breaches have recurred across <strong>two or more calendar years</strong> without sustained improvement. A worsening breach rate year-on-year is a strong indicator that current control measures are losing effectiveness and that <strong>pesticide resistance testing</strong> or rotation of mode-of-action should be considered. No treatment records are required — the analysis is based entirely on observation counts and configured thresholds. <strong>The date filter applies:</strong> only observations within the selected range are included, so the range must span at least two calendar years for any patterns to appear. The default range is two years.</div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
       ${kpi('Patterns Found',       summary.totalPatterns      ?? 0, 'var(--text)', `over ${summary.yearsAnalysed ?? '?'} years`, 'Total pest × field combinations with threshold breaches recorded across two or more calendar years, indicating a persistent rather than one-off infestation.')}
       ${kpi('Likely Resistance',    summary.likelyResistance   ?? 0, '#c0392b',    '3+ breach years / worsening', 'Combinations with breaches in three or more years and/or a worsening year-on-year breach rate — strong evidence that current treatments are losing effectiveness.')}
@@ -59,7 +59,7 @@ export async function renderResistancePatterns(el, data) {
         <div style="margin-bottom:8px;">
           <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-dim);margin-bottom:3px;">
             <span style="font-weight:600;">${s.year}</span>
-            <span>${s.breachCount} breaches / ${s.sessionCount} sessions · <strong style="color:${barCol};">${s.breachRate}%</strong> · avg count ${s.avgCount}</span>
+            <span title="Session count is the number of observation records for this pest on this field that year, not the number of distinct scouting visits.">${s.breachCount} breaches / ${s.sessionCount} obs · <strong style="color:${barCol};">${s.breachRate}%</strong> · avg count ${s.avgCount}</span>
           </div>
           <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden;">
             <div style="height:100%;width:${pct}%;background:${barCol};border-radius:4px;transition:width .3s;"></div>
@@ -87,8 +87,8 @@ export async function renderResistancePatterns(el, data) {
         </div>
 
         <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:0.82rem;margin-bottom:12px;">
-          <span style="color:var(--text-dim);">Breach years: <strong>${p.totalBreachYears}</strong></span>
-          <span style="color:var(--text-dim);">Rate change: <strong style="color:${trendCol};">${rateArrow} percentage points</strong></span>
+          <span style="color:var(--text-dim);cursor:help;" title="Number of distinct calendar years in the selected period where this pest exceeded its threshold at least once on this field.">Breach years: <strong>${p.totalBreachYears}</strong></span>
+          <span style="color:var(--text-dim);cursor:help;" title="Difference in breach rate between the first and last year in the analysis. Positive means worsening; negative means improving. Intermediate years are not weighted — a spike in the middle followed by a drop will show as Improving if the last year is lower than the first.">Rate change: <strong style="color:${trendCol};">${rateArrow} percentage points</strong></span>
         </div>
 
         <div style="margin-bottom:12px;">

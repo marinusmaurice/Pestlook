@@ -3691,6 +3691,8 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             .Where(o => !o.IsUnknownPest && o.PestId != null
                      && o.ThresholdCount != null && o.ThresholdCount > 0
                      && o.Session.CompletedAt != null
+                     && o.Session.CompletedAt >= start
+                     && o.Session.CompletedAt < end
                      && o.Session.DeletedAt == null
                      && o.Session.FieldId != null);
 
@@ -3698,7 +3700,8 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
         if (fieldId.HasValue) obsQ = obsQ.Where(o => o.Session.FieldId == fieldId);
         if (pestId.HasValue)  obsQ = obsQ.Where(o => o.PestId == pestId);
 
-        // Pre-aggregate to SQL: per pest + field + year
+        // Pre-aggregate to SQL: per pest + field + local year
+        var rpTzOffset = (int)(await tzService.GetUserTimeZoneAsync(ct)).GetUtcOffset(DateTime.UtcNow).TotalMinutes;
         var yearlyAgg = await obsQ
             .GroupBy(o => new
             {
@@ -3707,7 +3710,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 FieldId   = o.Session.FieldId!.Value,
                 FieldName = o.Session.Field!.Name,
                 FarmName  = o.Session.Farm!.Name ?? o.Session.Field!.Farm!.Name,
-                Year      = o.Session.CompletedAt!.Value.Year,
+                Year      = o.Session.CompletedAt!.Value.AddMinutes(rpTzOffset).Year,
             })
             .Select(g => new
             {
