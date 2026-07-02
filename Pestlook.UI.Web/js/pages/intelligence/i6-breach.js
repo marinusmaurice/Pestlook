@@ -33,15 +33,15 @@ export async function renderBreachProbability(el, data) {
         <div style="font-size:1.8rem;font-weight:700;">${summary.total ?? 0}</div>
         <div style="font-size:0.78rem;color:var(--text-dim);">Combinations</div>
       </div>
-      <div class="card card-p has-kpi-tip" style="text-align:center;border-left:3px solid #c0392b;" data-kpi-tip="Combinations where the OLS projection shows a 60% or higher probability that the next session count will exceed the configured action threshold. Immediate monitoring is recommended.">
+      <div class="card card-p has-kpi-tip" style="text-align:center;" data-kpi-tip="Combinations where the OLS projection shows a 60% or higher probability that the next session count will exceed the configured action threshold. Immediate monitoring is recommended.">
         <div style="font-size:1.8rem;font-weight:700;color:#c0392b;">${summary.highRisk ?? 0}</div>
         <div style="font-size:0.78rem;color:var(--text-dim);">High Risk (&gt;60%)</div>
       </div>
-      <div class="card card-p has-kpi-tip" style="text-align:center;border-left:3px solid #e67e22;" data-kpi-tip="Combinations with a 30–59% breach probability — watch closely and plan a scouting visit within the coming week.">
+      <div class="card card-p has-kpi-tip" style="text-align:center;" data-kpi-tip="Combinations with a 30–59% breach probability — watch closely and plan a scouting visit within the coming week.">
         <div style="font-size:1.8rem;font-weight:700;color:#e67e22;">${summary.mediumRisk ?? 0}</div>
         <div style="font-size:0.78rem;color:var(--text-dim);">Medium Risk</div>
       </div>
-      <div class="card card-p has-kpi-tip" style="text-align:center;border-left:3px solid #27ae60;" data-kpi-tip="Combinations with less than 30% breach probability based on current population trends — continue routine monitoring.">
+      <div class="card card-p has-kpi-tip" style="text-align:center;" data-kpi-tip="Combinations with less than 30% breach probability based on current population trends — continue routine monitoring.">
         <div style="font-size:1.8rem;font-weight:700;color:#27ae60;">${summary.lowRisk ?? 0}</div>
         <div style="font-size:0.78rem;color:var(--text-dim);">Low Risk</div>
       </div>

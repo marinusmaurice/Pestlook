@@ -219,11 +219,12 @@ export async function renderIntelligence(container) {
   document.getElementById('int-field').addEventListener('change', e => { iFilters.fieldId = e.target.value; rerender(); });
   pestSel.addEventListener('change', e => { iFilters.pestId = e.target.value; rerender(); });
   document.getElementById('int-clear').addEventListener('click', () => {
-    iFilters.from    = fmt(sixMoAgo);
-    iFilters.to      = fmt(today);
-    iFilters.farmId  = '';
-    iFilters.fieldId = '';
-    iFilters.pestId  = '';
+    iFilters.from     = fmt(sixMoAgo);
+    iFilters.to       = fmt(today);
+    iFilters.farmId   = '';
+    iFilters.fieldId  = '';
+    iFilters.pestId   = '';
+    iFilters.minFarms = 2;
     document.getElementById('int-from').value = iFilters.from;
     document.getElementById('int-to').value   = iFilters.to;
     farmSel.value = '';
@@ -254,6 +255,13 @@ export async function renderIntelligence(container) {
     const activeId = container.querySelector('[data-itab].active')?.dataset?.itab ?? SECTIONS[0].id;
     const body     = document.getElementById('int-body');
     if (!body || !alive) return;
+
+    // Cross-farm tab is landscape-level — farm/field filters don't apply
+    const hideFarmField = activeId === 'crossfarm';
+    const farmEl  = document.getElementById('int-farm');
+    const fieldEl = document.getElementById('int-field');
+    if (farmEl)  farmEl.style.display  = hideFarmField ? 'none' : '';
+    if (fieldEl) fieldEl.style.display = hideFarmField ? 'none' : '';
 
     body.innerHTML = `<div class="card card-p"><div class="skeleton skeleton-card" style="height:320px;"></div></div>`;
 
@@ -286,14 +294,14 @@ export async function renderIntelligence(container) {
         }, { farms, fields });
 
       } else if (activeId === 'crossfarm') {
-        const res  = await getCrossFarmCorrelation({ ...iFilters }, iFilters.minFarms, signal);
+        const res  = await getCrossFarmCorrelation({ ...iFilters, farmId: '', fieldId: '' }, iFilters.minFarms, signal);
         if (!alive || signal.aborted) return;
         const data = res?.data ?? { outbreaks: [], summary: {} };
         body.innerHTML = '';
         await renderCrossFarmCorrelation(body, data, (newMin) => {
           iFilters.minFarms = newMin;
           showActiveTab();
-        });
+        }, iFilters.minFarms);
 
       } else if (activeId === 'velocity') {
         const res  = await getSpreadVelocity({ ...iFilters }, signal);

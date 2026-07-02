@@ -34,17 +34,62 @@ function sparkline(history) {
     const midY  = H / 2;
     const rectY = w.velocity >= 0 ? midY - h : midY;
     return `<rect x="${i * (W + gap)}" y="${rectY}" width="${W}" height="${h}"
-              fill="${colour}" rx="1"
-              title="${w.weekStart}: ${w.velocity > 0 ? '+' : ''}${w.velocity} fields (${w.activeFields} active)"/>`;
+              fill="${colour}" rx="1" style="cursor:default;"
+              data-week="${w.weekStart}"
+              data-velocity="${w.velocity}"
+              data-active="${w.activeFields}"
+              data-score="${w.velocityScore ?? ''}"/>`;
   });
 
   const totalW = history.length * (W + gap) - gap;
   const midY   = H / 2;
-  return `<svg width="${totalW}" height="${H}" style="vertical-align:middle;">
+  return `<svg width="${totalW}" height="${H}" style="vertical-align:middle;" class="spark-svg">
     <line x1="0" y1="${midY}" x2="${totalW}" y2="${midY}"
           stroke="var(--border)" stroke-width="1" stroke-dasharray="3 3"/>
     ${bars.join('')}
   </svg>`;
+}
+
+function initSparkTooltips(el) {
+  const tip = document.createElement('div');
+  tip.style.cssText = `
+    position:fixed;pointer-events:none;display:none;z-index:9999;
+    background:var(--surface);border:1px solid var(--border);border-radius:8px;
+    padding:8px 12px;font-size:0.75rem;line-height:1.7;
+    box-shadow:0 4px 16px rgba(0,0,0,0.15);min-width:160px;
+  `;
+  document.body.appendChild(tip);
+
+  el.addEventListener('mousemove', e => {
+    const rect = e.target.closest('rect[data-week]');
+    if (!rect) { tip.style.display = 'none'; return; }
+
+    const week     = rect.dataset.week;
+    const velocity = parseInt(rect.dataset.velocity, 10);
+    const active   = parseInt(rect.dataset.active, 10);
+    const score    = rect.dataset.score !== '' ? parseFloat(rect.dataset.score) : null;
+
+    const velColour = velocity > 0 ? '#c0392b' : velocity < 0 ? '#27ae60' : 'var(--text-dim)';
+    const velLabel  = velocity > 0 ? '▲ Spreading' : velocity < 0 ? '▼ Retreating' : '→ Stable';
+    const velStr    = velocity > 0 ? `+${velocity}` : `${velocity}`;
+
+    tip.innerHTML = `
+      <div style="font-weight:700;margin-bottom:4px;">Week of ${week}</div>
+      <div>Active fields: <strong>${active}</strong></div>
+      <div>Velocity: <strong style="color:${velColour};">${velStr} fields</strong></div>
+      <div style="color:${velColour};">${velLabel}</div>
+      ${score != null ? `<div style="color:var(--text-dim);font-size:0.7rem;margin-top:2px;">Score: ${score.toFixed(1)}</div>` : ''}
+    `;
+    tip.style.display = 'block';
+    tip.style.left = (e.clientX + 14) + 'px';
+    tip.style.top  = (e.clientY - 10) + 'px';
+  });
+
+  el.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+
+  // clean up tooltip when navigating away
+  const obs = new MutationObserver(() => { if (!document.body.contains(el)) { tip.remove(); obs.disconnect(); } });
+  obs.observe(document.body, { childList: true, subtree: true });
 }
 
 export async function renderSpreadVelocity(el, data) {
@@ -66,15 +111,15 @@ export async function renderSpreadVelocity(el, data) {
         <div style="font-size:1.8rem;font-weight:700;">${summary.totalPests ?? 0}</div>
         <div style="font-size:0.78rem;color:var(--text-dim);">Pests Tracked</div>
       </div>
-      <div class="card card-p has-kpi-tip" style="text-align:center;border-left:3px solid #c0392b;" data-kpi-tip="Pest species with a positive velocity this week — they are actively colonising new fields. These pests need the most urgent monitoring attention.">
+      <div class="card card-p has-kpi-tip" style="text-align:center;" data-kpi-tip="Pest species with a positive velocity this week — they are actively colonising new fields. These pests need the most urgent monitoring attention.">
         <div style="font-size:1.8rem;font-weight:700;color:#c0392b;">${summary.activelySpreading ?? 0}</div>
         <div style="font-size:0.78rem;color:var(--text-dim);">Spreading</div>
       </div>
-      <div class="card card-p has-kpi-tip" style="text-align:center;border-left:3px solid #27ae60;" data-kpi-tip="Pest species with a negative velocity this week — fewer fields reported them active compared to last week, indicating a retreating population. May reflect successful treatment or seasonal decline.">
+      <div class="card card-p has-kpi-tip" style="text-align:center;" data-kpi-tip="Pest species with a negative velocity this week — fewer fields reported them active compared to last week, indicating a retreating population. May reflect successful treatment or seasonal decline.">
         <div style="font-size:1.8rem;font-weight:700;color:#27ae60;">${summary.retreating ?? 0}</div>
         <div style="font-size:0.78rem;color:var(--text-dim);">Retreating</div>
       </div>
-      <div class="card card-p has-kpi-tip" style="text-align:center;border-left:3px solid #e67e22;" data-kpi-tip="Pest species with zero velocity this week — the number of active fields has not changed. Contained pests are stable but should continue to be monitored for any renewed spread.">
+      <div class="card card-p has-kpi-tip" style="text-align:center;" data-kpi-tip="Pest species with zero velocity this week — the number of active fields has not changed. Contained pests are stable but should continue to be monitored for any renewed spread.">
         <div style="font-size:1.8rem;font-weight:700;color:#e67e22;">${summary.contained ?? 0}</div>
         <div style="font-size:0.78rem;color:var(--text-dim);">Contained / Inactive</div>
       </div>
@@ -87,7 +132,7 @@ export async function renderSpreadVelocity(el, data) {
       <span style="color:#27ae60;">■ Negative</span> = retreating (fewer fields active this week).
     </div>
 
-    <div class="card card-p" style="overflow-x:auto;">
+    <div class="card card-p js-spark-table" style="overflow-x:auto;">
       <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
         <thead>
           <tr style="border-bottom:2px solid var(--border);text-align:left;">
@@ -124,4 +169,7 @@ export async function renderSpreadVelocity(el, data) {
       </table>
     </div>
   `;
+
+  const tableEl = el.querySelector('.js-spark-table');
+  if (tableEl) initSparkTooltips(tableEl);
 }

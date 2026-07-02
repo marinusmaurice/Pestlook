@@ -60,11 +60,11 @@ export async function renderWeatherRisk(el, data) {
         <div style="font-size:1.8rem;font-weight:700;">${summary.totalPests ?? 0}</div>
         <div style="font-size:0.78rem;color:var(--text-dim);">Pests Analysed</div>
       </div>
-      <div class="card card-p has-kpi-tip" style="text-align:center;border-left:3px solid #c0392b;" data-kpi-tip="Pest species where the projected count at the current average temperature equals or exceeds the configured action threshold — current conditions are conducive to a population breach.">
+      <div class="card card-p has-kpi-tip" style="text-align:center;" data-kpi-tip="Pest species where the projected count at the current average temperature equals or exceeds the configured action threshold — current conditions are conducive to a population breach.">
         <div style="font-size:1.8rem;font-weight:700;color:#c0392b;">${summary.highRisk ?? 0}</div>
         <div style="font-size:0.78rem;color:var(--text-dim);">High Risk</div>
       </div>
-      <div class="card card-p has-kpi-tip" style="text-align:center;border-left:3px solid var(--accent);" data-kpi-tip="The average temperature from the 10 most recent scouting sessions, used as the 'current conditions' input for projecting pest counts via the regression model.">
+      <div class="card card-p has-kpi-tip" style="text-align:center;" data-kpi-tip="The average temperature from the 10 most recent scouting sessions, used as the 'current conditions' input for projecting pest counts via the regression model.">
         <div style="font-size:1.8rem;font-weight:700;">${avgT}${deg}</div>
         <div style="font-size:0.78rem;color:var(--text-dim);">Current Avg Temp</div>
       </div>

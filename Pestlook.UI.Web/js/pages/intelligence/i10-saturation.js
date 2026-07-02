@@ -29,15 +29,15 @@ export async function renderTrapSaturation(el, data) {
         <div style="font-size:1.8rem;font-weight:700;">${summary.totalTraps ?? 0}</div>
         <div style="font-size:0.78rem;color:var(--text-dim);">Traps Monitored</div>
       </div>
-      <div class="card card-p" style="text-align:center;border-left:3px solid #8e44ad;">
+      <div class="card card-p" style="text-align:center;">
         <div style="font-size:1.8rem;font-weight:700;color:#8e44ad;">${summary.critical ?? 0}</div>
         <div style="font-size:0.78rem;color:var(--text-dim);">Critical (≤4 wks)</div>
       </div>
-      <div class="card card-p" style="text-align:center;border-left:3px solid #c0392b;">
+      <div class="card card-p" style="text-align:center;">
         <div style="font-size:1.8rem;font-weight:700;color:#c0392b;">${summary.high ?? 0}</div>
         <div style="font-size:0.78rem;color:var(--text-dim);">High (5–12 wks)</div>
       </div>
-      <div class="card card-p" style="text-align:center;border-left:3px solid var(--accent);">
+      <div class="card card-p" style="text-align:center;">
         <div style="font-size:1.8rem;font-weight:700;">${summary.avgCatchRate ?? 0}</div>
         <div style="font-size:0.78rem;color:var(--text-dim);">Avg Catch / Week</div>
       </div>

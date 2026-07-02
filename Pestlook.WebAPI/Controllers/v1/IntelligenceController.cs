@@ -116,6 +116,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 o.PestId,
                 PestName      = o.Pest!.CommonName,
                 o.ThresholdCount,
+                PestThreshold = o.Pest!.ThresholdCount,
                 o.Count,
                 Lat           = o.Latitude!.Value,
                 Lng           = o.Longitude!.Value,
@@ -151,6 +152,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 o.PestId,
                 PestName      = o.Pest!.CommonName,
                 o.ThresholdCount,
+                PestThreshold = o.Pest!.ThresholdCount,
                 o.Count,
                 FarmLat  = o.Session.Farm != null ? (double?)o.Session.Farm.Latitude : null,
                 FarmLng  = o.Session.Farm != null ? (double?)o.Session.Farm.Longitude : null,
@@ -167,7 +169,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
         // Merge — use farm centroid with a small jitter per field so fields on same farm don't overlap
         var merged = obs.Select(o => new RawObs(
             o.PestId!.Value, o.PestName,
-            o.ThresholdCount, o.Count,
+            o.ThresholdCount, o.PestThreshold, o.Count,
             o.Lat, o.Lng,
             o.CompletedAt, o.FieldId, o.FieldName, o.FarmName))
             .Concat(noGpsObs
@@ -180,7 +182,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                     var jLng  = (((hash >> 16) & 0xFFFF) / 32767.0 - 1.0) * 0.006;
                     return new RawObs(
                         o.PestId!.Value, o.PestName,
-                        o.ThresholdCount, o.Count,
+                        o.ThresholdCount, o.PestThreshold, o.Count,
                         o.FarmLat!.Value + jLat, o.FarmLng!.Value + jLng,
                         o.CompletedAt, o.FieldId, o.FieldName, o.FarmName);
                 }))
@@ -241,7 +243,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                             {
                                 var f     = fg.First();
                                 var total = fg.Sum(o => o.Count ?? 0);
-                                var thr   = fg.OrderByDescending(o => o.CompletedAt).First().ThresholdCount;
+                                var thr   = fg.First().PestThreshold;
                                 return new
                                 {
                                     fieldId          = f.FieldId,
@@ -417,13 +419,14 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             .Select(o => new
             {
                 o.PestId,
-                PestName    = o.Pest!.CommonName,
-                FieldId     = o.Session.FieldId!.Value,
-                FieldName   = o.Session.Field != null ? o.Session.Field.Name : "(unknown)",
-                FarmName    = o.Session.Farm  != null ? o.Session.Farm.Name
-                            : o.Session.Field != null && o.Session.Field.Farm != null
-                                ? o.Session.Field.Farm.Name : null,
+                PestName      = o.Pest!.CommonName,
+                FieldId       = o.Session.FieldId!.Value,
+                FieldName     = o.Session.Field != null ? o.Session.Field.Name : "(unknown)",
+                FarmName      = o.Session.Farm  != null ? o.Session.Farm.Name
+                              : o.Session.Field != null && o.Session.Field.Farm != null
+                                  ? o.Session.Field.Farm.Name : null,
                 o.ThresholdCount,
+                PestThreshold = o.Pest!.ThresholdCount,
                 o.Count,
                 // GPS: prefer observation-level coords, fall back to farm centroid
                 ObsLat      = o.Latitude,
@@ -453,7 +456,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                     {
                         var ordered      = fg.OrderBy(o => o.CompletedAt).ToList();
                         var first        = ordered[0];
-                        var threshold    = ordered[^1].ThresholdCount;
+                        var threshold    = fg.First().PestThreshold;
                         var firstWeekEnd = first.CompletedAt.AddDays(7);
                         var firstCount   = fg.Where(o => o.CompletedAt <= firstWeekEnd)
                                              .Sum(o => o.Count ?? 0);
@@ -580,13 +583,14 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             .Select(o => new
             {
                 o.PestId,
-                PestName    = o.Pest!.CommonName,
-                FieldId     = o.Session.FieldId!.Value,
-                FieldName   = o.Session.Field != null ? o.Session.Field.Name : "(unknown)",
-                FarmName    = o.Session.Farm  != null ? o.Session.Farm.Name
-                            : o.Session.Field != null && o.Session.Field.Farm != null
-                                ? o.Session.Field.Farm.Name : null,
+                PestName      = o.Pest!.CommonName,
+                FieldId       = o.Session.FieldId!.Value,
+                FieldName     = o.Session.Field != null ? o.Session.Field.Name : "(unknown)",
+                FarmName      = o.Session.Farm  != null ? o.Session.Farm.Name
+                              : o.Session.Field != null && o.Session.Field.Farm != null
+                                  ? o.Session.Field.Farm.Name : null,
                 o.ThresholdCount,
+                PestThreshold = o.Pest!.ThresholdCount,
                 o.Count,
                 CompletedAt = o.Session.CompletedAt!.Value,
             })
@@ -602,7 +606,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             .Select(grp =>
             {
                 var first     = grp.First();
-                var threshold = grp.OrderByDescending(o => o.CompletedAt).First().ThresholdCount;
+                var threshold = grp.First().PestThreshold;
 
                 // Individual observations ordered chronologically
                 var pts = grp
@@ -1142,7 +1146,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
         // Build a contiguous week series across the full window
         var allWeeks = new List<DateTime>();
         var cursor   = SvMonday(windowStart);
-        while (cursor <= SvMonday(windowEnd).AddDays(7)) { allWeeks.Add(cursor); cursor = cursor.AddDays(7); }
+        while (cursor <= SvMonday(windowEnd)) { allWeeks.Add(cursor); cursor = cursor.AddDays(7); }
 
         var pests = obs
             .GroupBy(o => (o.PestId, o.PestName))
@@ -1258,12 +1262,13 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             .Select(o => new
             {
                 o.PestId,
-                PestName    = o.Pest!.CommonName,
-                FieldId     = o.Session.FieldId!.Value,
-                FieldName   = o.Session.Field != null ? o.Session.Field.Name : "(unknown)",
-                FarmName    = o.Session.Farm  != null ? o.Session.Farm.Name
-                            : o.Session.Field != null && o.Session.Field.Farm != null ? o.Session.Field.Farm.Name : null,
+                PestName      = o.Pest!.CommonName,
+                FieldId       = o.Session.FieldId!.Value,
+                FieldName     = o.Session.Field != null ? o.Session.Field.Name : "(unknown)",
+                FarmName      = o.Session.Farm  != null ? o.Session.Farm.Name
+                              : o.Session.Field != null && o.Session.Field.Farm != null ? o.Session.Field.Farm.Name : null,
                 o.ThresholdCount,
+                PestThreshold = o.Pest!.ThresholdCount,
                 o.Count,
                 CompletedAt = o.Session.CompletedAt!.Value,
             })
@@ -1279,7 +1284,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             .Select(grp =>
             {
                 var first     = grp.First();
-                var threshold = grp.OrderByDescending(o => o.CompletedAt).First().ThresholdCount ?? 0;
+                var threshold = grp.First().PestThreshold ?? 0;
 
                 // Individual observations ordered chronologically — no weekly summing
                 var pts = grp
@@ -1656,11 +1661,12 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             .Select(o => new
             {
                 o.PestId,
-                PestName    = o.Pest!.CommonName,
+                PestName      = o.Pest!.CommonName,
                 o.Count,
                 o.ThresholdCount,
-                Temp        = o.Session.TemperatureCelsius!.Value,
-                CompletedAt = o.Session.CompletedAt!.Value,
+                PestThreshold = o.Pest!.ThresholdCount,
+                Temp          = o.Session.TemperatureCelsius!.Value,
+                CompletedAt   = o.Session.CompletedAt!.Value,
             })
             .ToListAsync(ct);
 
@@ -1698,7 +1704,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
 
                 // Projected count at current temperature
                 double projected = Math.Max(0, intercept + slope * recentTempAvg);
-                int    threshold = pg.OrderByDescending(o => o.CompletedAt).First().ThresholdCount ?? 0;
+                int    threshold = pg.First().PestThreshold ?? 0;
 
                 double riskRaw = threshold > 0 ? projected / threshold : projected / Math.Max(yMean, 1);
                 string riskLevel = riskRaw >= 0.8 ? "High" : riskRaw >= 0.4 ? "Medium" : "Low";
@@ -1906,12 +1912,13 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             .Select(o => new
             {
                 o.PestId,
-                PestName    = o.Pest!.CommonName,
-                FieldId     = o.Session.FieldId!.Value,
-                FieldName   = o.Session.Field != null ? o.Session.Field.Name : "(unknown)",
-                FarmName    = o.Session.Farm  != null ? o.Session.Farm.Name
-                            : o.Session.Field != null && o.Session.Field.Farm != null ? o.Session.Field.Farm.Name : null,
+                PestName      = o.Pest!.CommonName,
+                FieldId       = o.Session.FieldId!.Value,
+                FieldName     = o.Session.Field != null ? o.Session.Field.Name : "(unknown)",
+                FarmName      = o.Session.Farm  != null ? o.Session.Farm.Name
+                              : o.Session.Field != null && o.Session.Field.Farm != null ? o.Session.Field.Farm.Name : null,
                 o.ThresholdCount,
+                PestThreshold = o.Pest!.ThresholdCount,
                 o.Count,
                 CompletedAt = o.Session.CompletedAt!.Value,
             })
@@ -1925,7 +1932,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             .Select(grp =>
             {
                 var first     = grp.First();
-                var threshold = grp.OrderByDescending(o => o.CompletedAt).First().ThresholdCount ?? 0;
+                var threshold = grp.First().PestThreshold ?? 0;
                 if (threshold == 0) return null;
 
                 // Use weekly AVERAGE count per observation — same unit as the per-observation threshold.
@@ -2255,12 +2262,13 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             .Select(o => new
             {
                 o.PestId,
-                PestName    = o.Pest!.CommonName,
-                FieldId     = o.Session.FieldId!.Value,
-                FieldName   = o.Session.Field != null ? o.Session.Field.Name : "(unknown)",
-                FarmName    = o.Session.Farm  != null ? o.Session.Farm.Name
-                            : o.Session.Field != null && o.Session.Field.Farm != null ? o.Session.Field.Farm.Name : null,
+                PestName      = o.Pest!.CommonName,
+                FieldId       = o.Session.FieldId!.Value,
+                FieldName     = o.Session.Field != null ? o.Session.Field.Name : "(unknown)",
+                FarmName      = o.Session.Farm  != null ? o.Session.Farm.Name
+                              : o.Session.Field != null && o.Session.Field.Farm != null ? o.Session.Field.Farm.Name : null,
                 o.ThresholdCount,
+                PestThreshold = o.Pest!.ThresholdCount,
                 o.Count,
                 CompletedAt = o.Session.CompletedAt!.Value,
             })
@@ -2281,7 +2289,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             .Select(grp =>
             {
                 var first     = grp.First();
-                var threshold = grp.OrderByDescending(o => o.CompletedAt).First().ThresholdCount ?? 0;
+                var threshold = grp.First().PestThreshold ?? 0;
 
                 // All sessions with obs for this pest+field, ordered chronologically
                 // (one "session day" = the user's local calendar day)
@@ -2409,15 +2417,16 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             .Select(o => new
             {
                 o.PestId,
-                PestName    = o.Pest!.CommonName,
-                FieldId     = o.Session.FieldId!.Value,
-                FieldName   = o.Session.Field != null ? o.Session.Field.Name : "(unknown)",
-                FarmName    = o.Session.Farm  != null ? o.Session.Farm.Name
-                            : o.Session.Field != null && o.Session.Field.Farm != null ? o.Session.Field.Farm.Name : null,
-                ScoutName   = o.Session.Scouter != null
-                                ? (o.Session.Scouter.FirstName + " " + o.Session.Scouter.LastName).Trim()
-                                : null,
+                PestName      = o.Pest!.CommonName,
+                FieldId       = o.Session.FieldId!.Value,
+                FieldName     = o.Session.Field != null ? o.Session.Field.Name : "(unknown)",
+                FarmName      = o.Session.Farm  != null ? o.Session.Farm.Name
+                              : o.Session.Field != null && o.Session.Field.Farm != null ? o.Session.Field.Farm.Name : null,
+                ScoutName     = o.Session.Scouter != null
+                                  ? (o.Session.Scouter.FirstName + " " + o.Session.Scouter.LastName).Trim()
+                                  : null,
                 o.ThresholdCount,
+                PestThreshold = o.Pest!.ThresholdCount,
                 o.Count,
                 BreachDate  = o.Session.CompletedAt!.Value,
             })
@@ -2442,7 +2451,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 var first         = grp.First();
                 var latestBreach  = grp.Max(b => b.BreachDate);
                 var maxCount      = grp.Max(b => b.Count ?? 0);
-                var threshold     = grp.OrderByDescending(b => b.BreachDate).First().ThresholdCount ?? 0;
+                var threshold     = grp.First().PestThreshold ?? 0;
 
                 bool isSevere        = maxCount >= threshold * 2;
                 int  responseWindowH = isSevere ? 48 : 168; // 48h or 7 days
@@ -4062,6 +4071,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
         Guid        PestId,
         string      PestName,
         int?        ThresholdCount,
+        int?        PestThreshold,
         int?        Count,
         double      Lat,
         double      Lng,
