@@ -54,6 +54,19 @@ public sealed class EmailService(
         logger.LogInformation("Feedback email sent to {Admin} from {Email}", _opts.AdminAddress, userEmail);
     }
 
+    public async Task SendAdminAlertAsync(string subject, string htmlBody, CancellationToken ct = default)
+    {
+        var msg = new EmailMessage
+        {
+            From = $"{_opts.FromName} <{_opts.FromAddress}>",
+            To = { _opts.AdminAddress },
+            Subject = subject,
+            HtmlBody = htmlBody
+        };
+        await resend.EmailSendAsync(msg, ct);
+        logger.LogInformation("Admin alert sent: {Subject}", subject);
+    }
+
     private static string BuildFeedbackHtml(string userEmail, string userName, string category, string subject, string message) => $"""
         <!DOCTYPE html>
         <html lang="en">
