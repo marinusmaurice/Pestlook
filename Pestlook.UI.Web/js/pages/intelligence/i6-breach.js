@@ -26,7 +26,7 @@ export async function renderBreachProbability(el, data) {
   el.innerHTML = `
     <div style="font-size:0.75rem;color:var(--text-dim);line-height:1.6;margin-bottom:16px;">
       Uses OLS regression on individual scouting counts to project each pest × field combination <strong>7 days forward</strong>, then calculates the probability that projection exceeds the action threshold (z-score against residual error).
-      <strong>Current</strong> = last recorded count · <strong>Projected</strong> = model estimate in 7 days · <strong>Trend</strong> = population direction · Risk: <strong style="color:#c0392b;">High ≥ 60%</strong> act now · <strong style="color:#e67e22;">Medium 30–59%</strong> monitor closely · <strong style="color:#27ae60;">Low &lt; 30%</strong> routine scouting.
+      <strong>Current</strong> = last recorded count · <strong>Threshold</strong> = threshold captured on the most recent observation (not necessarily the current Pest Catalogue value) · <strong>Projected</strong> = model estimate in 7 days · <strong>Trend</strong> = population direction · Risk: <strong style="color:#c0392b;">High ≥ 60%</strong> act now · <strong style="color:#e67e22;">Medium 30–59%</strong> monitor closely · <strong style="color:#27ae60;">Low &lt; 30%</strong> routine scouting.
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;">
       <div class="card card-p has-kpi-tip" style="text-align:center;" data-kpi-tip="Total number of pest × field combinations evaluated for breach probability in the selected period.">
@@ -55,7 +55,7 @@ export async function renderBreachProbability(el, data) {
             <th style="padding:8px 10px;color:var(--text-dim);">Field</th>
             <th style="padding:8px 10px;color:var(--text-dim);">Farm</th>
             <th style="padding:8px 10px;color:var(--text-dim);text-align:right;">Current</th>
-            <th style="padding:8px 10px;color:var(--text-dim);text-align:right;">Threshold</th>
+            <th style="padding:8px 10px;color:var(--text-dim);text-align:right;">Threshold (at last obs.)</th>
             <th style="padding:8px 10px;color:var(--text-dim);text-align:right;">Projected</th>
             <th style="padding:8px 10px;color:var(--text-dim);text-align:right;">Breach Prob.</th>
             <th style="padding:8px 10px;color:var(--text-dim);">Trend</th>

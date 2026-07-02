@@ -280,7 +280,7 @@ export async function renderForecast(el, data) {
       <span>🟦 Observed count</span>
       <span style="color:${C.dim};">— Fitted trend</span>
       <span style="color:${C.amber};">- - Forecast</span>
-      ${f.threshold ? `<span style="color:${C.red};">— Threshold (${f.threshold})</span>` : ''}
+      ${f.history.some(h => h.threshold != null) ? `<span style="color:${C.red};">— Threshold (per observation)</span>` : ''}
     `;
 
     // Stat chips
@@ -319,7 +319,14 @@ export async function renderForecast(el, data) {
     const upperBand   = [...Array(histLen).fill(null), ...f.forecast.map(p => p.upper)];
     const lowerBand   = [...Array(histLen).fill(null), ...f.forecast.map(p => p.lower)];
     const fcLine      = [...Array(histLen).fill(null), ...f.forecast.map(p => p.projectedCount)];
-    const threshLine  = f.threshold ? allLabels.map(() => f.threshold) : null;
+
+    // Per-observation threshold — each point shows the threshold that was in effect
+    // for that specific observation. Forecast portion extends the last known value.
+    const histThresh  = f.history.map(h => h.threshold ?? null);
+    const lastThresh  = histThresh.filter(t => t != null).at(-1) ?? null;
+    const threshLine  = histThresh.some(t => t != null)
+      ? [...histThresh, ...f.forecast.map(() => lastThresh)]
+      : null;
 
     // Custom plugin: vertical split line between history and forecast
     const splitPlugin = {

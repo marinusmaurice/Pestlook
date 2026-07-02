@@ -241,7 +241,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                             {
                                 var f     = fg.First();
                                 var total = fg.Sum(o => o.Count ?? 0);
-                                var thr   = fg.Max(o => o.ThresholdCount);
+                                var thr   = fg.OrderByDescending(o => o.CompletedAt).First().ThresholdCount;
                                 return new
                                 {
                                     fieldId          = f.FieldId,
@@ -453,7 +453,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                     {
                         var ordered      = fg.OrderBy(o => o.CompletedAt).ToList();
                         var first        = ordered[0];
-                        var threshold    = fg.Max(o => o.ThresholdCount);
+                        var threshold    = ordered[^1].ThresholdCount;
                         var firstWeekEnd = first.CompletedAt.AddDays(7);
                         var firstCount   = fg.Where(o => o.CompletedAt <= firstWeekEnd)
                                              .Sum(o => o.Count ?? 0);
@@ -602,12 +602,12 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             .Select(grp =>
             {
                 var first     = grp.First();
-                var threshold = grp.Max(o => o.ThresholdCount);
+                var threshold = grp.OrderByDescending(o => o.CompletedAt).First().ThresholdCount;
 
                 // Individual observations ordered chronologically
                 var pts = grp
                     .OrderBy(o => o.CompletedAt)
-                    .Select(o => (Date: o.CompletedAt, Count: (double)(o.Count ?? 0)))
+                    .Select(o => (Date: o.CompletedAt, Count: (double)(o.Count ?? 0), Threshold: o.ThresholdCount))
                     .ToList();
 
                 if (pts.Count == 0) return null;
@@ -632,6 +632,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                     observedAt  = TimeZoneInfo.ConvertTimeFromUtc(p.Date, fcTz).ToString("yyyy-MM-dd"),
                     count       = (int)p.Count,
                     fittedCount = (int)Math.Max(0, Math.Round(intercept + slope * xs[i])),
+                    threshold   = p.Threshold,
                 }).ToList();
 
                 // Forecast: weekly steps from last observation
@@ -1278,7 +1279,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             .Select(grp =>
             {
                 var first     = grp.First();
-                var threshold = grp.Max(o => o.ThresholdCount) ?? 0;
+                var threshold = grp.OrderByDescending(o => o.CompletedAt).First().ThresholdCount ?? 0;
 
                 // Individual observations ordered chronologically — no weekly summing
                 var pts = grp
@@ -1697,7 +1698,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
 
                 // Projected count at current temperature
                 double projected = Math.Max(0, intercept + slope * recentTempAvg);
-                int    threshold = pg.Max(o => o.ThresholdCount) ?? 0;
+                int    threshold = pg.OrderByDescending(o => o.CompletedAt).First().ThresholdCount ?? 0;
 
                 double riskRaw = threshold > 0 ? projected / threshold : projected / Math.Max(yMean, 1);
                 string riskLevel = riskRaw >= 0.8 ? "High" : riskRaw >= 0.4 ? "Medium" : "Low";
@@ -1924,7 +1925,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             .Select(grp =>
             {
                 var first     = grp.First();
-                var threshold = grp.Max(o => o.ThresholdCount) ?? 0;
+                var threshold = grp.OrderByDescending(o => o.CompletedAt).First().ThresholdCount ?? 0;
                 if (threshold == 0) return null;
 
                 // Use weekly AVERAGE count per observation — same unit as the per-observation threshold.
@@ -2280,14 +2281,15 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             .Select(grp =>
             {
                 var first     = grp.First();
-                var threshold = grp.Max(o => o.ThresholdCount) ?? 0;
+                var threshold = grp.OrderByDescending(o => o.CompletedAt).First().ThresholdCount ?? 0;
 
                 // All sessions with obs for this pest+field, ordered chronologically
                 // (one "session day" = the user's local calendar day)
                 var bySession = grp
                     .GroupBy(o => ToLocalDate(o.CompletedAt, tz))
                     .OrderBy(g => g.Key)
-                    .Select(sg => (Date: sg.Key, Total: sg.Sum(o => o.Count ?? 0), IsAbove: sg.Any(o => (o.Count ?? 0) > threshold)))
+                    .Select(sg => (Date: sg.Key, Total: sg.Sum(o => o.Count ?? 0),
+                        IsAbove: sg.Any(o => o.ThresholdCount.HasValue && (o.Count ?? 0) > o.ThresholdCount.Value)))
                     .ToList();
 
                 // Find the first breach point within the queried range
@@ -2440,7 +2442,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 var first         = grp.First();
                 var latestBreach  = grp.Max(b => b.BreachDate);
                 var maxCount      = grp.Max(b => b.Count ?? 0);
-                var threshold     = grp.Max(b => b.ThresholdCount) ?? 0;
+                var threshold     = grp.OrderByDescending(b => b.BreachDate).First().ThresholdCount ?? 0;
 
                 bool isSevere        = maxCount >= threshold * 2;
                 int  responseWindowH = isSevere ? 48 : 168; // 48h or 7 days

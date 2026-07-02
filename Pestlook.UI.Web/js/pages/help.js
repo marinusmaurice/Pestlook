@@ -1397,7 +1397,7 @@ const GROUPS = [
         id:    'intel-forecast',
         icon:  '📈',
         title: 'Population Forecast',
-        intro: 'Uses a linear regression model fitted to individual observation counts — never aggregated or summed — to project where pest populations are heading for each pest × field combination. Each bar on the chart is one recorded observation, plotted directly against the action threshold so the comparison is always apples-to-apples.',
+        intro: 'Uses a linear regression model fitted to individual observation counts — never aggregated or summed — to project where pest populations are heading for each pest × field combination. Each bar on the chart is one recorded observation, compared against the threshold that was configured at the time that observation was recorded.',
         items: [
           {
             heading: 'KPI Cards',
@@ -1425,7 +1425,7 @@ const GROUPS = [
           },
           {
             heading: 'Detail chart — blue bars',
-            body: 'Each blue bar is a single recorded observation — the raw count exactly as the scout entered it. Observations are never summed or grouped, so the threshold line is directly comparable to each bar. Multiple observations on the same date each get their own bar.',
+            body: 'Each blue bar is a single recorded observation — the raw count exactly as the scout entered it. Observations are never summed or grouped. Each bar is compared against its own threshold value (the threshold that was set at the time of that observation), so you always see an accurate picture even when thresholds have been adjusted over time. Multiple observations on the same date each get their own bar.',
           },
           {
             heading: 'Detail chart — grey trend line',
@@ -1441,7 +1441,7 @@ const GROUPS = [
           },
           {
             heading: 'Detail chart — red dashed threshold line',
-            body: 'The horizontal red dashed line marks the configured action threshold for this pest. When the confidence band crosses above this line, a threshold breach is considered likely. If no threshold is set for this pest, the line does not appear.',
+            body: 'The red dashed line shows the action threshold for each observation at the time it was recorded. Because the threshold can be adjusted in the Pest Catalogue over time, each observation is compared against the threshold that was in effect when it was made — the line steps up or down as the threshold changed. In the forecast period, the line holds at the most recent observation\'s threshold. If no threshold has ever been set for this pest, the line does not appear.',
           },
           {
             heading: 'Detail chart — vertical divider',
@@ -1478,6 +1478,10 @@ const GROUPS = [
           {
             heading: 'Current column',
             body: 'The pest count from the most recent scouting session for that pest on that field — a single observation count, not a cumulative or weekly total. This is the last real measurement; everything to the right is model-derived.',
+          },
+          {
+            heading: 'Threshold column',
+            body: 'The threshold value captured on the most recent observation for this pest × field combination — a snapshot taken at the time the observation was recorded. This may differ from the current value in the Pest Catalogue if the threshold was changed after that observation. A new observation will pick up the updated value.',
           },
           {
             heading: 'Projected column',
