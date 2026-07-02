@@ -12,7 +12,6 @@ public sealed class Pest : IHasTenant, IAuditableByUser
     public PestCategory Category { get; set; }
     public CaptureMode DefaultCaptureMode { get; set; } = CaptureMode.Count;
     public string? Description { get; set; }
-    public string? ImageUrl { get; set; }
     public bool IsSystemPest { get; set; }
     /// <summary>Economic action threshold — e.g., >5 count triggers an alert.</summary>
     public int? ThresholdCount { get; set; }

@@ -8,8 +8,7 @@ public sealed record CreatePestRequest(
     PestCategory Category,
     CaptureMode DefaultCaptureMode,
     int? ThresholdCount,
-    string? Description,
-    string? ImageUrl);
+    string? Description);
 
 public sealed record UpdatePestRequest(
     string CommonName,
@@ -17,8 +16,9 @@ public sealed record UpdatePestRequest(
     PestCategory Category,
     CaptureMode DefaultCaptureMode,
     int? ThresholdCount,
-    string? Description,
-    string? ImageUrl);
+    string? Description);
+
+public sealed record UpdateSystemPestThresholdRequest(int? ThresholdCount);
 
 public sealed record PestResponse(
     Guid Id,
@@ -29,9 +29,8 @@ public sealed record PestResponse(
     CaptureMode DefaultCaptureMode,
     int? ThresholdCount,
     string? Description,
-    string? ImageUrl,
     bool IsSystemPest,
     DateTime CreatedAt)
 {
-    public PestResponse() : this(default, default, string.Empty, default, default, default, default, default, default, default, default) { }
+    public PestResponse() : this(default, default, string.Empty, default, default, default, default, default, default, default) { }
 }

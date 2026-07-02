@@ -1,4 +1,4 @@
-import { getPests, createPest, updatePest, deletePest } from '../api/pests.js';
+import { getPests, createPest, updatePest, deletePest, patchPestThreshold } from '../api/pests.js';
 import { openModal, closeModal } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
 import { tag } from '../components/tag.js';
@@ -10,10 +10,15 @@ const categoryColors = {
   2: 'green',  // Weed
   3: 'blue',   // Rodent
   4: 'gray',   // Other
+  5: 'blue',   // Bird
+  6: 'amber',  // Mammal
+  7: 'gray',   // Mollusc
+  8: 'green',  // Nematode
 };
 
 const categoryEmojis = {
   0: '🦟', 1: '🦠', 2: '🌿', 3: '🐀', 4: '❓',
+  5: '🐦', 6: '🐒', 7: '🐌', 8: '🪱',
 };
 
 const captureModeColors = { 0: 'amber', 1: 'blue' };
@@ -35,7 +40,6 @@ let _container  = null;
 export async function renderPests(container) {
   _container = container;
 
-  // Reset state on every visit so filters don't persist across navigation
   state.search   = '';
   state.category = '';
   state.sortBy   = 'name';
@@ -119,7 +123,6 @@ function renderTable() {
   const countEl = document.getElementById('pestCount');
   if (!tableEl) return;
 
-  // Filter
   let pests = _allPests.filter(p => {
     if (state.category !== '') {
       const catVal = typeof p.category === 'string' ? (PestCategoryValues[p.category] ?? p.category) : p.category;
@@ -133,7 +136,6 @@ function renderTable() {
     return true;
   });
 
-  // Sort
   pests = pests.slice().sort((a, b) => {
     let av, bv;
     if (state.sortBy === 'name')       { av = (a.commonName || '').toLowerCase(); bv = (b.commonName || '').toLowerCase(); }
@@ -164,15 +166,23 @@ function renderTable() {
     const capName  = CaptureMode[capVal]  || p.defaultCaptureMode || 'Count';
     const capColor = captureModeColors[capVal] || 'gray';
     const isSystem = p.isSystemPest;
+    const isCount  = capVal === CaptureModeValues.Count;
 
-    const threshold = p.thresholdCount != null && capVal !== CaptureModeValues.Presence
+    const threshold = p.thresholdCount != null && isCount
       ? p.thresholdCount
       : '<span style="color:var(--text-dim);">—</span>';
 
-    const actions = !isSystem ? `
-      <button class="btn-outline" style="padding:4px 10px;font-size:0.75rem;" data-edit-pest="${p.id}">Edit</button>
-      <button class="btn-outline" style="padding:4px 10px;font-size:0.75rem;color:var(--red);border-color:var(--red);" data-delete-pest="${p.id}">Delete</button>
-    ` : '';
+    let actions = '';
+    if (!isSystem) {
+      actions = `
+        <button class="btn-outline" style="padding:4px 10px;font-size:0.75rem;" data-edit-pest="${p.id}">Edit</button>
+        <button class="btn-outline" style="padding:4px 10px;font-size:0.75rem;color:var(--red);border-color:var(--red);" data-delete-pest="${p.id}">Delete</button>
+      `;
+    } else if (isCount) {
+      actions = `
+        <button class="btn-outline" style="padding:4px 10px;font-size:0.75rem;" data-threshold-pest="${p.id}" title="Adjust action threshold">Set Threshold</button>
+      `;
+    }
 
     rows += `
       <tr>
@@ -209,7 +219,6 @@ function renderTable() {
 
   if (countEl) countEl.textContent = `${pests.length} of ${_allPests.length} species`;
 
-  // Sort click handlers
   tableEl.querySelectorAll('th[data-sort]').forEach(th => {
     th.addEventListener('click', () => {
       const key = th.dataset.sort;
@@ -219,10 +228,14 @@ function renderTable() {
     });
   });
 
-  // Action handlers
   tableEl.querySelectorAll('[data-edit-pest]').forEach(btn => {
     const pest = pests.find(p => String(p.id) === btn.dataset.editPest);
     if (pest) btn.addEventListener('click', e => { e.stopPropagation(); openEditPestModal(pest); });
+  });
+
+  tableEl.querySelectorAll('[data-threshold-pest]').forEach(btn => {
+    const pest = pests.find(p => String(p.id) === btn.dataset.thresholdPest);
+    if (pest) btn.addEventListener('click', e => { e.stopPropagation(); openSetThresholdModal(pest); });
   });
 
   tableEl.querySelectorAll('[data-delete-pest]').forEach(btn => {
@@ -239,6 +252,8 @@ function renderTable() {
     });
   });
 }
+
+// ── Create modal ──────────────────────────────────────────────────────────────
 
 function openCreatePestModal() {
   const categoryOptions = Object.entries(PestCategoryValues)
@@ -284,10 +299,6 @@ function openCreatePestModal() {
           <div class="input-label">Description</div>
           <textarea class="input-field" id="pest-desc" rows="2" placeholder="Brief description…" style="resize:none;"></textarea>
         </div>
-        <div>
-          <div class="input-label">Image URL</div>
-          <input class="input-field" id="pest-image" placeholder="https://..." type="url">
-        </div>
         <div style="display:flex;gap:10px;margin-top:6px;">
           <button class="btn-outline" id="pest-cancel" style="flex:1;">Cancel</button>
           <button class="btn-primary" id="pest-submit" style="flex:2;justify-content:center;">🦗 Add Pest</button>
@@ -298,7 +309,7 @@ function openCreatePestModal() {
 
   body.querySelector('#pest-cancel').addEventListener('click', closeModal);
 
-  const captureEl = body.querySelector('#pest-capture');
+  const captureEl   = body.querySelector('#pest-capture');
   const thresholdEl = body.querySelector('#pest-threshold');
   function syncThreshold() {
     const isCount = parseInt(captureEl.value) === CaptureModeValues.Count;
@@ -320,12 +331,11 @@ function openCreatePestModal() {
     try {
       await createPest({
         commonName,
-        scientificName: body.querySelector('#pest-scientific').value.trim() || null,
-        category: parseInt(body.querySelector('#pest-category').value),
+        scientificName:     body.querySelector('#pest-scientific').value.trim() || null,
+        category:           parseInt(body.querySelector('#pest-category').value),
         defaultCaptureMode: parseInt(body.querySelector('#pest-capture').value),
-        thresholdCount: body.querySelector('#pest-threshold').value ? parseInt(body.querySelector('#pest-threshold').value) : null,
-        description: body.querySelector('#pest-desc').value.trim() || null,
-        imageUrl: body.querySelector('#pest-image').value.trim() || null,
+        thresholdCount:     body.querySelector('#pest-threshold').value ? parseInt(body.querySelector('#pest-threshold').value) : null,
+        description:        body.querySelector('#pest-desc').value.trim() || null,
       });
       closeModal();
       showToast('Pest added successfully');
@@ -337,6 +347,8 @@ function openCreatePestModal() {
     }
   });
 }
+
+// ── Edit modal (custom pests only) ────────────────────────────────────────────
 
 function openEditPestModal(pest) {
   const categoryOptions = Object.entries(PestCategoryValues)
@@ -382,10 +394,6 @@ function openEditPestModal(pest) {
           <div class="input-label">Description</div>
           <textarea class="input-field" id="edit-pest-desc" rows="2" placeholder="Brief description…" style="resize:none;">${escapeHtml(pest.description || '')}</textarea>
         </div>
-        <div>
-          <div class="input-label">Image URL</div>
-          <input class="input-field" id="edit-pest-image" placeholder="https://..." type="url" value="${escapeHtml(pest.imageUrl || '')}">
-        </div>
         <div style="display:flex;gap:10px;margin-top:6px;">
           <button class="btn-outline" id="edit-pest-cancel" style="flex:1;">Cancel</button>
           <button class="btn-primary" id="edit-pest-submit" style="flex:2;justify-content:center;">💾 Save Changes</button>
@@ -396,7 +404,7 @@ function openEditPestModal(pest) {
 
   body.querySelector('#edit-pest-cancel').addEventListener('click', closeModal);
 
-  const editCaptureEl = body.querySelector('#edit-pest-capture');
+  const editCaptureEl   = body.querySelector('#edit-pest-capture');
   const editThresholdEl = body.querySelector('#edit-pest-threshold');
   function syncEditThreshold() {
     const isCount = parseInt(editCaptureEl.value) === CaptureModeValues.Count;
@@ -418,12 +426,11 @@ function openEditPestModal(pest) {
     try {
       await updatePest(pest.id, {
         commonName,
-        scientificName: body.querySelector('#edit-pest-scientific').value.trim() || null,
-        category: parseInt(body.querySelector('#edit-pest-category').value),
+        scientificName:     body.querySelector('#edit-pest-scientific').value.trim() || null,
+        category:           parseInt(body.querySelector('#edit-pest-category').value),
         defaultCaptureMode: parseInt(body.querySelector('#edit-pest-capture').value),
-        thresholdCount: body.querySelector('#edit-pest-threshold').value ? parseInt(body.querySelector('#edit-pest-threshold').value) : null,
-        description: body.querySelector('#edit-pest-desc').value.trim() || null,
-        imageUrl: body.querySelector('#edit-pest-image').value.trim() || null,
+        thresholdCount:     body.querySelector('#edit-pest-threshold').value ? parseInt(body.querySelector('#edit-pest-threshold').value) : null,
+        description:        body.querySelector('#edit-pest-desc').value.trim() || null,
       });
       closeModal();
       showToast('Pest updated successfully');
@@ -432,6 +439,55 @@ function openEditPestModal(pest) {
       showToast(err.message || 'Failed to update pest', 'error');
       btn.disabled = false;
       btn.textContent = '💾 Save Changes';
+    }
+  });
+}
+
+// ── Set Threshold modal (system pests with Count mode only) ───────────────────
+
+function openSetThresholdModal(pest) {
+  const body = openModal({
+    title: 'Set Action Threshold',
+    subtitle: `${escapeHtml(pest.commonName)} — system pest`,
+    content: `
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <p style="margin:0;font-size:0.85rem;color:var(--text-dim);line-height:1.5;">
+          Set the count at which an observation triggers a breach alert.
+          Only the threshold can be adjusted on system pests.
+        </p>
+        <div>
+          <div class="input-label">Threshold Count</div>
+          <input class="input-field" id="sys-pest-threshold" type="number" min="1"
+            value="${pest.thresholdCount != null ? pest.thresholdCount : ''}"
+            placeholder="e.g. 20">
+        </div>
+        <div style="display:flex;gap:10px;margin-top:6px;">
+          <button class="btn-outline" id="sys-pest-cancel" style="flex:1;">Cancel</button>
+          <button class="btn-primary" id="sys-pest-submit" style="flex:2;justify-content:center;">💾 Save Threshold</button>
+        </div>
+      </div>
+    `,
+  });
+
+  body.querySelector('#sys-pest-cancel').addEventListener('click', closeModal);
+
+  body.querySelector('#sys-pest-submit').addEventListener('click', async () => {
+    const val = body.querySelector('#sys-pest-threshold').value;
+    const thresholdCount = val ? parseInt(val) : null;
+
+    const btn = body.querySelector('#sys-pest-submit');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+
+    try {
+      await patchPestThreshold(pest.id, thresholdCount);
+      closeModal();
+      showToast('Threshold updated');
+      await loadPests();
+    } catch (err) {
+      showToast(err.message || 'Failed to update threshold', 'error');
+      btn.disabled = false;
+      btn.textContent = '💾 Save Threshold';
     }
   });
 }

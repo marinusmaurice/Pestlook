@@ -1,4 +1,4 @@
-import { get, post, put, del } from './client.js';
+import { get, post, put, patch, del } from './client.js';
 
 export function getPests() {
   return get('/pests');
@@ -18,4 +18,8 @@ export function updatePest(id, request) {
 
 export function deletePest(id) {
   return del(`/pests/${id}`);
+}
+
+export function patchPestThreshold(id, thresholdCount) {
+  return patch(`/pests/${id}/threshold`, { thresholdCount });
 }

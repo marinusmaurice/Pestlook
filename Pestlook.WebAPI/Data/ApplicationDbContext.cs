@@ -181,7 +181,6 @@ public sealed class ApplicationDbContext(
             e.Property(p => p.CommonName).HasMaxLength(200).IsRequired();
             e.Property(p => p.ScientificName).HasMaxLength(300);
             e.Property(p => p.Description).HasMaxLength(1000);
-            e.Property(p => p.ImageUrl).HasMaxLength(500);
             e.Property(p => p.Category).HasConversion<string>().HasMaxLength(50);
             e.Property(p => p.DefaultCaptureMode).HasConversion<string>().HasMaxLength(50);
             e.HasOne(p => p.Tenant)

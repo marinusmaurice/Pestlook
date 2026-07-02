@@ -9,8 +9,8 @@ export const SubscriptionPlanValues = { Free: 0 };
 export const FeedbackCategory = { 0: 'General', 1: 'Bug report', 2: 'Feature request', 3: 'Question' };
 export const FeedbackCategoryValues = { General: 0, BugReport: 1, FeatureRequest: 2, Question: 3 };
 
-export const PestCategory ={ 0: 'Insect', 1: 'Disease', 2: 'Weed', 3: 'Rodent', 4: 'Other' };
-export const PestCategoryValues = { Insect: 0, Disease: 1, Weed: 2, Rodent: 3, Other: 4 };
+export const PestCategory = { 0: 'Insect', 1: 'Disease', 2: 'Weed', 3: 'Rodent', 4: 'Other', 5: 'Bird', 6: 'Mammal', 7: 'Mollusc', 8: 'Nematode' };
+export const PestCategoryValues = { Insect: 0, Disease: 1, Weed: 2, Rodent: 3, Other: 4, Bird: 5, Mammal: 6, Mollusc: 7, Nematode: 8 };
 
 export const CaptureMode = { 0: 'Count', 1: 'Presence' };
 export const CaptureModeValues = { Count: 0, Presence: 1 };

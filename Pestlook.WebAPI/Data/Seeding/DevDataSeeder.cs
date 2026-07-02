@@ -67,8 +67,17 @@ public static class DevDataSeeder
         await userManager.CreateAsync(scout, "Demo@1234!");
         await userManager.AddToRoleAsync(scout, "Scout");
 
-        // ── Pests (50) ────────────────────────────────────────────────────────
-        var pests = BuildPests(tenant.Id, admin.Id);
+        // ── Pests (system catalogue + Unknown) ───────────────────────────────
+        var pests = SystemPestCatalogue.BuildForTenant(tenant.Id, admin.Id);
+        pests.Insert(0, new Pest
+        {
+            TenantId           = tenant.Id,
+            CommonName         = "Unknown",
+            Category           = PestCategory.Other,
+            DefaultCaptureMode = CaptureMode.Count,
+            IsSystemPest       = true,
+            CreatedByUserId    = admin.Id
+        });
         db.Pests.AddRange(pests);
         await db.SaveChangesAsync();
 
@@ -153,87 +162,6 @@ public static class DevDataSeeder
         var pts = $"{Pt(sw)},{Pt(se)},{Pt(ne)},{Pt(nw)},{Pt(sw)}";
 
         return $"{{\"type\":\"Polygon\",\"coordinates\":[[{pts}]]}}";
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Pests
-    // ─────────────────────────────────────────────────────────────────────────
-    private static List<Pest> BuildPests(Guid tenantId, string userId)
-    {
-        var now = DateTime.UtcNow;
-
-        var data = new (string Common, string? Scientific, PestCategory Cat, CaptureMode Mode, int? Threshold)[]
-        {
-            // Insects (20)
-            ("Aphid",                  "Aphidoidea",                 PestCategory.Insect,  CaptureMode.Count,    50),
-            ("Whitefly",               "Bemisia tabaci",             PestCategory.Insect,  CaptureMode.Count,    20),
-            ("Thrips",                 "Thysanoptera",               PestCategory.Insect,  CaptureMode.Count,    30),
-            ("Spider Mite",            "Tetranychus urticae",        PestCategory.Insect,  CaptureMode.Count,    40),
-            ("Leaf Miner",             "Liriomyza spp.",             PestCategory.Insect,  CaptureMode.Presence, null),
-            ("Codling Moth",           "Cydia pomonella",            PestCategory.Insect,  CaptureMode.Count,    5),
-            ("Fall Armyworm",          "Spodoptera frugiperda",      PestCategory.Insect,  CaptureMode.Count,    10),
-            ("Corn Rootworm",          "Diabrotica virgifera",       PestCategory.Insect,  CaptureMode.Count,    15),
-            ("Fruit Fly",              "Bactrocera dorsalis",        PestCategory.Insect,  CaptureMode.Count,    3),
-            ("Cucumber Beetle",        "Diabrotica undecimpunctata", PestCategory.Insect,  CaptureMode.Count,    10),
-            ("Cabbage Looper",         "Trichoplusia ni",            PestCategory.Insect,  CaptureMode.Count,    25),
-            ("Colorado Potato Beetle", "Leptinotarsa decemlineata",  PestCategory.Insect,  CaptureMode.Count,    5),
-            ("Stink Bug",              "Halyomorpha halys",          PestCategory.Insect,  CaptureMode.Presence, null),
-            ("Grasshopper",            "Melanoplinae",               PestCategory.Insect,  CaptureMode.Count,    8),
-            ("Cutworm",                "Agrotis ipsilon",            PestCategory.Insect,  CaptureMode.Count,    4),
-            ("Earworm",                "Helicoverpa zea",            PestCategory.Insect,  CaptureMode.Count,    6),
-            ("Squash Bug",             "Anasa tristis",              PestCategory.Insect,  CaptureMode.Presence, null),
-            ("Diamondback Moth",       "Plutella xylostella",        PestCategory.Insect,  CaptureMode.Count,    20),
-            ("Scale Insect",           "Coccoidea",                  PestCategory.Insect,  CaptureMode.Presence, null),
-            ("Leafhopper",             "Cicadellidae",               PestCategory.Insect,  CaptureMode.Count,    35),
-            // Diseases (10)
-            ("Powdery Mildew",         "Erysiphales",                PestCategory.Disease, CaptureMode.Presence, null),
-            ("Downy Mildew",           "Peronosporaceae",            PestCategory.Disease, CaptureMode.Presence, null),
-            ("Early Blight",           "Alternaria solani",          PestCategory.Disease, CaptureMode.Presence, null),
-            ("Late Blight",            "Phytophthora infestans",     PestCategory.Disease, CaptureMode.Presence, null),
-            ("Botrytis (Grey Mould)",  "Botrytis cinerea",           PestCategory.Disease, CaptureMode.Presence, null),
-            ("Fusarium Wilt",          "Fusarium oxysporum",         PestCategory.Disease, CaptureMode.Presence, null),
-            ("Root Rot",               "Phytophthora spp.",          PestCategory.Disease, CaptureMode.Presence, null),
-            ("Anthracnose",            "Colletotrichum spp.",        PestCategory.Disease, CaptureMode.Presence, null),
-            ("Rust",                   "Pucciniales",                PestCategory.Disease, CaptureMode.Presence, null),
-            ("Bacterial Blight",       "Xanthomonas spp.",           PestCategory.Disease, CaptureMode.Presence, null),
-            // Weeds (10)
-            ("Pigweed",                "Amaranthus retroflexus",     PestCategory.Weed,    CaptureMode.Presence, null),
-            ("Common Ragweed",         "Ambrosia artemisiifolia",    PestCategory.Weed,    CaptureMode.Presence, null),
-            ("Bindweed",               "Convolvulus arvensis",       PestCategory.Weed,    CaptureMode.Presence, null),
-            ("Johnson Grass",          "Sorghum halepense",          PestCategory.Weed,    CaptureMode.Presence, null),
-            ("Nutsedge",               "Cyperus esculentus",         PestCategory.Weed,    CaptureMode.Presence, null),
-            ("Lambs Quarters",         "Chenopodium album",          PestCategory.Weed,    CaptureMode.Presence, null),
-            ("Wild Mustard",           "Sinapis arvensis",           PestCategory.Weed,    CaptureMode.Presence, null),
-            ("Canada Thistle",         "Cirsium arvense",            PestCategory.Weed,    CaptureMode.Presence, null),
-            ("Velvetleaf",             "Abutilon theophrasti",       PestCategory.Weed,    CaptureMode.Presence, null),
-            ("Cocklebur",              "Xanthium strumarium",        PestCategory.Weed,    CaptureMode.Presence, null),
-            // Rodents (5)
-            ("Common Vole",            "Microtus arvalis",           PestCategory.Rodent,  CaptureMode.Count,    2),
-            ("Black Rat",              "Rattus rattus",              PestCategory.Rodent,  CaptureMode.Count,    1),
-            ("House Mouse",            "Mus musculus",               PestCategory.Rodent,  CaptureMode.Count,    2),
-            ("Mole",                   "Talpa europaea",             PestCategory.Rodent,  CaptureMode.Presence, null),
-            ("Gopher",                 "Geomyidae",                  PestCategory.Rodent,  CaptureMode.Presence, null),
-            // Other (5)
-            ("Snail",                  "Cornu aspersum",             PestCategory.Other,   CaptureMode.Count,    10),
-            ("Slug",                   "Arion spp.",                 PestCategory.Other,   CaptureMode.Count,    10),
-            ("Nematode (Root-knot)",   "Meloidogyne spp.",           PestCategory.Other,   CaptureMode.Presence, null),
-            ("Deer",                   "Odocoileus virginianus",     PestCategory.Other,   CaptureMode.Presence, null),
-            ("Wild Boar",              "Sus scrofa",                 PestCategory.Other,   CaptureMode.Presence, null),
-        };
-
-        return data.Select(d => new Pest
-        {
-            Id                 = Guid.NewGuid(),
-            TenantId           = tenantId,
-            CommonName         = d.Common,
-            ScientificName     = d.Scientific,
-            Category           = d.Cat,
-            DefaultCaptureMode = d.Mode,
-            ThresholdCount     = d.Threshold,
-            IsSystemPest       = true,
-            CreatedAt          = now,
-            CreatedByUserId    = userId
-        }).ToList();
     }
 
     // ─────────────────────────────────────────────────────────────────────────

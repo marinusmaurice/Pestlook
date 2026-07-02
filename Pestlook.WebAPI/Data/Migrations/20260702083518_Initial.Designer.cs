@@ -12,8 +12,8 @@ using Pestlook.WebAPI.Data;
 namespace Pestlook.WebAPI.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260331131741_AddTemperatureUnitPreference")]
-    partial class AddTemperatureUnitPreference
+    [Migration("20260702083518_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -170,6 +170,13 @@ namespace Pestlook.WebAPI.Data.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("DistanceUnit")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(2)
+                        .HasColumnType("nvarchar(2)")
+                        .HasDefaultValue("km");
+
                     b.Property<string>("Email")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
@@ -231,6 +238,10 @@ namespace Pestlook.WebAPI.Data.Migrations
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Timezone")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("bit");
@@ -388,14 +399,26 @@ namespace Pestlook.WebAPI.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<double?>("AreaHectares")
+                        .HasColumnType("float");
+
+                    b.Property<string>("BoundaryColor")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("BoundaryGeoJson")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("CreatedByUserId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedByUserId")
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -417,11 +440,79 @@ namespace Pestlook.WebAPI.Data.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("UpdatedByUserId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("TenantId");
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("DeletedByUserId");
+
+                    b.HasIndex("UpdatedByUserId");
+
+                    b.HasIndex("TenantId", "DeletedAt");
 
                     b.ToTable("Farms");
+                });
+
+            modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.Feedback", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedByUserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedByUserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<string>("PageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedByUserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("DeletedByUserId");
+
+                    b.HasIndex("UpdatedByUserId");
+
+                    b.HasIndex("TenantId", "CreatedAt");
+
+                    b.ToTable("Feedbacks");
                 });
 
             modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.Field", b =>
@@ -433,8 +524,14 @@ namespace Pestlook.WebAPI.Data.Migrations
                     b.Property<double?>("AreaHectares")
                         .HasColumnType("float");
 
+                    b.Property<string>("BoundaryColor")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedByUserId")
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("CropType")
                         .HasMaxLength(100)
@@ -442,6 +539,9 @@ namespace Pestlook.WebAPI.Data.Migrations
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedByUserId")
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<Guid>("FarmId")
                         .HasColumnType("uniqueidentifier");
@@ -451,6 +551,12 @@ namespace Pestlook.WebAPI.Data.Migrations
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
+
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("float");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("float");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -467,115 +573,22 @@ namespace Pestlook.WebAPI.Data.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.HasKey("Id");
-
-                    b.HasIndex("FarmId");
-
-                    b.ToTable("Fields");
-                });
-
-            modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.MonitoringPoint", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedByUserId")
+                    b.Property<string>("UpdatedByUserId")
                         .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid?>("FarmId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("FieldId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<double>("Latitude")
-                        .HasColumnType("float");
-
-                    b.Property<double>("Longitude")
-                        .HasColumnType("float");
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("PointType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("TrapTypeId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedByUserId");
 
+                    b.HasIndex("DeletedByUserId");
+
                     b.HasIndex("FarmId");
 
-                    b.HasIndex("FieldId");
+                    b.HasIndex("UpdatedByUserId");
 
-                    b.HasIndex("TrapTypeId");
+                    b.HasIndex("TenantId", "DeletedAt");
 
-                    b.ToTable("MonitoringPoints");
-                });
-
-            modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.MonitoringPointPest", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("AllowUnknown")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("AssignedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("AssignedByUserId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<Guid>("MonitoringPointId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("PestId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AssignedByUserId");
-
-                    b.HasIndex("PestId");
-
-                    b.HasIndex("MonitoringPointId", "PestId")
-                        .IsUnique();
-
-                    b.ToTable("MonitoringPointPests");
+                    b.ToTable("Fields");
                 });
 
             modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.Pest", b =>
@@ -597,6 +610,9 @@ namespace Pestlook.WebAPI.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("CreatedByUserId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<string>("DefaultCaptureMode")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -605,13 +621,12 @@ namespace Pestlook.WebAPI.Data.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("DeletedByUserId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("ImageUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
 
                     b.Property<bool>("IsSystemPest")
                         .HasColumnType("bit");
@@ -626,91 +641,22 @@ namespace Pestlook.WebAPI.Data.Migrations
                     b.Property<int?>("ThresholdCount")
                         .HasColumnType("int");
 
+                    b.Property<string>("UpdatedByUserId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("DeletedByUserId");
+
+                    b.HasIndex("UpdatedByUserId");
 
                     b.HasIndex("TenantId", "CommonName")
                         .IsUnique()
                         .HasFilter("[DeletedAt] IS NULL");
 
                     b.ToTable("Pests");
-                });
-
-            modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.PestObservation", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("CaptureMode")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<double?>("CapturedLat")
-                        .HasColumnType("float");
-
-                    b.Property<double?>("CapturedLng")
-                        .HasColumnType("float");
-
-                    b.Property<int?>("Count")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsUnknownPest")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("LifeStage")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<Guid>("MonitoringPointId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<DateTime>("ObservedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid?>("PestId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("PhotoUrlsJson")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool?>("Present")
-                        .HasColumnType("bit");
-
-                    b.Property<Guid>("SessionId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("TrapId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("UnknownPestDescription")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PestId");
-
-                    b.HasIndex("SessionId");
-
-                    b.HasIndex("TrapId");
-
-                    b.HasIndex("MonitoringPointId", "ObservedAt");
-
-                    b.ToTable("PestObservations");
                 });
 
             modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.RefreshToken", b =>
@@ -757,6 +703,49 @@ namespace Pestlook.WebAPI.Data.Migrations
                     b.ToTable("RefreshTokens");
                 });
 
+            modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.SavedReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("DefinitionJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "DeletedAt");
+
+                    b.ToTable("SavedReports");
+                });
+
             modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.ScoutingSession", b =>
                 {
                     b.Property<Guid>("Id")
@@ -769,22 +758,45 @@ namespace Pestlook.WebAPI.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("CreatedByUserId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedByUserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<Guid?>("FarmId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("FieldId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsPlanned")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<DateTime?>("ScheduledDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("ScouterId")
-                        .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<DateTime>("StartedAt")
+                    b.Property<DateTime?>("StartedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<double?>("TemperatureCelsius")
+                        .HasColumnType("float");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("UpdatedByUserId")
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("WeatherConditions")
                         .HasMaxLength(200)
@@ -792,11 +804,127 @@ namespace Pestlook.WebAPI.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("DeletedByUserId");
+
+                    b.HasIndex("FarmId");
+
+                    b.HasIndex("FieldId");
+
                     b.HasIndex("ScouterId");
+
+                    b.HasIndex("UpdatedByUserId");
+
+                    b.HasIndex("TenantId", "CreatedAt");
+
+                    b.HasIndex("TenantId", "DeletedAt");
+
+                    b.ToTable("ScoutingSessions");
+                });
+
+            modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.SessionObservation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CaptureMode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int?>("Count")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedByUserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("DeletedByUserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<bool>("IsPlanned")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("IsPresent")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsUnknownPest")
+                        .HasColumnType("bit");
+
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("float");
+
+                    b.Property<string>("LifeStage")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("float");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<Guid?>("ObservationGroupId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ObservationType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("ObservedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("PestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PhotoUrlsJson")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("ThresholdCount")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("TrapId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("UpdatedByUserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("DeletedByUserId");
+
+                    b.HasIndex("PestId");
+
+                    b.HasIndex("SessionId");
 
                     b.HasIndex("TenantId");
 
-                    b.ToTable("ScoutingSessions");
+                    b.HasIndex("TrapId");
+
+                    b.HasIndex("UpdatedByUserId");
+
+                    b.HasIndex("SessionId", "ObservationType");
+
+                    b.HasIndex("TenantId", "CreatedAt");
+
+                    b.ToTable("SessionObservations");
                 });
 
             modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.Tenant", b =>
@@ -850,8 +978,17 @@ namespace Pestlook.WebAPI.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("CreatedByUserId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedByUserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<Guid?>("FieldId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("bit");
@@ -861,9 +998,6 @@ namespace Pestlook.WebAPI.Data.Migrations
 
                     b.Property<double?>("Longitude")
                         .HasColumnType("float");
-
-                    b.Property<Guid?>("MonitoringPointId")
-                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -883,15 +1017,26 @@ namespace Pestlook.WebAPI.Data.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("UpdatedByUserId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("MonitoringPointId");
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("DeletedByUserId");
+
+                    b.HasIndex("FieldId");
 
                     b.HasIndex("TrapTypeId");
+
+                    b.HasIndex("UpdatedByUserId");
 
                     b.HasIndex("TenantId", "Barcode")
                         .IsUnique()
                         .HasFilter("[DeletedAt] IS NULL AND [Barcode] IS NOT NULL");
+
+                    b.HasIndex("TenantId", "DeletedAt");
 
                     b.ToTable("Traps");
                 });
@@ -905,8 +1050,14 @@ namespace Pestlook.WebAPI.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("CreatedByUserId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedByUserId")
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
@@ -917,13 +1068,24 @@ namespace Pestlook.WebAPI.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("UpdatedByUserId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("Name")
-                        .IsUnique()
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("DeletedByUserId");
+
+                    b.HasIndex("UpdatedByUserId");
+
+                    b.HasIndex("TenantId", "Name")
                         .HasFilter("[DeletedAt] IS NULL");
 
                     b.ToTable("TrapTypes");
@@ -932,77 +1094,77 @@ namespace Pestlook.WebAPI.Data.Migrations
                         new
                         {
                             Id = new Guid("a0000000-0000-0000-0000-000000000001"),
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Triangular tent-shaped trap with a sticky inner surface, typically baited with pheromone lures to attract and capture moths.",
                             Name = "Delta Trap"
                         },
                         new
                         {
                             Id = new Guid("a0000000-0000-0000-0000-000000000002"),
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Container-style trap with a funnel lid; pests fall into the bucket and cannot escape, often used with pheromones or kill strips.",
                             Name = "Bucket Trap"
                         },
                         new
                         {
                             Id = new Guid("a0000000-0000-0000-0000-000000000003"),
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Cone-shaped mesh or wire trap with a collection chamber at the top, designed for strong-flying moths like corn earworm.",
                             Name = "Cone Trap"
                         },
                         new
                         {
                             Id = new Guid("a0000000-0000-0000-0000-000000000004"),
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Yellow adhesive card used to attract and trap flying insects such as aphids, whiteflies, and leafminers.",
                             Name = "Sticky Card (Yellow)"
                         },
                         new
                         {
                             Id = new Guid("a0000000-0000-0000-0000-000000000005"),
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Blue adhesive card specifically effective for thrips monitoring.",
                             Name = "Sticky Card (Blue)"
                         },
                         new
                         {
                             Id = new Guid("a0000000-0000-0000-0000-000000000006"),
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Red adhesive card used to attract leafhoppers.",
                             Name = "Sticky Card (Red)"
                         },
                         new
                         {
                             Id = new Guid("a0000000-0000-0000-0000-000000000007"),
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Container buried flush with the ground surface to capture crawling insects like ground beetles and earwigs.",
                             Name = "Pitfall Trap"
                         },
                         new
                         {
                             Id = new Guid("a0000000-0000-0000-0000-000000000008"),
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "UV or blacklight lamp with a collection container below, attracting night-flying moths and beetles.",
                             Name = "Light Trap"
                         },
                         new
                         {
                             Id = new Guid("a0000000-0000-0000-0000-000000000009"),
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Lynfield or McPhail style trap with liquid lure (e.g., torula yeast or pheromone) for monitoring Mediterranean fruit flies and olive flies.",
                             Name = "Fruit Fly Trap"
                         },
                         new
                         {
                             Id = new Guid("a0000000-0000-0000-0000-00000000000a"),
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Red, sphere-shaped sticky trap that mimics ripe fruit, used in orchards for fruit worms and apple maggot.",
                             Name = "Red Ball Trap"
                         },
                         new
                         {
                             Id = new Guid("a0000000-0000-0000-0000-00000000000b"),
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "A digital trap equipped with a camera and connectivity for remote image capture and automated pest counting.",
                             Name = "Smart / Automated Trap"
                         });
@@ -1091,125 +1253,100 @@ namespace Pestlook.WebAPI.Data.Migrations
 
             modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.Farm", b =>
                 {
+                    b.HasOne("Pestlook.WebAPI.Domain.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Pestlook.WebAPI.Domain.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("DeletedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("Pestlook.WebAPI.Domain.Entities.Tenant", "Tenant")
                         .WithMany("Farms")
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Pestlook.WebAPI.Domain.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UpdatedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.Feedback", b =>
+                {
+                    b.HasOne("Pestlook.WebAPI.Domain.Entities.ApplicationUser", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Pestlook.WebAPI.Domain.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("DeletedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Pestlook.WebAPI.Domain.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UpdatedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("CreatedBy");
                 });
 
             modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.Field", b =>
                 {
+                    b.HasOne("Pestlook.WebAPI.Domain.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Pestlook.WebAPI.Domain.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("DeletedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("Pestlook.WebAPI.Domain.Entities.Farm", "Farm")
                         .WithMany("Fields")
                         .HasForeignKey("FarmId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Farm");
-                });
-
-            modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.MonitoringPoint", b =>
-                {
-                    b.HasOne("Pestlook.WebAPI.Domain.Entities.ApplicationUser", "CreatedBy")
+                    b.HasOne("Pestlook.WebAPI.Domain.Entities.ApplicationUser", null)
                         .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("Pestlook.WebAPI.Domain.Entities.Farm", "Farm")
-                        .WithMany("MonitoringPoints")
-                        .HasForeignKey("FarmId")
+                        .HasForeignKey("UpdatedByUserId")
                         .OnDelete(DeleteBehavior.NoAction);
 
-                    b.HasOne("Pestlook.WebAPI.Domain.Entities.Field", "Field")
-                        .WithMany("MonitoringPoints")
-                        .HasForeignKey("FieldId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.HasOne("Pestlook.WebAPI.Domain.Entities.TrapType", "TrapType")
-                        .WithMany("MonitoringPoints")
-                        .HasForeignKey("TrapTypeId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("CreatedBy");
-
                     b.Navigation("Farm");
-
-                    b.Navigation("Field");
-
-                    b.Navigation("TrapType");
-                });
-
-            modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.MonitoringPointPest", b =>
-                {
-                    b.HasOne("Pestlook.WebAPI.Domain.Entities.ApplicationUser", "AssignedBy")
-                        .WithMany()
-                        .HasForeignKey("AssignedByUserId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("Pestlook.WebAPI.Domain.Entities.MonitoringPoint", "MonitoringPoint")
-                        .WithMany("MonitoringPointPests")
-                        .HasForeignKey("MonitoringPointId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Pestlook.WebAPI.Domain.Entities.Pest", "Pest")
-                        .WithMany("MonitoringPointPests")
-                        .HasForeignKey("PestId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("AssignedBy");
-
-                    b.Navigation("MonitoringPoint");
-
-                    b.Navigation("Pest");
                 });
 
             modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.Pest", b =>
                 {
+                    b.HasOne("Pestlook.WebAPI.Domain.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Pestlook.WebAPI.Domain.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("DeletedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("Pestlook.WebAPI.Domain.Entities.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Pestlook.WebAPI.Domain.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UpdatedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.PestObservation", b =>
-                {
-                    b.HasOne("Pestlook.WebAPI.Domain.Entities.MonitoringPoint", "MonitoringPoint")
-                        .WithMany("PestObservations")
-                        .HasForeignKey("MonitoringPointId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Pestlook.WebAPI.Domain.Entities.Pest", "Pest")
-                        .WithMany()
-                        .HasForeignKey("PestId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("Pestlook.WebAPI.Domain.Entities.ScoutingSession", "Session")
-                        .WithMany("PestObservations")
-                        .HasForeignKey("SessionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Pestlook.WebAPI.Domain.Entities.Trap", "Trap")
-                        .WithMany()
-                        .HasForeignKey("TrapId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("MonitoringPoint");
-
-                    b.Navigation("Pest");
-
-                    b.Navigation("Session");
-
-                    b.Navigation("Trap");
                 });
 
             modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.RefreshToken", b =>
@@ -1225,11 +1362,30 @@ namespace Pestlook.WebAPI.Data.Migrations
 
             modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.ScoutingSession", b =>
                 {
+                    b.HasOne("Pestlook.WebAPI.Domain.Entities.ApplicationUser", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Pestlook.WebAPI.Domain.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("DeletedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Pestlook.WebAPI.Domain.Entities.Farm", "Farm")
+                        .WithMany()
+                        .HasForeignKey("FarmId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Pestlook.WebAPI.Domain.Entities.Field", "Field")
+                        .WithMany()
+                        .HasForeignKey("FieldId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Pestlook.WebAPI.Domain.Entities.ApplicationUser", "Scouter")
                         .WithMany()
                         .HasForeignKey("ScouterId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Pestlook.WebAPI.Domain.Entities.Tenant", "Tenant")
                         .WithMany("ScoutingSessions")
@@ -1237,16 +1393,83 @@ namespace Pestlook.WebAPI.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Pestlook.WebAPI.Domain.Entities.ApplicationUser", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("CreatedBy");
+
+                    b.Navigation("Farm");
+
+                    b.Navigation("Field");
+
                     b.Navigation("Scouter");
 
                     b.Navigation("Tenant");
+
+                    b.Navigation("UpdatedBy");
+                });
+
+            modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.SessionObservation", b =>
+                {
+                    b.HasOne("Pestlook.WebAPI.Domain.Entities.ApplicationUser", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Pestlook.WebAPI.Domain.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("DeletedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Pestlook.WebAPI.Domain.Entities.Pest", "Pest")
+                        .WithMany()
+                        .HasForeignKey("PestId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Pestlook.WebAPI.Domain.Entities.ScoutingSession", "Session")
+                        .WithMany("SessionObservations")
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Pestlook.WebAPI.Domain.Entities.Trap", "Trap")
+                        .WithMany()
+                        .HasForeignKey("TrapId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Pestlook.WebAPI.Domain.Entities.ApplicationUser", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("CreatedBy");
+
+                    b.Navigation("Pest");
+
+                    b.Navigation("Session");
+
+                    b.Navigation("Trap");
+
+                    b.Navigation("UpdatedBy");
                 });
 
             modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.Trap", b =>
                 {
-                    b.HasOne("Pestlook.WebAPI.Domain.Entities.MonitoringPoint", "MonitoringPoint")
+                    b.HasOne("Pestlook.WebAPI.Domain.Entities.ApplicationUser", null)
                         .WithMany()
-                        .HasForeignKey("MonitoringPointId")
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Pestlook.WebAPI.Domain.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("DeletedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Pestlook.WebAPI.Domain.Entities.Field", "Field")
+                        .WithMany()
+                        .HasForeignKey("FieldId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("Pestlook.WebAPI.Domain.Entities.TrapType", "TrapType")
@@ -1254,9 +1477,39 @@ namespace Pestlook.WebAPI.Data.Migrations
                         .HasForeignKey("TrapTypeId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.Navigation("MonitoringPoint");
+                    b.HasOne("Pestlook.WebAPI.Domain.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UpdatedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("Field");
 
                     b.Navigation("TrapType");
+                });
+
+            modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.TrapType", b =>
+                {
+                    b.HasOne("Pestlook.WebAPI.Domain.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Pestlook.WebAPI.Domain.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("DeletedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Pestlook.WebAPI.Domain.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Pestlook.WebAPI.Domain.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UpdatedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.ApplicationUser", b =>
@@ -1267,30 +1520,11 @@ namespace Pestlook.WebAPI.Data.Migrations
             modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.Farm", b =>
                 {
                     b.Navigation("Fields");
-
-                    b.Navigation("MonitoringPoints");
-                });
-
-            modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.Field", b =>
-                {
-                    b.Navigation("MonitoringPoints");
-                });
-
-            modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.MonitoringPoint", b =>
-                {
-                    b.Navigation("MonitoringPointPests");
-
-                    b.Navigation("PestObservations");
-                });
-
-            modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.Pest", b =>
-                {
-                    b.Navigation("MonitoringPointPests");
                 });
 
             modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.ScoutingSession", b =>
                 {
-                    b.Navigation("PestObservations");
+                    b.Navigation("SessionObservations");
                 });
 
             modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.Tenant", b =>
@@ -1302,11 +1536,6 @@ namespace Pestlook.WebAPI.Data.Migrations
                     b.Navigation("ScoutingSessions");
 
                     b.Navigation("Users");
-                });
-
-            modelBuilder.Entity("Pestlook.WebAPI.Domain.Entities.TrapType", b =>
-                {
-                    b.Navigation("MonitoringPoints");
                 });
 #pragma warning restore 612, 618
         }

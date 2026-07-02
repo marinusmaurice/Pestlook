@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Pestlook.WebAPI.Data;
+using Pestlook.WebAPI.Data.Seeding;
 using Pestlook.WebAPI.Domain.Entities;
 using Pestlook.WebAPI.Domain.Enums;
 using Pestlook.WebAPI.DTOs.Auth;
@@ -57,7 +58,9 @@ public sealed class AuthService(
         db.Tenants.Add(tenant);
         await db.SaveChangesAsync(ct);
 
-        db.Pests.Add(new Pest
+        var systemPests = SystemPestCatalogue.BuildForTenant(tenant.Id);
+        // Prepend the special "Unknown" catch-all
+        systemPests.Insert(0, new Pest
         {
             TenantId           = tenant.Id,
             CommonName         = "Unknown",
@@ -65,6 +68,7 @@ public sealed class AuthService(
             DefaultCaptureMode = CaptureMode.Count,
             IsSystemPest       = true
         });
+        db.Pests.AddRange(systemPests);
         await db.SaveChangesAsync(ct);
 
         var user = new ApplicationUser

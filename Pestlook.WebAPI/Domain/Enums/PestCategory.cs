@@ -6,5 +6,9 @@ public enum PestCategory
     Disease,
     Weed,
     Rodent,
-    Other
+    Other,
+    Bird,
+    Mammal,
+    Mollusc,
+    Nematode
 }

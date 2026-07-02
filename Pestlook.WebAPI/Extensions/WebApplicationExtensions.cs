@@ -48,7 +48,6 @@ public static class WebApplicationExtensions
     {
         using var scope = app.Services.CreateScope();
         var db     = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var email  = scope.ServiceProvider.GetRequiredService<IEmailService>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<WebApplication>>();
 
         if (!db.Database.IsRelational())
@@ -65,24 +64,29 @@ public static class WebApplicationExtensions
         logger.LogInformation("Database migrations: {Count} pending — {Migrations}",
             pending.Count, string.Join(", ", pending));
 
+        var appServices = app.Services;
+        var pendingSnapshot = pending.ToList();
+
         try
         {
             db.Database.Migrate();
 
             logger.LogInformation("Database migrations applied successfully: {Migrations}",
-                string.Join(", ", pending));
+                string.Join(", ", pendingSnapshot));
 
             // Fire-and-forget success email — don't block startup
             _ = Task.Run(async () =>
             {
                 try
                 {
-                    var rows = string.Join("", pending.Select(m =>
+                    using var emailScope = appServices.CreateScope();
+                    var emailSvc = emailScope.ServiceProvider.GetRequiredService<IEmailService>();
+                    var rows = string.Join("", pendingSnapshot.Select(m =>
                         $"<tr><td style='padding:6px 12px;font-family:monospace;font-size:0.85rem;color:#1F2A26;border-bottom:1px solid #E2DFD3;'>{WebUtility.HtmlEncode(m)}</td></tr>"));
 
-                    await email.SendAdminAlertAsync(
-                        $"[PestLook] ✅ {pending.Count} migration(s) applied",
-                        BuildMigrationSuccessHtml(pending.Count, rows));
+                    await emailSvc.SendAdminAlertAsync(
+                        $"[PestLook] ✅ {pendingSnapshot.Count} migration(s) applied",
+                        BuildMigrationSuccessHtml(pendingSnapshot.Count, rows));
                 }
                 catch (Exception ex)
                 {
@@ -98,12 +102,14 @@ public static class WebApplicationExtensions
             {
                 try
                 {
-                    var rows = string.Join("", pending.Select(m =>
+                    using var emailScope = appServices.CreateScope();
+                    var emailSvc = emailScope.ServiceProvider.GetRequiredService<IEmailService>();
+                    var rows = string.Join("", pendingSnapshot.Select(m =>
                         $"<tr><td style='padding:6px 12px;font-family:monospace;font-size:0.85rem;color:#1F2A26;border-bottom:1px solid #E2DFD3;'>{WebUtility.HtmlEncode(m)}</td></tr>"));
 
-                    await email.SendAdminAlertAsync(
+                    await emailSvc.SendAdminAlertAsync(
                         $"[PestLook] ❌ Migration FAILED — {ex.Message[..Math.Min(80, ex.Message.Length)]}",
-                        BuildMigrationFailureHtml(pending.Count, rows, ex));
+                        BuildMigrationFailureHtml(pendingSnapshot.Count, rows, ex));
                 }
                 catch (Exception emailEx)
                 {
@@ -190,7 +196,48 @@ public static class WebApplicationExtensions
         if (!app.Environment.IsDevelopment() && !force)
             return app;
 
+        var logger = app.Services.GetRequiredService<ILogger<WebApplication>>();
+
         DevDataSeeder.SeedAsync(app.Services).GetAwaiter().GetResult();
+
+        logger.LogInformation("Dev/demo data seeding complete.");
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var emailScope = app.Services.CreateScope();
+                var emailSvc = emailScope.ServiceProvider.GetRequiredService<IEmailService>();
+                await emailSvc.SendAdminAlertAsync(
+                    "[PestLook] ✅ Dev/demo data seed complete",
+                    $"""
+                    <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"></head>
+                    <body style="margin:0;padding:0;background:#F5F5F0;font-family:'Inter',Arial,sans-serif;">
+                      <table width="100%" cellpadding="0" cellspacing="0" style="background:#F5F5F0;padding:40px 0;">
+                        <tr><td align="center">
+                          <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;border:1px solid #E2DFD3;">
+                            <tr><td style="background:#2B6E4F;padding:24px 40px;text-align:center;">
+                              <h1 style="margin:0;color:#fff;font-size:1.4rem;font-weight:800;">Pest<span style="color:#E5A52F;">Look</span> — Data Seed Report</h1>
+                            </td></tr>
+                            <tr><td style="padding:32px 40px;">
+                              <p style="margin:0 0 8px;font-size:0.95rem;color:#2B6E4F;font-weight:700;">✅ Dev/demo data seeded successfully</p>
+                              <p style="margin:0;font-size:0.85rem;color:#5A6B62;">Completed at {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC</p>
+                            </td></tr>
+                            <tr><td style="background:#F9F7F0;padding:16px 40px;border-top:1px solid #E2DFD3;text-align:center;">
+                              <p style="margin:0;font-size:0.78rem;color:#9AA8A1;">PestLook automated system notification</p>
+                            </td></tr>
+                          </table>
+                        </td></tr>
+                      </table>
+                    </body></html>
+                    """);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Could not send data seed email");
+            }
+        });
+
         return app;
     }
 }
