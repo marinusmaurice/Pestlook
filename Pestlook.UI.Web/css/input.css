@@ -1043,3 +1043,29 @@ textarea.input-field { resize: none; }
   display: inline-block;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Print / PDF export ──────────────────────────────────────────────────────── */
+@media print {
+  /* Hide all UI chrome */
+  #sidebar, .topbar, #rpt-filters, .tab-bar,
+  [data-tab], #rpt-print-btn,
+  .toast-container, .modal-overlay { display: none !important; }
+
+  /* Show print header */
+  #pl-print-header { display: block !important; margin-bottom: 20px; }
+
+  /* Reset layout so report body fills the page */
+  body, html { overflow: visible !important; height: auto !important; }
+  #app-root, #app-shell, #main { display: block !important; height: auto !important; overflow: visible !important; }
+  .content-area, #rpt-body { overflow: visible !important; height: auto !important; padding: 0 !important; }
+
+  /* Flatten cards for print */
+  .card, .stat-card { box-shadow: none !important; border: 1px solid #ccc !important; break-inside: avoid; }
+  .card:hover, .stat-card:hover { transform: none !important; }
+
+  /* Keep charts visible */
+  canvas { max-width: 100% !important; }
+}
+
+/* Hide print header on screen */
+#pl-print-header { display: none; }

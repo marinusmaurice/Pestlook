@@ -589,6 +589,19 @@ function loadScriptWithFallback(cdns) {
   });
 }
 
+
+function loadLogoPng(size = 64) {
+  return new Promise(resolve => {
+    const canvas = document.createElement('canvas');
+    canvas.width = size; canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    img.onload = () => { ctx.drawImage(img, 0, 0, size, size); resolve(canvas.toDataURL('image/png')); };
+    img.onerror = () => resolve(null);
+    img.src = '/favicon.svg';
+  });
+}
+
 async function exportPdf() {
   if (!S.entity) { showToast('Pick a table first.', 'warning'); return; }
   showToast('Building PDF…', 'info');
@@ -603,13 +616,53 @@ async function exportPdf() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: columns.length > 5 ? 'landscape' : 'portrait' });
     const entityLabel = S.schema[S.entity]?.label ?? S.entity;
+    const user = getUser();
+    const userName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || 'Unknown' : 'Unknown';
+    const now = new Date().toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
+    // Logo
+    const logoPng = await loadLogoPng(64);
+    if (logoPng) doc.addImage(logoPng, 'PNG', 14, 10, 10, 10);
+    const textX = logoPng ? 27 : 14;
+
+    // Title
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.text(`PestLook — ${entityLabel}`, 14, 16);
+    doc.setFontSize(13);
+    doc.setTextColor(30, 92, 46);
+    doc.text('PestLook', textX, 15);
+    const plWidth = doc.getTextWidth('PestLook');
+    doc.setTextColor(229, 165, 47);
+    doc.setFontSize(13);
+    doc.text(` — ${entityLabel}`, textX + plWidth, 15);
+    doc.setTextColor(90, 107, 98);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.text(`${rows.length.toLocaleString()} rows  ·  Generated ${new Date().toLocaleString()}`, 14, 23);
+    doc.setFontSize(7.5);
+    doc.text(`${rows.length.toLocaleString()} rows  ·  Printed by ${userName}  ·  ${now}`, textX, 21);
+
+    // Divider line
+    let cursorY = 25;
+    doc.setDrawColor(43, 110, 79);
+    doc.setLineWidth(0.5);
+    doc.line(14, cursorY, doc.internal.pageSize.getWidth() - 14, cursorY);
+    cursorY += 4;
+
+    // Active filters
+    const activeFilters = S.filters.filter(f => f.column && f.operator);
+    if (activeFilters.length) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(30, 92, 46);
+      doc.text('Filters:', 14, cursorY);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(31, 42, 38);
+      const filterText = activeFilters.map(f => {
+        const colLabel = S.schema[S.entity]?.columns?.find(c => c.key === f.column)?.label ?? f.column;
+        const opLabel  = OPERATOR_LABELS[f.operator] ?? f.operator;
+        return ['isempty','isnotempty'].includes(f.operator) ? `${colLabel} ${opLabel}` : `${colLabel} ${opLabel} ${f.value ?? ''}`;
+      }).join('  ·  ');
+      doc.text(filterText, 28, cursorY, { maxWidth: doc.internal.pageSize.getWidth() - 42 });
+      cursorY += 7;
+    }
 
     doc.autoTable({
       head: [columns.map(c => c.label)],
@@ -623,7 +676,7 @@ async function exportPdf() {
           return new Date(v).toLocaleDateString();
         return String(v);
       })),
-      startY: 28,
+      startY: cursorY,
       styles: { fontSize: 7.5, cellPadding: 2, overflow: 'linebreak' },
       headStyles: { fillColor: [43, 110, 79], textColor: 255, fontStyle: 'bold' },
       alternateRowStyles: { fillColor: [249, 247, 240] },

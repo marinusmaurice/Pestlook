@@ -10,7 +10,7 @@ import { showToast } from '../components/toast.js';
 import { escapeHtml, toLocalDateString } from '../utils/helpers.js';
 
 import {
-  loadChartJs, destroyCharts, filters, emptyState,
+  loadChartJs, destroyCharts, filters, emptyState, printReport,
 } from './reports/utils.js';
 
 import { renderOverview }          from './reports/r0-overview.js';
@@ -95,6 +95,7 @@ export async function renderReports(container) {
         <div class="page-heading">Analytics</div>
         <div class="page-desc">Insights across your farms, traps, sessions and scouts</div>
       </div>
+      <button id="rpt-print-btn" class="btn-outline" style="gap:6px;">🖨️ Print / Export PDF</button>
     </div>
     <div style="overflow-x:auto;margin-bottom:14px;padding-bottom:4px;flex-shrink:0;">
       <div style="display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;width:fit-content;">
@@ -185,6 +186,12 @@ export async function renderReports(container) {
     farmSel.addEventListener('change', e => { filters.farmId = e.target.value; populateFields(e.target.value); rerender(); });
     document.getElementById('rpt-field').addEventListener('change', e => { filters.fieldId = e.target.value; rerender(); });
     document.getElementById('rpt-scout').addEventListener('change', e => { filters.scoutId = e.target.value; rerender(); });
+    document.getElementById('rpt-print-btn').addEventListener('click', () => {
+      const activeTab = container.querySelector('[data-tab].active')?.dataset?.tab || 'dash';
+      const tabLabel  = TABS.find(t => t.id === activeTab)?.label.replace(/^\S+\s*/, '') || 'Report';
+      printReport(tabLabel, lookups);
+    });
+
     document.getElementById('rpt-clear').addEventListener('click', () => {
       const _t  = new Date();
       const _f  = new Date(_t);

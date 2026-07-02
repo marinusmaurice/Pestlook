@@ -1,4 +1,5 @@
 import { escapeHtml } from '../../utils/helpers.js';
+import { getUser } from '../../utils/storage.js';
 
 /* ── KPI card tooltip (single floating element, fixed-position) ─────────────── */
 let _kpiTipEl = null;
@@ -264,6 +265,76 @@ export function tableCard(thead, tbody, title = '', subtitle = '') {
 
 export function emptyState(icon, title, desc = '') {
   return `<div class="empty-state"><div class="empty-icon">${icon}</div><h3>${title}</h3>${desc ? `<p>${desc}</p>` : ''}</div>`;
+}
+
+const LOGO_SVG = `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" width="36" height="36" style="display:block;flex-shrink:0;">
+  <rect width="32" height="32" rx="5" fill="#1e5c2e"/>
+  <circle cx="13.5" cy="13" r="7.5" fill="none" stroke="#ffffff" stroke-width="2.3"/>
+  <line x1="19.2" y1="18.7" x2="25" y2="24.5" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round"/>
+  <ellipse cx="13.5" cy="13" rx="3.8" ry="4.7" fill="#ffffff"/>
+  <line x1="13.5" y1="8.5" x2="13.5" y2="17.5" stroke="#1e5c2e" stroke-width="1" stroke-linecap="round"/>
+  <line x1="13.5" y1="11" x2="15.5" y2="10" stroke="#1e5c2e" stroke-width="0.7" stroke-linecap="round"/>
+  <line x1="13.5" y1="13" x2="16" y2="12" stroke="#1e5c2e" stroke-width="0.7" stroke-linecap="round"/>
+  <line x1="13.5" y1="15" x2="15.5" y2="14" stroke="#1e5c2e" stroke-width="0.7" stroke-linecap="round"/>
+  <line x1="13.5" y1="11" x2="11.5" y2="10" stroke="#1e5c2e" stroke-width="0.7" stroke-linecap="round"/>
+  <line x1="13.5" y1="13" x2="11" y2="12" stroke="#1e5c2e" stroke-width="0.7" stroke-linecap="round"/>
+  <line x1="13.5" y1="15" x2="11.5" y2="14" stroke="#1e5c2e" stroke-width="0.7" stroke-linecap="round"/>
+</svg>`;
+
+export function printReport(reportTitle, rawData) {
+  const user = getUser();
+  const userName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email : 'Unknown';
+  const now = new Date().toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+  const filterParts = [];
+  if (filters.from || filters.to) {
+    const from = filters.from || '—';
+    const to   = filters.to   || '—';
+    filterParts.push(`Date: ${from} → ${to}`);
+  }
+  if (filters.farmId && rawData?.farms) {
+    const f = rawData.farms.find(x => String(x.id) === filters.farmId);
+    if (f) filterParts.push(`Farm: ${f.name}`);
+  }
+  if (filters.fieldId && rawData?.fields) {
+    const f = rawData.fields.find(x => String(x.id) === filters.fieldId);
+    if (f) filterParts.push(`Field: ${f.name}`);
+  }
+  if (filters.scoutId) filterParts.push(`Scout: ${filters.scoutId}`);
+
+  const existing = document.getElementById('pl-print-header');
+  if (existing) existing.remove();
+
+  const header = document.createElement('div');
+  header.id = 'pl-print-header';
+  header.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+      ${LOGO_SVG}
+      <div>
+        <div style="font-family:serif;font-size:1.3rem;font-weight:700;color:#1e5c2e;line-height:1.1;">
+          Pest<span style="color:#e5a52f;">Look</span>
+        </div>
+        <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;color:#5a6b62;">Field Intelligence</div>
+      </div>
+      <div style="margin-left:auto;text-align:right;">
+        <div style="font-size:1rem;font-weight:700;color:#1f2a26;">${escapeHtml(reportTitle)}</div>
+        <div style="font-size:0.72rem;color:#5a6b62;margin-top:2px;">Printed by ${escapeHtml(userName)} · ${escapeHtml(now)}</div>
+      </div>
+    </div>
+    <div style="border-top:2px solid #2b6e4f;padding-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+      ${filterParts.length
+        ? filterParts.map(p => `<span style="background:#eaf7f0;border:1px solid #c0ddd0;border-radius:4px;padding:2px 8px;font-size:0.72rem;color:#1e5c2e;">${escapeHtml(p)}</span>`).join('')
+        : '<span style="font-size:0.72rem;color:#5a6b62;">No filters applied — showing all data</span>'
+      }
+    </div>`;
+
+  const body = document.getElementById('rpt-body');
+  if (body) body.prepend(header);
+
+  window.print();
+
+  // Remove after print dialog closes
+  setTimeout(() => header.remove(), 1000);
 }
 
 export function filterBadge(rawData) {
