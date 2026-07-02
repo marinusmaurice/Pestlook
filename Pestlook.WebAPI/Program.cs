@@ -84,7 +84,17 @@ app.UseStaticFiles(new StaticFileOptions
     ContentTypeProvider = spaContentTypes,
     OnPrepareResponse = ctx =>
     {
-        ctx.Context.Response.Headers["Cache-Control"] = "no-store";
+        var path = ctx.File.Name;
+        // JS and CSS always revalidate — catches sub-module imports that can't carry ?v= stamps
+        if (path.EndsWith(".js", StringComparison.OrdinalIgnoreCase) ||
+            path.EndsWith(".css", StringComparison.OrdinalIgnoreCase))
+        {
+            ctx.Context.Response.Headers["Cache-Control"] = "no-cache";
+        }
+        else
+        {
+            ctx.Context.Response.Headers["Cache-Control"] = "no-store";
+        }
     }
 });
 
@@ -115,10 +125,14 @@ if (app.Environment.IsDevelopment())
 }
 
 // ── SPA fallback — non-API, non-file requests serve index.html ────────────────
+var buildStamp = File.GetLastWriteTimeUtc(typeof(Program).Assembly.Location)
+    .ToString("yyyyMMddHHmmss");
+var indexHtmlPath = Path.Combine(spaRoot, "index.html");
+var indexHtml = File.ReadAllText(indexHtmlPath).Replace("__BUILD__", buildStamp);
 app.MapFallback(async context =>
 {
     context.Response.ContentType = "text/html";
-    await context.Response.SendFileAsync(Path.Combine(spaRoot, "index.html"));
+    await context.Response.WriteAsync(indexHtml);
 });
 
 // ── Database migration ────────────────────────────────────────────────────────
