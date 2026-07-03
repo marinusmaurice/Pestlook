@@ -6,6 +6,7 @@ import { getPests }          from '../api/pests.js';
 import { showToast }         from '../components/toast.js';
 import { tag }               from '../components/tag.js';
 import { escapeHtml, formatDateTime } from '../utils/helpers.js';
+import { getUser }           from '../utils/storage.js';
 import { navigate }          from '../utils/router.js';
 
 /* ── state ─────────────────────────────────────────────────────────────────── */
@@ -273,7 +274,7 @@ function renderTable(container) {
       <thead style="position:sticky;top:0;z-index:1;background:var(--surface);">
         <tr>
           <th style="width:36px;">#</th>
-          <th>Date</th>
+          <th title="All times shown in your account timezone">Date <span style="font-size:0.65rem;font-weight:400;color:var(--text-dim);white-space:nowrap;">(${getUser()?.timezone ?? 'UTC'})</span></th>
           <th>Farm</th>
           <th>Field</th>
           <th>Scout</th>

@@ -251,7 +251,7 @@ export async function renderNeighbourRisk(container, data, onRadiusChange, looku
             const col   = urgencyColor(nbr.daysSinceLastSession);
             const label = urgencyLabel(nbr.daysSinceLastSession);
             return `
-            <div style="padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;border-left:3px solid ${col};">
+            <div style="padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
               <div style="font-size:0.85rem;font-weight:600;color:var(--text);">${escapeHtml(nbr.fieldName)}</div>
               <div style="font-size:0.75rem;color:var(--text-dim);">${escapeHtml(nbr.farmName)}</div>
               <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:0.75rem;">

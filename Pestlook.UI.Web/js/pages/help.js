@@ -704,7 +704,7 @@ const GROUPS = [
       },
       {
         heading: 'Date range filter',
-        body: 'Use the <strong>From</strong> and <strong>To</strong> date pickers to limit results to a specific calendar window. Leave both blank to return all observations. Dates are interpreted in your local timezone.',
+        body: 'Use the <strong>From</strong> and <strong>To</strong> date pickers to limit results to a specific calendar window. Leave both blank to return all observations. Dates are matched against the <strong>session completion time</strong> (i.e. when the scout marked the session done), converted to your account timezone. This means a session completed just after midnight in your timezone is correctly attributed to that new calendar day — even if the underlying UTC timestamp is technically the previous day.',
       },
       {
         heading: 'Farm & Field filters (cascading)',
@@ -720,7 +720,7 @@ const GROUPS = [
       },
       {
         heading: 'Result table columns',
-        body: 'Each row represents a single observation item. Columns are: <strong>#</strong> (row number for the current page), <strong>Date</strong> (ObservedAt timestamp if available, otherwise CreatedAt), <strong>Farm</strong>, <strong>Field</strong>, <strong>Scout</strong>, <strong>Type</strong> (Trap or AdHoc + Planned/Unplanned badge), <strong>Trap</strong>, <strong>Pest</strong>, <strong>Mode</strong> (Count or Presence), <strong>Count</strong> (red and bold if threshold exceeded), <strong>Threshold</strong>, <strong>Present</strong> (for presence-mode observations), <strong>Life Stage</strong>, <strong>Notes</strong>, <strong>Photos</strong>, and <strong>Session</strong> (link to the parent session).',
+        body: 'Each row represents a single observation item. Columns are: <strong>#</strong> (row number for the current page), <strong>Date</strong> (the observation\'s recorded timestamp, displayed in your account timezone — the timezone is shown in the column header), <strong>Farm</strong>, <strong>Field</strong>, <strong>Scout</strong>, <strong>Type</strong> (Trap or AdHoc + Planned/Unplanned badge), <strong>Trap</strong>, <strong>Pest</strong>, <strong>Mode</strong> (Count or Presence), <strong>Count</strong> (red and bold if threshold exceeded), <strong>Threshold</strong>, <strong>Present</strong> (for presence-mode observations), <strong>Life Stage</strong>, <strong>Notes</strong>, <strong>Photos</strong>, and <strong>Session</strong> (link to the parent session).',
       },
       {
         heading: 'Threshold breaches',

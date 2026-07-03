@@ -198,7 +198,20 @@ public static class WebApplicationExtensions
 
         var logger = app.Services.GetRequiredService<ILogger<WebApplication>>();
 
-        DevDataSeeder.SeedAsync(app.Services).GetAwaiter().GetResult();
+        var seedMode = app.Configuration.GetValue<string>("DevSeed:Mode") ?? "demo";
+
+        switch (seedMode.ToLowerInvariant())
+        {
+            case "single-pest":
+                logger.LogInformation("DevSeed: running DataSeederSinglePest (mode=single-pest).");
+                DataSeederSinglePest.SeedAsync(app.Services).GetAwaiter().GetResult();
+                break;
+
+            default: // "demo"
+                logger.LogInformation("DevSeed: running DevDataSeeder (mode=demo).");
+                DevDataSeeder.SeedAsync(app.Services).GetAwaiter().GetResult();
+                break;
+        }
 
         logger.LogInformation("Dev/demo data seeding complete.");
 

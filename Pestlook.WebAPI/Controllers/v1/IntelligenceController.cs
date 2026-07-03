@@ -103,8 +103,8 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                      && o.Count > 0
                      && o.Latitude  != null
                      && o.Longitude != null
-                     && o.Session.CompletedAt >= start
-                     && o.Session.CompletedAt <= end);
+                     && (o.ObservedAt ?? o.Session.CompletedAt) >= start
+                     && (o.ObservedAt ?? o.Session.CompletedAt) <= end);
 
         if (farmId.HasValue)  obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
         if (fieldId.HasValue) obsQ = obsQ.Where(o => o.Session.FieldId == fieldId);
@@ -137,8 +137,8 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                      && o.Count > 0
                      && (o.Latitude == null || o.Longitude == null)
                      && o.Session.FieldId != null
-                     && o.Session.CompletedAt >= start
-                     && o.Session.CompletedAt <= end
+                     && (o.ObservedAt ?? o.Session.CompletedAt) >= start
+                     && (o.ObservedAt ?? o.Session.CompletedAt) <= end
                      && o.Session.Field != null);
 
         if (farmId.HasValue)  noGpsQ = noGpsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
@@ -407,8 +407,8 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             .Where(o => !o.IsUnknownPest
                      && o.PestId != null
                      && o.Count > 0
-                     && o.Session.CompletedAt >= start
-                     && o.Session.CompletedAt <= end
+                     && (o.ObservedAt ?? o.Session.CompletedAt) >= start
+                     && (o.ObservedAt ?? o.Session.CompletedAt) <= end
                      && o.Session.FieldId != null);
 
         if (farmId.HasValue)  obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
@@ -571,8 +571,8 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             .Where(o => !o.IsUnknownPest
                      && o.PestId != null
                      && o.Count > 0
-                     && o.Session.CompletedAt >= start
-                     && o.Session.CompletedAt <= end
+                     && (o.ObservedAt ?? o.Session.CompletedAt) >= start
+                     && (o.ObservedAt ?? o.Session.CompletedAt) <= end
                      && o.Session.FieldId != null);
 
         if (farmId.HasValue)  obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
@@ -735,8 +735,8 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
 
         // ── 2. Load threshold-breaching observations in period ────────────
         var breachObs = await db.SessionObservations
-            .Where(o => o.Session!.CompletedAt >= start
-                     && o.Session!.CompletedAt <= end
+            .Where(o => (o.ObservedAt ?? o.Session!.CompletedAt) >= start
+                     && (o.ObservedAt ?? o.Session!.CompletedAt) <= end
                      && o.Count > o.ThresholdCount
                      && o.Count.HasValue
                      && o.ThresholdCount.HasValue
@@ -751,7 +751,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 FieldId   = o.Session!.FieldId!.Value,
                 Count     = o.Count!.Value,
                 Threshold = o.ThresholdCount!.Value,
-                At        = o.Session!.CompletedAt,
+                At        = o.ObservedAt ?? o.Session!.CompletedAt,
                 ObsLat    = o.Latitude,
                 ObsLng    = o.Longitude,
             })
@@ -911,8 +911,8 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
         // requires all farms' data. It is used below to post-filter results to
         // outbreaks that include the selected farm as a participant.
         var raw = await db.SessionObservations
-            .Where(o => o.Session!.CompletedAt >= start
-                     && o.Session!.CompletedAt <= end
+            .Where(o => (o.ObservedAt ?? o.Session!.CompletedAt) >= start
+                     && (o.ObservedAt ?? o.Session!.CompletedAt) <= end
                      && o.Count.HasValue
                      && o.PestId.HasValue
                      && o.Session!.FarmId.HasValue
@@ -1251,7 +1251,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
 
         var obsQ = db.SessionObservations
             .Where(o => !o.IsUnknownPest && o.PestId != null && o.Count > 0
-                     && o.Session.CompletedAt >= start && o.Session.CompletedAt <= end
+                     && (o.ObservedAt ?? o.Session.CompletedAt) >= start && (o.ObservedAt ?? o.Session.CompletedAt) <= end
                      && o.Session.FieldId != null);
 
         if (farmId.HasValue)  obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
@@ -1395,7 +1395,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
         // Observations for growth rate calculation
         var obsQ = db.SessionObservations
             .Where(o => !o.IsUnknownPest && o.PestId != null && o.Count > 0
-                     && o.Session.CompletedAt >= start && o.Session.CompletedAt <= end
+                     && (o.ObservedAt ?? o.Session.CompletedAt) >= start && (o.ObservedAt ?? o.Session.CompletedAt) <= end
                      && o.Session.FieldId != null);
         if (farmId.HasValue)  obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
         if (fieldId.HasValue) obsQ = obsQ.Where(o => o.Session.FieldId == fieldId);
@@ -1534,7 +1534,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
 
         var obsQ = db.SessionObservations
             .Where(o => !o.IsUnknownPest && o.PestId != null && o.Count > 0
-                     && o.Session.CompletedAt >= start && o.Session.CompletedAt <= end);
+                     && (o.ObservedAt ?? o.Session.CompletedAt) >= start && (o.ObservedAt ?? o.Session.CompletedAt) <= end);
         if (farmId.HasValue)  obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
         if (fieldId.HasValue) obsQ = obsQ.Where(o => o.Session.FieldId == fieldId);
 
@@ -1650,7 +1650,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
 
         var obsQ = db.SessionObservations
             .Where(o => !o.IsUnknownPest && o.PestId != null && o.Count > 0
-                     && o.Session.CompletedAt >= start && o.Session.CompletedAt <= end
+                     && (o.ObservedAt ?? o.Session.CompletedAt) >= start && (o.ObservedAt ?? o.Session.CompletedAt) <= end
                      && o.Session.TemperatureCelsius != null);
 
         if (farmId.HasValue)  obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
@@ -1781,7 +1781,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
 
         var obs = await db.SessionObservations
             .Where(o => o.TrapId != null && trapIds.Contains(o.TrapId!.Value)
-                     && o.Count > 0 && o.Session.CompletedAt >= start && o.Session.CompletedAt <= end)
+                     && o.Count > 0 && (o.ObservedAt ?? o.Session.CompletedAt) >= start && (o.ObservedAt ?? o.Session.CompletedAt) <= end)
             .Select(o => new
             {
                 TrapId      = o.TrapId!.Value,
@@ -1901,7 +1901,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
         var obsQ = db.SessionObservations
             .Where(o => !o.IsUnknownPest && o.PestId != null && o.Count > 0
                      && o.ThresholdCount != null && o.ThresholdCount > 0
-                     && o.Session.CompletedAt >= start && o.Session.CompletedAt <= end
+                     && (o.ObservedAt ?? o.Session.CompletedAt) >= start && (o.ObservedAt ?? o.Session.CompletedAt) <= end
                      && o.Session.FieldId != null);
 
         if (farmId.HasValue)  obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
@@ -2061,7 +2061,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
         // ── 1. Observation trend per field
         var obsQ = db.SessionObservations
             .Where(o => !o.IsUnknownPest && o.PestId != null && o.Count > 0
-                     && o.Session.CompletedAt >= start && o.Session.CompletedAt <= end
+                     && (o.ObservedAt ?? o.Session.CompletedAt) >= start && (o.ObservedAt ?? o.Session.CompletedAt) <= end
                      && o.Session.FieldId != null);
 
         if (farmId.HasValue)  obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
@@ -2407,7 +2407,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             .Where(o => !o.IsUnknownPest && o.PestId != null
                      && o.Count != null && o.ThresholdCount != null && o.ThresholdCount > 0
                      && o.Count > o.ThresholdCount
-                     && o.Session.CompletedAt >= start && o.Session.CompletedAt <= end
+                     && (o.ObservedAt ?? o.Session.CompletedAt) >= start && (o.ObservedAt ?? o.Session.CompletedAt) <= end
                      && o.Session.FieldId != null);
 
         if (farmId.HasValue)  obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
@@ -2560,7 +2560,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
         // ── 3. Pest pressure per field — aggregated in SQL ───────────────────
         var obsBaseQ = db.SessionObservations
             .Where(o => !o.IsUnknownPest && o.PestId != null && o.Count > 0
-                     && o.Session.CompletedAt >= start && o.Session.CompletedAt <= end
+                     && (o.ObservedAt ?? o.Session.CompletedAt) >= start && (o.ObservedAt ?? o.Session.CompletedAt) <= end
                      && o.Session.FieldId != null);
 
         if (farmId.HasValue) obsBaseQ = obsBaseQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
@@ -2676,7 +2676,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
 
         var obsQ = db.SessionObservations
             .Where(o => !o.IsUnknownPest && o.PestId != null && o.Count > 0
-                     && o.Session.CompletedAt >= start && o.Session.CompletedAt <= end
+                     && (o.ObservedAt ?? o.Session.CompletedAt) >= start && (o.ObservedAt ?? o.Session.CompletedAt) <= end
                      && o.Session.TemperatureCelsius != null);
 
         if (farmId.HasValue)  obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
@@ -2828,7 +2828,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
         // Pull obs for pest count signal
         var obsQ = db.SessionObservations
             .Where(o => !o.IsUnknownPest && o.PestId != null && o.Count > 0
-                     && o.Session.CompletedAt >= start && o.Session.CompletedAt <= end
+                     && (o.ObservedAt ?? o.Session.CompletedAt) >= start && (o.ObservedAt ?? o.Session.CompletedAt) <= end
                      && o.Session.TemperatureCelsius != null);
 
         if (farmId.HasValue)  obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
@@ -2997,7 +2997,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
         var obsQ = db.SessionObservations
             .Where(o => !o.IsUnknownPest && o.PestId != null
                      && o.ThresholdCount != null && o.ThresholdCount > 0
-                     && o.Session.CompletedAt >= start && o.Session.CompletedAt <= end
+                     && (o.ObservedAt ?? o.Session.CompletedAt) >= start && (o.ObservedAt ?? o.Session.CompletedAt) <= end
                      && o.Session.TemperatureCelsius != null
                      && o.Session.FieldId != null);
 
@@ -3166,7 +3166,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
         // Weekly GPS centroids per pest (same as spread-direction)
         var obsQ = db.SessionObservations
             .Where(o => !o.IsUnknownPest && o.PestId != null && o.Count > 0
-                     && o.Session.CompletedAt >= start && o.Session.CompletedAt <= end
+                     && (o.ObservedAt ?? o.Session.CompletedAt) >= start && (o.ObservedAt ?? o.Session.CompletedAt) <= end
                      && o.Session.DeletedAt == null
                      && (o.Session.Farm!.Latitude != null || o.Session.Field!.Farm!.Latitude != null));
 
@@ -3348,8 +3348,8 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                      && o.Session.CompletedAt != null
                      && o.Session.DeletedAt == null
                      && o.Session.FieldId != null
-                     && o.Session.CompletedAt >= start
-                     && o.Session.CompletedAt <= end);
+                     && (o.ObservedAt ?? o.Session.CompletedAt) >= start
+                     && (o.ObservedAt ?? o.Session.CompletedAt) <= end);
 
         if (farmId.HasValue)  periodQ = periodQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
         if (fieldId.HasValue) periodQ = periodQ.Where(o => o.Session.FieldId == fieldId);
@@ -3542,7 +3542,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
 
         var obsQ = db.SessionObservations
             .Where(o => !o.IsUnknownPest && o.PestId != null && o.Count > 0
-                     && o.Session.CompletedAt >= start && o.Session.CompletedAt <= end
+                     && (o.ObservedAt ?? o.Session.CompletedAt) >= start && (o.ObservedAt ?? o.Session.CompletedAt) <= end
                      && o.Session.DeletedAt == null);
 
         if (farmId.HasValue) obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
@@ -3702,8 +3702,8 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             .Where(o => !o.IsUnknownPest && o.PestId != null
                      && o.ThresholdCount != null && o.ThresholdCount > 0
                      && o.Session.CompletedAt != null
-                     && o.Session.CompletedAt >= start
-                     && o.Session.CompletedAt < end
+                     && (o.ObservedAt ?? o.Session.CompletedAt) >= start
+                     && (o.ObservedAt ?? o.Session.CompletedAt) < end
                      && o.Session.DeletedAt == null
                      && o.Session.FieldId != null);
 
@@ -3897,8 +3897,8 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                      && o.PestId != null
                      && o.Session.FieldId != null
                      && o.Session.CompletedAt != null
-                     && o.Session.CompletedAt >= start
-                     && o.Session.CompletedAt <= end);
+                     && (o.ObservedAt ?? o.Session.CompletedAt) >= start
+                     && (o.ObservedAt ?? o.Session.CompletedAt) <= end);
 
         if (farmId.HasValue)  q = q.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
         if (fieldId.HasValue) q = q.Where(o => o.Session.FieldId == fieldId);
@@ -4022,8 +4022,8 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 .Where(o => !o.IsUnknownPest
                          && o.PestId != null
                          && o.Session.CompletedAt != null
-                         && o.Session.CompletedAt >= start
-                         && o.Session.CompletedAt <= end
+                         && (o.ObservedAt ?? o.Session.CompletedAt) >= start
+                         && (o.ObservedAt ?? o.Session.CompletedAt) <= end
                          && o.Latitude  != null
                          && o.Longitude != null);
 

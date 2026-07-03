@@ -235,17 +235,57 @@ export async function renderCrossFarmCorrelation(container, data, onMinFarmsChan
         plugins: {
           legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
           tooltip: {
-            callbacks: {
-              title: items => 'Week of ' + items[0].label,
-              footer: items => {
-                const total = items.reduce((s, i) => s + (i.raw ?? 0), 0);
-                const wkRaw = allWeekLabels[items[0].dataIndex];
-                const isSpike = spikeWeeks.has(wkRaw);
-                return [
-                  `Total: ${total.toLocaleString()}`,
-                  isSpike ? '⚠ Regional spike week' : '',
-                ].filter(Boolean).join('\n');
-              },
+            enabled: false,
+            external({ chart, tooltip }) {
+              let el = document.getElementById('cf-ext-tooltip');
+              if (!el) {
+                el = document.createElement('div');
+                el.id = 'cf-ext-tooltip';
+                el.style.cssText = [
+                  'position:absolute;pointer-events:none;z-index:9999',
+                  'background:rgba(20,20,20,0.92);color:#fff;border-radius:8px',
+                  'padding:0;font-size:0.75rem;min-width:180px;max-width:240px',
+                  'box-shadow:0 4px 16px rgba(0,0,0,0.4)',
+                ].join(';');
+                chart.canvas.parentElement.style.position = 'relative';
+                chart.canvas.parentElement.appendChild(el);
+              }
+
+              if (tooltip.opacity === 0) { el.style.display = 'none'; return; }
+
+              const wkRaw   = allWeekLabels[tooltip.dataPoints?.[0]?.dataIndex];
+              const isSpike = spikeWeeks.has(wkRaw);
+              const total   = tooltip.dataPoints?.reduce((s, p) => s + (p.raw ?? 0), 0) ?? 0;
+
+              const rows = (tooltip.dataPoints ?? [])
+                .slice()
+                .sort((a, b) => (b.raw ?? 0) - (a.raw ?? 0))
+                .map(p => {
+                  const color = p.dataset.borderColor ?? '#888';
+                  return `<div style="display:flex;align-items:center;gap:6px;padding:2px 0;">
+                    <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${color};flex-shrink:0;"></span>
+                    <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.dataset.label}</span>
+                    <span style="font-weight:700;margin-left:4px;">${p.raw ?? 0}</span>
+                  </div>`;
+                }).join('');
+
+              el.innerHTML = `
+                <div style="padding:8px 10px 6px;border-bottom:1px solid rgba(255,255,255,0.15);font-weight:700;font-size:0.78rem;">
+                  Week of ${tooltip.dataPoints?.[0]?.label ?? ''}
+                </div>
+                <div style="max-height:220px;overflow-y:auto;padding:6px 10px;">${rows}</div>
+                <div style="padding:5px 10px 8px;border-top:1px solid rgba(255,255,255,0.15);color:#ccc;font-size:0.7rem;">
+                  Total: ${total.toLocaleString()}${isSpike ? ' · ⚠ Regional spike week' : ''}
+                </div>`;
+
+              el.style.display = 'block';
+              const { offsetLeft: x, offsetTop: y } = chart.canvas;
+              const tipW = el.offsetWidth || 220;
+              const canvasW = chart.canvas.offsetWidth;
+              let left = x + tooltip.caretX + 12;
+              if (left + tipW > canvasW) left = x + tooltip.caretX - tipW - 12;
+              el.style.left = left + 'px';
+              el.style.top  = (y + tooltip.caretY - 20) + 'px';
             },
           },
         },

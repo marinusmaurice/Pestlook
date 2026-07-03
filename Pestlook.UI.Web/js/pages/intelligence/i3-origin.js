@@ -219,15 +219,15 @@ export async function renderOriginDetection(el, data, lookups = {}) {
         : kpiCard('Farthest Spread', '—', 'no GPS data for distance', '', 'Requires GPS coordinates on monitoring points to calculate spread distance.'),
     ])}
 
-    <!-- Pest selector -->
+    <!-- Pest selector (only shown when multiple pests are returned) -->
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
-      <label style="font-size:0.82rem;color:var(--text-dim);display:flex;align-items:center;gap:6px;">
+      ${origins.length > 1 ? `<label style="font-size:0.82rem;color:var(--text-dim);display:flex;align-items:center;gap:6px;">
         Show pest
         <select id="origin-pest-sel" class="input-field"
           style="margin-top:0;width:auto;padding:5px 10px;font-size:0.82rem;">
           ${pestOpts}
         </select>
-      </label>
+      </label>` : ''}
       <span id="origin-confidence-badge"></span>
     </div>
 
@@ -290,7 +290,7 @@ export async function renderOriginDetection(el, data, lookups = {}) {
 
     // Update confidence badge
     const badge = document.getElementById('origin-confidence-badge');
-    if (badge) badge.innerHTML = `Confidence: ${confidenceBadge(origin.outbreakConfidence)}`;
+    if (badge) badge.innerHTML = `<span title="Outbreak confidence is scored based on two factors: whether the origin field's pest count was above the action threshold, and how quickly the pest reached a second field. High = above threshold and fast spread. Moderate = one factor present. Low = within threshold and slow spread." style="cursor:help;font-size:0.82rem;color:var(--text-dim);">Confidence &#9432;</span>: ${confidenceBadge(origin.outbreakConfidence)}`;
 
     // Update chain list
     const list = document.getElementById('origin-chain-list');
@@ -321,10 +321,11 @@ export async function renderOriginDetection(el, data, lookups = {}) {
     // Sync selector
     const sel = document.getElementById('origin-pest-sel');
     if (sel) sel.value = String(origin.pestId);
+
   }
 
   /* ── Wire pest selector ─────────────────────────────────────────────────── */
-  document.getElementById('origin-pest-sel').addEventListener('change', e => {
+  document.getElementById('origin-pest-sel')?.addEventListener('change', e => {
     const found = origins.find(o => String(o.pestId) === e.target.value);
     if (found) showOriginDetail(found);
   });

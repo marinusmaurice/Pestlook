@@ -189,7 +189,8 @@ public sealed class AnalyticsController(ApplicationDbContext db, IUserTimezoneSe
 
         if (from.HasValue || to.HasValue)
         {
-            q = q.Where(o => o.CreatedAt >= start && o.CreatedAt <= end);
+            q = q.Where(o => (o.ObservedAt ?? o.CreatedAt) >= start
+                          && (o.ObservedAt ?? o.CreatedAt) <= end);
         }
         if (farmId.HasValue)
             q = q.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
@@ -289,7 +290,7 @@ public sealed class AnalyticsController(ApplicationDbContext db, IUserTimezoneSe
         // using sessQ.SelectMany(ss => ss.SessionObservations...) — which issues one
         // correlated subquery per session row and was causing 20-second runtimes.
         var obsBase = db.SessionObservations
-            .Where(o => o.Session.CompletedAt >= start && o.Session.CompletedAt <= end);
+            .Where(o => (o.ObservedAt ?? o.Session.CompletedAt) >= start && (o.ObservedAt ?? o.Session.CompletedAt) <= end);
         if (farmId.HasValue)  obsBase = obsBase.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
         if (fieldId.HasValue) obsBase = obsBase.Where(o => o.Session.FieldId == fieldId);
         if (scoutId != null)  obsBase = obsBase.Where(o => o.Session.ScouterId == scoutId ||
@@ -382,8 +383,8 @@ public sealed class AnalyticsController(ApplicationDbContext db, IUserTimezoneSe
             .Where(o => !o.IsUnknownPest
                      && o.ThresholdCount != null
                      && o.Count > o.ThresholdCount
-                     && o.Session.CompletedAt >= start
-                     && o.Session.CompletedAt <= end);
+                     && (o.ObservedAt ?? o.Session.CompletedAt) >= start
+                     && (o.ObservedAt ?? o.Session.CompletedAt) <= end);
 
         if (farmId.HasValue)  obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
         if (fieldId.HasValue) obsQ = obsQ.Where(o => o.Session.FieldId == fieldId);
@@ -443,7 +444,7 @@ public sealed class AnalyticsController(ApplicationDbContext db, IUserTimezoneSe
         var (start, end) = ResolveRange(dateRange, from, to, tz);
 
         var obsQ = db.SessionObservations
-            .Where(o => o.Session.CompletedAt >= start && o.Session.CompletedAt <= end);
+            .Where(o => (o.ObservedAt ?? o.Session.CompletedAt) >= start && (o.ObservedAt ?? o.Session.CompletedAt) <= end);
 
         if (farmId.HasValue)  obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
         if (fieldId.HasValue) obsQ = obsQ.Where(o => o.Session.FieldId == fieldId);
@@ -631,8 +632,8 @@ public sealed class AnalyticsController(ApplicationDbContext db, IUserTimezoneSe
         var obsQ = db.SessionObservations
             .Where(o => !o.IsUnknownPest
                      && o.PestId != null
-                     && o.Session.CompletedAt >= start
-                     && o.Session.CompletedAt <= end);
+                     && (o.ObservedAt ?? o.Session.CompletedAt) >= start
+                     && (o.ObservedAt ?? o.Session.CompletedAt) <= end);
 
         if (farmId.HasValue)  obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
         if (fieldId.HasValue) obsQ = obsQ.Where(o => o.Session.FieldId == fieldId);
@@ -719,8 +720,8 @@ public sealed class AnalyticsController(ApplicationDbContext db, IUserTimezoneSe
         var obsQ = db.SessionObservations
             .Where(o => o.TrapId != null
                      && trapIds.Contains(o.TrapId!.Value)
-                     && o.Session.CompletedAt >= start
-                     && o.Session.CompletedAt <= end);
+                     && (o.ObservedAt ?? o.Session.CompletedAt) >= start
+                     && (o.ObservedAt ?? o.Session.CompletedAt) <= end);
 
         if (scoutId != null) obsQ = obsQ.Where(o => o.Session.ScouterId == scoutId ||
             (o.Session.Scouter != null && o.Session.Scouter.FirstName + " " + o.Session.Scouter.LastName == scoutId));
