@@ -73,12 +73,14 @@ function initSparkTooltips(el) {
     const velLabel  = velocity > 0 ? '▲ Spreading' : velocity < 0 ? '▼ Retreating' : '→ Stable';
     const velStr    = velocity > 0 ? `+${velocity}` : `${velocity}`;
 
+    const weekEnd = new Date(week);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    const fmt = d => d.toLocaleDateString(undefined, { day:'2-digit', month:'short' });
     tip.innerHTML = `
-      <div style="font-weight:700;margin-bottom:4px;">Week of ${week}</div>
+      <div style="font-weight:700;margin-bottom:4px;">${fmt(new Date(week))} – ${fmt(weekEnd)}</div>
       <div>Active fields: <strong>${active}</strong></div>
       <div>Velocity: <strong style="color:${velColour};">${velStr} fields</strong></div>
       <div style="color:${velColour};">${velLabel}</div>
-      ${score != null ? `<div style="color:var(--text-dim);font-size:0.7rem;margin-top:2px;">Score: ${score.toFixed(1)}</div>` : ''}
     `;
     tip.style.display = 'block';
     tip.style.left = (e.clientX + 14) + 'px';
@@ -105,7 +107,7 @@ export async function renderSpreadVelocity(el, data) {
   const velFmt = v => v > 0 ? `+${v}` : `${v}`;
 
   el.innerHTML = `
-    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Measures how actively each pest is spreading field-to-field right now. <strong>Velocity</strong> is the week-over-week change in the number of distinct fields with at least one active observation. A positive velocity means more fields are affected this week than last; negative means the pest is retreating. This remains meaningful for established pests as it tracks seasonal flare-ups and post-treatment recovery.</div>
+    <div style="font-size:0.72rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">Measures how actively each pest is spreading field-to-field. <strong>Velocity</strong> is the week-over-week change in the number of distinct fields with at least one active observation. A positive velocity means more fields are affected this week than last; negative means the pest is retreating. <em>Date filters are automatically snapped to complete week boundaries</em> so velocity comparisons are always based on full weeks.</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;">
       <div class="card card-p has-kpi-tip" style="text-align:center;" data-kpi-tip="Total number of pest species with enough weekly observation data to calculate a field-to-field spread velocity.">
         <div style="font-size:1.8rem;font-weight:700;">${summary.totalPests ?? 0}</div>
@@ -129,7 +131,8 @@ export async function renderSpreadVelocity(el, data) {
       background:var(--surface);border:1px solid var(--border);border-radius:8px;">
       <strong>Velocity</strong> = week-over-week change in fields actively reporting the pest. &nbsp;
       <span style="color:#c0392b;">■ Positive</span> = spreading into more fields. &nbsp;
-      <span style="color:#27ae60;">■ Negative</span> = retreating (fewer fields active this week).
+      <span style="color:#27ae60;">■ Negative</span> = retreating (fewer fields active this week). &nbsp;
+      Dates are snapped to complete weeks (Mon–Sun) for accurate comparison.
     </div>
 
     <div class="card card-p js-spark-table" style="overflow-x:auto;">

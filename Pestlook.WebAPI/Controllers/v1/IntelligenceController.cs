@@ -1112,13 +1112,20 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
         [FromQuery] Guid?     pestId,
         CancellationToken ct = default)
     {
-        var (windowStart, windowEnd) = await ResolveRangeAsync(from, to, 180, ct);
+        var (rawStart, rawEnd) = await ResolveRangeAsync(from, to, 180, ct);
+
+        // Snap to complete week boundaries so velocity comparisons are never based on partial weeks.
+        // windowStart is snapped back to the Monday of the chosen start week;
+        // windowEnd is snapped forward to the end of the Sunday of the chosen end week.
+        var svTzEarly      = await tzService.GetUserTimeZoneAsync(ct);
+        var windowStart    = TimeZoneInfo.ConvertTimeToUtc(Monday(TimeZoneInfo.ConvertTimeFromUtc(rawStart, svTzEarly)), svTzEarly);
+        var windowEnd      = TimeZoneInfo.ConvertTimeToUtc(Monday(TimeZoneInfo.ConvertTimeFromUtc(rawEnd, svTzEarly)).AddDays(7).AddTicks(-1), svTzEarly);
 
         var obsQ = db.SessionObservations
             .Where(o => !o.IsUnknownPest && o.PestId != null && o.Count > 0
                      && o.Session.FieldId  != null
-                     && o.Session.CompletedAt >= windowStart
-                     && o.Session.CompletedAt <= windowEnd);
+                     && (o.ObservedAt ?? o.Session.CompletedAt) >= windowStart
+                     && (o.ObservedAt ?? o.Session.CompletedAt) <= windowEnd);
 
         if (farmId.HasValue) obsQ = obsQ.Where(o => o.Session.FarmId == farmId || o.Session.Field!.FarmId == farmId);
         if (pestId.HasValue) obsQ = obsQ.Where(o => o.PestId == pestId);
@@ -1129,7 +1136,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 o.PestId,
                 PestName = o.Pest!.CommonName,
                 FieldId  = o.Session.FieldId!.Value,
-                SeenAt   = o.Session.CompletedAt!.Value,
+                SeenAt   = (o.ObservedAt ?? o.Session.CompletedAt)!.Value,
             })
             .ToListAsync(ct);
 
@@ -1140,8 +1147,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 summary = new { totalPests = 0, activelySpreading = 0, retreating = 0, contained = 0 },
             }));
 
-        var svTz = await tzService.GetUserTimeZoneAsync(ct);
-        DateTime SvMonday(DateTime utc) => Monday(TimeZoneInfo.ConvertTimeFromUtc(utc, svTz));
+        DateTime SvMonday(DateTime utc) => Monday(TimeZoneInfo.ConvertTimeFromUtc(utc, svTzEarly));
 
         // Build a contiguous week series across the full window
         var allWeeks = new List<DateTime>();
