@@ -120,7 +120,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 o.Count,
                 Lat           = o.Latitude!.Value,
                 Lng           = o.Longitude!.Value,
-                CompletedAt   = o.Session.CompletedAt!.Value,
+                CompletedAt   = (o.ObservedAt ?? o.Session.CompletedAt)!.Value,
                 FieldId       = o.Session.FieldId,
                 FieldName     = o.Session.Field != null ? o.Session.Field.Name : null,
                 FarmName      = o.Session.Farm  != null ? o.Session.Farm.Name
@@ -156,7 +156,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 o.Count,
                 FarmLat  = o.Session.Farm != null ? (double?)o.Session.Farm.Latitude : null,
                 FarmLng  = o.Session.Farm != null ? (double?)o.Session.Farm.Longitude : null,
-                CompletedAt   = o.Session.CompletedAt!.Value,
+                CompletedAt   = (o.ObservedAt ?? o.Session.CompletedAt)!.Value,
                 FieldId       = o.Session.FieldId,
                 FieldName     = o.Session.Field != null ? o.Session.Field.Name : null,
                 FarmName      = o.Session.Farm  != null ? o.Session.Farm.Name
@@ -433,7 +433,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 ObsLng      = o.Longitude,
                 FarmLat     = o.Session.Farm != null ? (double?)o.Session.Farm.Latitude  : null,
                 FarmLng     = o.Session.Farm != null ? (double?)o.Session.Farm.Longitude : null,
-                CompletedAt = o.Session.CompletedAt!.Value,
+                CompletedAt = (o.ObservedAt ?? o.Session.CompletedAt)!.Value,
             })
             .ToListAsync(ct);
 
@@ -924,7 +924,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 FarmId   = o.Session!.FarmId!.Value,
                 FarmName = o.Session!.Farm!.Name,
                 // Week index from epoch — groups all obs in the same Monday-Sunday bucket
-                WeekIndex = o.Session!.CompletedAt!.Value.DayOfYear / 7 + o.Session!.CompletedAt!.Value.Year * 54,
+                WeekIndex = (o.ObservedAt ?? o.Session!.CompletedAt)!.Value.DayOfYear / 7 + (o.ObservedAt ?? o.Session!.CompletedAt)!.Value.Year * 54,
             })
             .Select(g => new
             {
@@ -932,7 +932,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 g.Key.PestName,
                 g.Key.FarmId,
                 g.Key.FarmName,
-                WeekStart    = g.Min(o => o.Session!.CompletedAt!.Value),
+                WeekStart    = g.Min(o => (o.ObservedAt ?? o.Session!.CompletedAt)!.Value),
                 WeeklyCount  = g.Sum(o => o.Count!.Value),
                 MaxThreshold = g.Max(o => o.ThresholdCount),
             })
@@ -2082,7 +2082,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                             : o.Session.Field != null && o.Session.Field.Farm != null ? o.Session.Field.Farm.Name : null,
                 o.ThresholdCount,
                 o.Count,
-                CompletedAt = o.Session.CompletedAt!.Value,
+                ObsAt = (o.ObservedAt ?? o.Session.CompletedAt)!.Value,
                 IsAboveThreshold = o.Count > (o.ThresholdCount ?? int.MaxValue),
             })
             .ToListAsync(ct);
@@ -2132,7 +2132,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             var meta  = fieldMeta.GetValueOrDefault(fid, ("(unknown)", null));
 
             // ── Trend score (0–40 pts): OLS slope normalised by max threshold ──
-            var fieldObs = obsData.Where(o => o.FieldId == fid).OrderBy(o => o.CompletedAt).ToList();
+            var fieldObs = obsData.Where(o => o.FieldId == fid).OrderBy(o => o.ObsAt).ToList();
             double trendScore = 0;
             double growthRate = 0;
             int topPestCount  = 0;
@@ -2141,7 +2141,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             if (fieldObs.Count >= 2)
             {
                 var weekly = fieldObs
-                    .GroupBy(o => SpMonday(o.CompletedAt))
+                    .GroupBy(o => SpMonday(o.ObsAt))
                     .OrderBy(g => g.Key)
                     .Select(wg => wg.Sum(o => o.Count ?? 0))
                     .ToList();
@@ -2276,7 +2276,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 o.ThresholdCount,
                 PestThreshold = o.Pest!.ThresholdCount,
                 o.Count,
-                CompletedAt = o.Session.CompletedAt!.Value,
+                ObsAt = (o.ObservedAt ?? o.Session.CompletedAt)!.Value,
             })
             .ToListAsync(ct);
 
@@ -2300,7 +2300,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 // All sessions with obs for this pest+field, ordered chronologically
                 // (one "session day" = the user's local calendar day)
                 var bySession = grp
-                    .GroupBy(o => ToLocalDate(o.CompletedAt, tz))
+                    .GroupBy(o => ToLocalDate(o.ObsAt, tz))
                     .OrderBy(g => g.Key)
                     .Select(sg => (Date: sg.Key, Total: sg.Sum(o => o.Count ?? 0),
                         IsAbove: sg.Any(o => o.ThresholdCount.HasValue && (o.Count ?? 0) > o.ThresholdCount.Value)))
@@ -2434,7 +2434,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 o.ThresholdCount,
                 PestThreshold = o.Pest!.ThresholdCount,
                 o.Count,
-                BreachDate  = o.Session.CompletedAt!.Value,
+                BreachDate = (o.ObservedAt ?? o.Session.CompletedAt)!.Value,
             })
             .ToListAsync(ct);
 
@@ -2695,8 +2695,8 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 o.PestId,
                 PestName    = o.Pest!.CommonName,
                 o.Count,
-                Temp        = o.Session.TemperatureCelsius!.Value,
-                CompletedAt = o.Session.CompletedAt!.Value,
+                Temp   = o.Session.TemperatureCelsius!.Value,
+                ObsAt  = (o.ObservedAt ?? o.Session.CompletedAt)!.Value,
             })
             .ToListAsync(ct);
 
@@ -2860,14 +2860,14 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             {
                 o.PestId,
                 PestName  = o.Pest!.CommonName,
-                WeekIndex = o.Session.CompletedAt!.Value.DayOfYear / 7 + o.Session.CompletedAt!.Value.Year * 54,
+                WeekIndex = (o.ObservedAt ?? o.Session.CompletedAt)!.Value.DayOfYear / 7 + (o.ObservedAt ?? o.Session.CompletedAt)!.Value.Year * 54,
             })
             .Select(g => new
             {
                 g.Key.PestId,
                 g.Key.PestName,
                 g.Key.WeekIndex,
-                WeekStart  = g.Min(o => o.Session.CompletedAt!.Value),
+                WeekStart  = g.Min(o => (o.ObservedAt ?? o.Session.CompletedAt)!.Value),
                 WeeklyCount = g.Sum(o => o.Count ?? 0),
             })
             .ToListAsync(ct);
@@ -3019,7 +3019,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             {
                 o.PestId,
                 PestName    = o.Pest!.CommonName,
-                SessionDate = o.Session.CompletedAt!.Value.AddMinutes(tzOffsetMinutes).Date,
+                SessionDate = (o.ObservedAt ?? o.Session.CompletedAt)!.Value.AddMinutes(tzOffsetMinutes).Date,
                 Temp        = o.Session.TemperatureCelsius!.Value,
             })
             .Select(g => new
@@ -3185,7 +3185,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 o.PestId,
                 PestName = o.Pest!.CommonName,
                 o.Count,
-                o.Session.CompletedAt,
+                ObsAt    = (o.ObservedAt ?? o.Session.CompletedAt),
                 Lat = o.Session.Farm!.Latitude ?? o.Session.Field!.Farm!.Latitude ?? 0,
                 Lng = o.Session.Farm!.Longitude ?? o.Session.Field!.Farm!.Longitude ?? 0,
                 FieldId   = o.Session.FieldId,
@@ -3210,7 +3210,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             .Select(pg =>
             {
                 var weeks = pg
-                    .GroupBy(o => CzMonday(o.CompletedAt!.Value))
+                    .GroupBy(o => CzMonday(o.ObsAt!.Value))
                     .OrderBy(g => g.Key)
                     .Select(g => new
                     {
@@ -3240,7 +3240,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 var frontLng = last.CentLng;
 
                 // Find origin field (first week, highest count field)
-                var originField = pg.Where(o => CzMonday(o.CompletedAt!.Value) == first.Week)
+                var originField = pg.Where(o => CzMonday(o.ObsAt!.Value) == first.Week)
                                     .OrderByDescending(o => o.Count)
                                     .FirstOrDefault();
 
@@ -3252,7 +3252,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                         fieldId      = g.Key.FieldId,
                         fieldName    = g.Key.FieldName ?? "Unknown",
                         farmName     = g.Key.FarmName ?? "Unknown",
-                        firstDetected = ToLocalDate(g.Min(o => o.CompletedAt!.Value), czTz).ToString("yyyy-MM-dd"),
+                        firstDetected = ToLocalDate(g.Min(o => o.ObsAt!.Value), czTz).ToString("yyyy-MM-dd"),
                         peakCount    = g.Max(o => o.Count ?? 0),
                     })
                     .ToList<object>();
@@ -3366,17 +3366,17 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             // and emits a correlated scalar subquery per group for g.Min(...) — causing 70+ second queries.
             .Select(o => new
             {
-                PestId      = o.PestId!.Value,
-                FieldId     = o.Session.FieldId!.Value,
-                CompletedAt = o.Session.CompletedAt!.Value,
-                Count       = o.Count ?? 0,
+                PestId  = o.PestId!.Value,
+                FieldId = o.Session.FieldId!.Value,
+                ObsAt   = (o.ObservedAt ?? o.Session.CompletedAt)!.Value,
+                Count   = o.Count ?? 0,
             })
             .GroupBy(x => new { x.PestId, x.FieldId })
             .Select(g => new
             {
                 g.Key.PestId,
                 g.Key.FieldId,
-                MinDate        = g.Min(x => x.CompletedAt),
+                MinDate        = g.Min(x => x.ObsAt),
                 TotalObsCount  = g.Count(),
                 TotalPestCount = g.Sum(x => x.Count),
             })
@@ -3577,7 +3577,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 g.Key.FarmName,
                 g.Key.FarmLat,
                 g.Key.FarmLng,
-                FirstSeen    = g.Min(o => o.Session.CompletedAt!.Value),
+                FirstSeen    = g.Min(o => (o.ObservedAt ?? o.Session.CompletedAt)!.Value),
                 WeekCount    = g.Count(),
                 MaxCount     = g.Max(o => o.Count ?? 0),
             })
@@ -3727,7 +3727,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 FieldId   = o.Session.FieldId!.Value,
                 FieldName = o.Session.Field!.Name,
                 FarmName  = o.Session.Farm!.Name ?? o.Session.Field!.Farm!.Name,
-                Year      = o.Session.CompletedAt!.Value.AddMinutes(rpTzOffset).Year,
+                Year      = (o.ObservedAt ?? o.Session.CompletedAt)!.Value.AddMinutes(rpTzOffset).Year,
             })
             .Select(g => new
             {
@@ -3920,7 +3920,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 FarmName  = o.Session.Farm != null ? o.Session.Farm.Name
                           : o.Session.Field.Farm != null ? o.Session.Field.Farm.Name : null,
                 o.IsPresent,
-                ObservedAt = o.Session.CompletedAt!.Value,
+                ObservedAt = (o.ObservedAt ?? o.Session.CompletedAt)!.Value,
             })
             .ToListAsync(ct);
 
@@ -3938,7 +3938,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
 
         var firstDetections = await firstQ
             .GroupBy(o => new { o.PestId, FieldId = o.Session.FieldId!.Value })
-            .Select(g => new { g.Key.PestId, g.Key.FieldId, FirstAt = g.Min(o => o.Session.CompletedAt) })
+            .Select(g => new { g.Key.PestId, g.Key.FieldId, FirstAt = g.Min(o => (o.ObservedAt ?? o.Session.CompletedAt)) })
             .ToListAsync(ct);
 
         var firstMap = firstDetections.ToDictionary(x => (x.PestId, x.FieldId), x => x.FirstAt);
@@ -4038,7 +4038,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             if (pestId.HasValue)  q = q.Where(o => o.PestId == pestId);
 
             var points = await q
-                .OrderBy(o => o.Session.CompletedAt)
+                .OrderBy(o => o.ObservedAt ?? o.Session.CompletedAt)
                 .Select(o => new
                 {
                     PestName      = o.Pest!.CommonName,
