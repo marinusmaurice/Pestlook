@@ -592,7 +592,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 o.ThresholdCount,
                 PestThreshold = o.Pest!.ThresholdCount,
                 o.Count,
-                CompletedAt = o.Session.CompletedAt!.Value,
+                ObsAt = (o.ObservedAt ?? o.Session.CompletedAt)!.Value,
             })
             .ToListAsync(ct);
 
@@ -610,8 +610,8 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
 
                 // Individual observations ordered chronologically
                 var pts = grp
-                    .OrderBy(o => o.CompletedAt)
-                    .Select(o => (Date: o.CompletedAt, Count: (double)(o.Count ?? 0), Threshold: o.ThresholdCount))
+                    .OrderBy(o => o.ObsAt)
+                    .Select(o => (Date: o.ObsAt, Count: (double)(o.Count ?? 0), Threshold: o.ThresholdCount))
                     .ToList();
 
                 if (pts.Count == 0) return null;
@@ -1276,7 +1276,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 o.ThresholdCount,
                 PestThreshold = o.Pest!.ThresholdCount,
                 o.Count,
-                CompletedAt = o.Session.CompletedAt!.Value,
+                ObsAt = (o.ObservedAt ?? o.Session.CompletedAt)!.Value,
             })
             .ToListAsync(ct);
 
@@ -1294,8 +1294,8 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
 
                 // Individual observations ordered chronologically — no weekly summing
                 var pts = grp
-                    .OrderBy(o => o.CompletedAt)
-                    .Select(o => (Date: o.CompletedAt, Count: (double)(o.Count ?? 0)))
+                    .OrderBy(o => o.ObsAt)
+                    .Select(o => (Date: o.ObsAt, Count: (double)(o.Count ?? 0)))
                     .ToList();
 
                 int n = pts.Count;
@@ -1413,7 +1413,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 FieldId   = o.Session.FieldId!.Value,
                 o.PestId,
                 PestName  = o.Pest!.CommonName,
-                WeekIndex = EF.Functions.DateDiffDay(start, o.Session.CompletedAt!.Value) / 7,
+                WeekIndex = EF.Functions.DateDiffDay(start, (o.ObservedAt ?? o.Session.CompletedAt)!.Value) / 7,
             })
             .Select(g => new
             {
@@ -1552,7 +1552,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
             {
                 o.PestId,
                 PestName = o.Pest!.CommonName,
-                CompletedAtUtc = o.Session.CompletedAt!.Value,
+                ObsAtUtc = (o.ObservedAt ?? o.Session.CompletedAt)!.Value,
                 Count = o.Count ?? 0,
             })
             .ToListAsync(ct);
@@ -1563,7 +1563,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
         var monthlyRaw = rawRows
             .Select(r =>
             {
-                var local = TimeZoneInfo.ConvertTimeFromUtc(r.CompletedAtUtc, tz);
+                var local = TimeZoneInfo.ConvertTimeFromUtc(r.ObsAtUtc, tz);
                 return new { r.PestId, r.PestName, Month = local.Month, Year = local.Year, r.Count };
             })
             .GroupBy(r => new { r.PestId, r.PestName, r.Month, r.Year })
@@ -1672,7 +1672,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 o.ThresholdCount,
                 PestThreshold = o.Pest!.ThresholdCount,
                 Temp          = o.Session.TemperatureCelsius!.Value,
-                CompletedAt   = o.Session.CompletedAt!.Value,
+                ObsAt         = (o.ObservedAt ?? o.Session.CompletedAt)!.Value,
             })
             .ToListAsync(ct);
 
@@ -1681,7 +1681,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
 
         // Most recent average temperature (proxy for "current conditions")
         double recentTempAvg = obs
-            .OrderByDescending(o => o.CompletedAt)
+            .OrderByDescending(o => o.ObsAt)
             .Take(10)
             .Average(o => (double)o.Temp);
 
@@ -1790,9 +1790,9 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                      && o.Count > 0 && (o.ObservedAt ?? o.Session.CompletedAt) >= start && (o.ObservedAt ?? o.Session.CompletedAt) <= end)
             .Select(o => new
             {
-                TrapId      = o.TrapId!.Value,
+                TrapId = o.TrapId!.Value,
                 o.Count,
-                CompletedAt = o.Session.CompletedAt!.Value,
+                ObsAt  = (o.ObservedAt ?? o.Session.CompletedAt)!.Value,
             })
             .ToListAsync(ct);
 
@@ -1801,7 +1801,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
         var predictions = traps.Select(trap =>
         {
             var checks = obs.Where(o => o.TrapId == trap.Id)
-                .GroupBy(o => Monday(TimeZoneInfo.ConvertTimeFromUtc(o.CompletedAt, tz2)))
+                .GroupBy(o => Monday(TimeZoneInfo.ConvertTimeFromUtc(o.ObsAt, tz2)))
                 .OrderBy(g => g.Key)
                 .Select(wg => new { WeekStart = wg.Key, Total = wg.Sum(o => o.Count ?? 0) })
                 .ToList();
@@ -1926,7 +1926,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 o.ThresholdCount,
                 PestThreshold = o.Pest!.ThresholdCount,
                 o.Count,
-                CompletedAt = o.Session.CompletedAt!.Value,
+                ObsAt = (o.ObservedAt ?? o.Session.CompletedAt)!.Value,
             })
             .ToListAsync(ct);
 
@@ -1945,7 +1945,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                 // Weekly SUM would inflate values by the number of scouts visiting that week,
                 // making everything appear to breach immediately.
                 var weekly = grp
-                    .GroupBy(o => StMonday(o.CompletedAt))
+                    .GroupBy(o => StMonday(o.ObsAt))
                     .OrderBy(g => g.Key)
                     .Select(wg => (WeekStart: wg.Key, Total: wg.Average(o => (double)(o.Count ?? 0))))
                     .ToList();

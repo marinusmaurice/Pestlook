@@ -1209,7 +1209,7 @@ const GROUPS = [
         id:    'intel-velocity',
         icon:  '⚡',
         title: 'Spread Velocity Score',
-        intro: 'Measures how fast each pest is actively spreading field-to-field right now, week by week. Instead of asking "where has this pest been?", this tab asks "is it spreading faster or slower this week compared to last week?" — giving you an early warning of accelerating outbreaks and confirmation that containment is working.',
+        intro: 'Measures how fast each pest is actively spreading field-to-field right now, week by week. Instead of asking "where has this pest been?", this tab asks "is it spreading faster or slower this week compared to last week?" — giving you an early warning of accelerating outbreaks and confirmation that containment is working. Weeks are always based on when the pest was <strong>actually observed</strong> (not when the scouting session was closed), and date filters are automatically snapped to complete Mon–Sun week boundaries so every velocity comparison uses a full week of data.',
         items: [
           {
             heading: 'What "velocity" means in plain terms',
@@ -1262,6 +1262,10 @@ const GROUPS = [
           {
             heading: 'What to do when you see a red Spreading status',
             body: '1. Click the row to expand the weekly history. 2. Identify which week the spread accelerated. 3. Cross-reference with the Spread Direction tab to see which compass direction the pest is moving. 4. Check the Neighbour Risk tab to see which un-scouted fields are closest to the current front. 5. Assign emergency inspections to those neighbour fields.',
+          },
+          {
+            heading: 'Date filter and week snapping',
+            body: 'The date filter you set is automatically snapped to complete week boundaries on the server — "From" is pulled back to the nearest Monday and "To" is extended to the following Sunday. This prevents partial-week comparisons that could show a false velocity spike (e.g. setting "From" to a Wednesday would otherwise make the first week look artificially low). All weeks shown are complete Mon–Sun weeks in your account timezone.',
           },
           {
             heading: 'Data requirements',
@@ -1665,7 +1669,7 @@ const GROUPS = [
         id:    'intel-saturation',
         icon:  '🕸',
         title: 'Trap Saturation Prediction',
-        intro: 'Predicts when each monitoring trap will reach saturation — the point at which so many insects are being caught that the trap\'s physical capacity is being exceeded and counts start underreporting the true population. A saturated trap gives you false "low" readings and creates a dangerous blind spot in your monitoring. This tab helps you service traps before that happens.',
+        intro: 'Predicts when each monitoring trap will reach saturation — the point at which so many insects are being caught that the trap\'s physical capacity is being exceeded and counts start underreporting the true population. A saturated trap gives you false "low" readings and creates a dangerous blind spot in your monitoring. This tab helps you service traps before that happens. Weekly catches are bucketed by the date and time the pest was <strong>actually observed</strong>, not when the scouting session was administratively closed.',
         items: [
           {
             heading: 'What is trap saturation?',
