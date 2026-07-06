@@ -45,6 +45,9 @@ public sealed class TrapTypesController(
     public async Task<IActionResult> Create([FromBody] CreateTrapTypeRequest request, CancellationToken ct)
     {
         var tenantId = tenant.TenantId;
+        if (tenantId is null)
+            return BadRequest(ApiResponse<object>.Fail("Tenant context is required."));
+
         var duplicate = await db.TrapTypes.AnyAsync(
             t => t.TenantId == tenantId && t.Name == request.Name, ct);
         if (duplicate) return BadRequest(ApiResponse<object>.Fail("A trap type with that name already exists."));

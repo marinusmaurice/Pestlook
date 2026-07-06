@@ -54,7 +54,7 @@ export async function renderSprayTiming(el, data) {
     const bg  = URGENCY_BG[r.urgency]    ?? 'transparent';
 
     return `
-      <div class="card card-p" style="border-left:4px solid ${col};margin-bottom:10px;">
+      <div class="card card-p" style="margin-bottom:10px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
           <div>
             <div style="font-weight:700;color:var(--text);font-size:0.95rem;">${escapeHtml(r.pestName)}</div>

@@ -68,7 +68,7 @@ export async function renderScoutPriority(el, data) {
         : `${f.daysSinceLastSession} day${f.daysSinceLastSession === 1 ? '' : 's'} ago`;
 
     return `
-      <div class="card card-p" style="border-left:4px solid ${col};margin-bottom:8px;">
+      <div class="card card-p" style="margin-bottom:8px;">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;">
           <div style="display:flex;align-items:center;gap:10px;">
             <div style="min-width:36px;height:36px;border-radius:50%;background:${bg};border:2px solid ${col};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.85rem;color:${col};">${f.rank}</div>

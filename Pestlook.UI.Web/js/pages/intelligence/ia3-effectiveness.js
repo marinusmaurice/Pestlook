@@ -62,7 +62,7 @@ export async function renderTreatmentEffectiveness(el, data) {
     const postW  = Math.min(100, s.postBreachAvg / maxVal * 100);
 
     return `
-      <div class="card card-p" style="border-left:4px solid ${col};margin-bottom:10px;">
+      <div class="card card-p" style="margin-bottom:10px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
           <div>
             <div style="font-weight:700;color:var(--text);font-size:0.95rem;">${icon} ${escapeHtml(s.pestName)}</div>

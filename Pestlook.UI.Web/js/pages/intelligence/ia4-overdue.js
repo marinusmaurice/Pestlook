@@ -48,7 +48,7 @@ export async function renderOverdueAlerts(el, data) {
     const windowLabel = a.responseWindowHours === 48 ? '48 h (severe breach)' : '7 days';
 
     return `
-      <div class="card card-p" style="border-left:4px solid ${col};margin-bottom:10px;">
+      <div class="card card-p" style="margin-bottom:10px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
           <div>
             <div style="font-weight:700;color:var(--text);font-size:0.95rem;">🚨 ${escapeHtml(a.pestName)}</div>
