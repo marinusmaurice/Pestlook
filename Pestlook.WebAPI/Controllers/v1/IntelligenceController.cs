@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Pestlook.WebAPI.Data;
 using Pestlook.WebAPI.DTOs.Common;
+using Pestlook.WebAPI.Infrastructure;
 using Pestlook.WebAPI.Infrastructure.Services.Interfaces;
 
 namespace Pestlook.WebAPI.Controllers.v1;
@@ -12,7 +13,7 @@ namespace Pestlook.WebAPI.Controllers.v1;
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/intelligence")]
 [Authorize]
-public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezoneService tzService) : ControllerBase
+public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezoneService tzService, ITenantContext tenantContext) : ControllerBase
 {
     // ── Shared helpers ──────────────────────────────────────────────────────
 
@@ -3167,7 +3168,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
         CancellationToken ct = default)
     {
         var (start, end) = await ResolveRangeAsync(from, to, 180, ct);
-        var tenantId = Guid.Parse(User.FindFirst("tid")?.Value ?? User.FindFirst("TenantId")?.Value ?? Guid.Empty.ToString());
+        var tenantId = tenantContext.TenantId ?? Guid.Empty;
 
         // Weekly GPS centroids per pest (same as spread-direction)
         var obsQ = db.SessionObservations
@@ -3406,7 +3407,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
                      && o.Session.CompletedAt != null
                      && o.Session.DeletedAt == null
                      && o.Session.FieldId != null
-                     && o.Session.CompletedAt < start
+                     && (o.ObservedAt ?? o.Session.CompletedAt) < start
                      && candidatePestIds.Contains(o.PestId!.Value)
                      && candidateFieldIds.Contains(o.Session.FieldId!.Value));
 
@@ -3544,7 +3545,7 @@ public sealed class IntelligenceController(ApplicationDbContext db, IUserTimezon
         CancellationToken ct = default)
     {
         var (start, end) = await ResolveRangeAsync(from, to, 365, ct);
-        var tenantId = Guid.Parse(User.FindFirst("tid")?.Value ?? User.FindFirst("TenantId")?.Value ?? Guid.Empty.ToString());
+        var tenantId = tenantContext.TenantId ?? Guid.Empty;
 
         var obsQ = db.SessionObservations
             .Where(o => !o.IsUnknownPest && o.PestId != null && o.Count > 0

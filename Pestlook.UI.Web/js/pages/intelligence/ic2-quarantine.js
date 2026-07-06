@@ -15,6 +15,9 @@ const RISK_COL = { High: '#c0392b', Elevated: '#e67e22', Standard: '#7f8c8d' };
 const RISK_BG  = { High: 'rgba(192,57,43,0.1)', Elevated: 'rgba(230,126,34,0.08)', Standard: 'rgba(127,140,141,0.07)' };
 const RISK_ICON = { High: '🚨', Elevated: '⚠️', Standard: '📍' };
 
+const infoIcon = (tooltip) =>
+  `<span style="font-size:0.7rem;color:var(--text-dim);cursor:help;margin-left:3px;opacity:0.7;" title="${tooltip}">&#9432;</span>`;
+
 export async function renderQuarantineFlags(el, data) {
   const { flags = [], summary = {} } = data;
 
@@ -49,25 +52,41 @@ export async function renderQuarantineFlags(el, data) {
     const icon = RISK_ICON[f.riskLevel] ?? '📍';
 
     return `
-      <div class="card card-p" style="border-left:4px solid ${col};margin-bottom:10px;">
+      <div class="card card-p" style="margin-bottom:10px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
           <div>
             <div style="font-weight:700;font-size:0.95rem;">${icon} ${escapeHtml(f.pestName)}</div>
             <div style="font-size:0.8rem;color:var(--text-dim);">${escapeHtml(f.fieldName)} · ${escapeHtml(f.farmName)}</div>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <span style="padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:700;background:${bg};color:${col};">
+            <span style="padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:700;background:${bg};color:${col};"
+                  title="${f.riskLevel === 'High'
+                    ? 'High Risk: this pest species has never been recorded anywhere in your organisation before — a genuine new introduction. Consider reporting to local agricultural authorities.'
+                    : f.riskLevel === 'Elevated'
+                    ? 'Elevated Risk: this pest is known in the system catalogue but is tenant-defined (not in the standard catalogue), making reference data limited.'
+                    : 'Standard Risk: the pest is in the system catalogue and has been seen elsewhere in your organisation — this is its first appearance on this specific field.'}">
               ${escapeHtml(f.riskLevel)} Risk · ${escapeHtml(f.introductionType)}
             </span>
-            ${!f.isSystemPest ? `<span style="padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:700;background:rgba(241,196,15,0.12);color:#f1c40f;">Non-catalogued</span>` : ''}
+            ${!f.isSystemPest ? `<span style="padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:700;background:rgba(241,196,15,0.12);color:#f1c40f;"
+              title="This pest was defined at the tenant level rather than the system catalogue — reference data and recommended thresholds may be limited.">Non-catalogued</span>` : ''}
           </div>
         </div>
 
         <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:0.82rem;margin-bottom:10px;">
-          <span style="color:var(--text-dim);cursor:help;" title="Local calendar date of the earliest observation of this pest on this field — the first confirmed detection.">First seen: <strong>${new Date(f.firstSeen + 'T00:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</strong></span>
-          <span style="color:var(--text-dim);">${f.daysSinceFirst} days ago</span>
-          <span style="color:var(--text-dim);cursor:help;" title="Number of individual observation records (scouting sessions) where this pest was recorded on this field within the selected period.">Observations: <strong>${f.totalObsCount}</strong></span>
-          <span style="color:var(--text-dim);cursor:help;" title="Sum of all pest counts recorded across those observations — the total number of individual pests counted, not the number of sessions.">Total count: <strong>${f.totalPestCount}</strong></span>
+          <span style="color:var(--text-dim);">
+            First seen: <strong>${new Date(f.firstSeen + 'T00:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</strong>
+            ${infoIcon('The earliest observation date for this pest on this field within the selected date range, converted to your account timezone. This is the first confirmed detection on this field — not necessarily the first time this pest exists; if the filter start date is too recent, earlier detections may be excluded.')}
+          </span>
+          <span style="color:var(--text-dim);"
+                title="Approximate number of days since the first recorded observation on this field. Calculated as the difference between the detection timestamp (UTC) and the current time, so may differ by ±1 day near day boundaries.">${f.daysSinceFirst} days ago</span>
+          <span style="color:var(--text-dim);">
+            Observations: <strong>${f.totalObsCount}</strong>
+            ${infoIcon('Number of individual scouting observation records where this pest was counted on this field within the selected date range. One observation = one scouting session entry.')}
+          </span>
+          <span style="color:var(--text-dim);">
+            Total count: <strong>${f.totalPestCount}</strong>
+            ${infoIcon('Sum of all pest counts across every observation on this field in the selected period — the cumulative number of individual pests recorded, not the number of sessions.')}
+          </span>
         </div>
 
         <div style="padding:8px 12px;background:${bg};border-radius:6px;font-size:0.78rem;color:var(--text);">

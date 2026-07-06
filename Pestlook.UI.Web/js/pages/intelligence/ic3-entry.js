@@ -21,6 +21,9 @@ const VECTOR_COL  = { peripheral: '#c0392b', central: '#2980b9', unknown: '#7f8c
 const VECTOR_ICON = { peripheral: '🔴', central: '🔵', unknown: '' };
 const VECTOR_LABEL = { peripheral: 'Peripheral Entry', central: 'Central Cluster', unknown: 'GPS Unknown' };
 
+const infoIcon = (tooltip) =>
+  `<span style="font-size:0.7rem;color:var(--text-dim);cursor:help;margin-left:3px;opacity:0.7;" title="${tooltip}">&#9432;</span>`;
+
 export async function renderEntryPointAnalysis(el, data) {
   const { pests = [], summary = {}, clusterCentroid = {} } = data;
   const distUnit = getUser()?.distanceUnit || 'km';
@@ -58,42 +61,58 @@ export async function renderEntryPointAnalysis(el, data) {
     const chainRows = (p.spreadChain ?? []).map((s, idx) => `
       <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;">
         <div style="width:22px;height:22px;border-radius:50%;background:${idx === 0 ? '#c0392b' : idx === (p.spreadChain.length - 1) ? '#f39c12' : '#2980b9'};
-          color:#fff;font-size:0.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">${idx + 1}</div>
+          color:#fff;font-size:0.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;"
+          title="${idx === 0 ? 'Origin field — earliest detection in the selected date range.' : `Position ${idx + 1} in the spread chain — detected ${s.daysAfterOrigin} day(s) after the origin field.`}">${idx + 1}</div>
         <div style="flex:1;">
           <div style="font-weight:${idx === 0 ? '700' : '400'};font-size:0.85rem;">
             ${escapeHtml(s.fieldName)} <span style="color:var(--text-dim);font-size:0.78rem;">· ${escapeHtml(s.farmName)}</span>
             ${idx === 0 ? '<span style="padding:1px 7px;border-radius:10px;font-size:0.68rem;font-weight:700;background:rgba(192,57,43,0.12);color:#c0392b;margin-left:6px;">ORIGIN</span>' : ''}
           </div>
           <div style="font-size:0.75rem;color:var(--text-dim);">
-            First seen: ${new Date(s.firstSeen + 'T00:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
-            ${s.daysAfterOrigin > 0 ? `· <span style="color:#e67e22;">${s.daysAfterOrigin}d after origin</span>` : ''}
-            · Peak count: <strong>${s.maxCount}</strong>
+            <span title="Earliest date this pest was observed on this field within the selected date range, in your account timezone.">First seen: ${new Date(s.firstSeen + 'T00:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+            ${s.daysAfterOrigin > 0 ? `· <span style="color:#e67e22;" title="Number of days between the origin field's first detection (${new Date((p.spreadChain[0]?.firstSeen ?? s.firstSeen) + 'T00:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}) and this field's first detection.">${s.daysAfterOrigin}d after origin</span>` : ''}
+            · <span title="Highest single-session pest count recorded on this field in the selected period.">Peak count: <strong>${s.maxCount}</strong></span>
           </div>
         </div>
       </div>`).join('');
 
     return `
-      <div class="card card-p" style="border-left:4px solid ${col};margin-bottom:14px;">
+      <div class="card card-p" style="margin-bottom:14px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
           <div>
             <div style="font-weight:700;font-size:0.95rem;">🔍 ${escapeHtml(p.pestName)}</div>
-            <div style="font-size:0.78rem;color:var(--text-dim);">${p.spreadChainLength} fields in spread chain</div>
+            <div style="font-size:0.78rem;color:var(--text-dim);"
+                 title="Total number of distinct fields that recorded this pest, sorted by first detection date — these form the likely spread timeline from the origin field outward.">
+              ${p.spreadChainLength} fields in spread chain
+            </div>
           </div>
-          <span style="padding:3px 12px;border-radius:20px;font-size:0.72rem;font-weight:700;background:${col}22;color:${col};">
+          <span style="padding:3px 12px;border-radius:20px;font-size:0.72rem;font-weight:700;background:${col}22;color:${col};"
+                title="${p.isPeripheralEntry
+                  ? 'Peripheral Entry: the origin farm is further from the cluster centroid than the median farm distance — it sits on the geographic edge of your operation, suggesting external introduction (boundary vectors, roadsides, irrigation channels).'
+                  : 'Central Cluster: the origin farm is near the geographic centre of your operation, suggesting internal spread via shared equipment, workers, or plant material rather than external introduction.'}">
             ${icon} ${label}
           </span>
         </div>
 
         <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:0.82rem;margin-bottom:12px;padding:10px 12px;background:var(--surface);border-radius:8px;border:1px solid var(--border);">
-          <span style="color:var(--text-dim);cursor:help;" title="Distance from the origin farm to the geographic centroid (average lat/lng) of all your GPS-equipped farms. A larger value means the origin is further from the centre of your operation.">Origin dist from cluster centre: <strong>${formatDistance(p.originDistFromCentroidKm, distUnit)}</strong></span>
-          <span style="color:var(--text-dim);cursor:help;" title="The median distance of all your farms from the cluster centroid. Farms beyond this distance are classified as peripheral; farms closer are classified as central. This threshold adapts to your specific farm layout rather than using a fixed km cutoff.">Cluster median dist: <strong>${formatDistance(p.clusterMedianDistKm, distUnit)}</strong></span>
+          <span style="color:var(--text-dim);">
+            Origin dist from cluster centre: <strong>${formatDistance(p.originDistFromCentroidKm, distUnit)}</strong>
+            ${infoIcon('Distance from the origin farm\'s GPS coordinate to the geographic centroid (average lat/lng) of all GPS-equipped farms. A larger value means the origin is further from the centre of your operation — more likely an external entry point.')}
+          </span>
+          <span style="color:var(--text-dim);">
+            Cluster median dist: <strong>${formatDistance(p.clusterMedianDistKm, distUnit)}</strong>
+            ${infoIcon('The median distance of all farms from the cluster centroid. Farms beyond this distance are classified as Peripheral; farms closer are classified as Central. This adapts to your specific farm layout rather than using a fixed kilometre cutoff.')}
+          </span>
         </div>
 
         <div style="padding:8px 12px;background:${col}11;border-radius:6px;font-size:0.78rem;color:var(--text);margin-bottom:14px;">
           💡 ${escapeHtml(p.entryPointNote)}
         </div>
 
-        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-dim);margin-bottom:8px;">Spread Chain</div>
+        <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-dim);margin-bottom:8px;">
+          Spread Chain
+          ${infoIcon('Fields ordered by first detection date — earliest is the likely origin, most recent is the current leading edge. All fields that recorded this pest in the selected date range are listed. Days after origin shows the delay between the origin\'s first detection and this field\'s first detection.')}
+        </div>
         ${chainRows}
       </div>`;
   }).join('');
