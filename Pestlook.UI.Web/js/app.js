@@ -37,11 +37,40 @@ const publicPaths = ['/', '/login', '/signup', '/activate', '/forgot-password', 
 function renderShell() {
   appRoot.innerHTML = `
     <div id="sidebar"></div>
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
     <div id="main">
+      <div class="mob-bar">
+        <button class="mob-hamburger" id="mobHamburger" aria-label="Open navigation menu">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="2" y1="5" x2="18" y2="5"/>
+            <line x1="2" y1="10" x2="18" y2="10"/>
+            <line x1="2" y1="15" x2="18" y2="15"/>
+          </svg>
+        </button>
+        <div class="mob-logo">Pest<span>look</span></div>
+      </div>
       <div class="content-area" id="content"></div>
     </div>
   `;
   renderSidebar(document.getElementById('sidebar'));
+
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+
+  document.getElementById('mobHamburger')?.addEventListener('click', () => {
+    sidebar.classList.add('sidebar-open');
+    overlay.classList.add('open');
+  });
+  overlay.addEventListener('click', () => {
+    sidebar.classList.remove('sidebar-open');
+    overlay.classList.remove('open');
+  });
+  sidebar.addEventListener('click', (e) => {
+    if (e.target.closest('.nav-item')) {
+      sidebar.classList.remove('sidebar-open');
+      overlay.classList.remove('open');
+    }
+  });
 }
 
 function renderAuthShell() {

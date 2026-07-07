@@ -458,7 +458,7 @@ function _getLandingHTML() {
           <p style="font-size:1.2rem;color:var(--text-muted);">One plan, no payment, full platform &mdash; every report, every intelligence feature, every tool. Unlimited observations (while in beta), on us.</p>
         </div>
         <div class="pricing-grid" style="max-width:480px;margin:0 auto;">
-          <div class="pricing-card popular">
+          <div class="pricing-card popular" style="border-top:none;box-shadow:none;">
             <h3>Free</h3>
             <div class="price">$0<span style="font-size:1rem;"> /month</span></div>
             <p style="color:var(--text-muted);margin-bottom:8px;">For every farmer, scout and agronomist</p>
