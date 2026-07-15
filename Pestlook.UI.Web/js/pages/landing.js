@@ -42,140 +42,160 @@ function _injectExternalResources() {
 
 const LANDING_CSS = `
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Inter', sans-serif; background: #FEFCF5 !important; color: #1E2F2A; line-height: 1.5; scroll-behavior: smooth; overflow: auto !important; }
+  body { font-family: 'Inter', sans-serif; background: #F7F8FA !important; color: #1A1D24; line-height: 1.6; scroll-behavior: smooth; overflow: auto !important; -webkit-font-smoothing: antialiased; }
   #app-root { display: block !important; height: auto !important; }
   #landing-content { width: 100%; }
   :root {
-    --primary: #2B6E4F; --primary-dark: #1F4E38; --primary-light: #EAF7F0;
-    --accent: #E5A52F; --accent-dark: #C67C1E; --gray-light: #F9F7F0;
-    --gray-border: #E2DFD3; --text-dark: #1F2A26; --text-muted: #5A6B62;
+    --primary: #2A5BD7; --primary-dark: #1B3F9E; --primary-light: #EAF0FC; --primary-soft: #D3E1F8;
+    --accent: #DFA13C; --accent-dark: #B9832C; --gray-light: #F1F3F6;
+    --gray-border: #E3E7EC; --text-dark: #1A1D24; --text-muted: #5B6472;
     --danger: #C75146; --white: #FFFFFF;
-    --shadow-sm: 0 4px 12px rgba(0,0,0,0.04); --shadow-md: 0 8px 24px rgba(0,0,0,0.06);
-    --radius-md: 20px; --radius-sm: 12px;
+    --shadow-xs: 0 1px 2px rgba(31,42,38,0.04);
+    --shadow-sm: 0 1px 2px rgba(31,42,38,0.04), 0 6px 16px rgba(31,42,38,0.05);
+    --shadow-md: 0 2px 4px rgba(31,42,38,0.04), 0 16px 36px rgba(31,42,38,0.08);
+    --shadow-lg: 0 4px 10px rgba(31,42,38,0.06), 0 28px 60px rgba(31,42,38,0.12);
+    --ease: cubic-bezier(.22,1,.36,1);
+    --radius-lg: 24px; --radius-md: 18px; --radius-sm: 12px; --radius-btn: 11px;
   }
   a { text-decoration: none; color: var(--primary); font-weight: 500; }
-  .container { max-width: 1280px !important; margin: 0 auto !important; padding: 0 24px !important; }
+  .container { max-width: 1240px !important; margin: 0 auto !important; padding: 0 28px !important; }
+  h1, h2, h3, h4 { letter-spacing: -0.02em; color: var(--text-dark); }
+  ::selection { background: var(--primary-soft); color: var(--primary-dark); }
 
   /* header */
-  header { background: rgba(255,255,255,0.96); border-bottom: 1px solid var(--gray-border); position: sticky; top: 0; z-index: 50; backdrop-filter: blur(2px); }
-  .navbar { display: flex; justify-content: space-between; align-items: center; padding: 18px 0; flex-wrap: wrap; }
-  .logo { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.02em; color: var(--primary-dark); }
+  header { background: rgba(247,248,250,0.86); border-bottom: 1px solid var(--gray-border); position: sticky; top: 0; z-index: 50; backdrop-filter: blur(10px) saturate(1.4); -webkit-backdrop-filter: blur(10px) saturate(1.4); }
+  .navbar { display: flex; justify-content: space-between; align-items: center; padding: 17px 0; flex-wrap: wrap; }
+  .logo { font-size: 1.6rem; font-weight: 750; letter-spacing: -0.03em; color: var(--primary-dark); }
   .logo span { color: var(--accent); }
-  .nav-links { display: flex; gap: 32px; align-items: center; flex-wrap: wrap; }
-  .nav-links a { font-weight: 500; color: var(--text-dark); transition: 0.2s; }
-  .nav-links a:hover, .nav-links a.active { color: var(--primary); }
+  .nav-links { display: flex; gap: 30px; align-items: center; flex-wrap: wrap; }
+  .nav-links a { font-weight: 500; font-size: 0.93rem; color: var(--text-muted); transition: color 0.15s var(--ease); position: relative; }
+  .nav-links a:hover { color: var(--text-dark); }
+  .nav-links a.active { color: var(--primary); }
 
   /* buttons */
-  .btn-outline { border: 1.5px solid var(--primary); background: transparent; padding: 8px 18px; border-radius: 40px; font-weight: 600; color: var(--primary); transition: 0.2s; }
-  .btn-outline:hover { background: var(--primary-light); }
-  .btn-primary { background: var(--primary); color: white; padding: 10px 24px; border-radius: 40px; font-weight: 600; border: none; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; }
-  .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
-  .btn-accent { background: var(--accent); color: #1E2F2A; font-weight: 700; }
-  .btn-accent:hover { background: var(--accent-dark); color: white; }
+  .btn-outline { border: 1.5px solid var(--gray-border); background: var(--white); padding: 9px 19px; border-radius: var(--radius-btn); font-weight: 600; font-size: 0.92rem; color: var(--text-dark); transition: all 0.18s var(--ease); }
+  .btn-outline:hover { border-color: var(--primary); color: var(--primary); box-shadow: var(--shadow-xs); }
+  .btn-primary { background: var(--primary); color: white; padding: 11px 22px; border-radius: var(--radius-btn); font-weight: 600; font-size: 0.92rem; border: none; cursor: pointer; transition: all 0.18s var(--ease); display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 1px 2px rgba(27,63,158,0.15), 0 8px 20px rgba(42,91,215,0.18); }
+  .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 2px 4px rgba(27,63,158,0.18), 0 12px 28px rgba(42,91,215,0.24); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-accent { background: var(--accent); color: #2A1F0A; box-shadow: 0 1px 2px rgba(185,131,44,0.2), 0 8px 20px rgba(223,161,60,0.22); }
+  .btn-accent:hover { background: var(--accent-dark); color: white; box-shadow: 0 2px 4px rgba(185,131,44,0.24), 0 12px 28px rgba(223,161,60,0.28); }
 
   /* views */
-  .view { display: none; animation: fade 0.25s ease; }
+  .view { display: none; animation: fade 0.35s var(--ease); }
   .active-view { display: block; }
-  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
   /* hero */
-  .hero { display: flex; flex-wrap: wrap; gap: 48px; align-items: center; padding: 56px 0 48px; }
-  .hero-content { flex: 1; min-width: 320px; }
-  .hero-badge { background: var(--primary-light); color: var(--primary-dark); padding: 6px 14px; border-radius: 50px; font-size: 0.85rem; font-weight: 600; display: inline-block; margin-bottom: 20px; }
-  .hero h1 { font-size: 3.2rem; font-weight: 800; line-height: 1.15; color: #1F2A26; margin-bottom: 20px; }
-  .hero p { font-size: 1.2rem; color: var(--text-muted); max-width: 560px; margin-bottom: 28px; }
-  .hero-stats { display: flex; gap: 28px; margin-top: 32px; flex-wrap: wrap; }
-  .stat-item strong { font-size: 1.5rem; color: var(--primary); }
+  .hero { position: relative; display: flex; flex-wrap: wrap; gap: 52px; align-items: center; padding: 76px 0 64px; overflow: visible; }
+  .hero-blob { position: absolute; border-radius: 50%; filter: blur(64px); pointer-events: none; z-index: 0; opacity: 0.55; }
+  .hero-blob-a { width: 420px; height: 420px; background: radial-gradient(circle, rgba(42,91,215,0.16), transparent 70%); top: -140px; left: -120px; }
+  .hero-blob-b { width: 380px; height: 380px; background: radial-gradient(circle, rgba(223,161,60,0.14), transparent 70%); bottom: -160px; right: -80px; }
+  .hero-content { flex: 1; min-width: 320px; position: relative; z-index: 1; }
+  .hero-badge { background: var(--primary-light); color: var(--primary-dark); padding: 7px 15px; border-radius: 30px; font-size: 0.82rem; font-weight: 600; display: inline-flex; align-items: center; gap: 7px; margin-bottom: 22px; border: 1px solid rgba(42,91,215,0.12); }
+  .hero h1 { font-size: 3.1rem; font-weight: 780; line-height: 1.14; margin-bottom: 20px; }
+  .hero p { font-size: 1.14rem; color: var(--text-muted); max-width: 540px; margin-bottom: 30px; line-height: 1.65; }
+  .hero-stats { display: flex; gap: 30px; margin-top: 36px; flex-wrap: wrap; }
+  .stat-item { font-size: 0.85rem; color: var(--text-muted); }
+  .stat-item strong { display: block; font-size: 1.4rem; color: var(--primary-dark); font-weight: 750; }
+  .hero-visual { flex: 1; min-width: 300px; position: relative; z-index: 1; background: var(--white); border-radius: 28px; padding: 38px 30px; text-align: center; border: 1px solid var(--gray-border); box-shadow: var(--shadow-lg); }
+  .hero-visual i.fa-map-marked-alt { font-size: 4rem; color: var(--primary); margin-bottom: 14px; }
+  .hero-chip { background: var(--gray-light); border: 1px solid var(--gray-border); padding: 6px 13px; border-radius: 20px; font-size: 0.8rem; font-weight: 500; color: var(--text-dark); }
 
   /* feature cards */
-  .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 28px; margin: 64px 0; }
-  .feature-card { background: white; border-radius: var(--radius-md); padding: 28px 24px; box-shadow: var(--shadow-sm); border: 1px solid var(--gray-border); transition: 0.2s; }
-  .feature-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
-  .feature-card i { font-size: 2.2rem; color: var(--primary); margin-bottom: 16px; }
-  .feature-card h3 { margin-bottom: 8px; }
-  .feature-card p { color: var(--text-muted); font-size: 0.95rem; }
+  .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 22px; margin: 72px 0; }
+  .feature-card { background: white; border-radius: var(--radius-md); padding: 26px 24px; box-shadow: var(--shadow-sm); border: 1px solid var(--gray-border); transition: all 0.25s var(--ease); }
+  .feature-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); border-color: rgba(42,91,215,0.22); }
+  .feature-card .icon-box { width: 46px; height: 46px; border-radius: 13px; background: var(--primary-light); display: flex; align-items: center; justify-content: center; margin-bottom: 18px; }
+  .feature-card i { font-size: 1.3rem; color: var(--primary); }
+  .feature-card h3 { margin-bottom: 9px; font-size: 1.02rem; font-weight: 650; }
+  .feature-card p { color: var(--text-muted); font-size: 0.92rem; line-height: 1.6; }
 
   /* how-it-works */
-  .how-section { margin: 48px 0; }
-  .how-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 32px; margin-top: 36px; }
-  .how-step { text-align: center; }
-  .step-number { width: 48px; height: 48px; border-radius: 50%; background: var(--primary); color: white; font-weight: 800; font-size: 1.2rem; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px; }
-  .how-step h4 { margin-bottom: 8px; }
-  .how-step p { color: var(--text-muted); font-size: 0.92rem; }
+  .how-section { margin: 56px 0; }
+  .how-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 32px; margin-top: 40px; }
+  .how-step { text-align: center; position: relative; }
+  .step-number { width: 42px; height: 42px; border-radius: 13px; background: var(--primary-dark); color: white; font-weight: 700; font-size: 1.05rem; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 18px; box-shadow: 0 6px 16px rgba(27,63,158,0.22); }
+  .how-step h4 { margin-bottom: 8px; font-weight: 650; font-size: 1rem; }
+  .how-step p { color: var(--text-muted); font-size: 0.9rem; line-height: 1.6; }
 
   /* analytics banner */
-  .analytics-banner { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); border-radius: var(--radius-md); padding: 40px 36px; color: white; margin: 48px 0; }
-  .analytics-banner h2 { font-size: 2rem; margin-bottom: 12px; }
-  .analytics-banner p { opacity: 0.9; font-size: 1.05rem; max-width: 600px; margin-bottom: 24px; }
-  .analytics-chips { display: flex; flex-wrap: wrap; gap: 10px; }
-  .analytics-chips .chip { background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.3); padding: 6px 14px; border-radius: 30px; font-size: 0.85rem; font-weight: 500; color: white; }
+  .analytics-banner { position: relative; overflow: hidden; background: linear-gradient(160deg, var(--primary-dark) 0%, var(--primary) 100%); border-radius: var(--radius-lg); padding: 44px 40px; color: white; margin: 56px 0; box-shadow: var(--shadow-lg); }
+  .analytics-banner::before { content: ''; position: absolute; top: -30%; right: -10%; width: 60%; height: 160%; background: radial-gradient(circle, rgba(255,255,255,0.08), transparent 65%); pointer-events: none; }
+  .analytics-banner h2 { color: white; font-size: 1.95rem; margin-bottom: 12px; font-weight: 720; }
+  .analytics-banner p { opacity: 0.88; font-size: 1.02rem; max-width: 620px; margin-bottom: 26px; line-height: 1.65; }
+  .analytics-chips .chip { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.14); padding: 8px 14px; border-radius: 12px; font-size: 0.83rem; font-weight: 500; color: rgba(255,255,255,0.94); line-height: 1.5; }
 
   /* testimonials */
-  .testimonials-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin: 32px 0 48px; }
+  .testimonials-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 22px; margin: 32px 0 48px; }
   .testimonial-card { background: white; border-radius: var(--radius-md); padding: 24px; border: 1px solid var(--gray-border); box-shadow: var(--shadow-sm); }
   .testimonial-card .stars { color: var(--accent); margin-bottom: 12px; }
-  .testimonial-card blockquote { font-style: italic; color: var(--text-dark); margin-bottom: 16px; line-height: 1.6; }
-  .testimonial-card .author { font-weight: 600; color: var(--text-muted); font-size: 0.9rem; }
+  .testimonial-card blockquote { font-style: italic; color: var(--text-dark); margin-bottom: 16px; line-height: 1.65; }
+  .testimonial-card .author { font-weight: 600; color: var(--text-muted); font-size: 0.88rem; }
 
   /* pricing */
-  .pricing-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 32px; margin: 48px 0; }
-  .pricing-card { background: white; border-radius: var(--radius-md); padding: 28px 24px; flex: 1; min-width: 260px; border: 1px solid var(--gray-border); transition: 0.2s; }
-  .pricing-card.popular { border-top: 4px solid var(--accent); box-shadow: var(--shadow-md); }
-  .price { font-size: 2.5rem; font-weight: 800; margin: 16px 0; }
-  .feature-list { list-style: none; margin: 24px 0; }
-  .feature-list li { margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
-  .feature-list i.fa-check { color: var(--primary); }
+  .pricing-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 28px; margin: 48px 0; }
+  .pricing-card { background: white; border-radius: var(--radius-md); padding: 30px 26px; flex: 1; min-width: 260px; border: 1px solid var(--gray-border); box-shadow: var(--shadow-sm); transition: all 0.2s var(--ease); }
+  .pricing-card.popular { box-shadow: var(--shadow-lg); border-color: rgba(42,91,215,0.2); }
+  .price { font-size: 2.4rem; font-weight: 780; margin: 16px 0; letter-spacing: -0.02em; }
+  .feature-list { list-style: none; margin: 22px 0; }
+  .feature-list li { margin-bottom: 12px; display: flex; align-items: center; gap: 10px; font-size: 0.92rem; }
+  .feature-list i.fa-check { color: var(--primary); background: var(--primary-light); width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.62rem; flex-shrink: 0; }
 
   /* dashboard */
-  .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin: 32px 0; }
-  .dash-card { background: white; border-radius: var(--radius-sm); padding: 20px; border: 1px solid var(--gray-border); }
+  .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin: 32px 0; }
+  .dash-card { background: white; border-radius: var(--radius-sm); padding: 20px; border: 1px solid var(--gray-border); box-shadow: var(--shadow-xs); }
   .scout-log { background: var(--gray-light); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 12px; }
-  .logout-btn { background: none; border: 1px solid var(--gray-border); padding: 8px 16px; border-radius: 30px; cursor: pointer; font-weight: 500; }
+  .logout-btn { background: white; border: 1px solid var(--gray-border); padding: 9px 17px; border-radius: var(--radius-btn); cursor: pointer; font-weight: 600; font-size: 0.88rem; transition: all 0.15s var(--ease); }
+  .logout-btn:hover { border-color: var(--primary); color: var(--primary); }
 
   /* forms */
-  .form-group { margin-bottom: 20px; }
-  .form-group input { width: 100%; padding: 14px 16px; border-radius: 40px; border: 1px solid var(--gray-border); font-size: 1rem; }
-  .auth-toggle { text-align: center; margin-top: 16px; color: var(--primary); cursor: pointer; font-weight: 500; }
+  .form-group { margin-bottom: 18px; }
+  .form-group input { width: 100%; padding: 13px 16px; border-radius: var(--radius-btn); border: 1.5px solid var(--gray-border); font-size: 0.96rem; font-family: inherit; transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease); }
+  .form-group input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(42,91,215,0.1); }
+  .auth-toggle { text-align: center; margin-top: 18px; color: var(--primary); cursor: pointer; font-weight: 500; font-size: 0.9rem; }
   .error-msg { color: var(--danger); font-size: 0.85rem; margin-top: 8px; }
 
   /* faq */
-  .faq-section { margin: 64px 0; }
-  .faq-section h2 { font-size: 2rem; text-align: center; margin-bottom: 8px; }
-  .faq-section > p { text-align: center; color: var(--text-muted); margin-bottom: 32px; }
-  .faq-item { border: 1px solid var(--gray-border); border-radius: 14px; margin-bottom: 10px; background: white; overflow: hidden; }
-  .faq-item summary { padding: 18px 20px; font-weight: 600; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+  .faq-section { margin: 72px 0; }
+  .faq-section h2 { font-size: 1.9rem; text-align: center; margin-bottom: 8px; font-weight: 720; }
+  .faq-section > p { text-align: center; color: var(--text-muted); margin-bottom: 34px; }
+  .faq-item { border: 1px solid var(--gray-border); border-radius: var(--radius-sm); margin-bottom: 10px; background: white; overflow: hidden; transition: border-color 0.15s var(--ease); }
+  .faq-item:hover { border-color: rgba(42,91,215,0.25); }
+  .faq-item summary { padding: 18px 22px; font-weight: 600; font-size: 0.96rem; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
   .faq-item summary::-webkit-details-marker { display: none; }
-  .faq-item summary::after { content: '+'; font-size: 1.4rem; color: var(--primary); transition: transform 0.2s; flex-shrink: 0; }
+  .faq-item summary::after { content: '+'; font-size: 1.3rem; font-weight: 400; color: var(--primary); transition: transform 0.25s var(--ease); flex-shrink: 0; }
   .faq-item[open] summary::after { transform: rotate(45deg); }
-  .faq-item[open] summary { color: var(--primary); }
-  .faq-answer { padding: 0 20px 18px; color: var(--text-muted); line-height: 1.7; }
+  .faq-item[open] summary { color: var(--primary-dark); }
+  .faq-answer { padding: 0 22px 20px; color: var(--text-muted); line-height: 1.7; font-size: 0.93rem; }
 
   /* screenshots carousel */
-  .screenshots-section { margin: 64px 0; }
-  .carousel-wrap { position: relative; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.13); background: #1a2620; line-height: 0; }
-  .carousel-track { display: flex; transition: transform 0.45s cubic-bezier(.4,0,.2,1); will-change: transform; }
+  .screenshots-section { margin: 72px 0; }
+  .carousel-wrap { position: relative; border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-lg); background: #14161C; line-height: 0; border: 1px solid rgba(0,0,0,0.06); }
+  .carousel-track { display: flex; transition: transform 0.5s var(--ease); will-change: transform; }
   .carousel-slide { min-width: 100%; }
   .carousel-slide img { width: 100%; height: auto; display: block; }
-  .carousel-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.92); border: none; width: 44px; height: 44px; border-radius: 50%; box-shadow: 0 4px 16px rgba(0,0,0,0.18); cursor: pointer; font-size: 1.5rem; line-height: 1; color: var(--primary-dark); z-index: 3; display: flex; align-items: center; justify-content: center; transition: 0.15s; }
-  .carousel-btn:hover { background: white; box-shadow: 0 6px 20px rgba(0,0,0,0.22); }
+  .carousel-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.94); border: none; width: 42px; height: 42px; border-radius: 50%; box-shadow: var(--shadow-md); cursor: pointer; font-size: 1.4rem; line-height: 1; color: var(--primary-dark); z-index: 3; display: flex; align-items: center; justify-content: center; transition: all 0.18s var(--ease); }
+  .carousel-btn:hover { background: white; transform: translateY(-50%) scale(1.06); }
   .carousel-prev { left: 14px; }
   .carousel-next { right: 14px; }
-  .carousel-caption { text-align: center; margin-top: 14px; color: var(--text-muted); font-size: 0.95rem; font-weight: 500; min-height: 22px; }
+  .carousel-caption { text-align: center; margin-top: 16px; color: var(--text-muted); font-size: 0.92rem; font-weight: 500; min-height: 22px; }
   .carousel-dots { display: flex; justify-content: center; gap: 7px; margin-top: 14px; }
-  .carousel-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gray-border); border: none; cursor: pointer; padding: 0; transition: all 0.25s; }
-  .carousel-dot.active { background: var(--primary); width: 24px; border-radius: 4px; }
-  .mobile-frames { display: flex; gap: 20px; justify-content: center; margin-top: 48px; flex-wrap: wrap; }
-  .mobile-frame { background: #1a2620; border-radius: 26px; padding: 9px; box-shadow: 0 12px 40px rgba(0,0,0,0.16); flex: 0 1 180px; }
+  .carousel-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gray-border); border: none; cursor: pointer; padding: 0; transition: all 0.25s var(--ease); }
+  .carousel-dot.active { background: var(--primary); width: 22px; border-radius: 4px; }
+  .mobile-frames { display: flex; gap: 20px; justify-content: center; margin-top: 52px; flex-wrap: wrap; }
+  .mobile-frame { background: #14161C; border-radius: 26px; padding: 9px; box-shadow: var(--shadow-lg); flex: 0 1 180px; }
   .mobile-frame img { width: 100%; border-radius: 18px; display: block; }
 
-  footer { border-top: 1px solid var(--gray-border); margin-top: 80px; padding: 32px 0; text-align: center; color: var(--text-muted); }
+  footer { border-top: 1px solid var(--gray-border); margin-top: 88px; padding: 36px 0; text-align: center; color: var(--text-muted); font-size: 0.9rem; }
 
   @media (max-width: 768px) {
     .navbar { flex-direction: column; gap: 16px; }
     .nav-links { justify-content: center; gap: 20px; }
-    .hero h1 { font-size: 2.3rem; }
+    .hero { padding: 48px 0 40px; }
+    .hero h1 { font-size: 2.2rem; }
     .container { padding: 0 20px; }
-    .analytics-banner { padding: 28px 20px; }
+    .analytics-banner { padding: 30px 22px; }
     .analytics-banner h2 { font-size: 1.5rem; }
   }
 `;
@@ -204,6 +224,8 @@ function _getLandingHTML() {
       <!-- HOME VIEW -->
       <div id="homeView" class="view">
         <div class="hero">
+          <div class="hero-blob hero-blob-a"></div>
+          <div class="hero-blob hero-blob-b"></div>
           <div class="hero-content">
             <div class="hero-badge"><i class="fas fa-seedling"></i> Built for the field</div>
             <h1>One platform to <span style="color:var(--accent);">scout, trap, and protect</span> every hectare</h1>
@@ -214,19 +236,19 @@ function _getLandingHTML() {
               <a href="#pricing" class="btn-outline" id="heroPricingBtn">View plans</a>
             </div>
             <div class="hero-stats">
-              <div class="stat-item"><strong>Analytics</strong><br>&amp; intelligence suite</div>
-              <div class="stat-item"><strong>100%</strong><br>offline capable</div>
-              <div class="stat-item"><strong>GPS</strong><br>every observation</div>
+              <div class="stat-item"><strong>Analytics</strong>&amp; intelligence suite</div>
+              <div class="stat-item"><strong>100%</strong>offline capable</div>
+              <div class="stat-item"><strong>GPS</strong>every observation</div>
             </div>
           </div>
-          <div style="flex:1;min-width:300px;background:var(--primary-light);border-radius:40px;padding:36px 28px;text-align:center;">
-            <i class="fas fa-map-marked-alt" style="font-size:4.5rem;color:var(--primary);margin-bottom:12px;"></i>
-            <p style="font-weight:700;font-size:1.1rem;margin-bottom:16px;">Your entire operation on one map</p>
+          <div class="hero-visual">
+            <i class="fas fa-map-marked-alt"></i>
+            <p style="font-weight:650;font-size:1.05rem;margin-bottom:18px;">Your entire operation on one map</p>
             <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;">
-              <span style="background:white;padding:5px 12px;border-radius:20px;font-size:0.82rem;font-weight:500;"><i class="fas fa-map-pin" style="color:var(--primary);"></i> Farm boundaries</span>
-              <span style="background:white;padding:5px 12px;border-radius:20px;font-size:0.82rem;font-weight:500;"><i class="fas fa-crosshairs" style="color:var(--primary);"></i> Trap GPS pins</span>
-              <span style="background:white;padding:5px 12px;border-radius:20px;font-size:0.82rem;font-weight:500;"><i class="fas fa-barcode" style="color:var(--primary);"></i> Barcode scanning</span>
-              <span style="background:white;padding:5px 12px;border-radius:20px;font-size:0.82rem;font-weight:500;"><i class="fas fa-camera" style="color:var(--primary);"></i> Photo evidence</span>
+              <span class="hero-chip"><i class="fas fa-map-pin" style="color:var(--primary);"></i> Farm boundaries</span>
+              <span class="hero-chip"><i class="fas fa-crosshairs" style="color:var(--primary);"></i> Trap GPS pins</span>
+              <span class="hero-chip"><i class="fas fa-barcode" style="color:var(--primary);"></i> Barcode scanning</span>
+              <span class="hero-chip"><i class="fas fa-camera" style="color:var(--primary);"></i> Photo evidence</span>
             </div>
           </div>
         </div>
@@ -238,47 +260,47 @@ function _getLandingHTML() {
         </div>
         <div class="features-grid">
           <div class="feature-card">
-            <i class="fas fa-warehouse"></i>
+            <div class="icon-box"><i class="fas fa-warehouse"></i></div>
             <h3>Farm &amp; field management</h3>
             <p>Organise your operation by farm, field, crop type, and season. Define geographic boundaries for precision mapping and track area in hectares.</p>
           </div>
           <div class="feature-card">
-            <i class="fas fa-crosshairs"></i>
+            <div class="icon-box"><i class="fas fa-crosshairs"></i></div>
             <h3>Trap deployment &amp; barcode scanning</h3>
             <p>Register sticky, pheromone, or pitfall traps with GPS coordinates. Scan barcodes or QR codes in the field for instant trap lookup.</p>
           </div>
           <div class="feature-card">
-            <i class="fas fa-clipboard-check"></i>
+            <div class="icon-box"><i class="fas fa-clipboard-check"></i></div>
             <h3>Planned &amp; ad-hoc scouting</h3>
             <p>Admins schedule sessions with assigned scouts, target fields, and observation checklists. Scouts can also start ad-hoc runs on the fly from the mobile app.</p>
           </div>
           <div class="feature-card">
-            <i class="fas fa-bug"></i>
+            <div class="icon-box"><i class="fas fa-bug"></i></div>
             <h3>Pest observations with thresholds</h3>
             <p>Record counts or presence/absence per pest species and life stage. The system automatically flags when observations exceed economic action thresholds.</p>
           </div>
           <div class="feature-card">
-            <i class="fas fa-mobile-alt"></i>
+            <div class="icon-box"><i class="fas fa-mobile-alt"></i></div>
             <h3>Offline-first mobile app</h3>
             <p>The mobile app caches farms, fields, pests, traps, and sessions locally. Work offline in remote blocks &mdash; two-way sync uploads everything when connectivity returns.</p>
           </div>
           <div class="feature-card">
-            <i class="fas fa-satellite-dish"></i>
+            <div class="icon-box"><i class="fas fa-satellite-dish"></i></div>
             <h3>GPS + weather capture</h3>
             <p>Every observation is geotagged with configurable accuracy. Session temperature and weather conditions are recorded automatically alongside your data.</p>
           </div>
           <div class="feature-card">
-            <i class="fas fa-chart-pie"></i>
+            <div class="icon-box"><i class="fas fa-chart-pie"></i></div>
             <h3>Analytics &amp; intelligence suite</h3>
             <p>Threshold alerts, pest pressure trends, trap performance, scout productivity, seasonal patterns, field coverage, spread direction, origin detection, neighbour risk, population forecasts, GPS hotspot maps, and more &mdash; all filterable by date, farm, field, or scout.</p>
           </div>
           <div class="feature-card">
-            <i class="fas fa-users-cog"></i>
+            <div class="icon-box"><i class="fas fa-users-cog"></i></div>
             <h3>Multi-tenant team management</h3>
             <p>Each organisation is fully isolated. Admins manage scouts, assign roles, configure trap types, and review billing snapshots &mdash; all from the web dashboard.</p>
           </div>
           <div class="feature-card">
-            <i class="fas fa-table"></i>
+            <div class="icon-box"><i class="fas fa-table"></i></div>
             <h3>Custom reporting</h3>
             <p>Build ad-hoc queries across farms, fields, pests, sessions, observations, and traps. Filter, group, aggregate, sort, and export to CSV &mdash; all scoped automatically to your organisation.</p>
           </div>
@@ -635,7 +657,7 @@ function _getLandingHTML() {
           </div>
           <button class="btn-outline" style="margin-top:12px;"><i class="fas fa-plus-circle"></i> Quick scout log (offline-ready)</button>
         </div>
-        <div style="background:#EFF7EC;border-radius:24px;padding:20px;">
+        <div style="background:var(--primary-light);border-radius:24px;padding:20px;">
           <i class="fas fa-chart-line"></i> <strong>Pest pressure forecast:</strong> Low to moderate risk in Eastern regions. Check traps weekly.
         </div>
       </div>

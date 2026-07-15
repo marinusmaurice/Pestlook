@@ -41,24 +41,24 @@ export function renderLogin(container) {
           <a href="#/">← Back to home</a>
         </div>
 
-        <div style="margin-top:20px;padding:14px 16px;border-radius:10px;background:rgba(109,222,132,0.07);border:1px solid rgba(109,222,132,0.2);">
-          <div style="font-size:12px;font-weight:600;color:var(--green,#4ade80);margin-bottom:10px;">🌿 Try the demo</div>
+        <div style="margin-top:20px;padding:14px 16px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);">
+          <div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:10px;">Try the demo</div>
           <div style="display:flex;flex-direction:column;gap:6px;">
             <div style="display:flex;align-items:center;justify-content:space-between;">
-              <span style="font-size:11px;color:var(--text-muted,#888);">Admin (web &amp; mobile)</span>
+              <span style="font-size:11px;color:var(--text-dim);">Admin (web &amp; mobile)</span>
               <button type="button" id="demoAdmin"
-                style="font-size:11px;color:var(--green,#4ade80);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline;">
+                style="font-size:11px;color:var(--green);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline;">
                 admin@demofarm.co
               </button>
             </div>
             <div style="display:flex;align-items:center;justify-content:space-between;">
-              <span style="font-size:11px;color:var(--text-muted,#888);">Scout (mobile only)</span>
+              <span style="font-size:11px;color:var(--text-dim);">Scout (mobile only)</span>
               <button type="button" id="demoScout"
-                style="font-size:11px;color:var(--green,#4ade80);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline;">
+                style="font-size:11px;color:var(--green);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline;">
                 scout@demofarm.co
               </button>
             </div>
-            <div style="font-size:10px;color:var(--text-muted,#888);margin-top:2px;">Password: <strong>Demo@1234!</strong> · click to fill in</div>
+            <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">Password: <strong>Demo@1234!</strong> · click to fill in</div>
           </div>
         </div>
       </div>

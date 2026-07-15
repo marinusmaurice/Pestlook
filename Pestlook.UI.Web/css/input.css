@@ -268,6 +268,33 @@ body {
 }
 .auth-error.visible { display: block; }
 
+/* Auth pages (login/signup/forgot-password/reset-password) always use the
+   marketing site's cool-neutral + blue palette, independent of the logged-in
+   app's selected theme — a first-time visitor has no theme preference yet. */
+.auth-layout {
+  --bg:         #F7F8FA;
+  --bg-rgb:     247,248,250;
+  --surface:    #FFFFFF;
+  --surface2:   #F1F3F6;
+  --surface3:   #EAF0FC;
+  --border:     #E3E7EC;
+  --border2:    #CBD2DC;
+  --green:      #2A5BD7;
+  --green2:     #1B3F9E;
+  --green-rgb:  42,91,215;
+  --green-glow: rgba(var(--green-rgb),0.12);
+  --amber:      #DFA13C;
+  --amber-dim:  #B9832C;
+  --amber-rgb:  223,161,60;
+  --red:        #C75146;
+  --red-rgb:    199,81,70;
+  --blue:       #3B7DB8;
+  --blue-rgb:   59,125,184;
+  --text:       #1A1D24;
+  --text-dim:   #5B6472;
+  --text-mid:   #33415A;
+}
+
 /* ── Landing page ── */
 .landing-page {
   display: flex;
