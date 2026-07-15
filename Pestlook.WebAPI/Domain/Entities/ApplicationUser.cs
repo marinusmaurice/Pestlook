@@ -18,6 +18,9 @@ public sealed class ApplicationUser : IdentityUser, IHasTenant
     /// <summary>Display unit for distances: "km" (kilometres) or "mi" (miles). Values are always stored in kilometres.</summary>
     public string DistanceUnit { get; set; } = "km";
 
+    /// <summary>Web UI colour theme id: "light", "dark-a", "dark-b", or "dark-cd".</summary>
+    public string Theme { get; set; } = "light";
+
     /// <summary>
     /// IANA timezone id (e.g. "Africa/Johannesburg"). Used ONLY for server-side
     /// analytics that group by day/week; storage stays UTC. Null until the

@@ -145,6 +145,7 @@ public sealed class AuthController(
 
         user.TemperatureUnit = request.TemperatureUnit;
         user.DistanceUnit = request.DistanceUnit;
+        if (request.Theme is not null) user.Theme = request.Theme;
         await userManager.UpdateAsync(user);
 
         var roles = await userManager.GetRolesAsync(user);

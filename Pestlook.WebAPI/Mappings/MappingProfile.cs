@@ -28,6 +28,7 @@ public sealed class MappingProfile : Profile
                 src.Tenant != null ? src.Tenant.Slug : string.Empty,
                 src.TemperatureUnit,
                 src.DistanceUnit,
+                src.Theme,
                 src.Timezone,
                 []));
 

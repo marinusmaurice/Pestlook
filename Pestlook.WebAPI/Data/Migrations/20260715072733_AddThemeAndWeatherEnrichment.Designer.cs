@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Pestlook.WebAPI.Data;
 
@@ -11,9 +12,11 @@ using Pestlook.WebAPI.Data;
 namespace Pestlook.WebAPI.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260715072733_AddThemeAndWeatherEnrichment")]
+    partial class AddThemeAndWeatherEnrichment
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -239,8 +242,8 @@ namespace Pestlook.WebAPI.Data.Migrations
                     b.Property<string>("Theme")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
                         .HasDefaultValue("light");
 
                     b.Property<string>("Timezone")

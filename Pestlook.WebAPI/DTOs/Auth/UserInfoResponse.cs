@@ -10,5 +10,6 @@ public sealed record UserInfoResponse(
     string TenantSlug,
     string TemperatureUnit,
     string DistanceUnit,
+    string Theme,
     string? Timezone,
     IList<string> Roles);

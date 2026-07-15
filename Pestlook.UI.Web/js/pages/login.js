@@ -2,6 +2,7 @@ import { login, getMe, updateTimezone, detectBrowserTimezone } from '../api/auth
 import { saveTokens, saveUser, isAuthenticated } from '../utils/storage.js';
 import { navigate } from '../utils/router.js';
 import { showToast } from '../components/toast.js';
+import { syncThemeFromUser } from '../utils/theme.js';
 
 export function renderLogin(container) {
   if (isAuthenticated()) {
@@ -101,6 +102,7 @@ async function handleLogin(e) {
       } catch { /* non-fatal — analytics fall back to UTC until set in Settings */ }
     }
     saveUser(user);
+    syncThemeFromUser(user);
 
     showToast('Welcome back!', 'success');
     navigate('/dashboard');

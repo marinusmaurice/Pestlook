@@ -6,6 +6,7 @@ import { openModal, closeModal } from '../components/modal.js';
 import { showToast } from '../components/toast.js';
 import { tag } from '../components/tag.js';
 import { escapeHtml, initials } from '../utils/helpers.js';
+import { THEMES, getTheme, setTheme } from '../utils/theme.js';
 
 export async function renderSettings(container) {
 
@@ -122,7 +123,7 @@ function renderPreferences(container) {
         Distances are always stored in kilometres. This setting only affects how values are displayed.
       </div>
     </div>
-    <div>
+    <div style="margin-bottom:18px;">
       <div class="input-label">Timezone</div>
       <select class="input-field" id="tz-select" style="margin-top:8px;">
         ${currentTz ? '' : '<option value="" selected disabled>Select your timezone…</option>'}
@@ -132,6 +133,20 @@ function renderPreferences(container) {
         Used for date-based reports like "sessions this week" and seasonal trends.
         All data is stored in UTC — this never changes what is recorded.
         ${currentTz !== browserTz ? `<br>Your browser reports <strong>${escapeHtml(browserTz)}</strong>.` : ''}
+      </div>
+    </div>
+    <div>
+      <div class="input-label">Theme</div>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;" id="theme-toggle">
+        ${THEMES.map(t => `
+          <button class="btn-outline theme-btn ${getTheme() === t.id ? 'active' : ''}" data-theme-id="${t.id}" style="flex:1;min-width:130px;justify-content:flex-start;padding:9px 12px;font-size:0.8rem;gap:8px;">
+            <span style="width:12px;height:12px;border-radius:50%;background:${t.swatch};flex-shrink:0;"></span>
+            ${escapeHtml(t.label)}
+          </button>
+        `).join('')}
+      </div>
+      <div style="font-size:0.7rem;color:var(--text-dim);margin-top:8px;">
+        Applies immediately and is saved to this device.
       </div>
     </div>
   `;
@@ -198,6 +213,24 @@ function renderPreferences(container) {
         prefsBox.querySelector(`[data-unit="${currentDistUnit}"]`)?.classList.add('active');
       } finally {
         btn.disabled = false;
+      }
+    });
+  });
+
+  prefsBox.querySelectorAll('.theme-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const themeId = btn.dataset.themeId;
+      if (themeId === getTheme()) return;
+
+      setTheme(themeId);
+      prefsBox.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      try {
+        const res = await updatePreferences({ temperatureUnit: currentUnit, distanceUnit: currentDistUnit, theme: themeId });
+        saveUser({ ...getUser(), theme: res.data.theme });
+      } catch (err) {
+        showToast(err.message || 'Failed to save theme', 'error');
       }
     });
   });
