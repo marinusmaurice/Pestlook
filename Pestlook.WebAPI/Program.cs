@@ -125,12 +125,14 @@ if (app.Environment.IsDevelopment())
 }
 
 // ── SPA fallback — non-API, non-file requests serve index.html ────────────────
-var buildStamp = File.GetLastWriteTimeUtc(typeof(Program).Assembly.Location)
-    .ToString("yyyyMMddHHmmss");
+// Read from disk on every request (not cached at startup) so a frontend-only
+// deploy (index.html/CSS/JS updated without restarting the API process) is
+// picked up immediately instead of requiring an API restart.
 var indexHtmlPath = Path.Combine(spaRoot, "index.html");
-var indexHtml = File.ReadAllText(indexHtmlPath).Replace("__BUILD__", buildStamp);
 app.MapFallback(async context =>
 {
+    var buildStamp = File.GetLastWriteTimeUtc(indexHtmlPath).ToString("yyyyMMddHHmmss");
+    var indexHtml = (await File.ReadAllTextAsync(indexHtmlPath)).Replace("__BUILD__", buildStamp);
     context.Response.ContentType = "text/html";
     await context.Response.WriteAsync(indexHtml);
 });

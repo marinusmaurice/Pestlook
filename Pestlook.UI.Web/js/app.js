@@ -29,6 +29,12 @@ import { renderContainment }   from './pages/containment.js';
 import { renderCustomReports }  from './pages/custom-reports.js';
 import { renderObservationLog } from './pages/observation-log.js';
 import { startTourIfNeeded, resumeTour } from './utils/tour.js';
+import { initTheme } from './utils/theme.js';
+
+// Belt-and-braces: the inline <script> in index.html's <head> applies the saved
+// theme before first paint, but this covers every boot path (auto-login via a
+// still-valid token skips login.js entirely, so it never re-applies otherwise).
+initTheme();
 
 const appRoot = document.getElementById('app-root');
 
