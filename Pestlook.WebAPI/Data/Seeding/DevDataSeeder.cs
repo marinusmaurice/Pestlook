@@ -12,7 +12,8 @@ namespace Pestlook.WebAPI.Data.Seeding;
 /// </summary>
 public static class DevDataSeeder
 {
-    public static async Task SeedAsync(IServiceProvider services)
+    /// <returns>True if data was actually seeded; false if the demo tenant already existed (no-op).</returns>
+    public static async Task<bool> SeedAsync(IServiceProvider services)
     {
         using var scope = services.CreateScope();
         var db          = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -20,7 +21,7 @@ public static class DevDataSeeder
 
         // ── Guard: already seeded? ────────────────────────────────────────────
         if (await db.Tenants.AnyAsync(t => t.Slug == "demo-farm-co"))
-            return;
+            return false;
 
         // ── Tenant ────────────────────────────────────────────────────────────
         var tenant = new Tenant
@@ -111,6 +112,8 @@ public static class DevDataSeeder
             db.SessionObservations.AddRange(observations.Skip(i).Take(obsBatch));
             await db.SaveChangesAsync();
         }
+
+        return true;
     }
 
     // ─────────────────────────────────────────────────────────────────────────

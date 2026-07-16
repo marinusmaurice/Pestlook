@@ -200,17 +200,24 @@ public static class WebApplicationExtensions
 
         var seedMode = app.Configuration.GetValue<string>("DevSeed:Mode") ?? "demo";
 
+        bool didSeed;
         switch (seedMode.ToLowerInvariant())
         {
             case "single-pest":
                 logger.LogInformation("DevSeed: running DataSeederSinglePest (mode=single-pest).");
-                DataSeederSinglePest.SeedAsync(app.Services).GetAwaiter().GetResult();
+                didSeed = DataSeederSinglePest.SeedAsync(app.Services).GetAwaiter().GetResult();
                 break;
 
             default: // "demo"
                 logger.LogInformation("DevSeed: running DevDataSeeder (mode=demo).");
-                DevDataSeeder.SeedAsync(app.Services).GetAwaiter().GetResult();
+                didSeed = DevDataSeeder.SeedAsync(app.Services).GetAwaiter().GetResult();
                 break;
+        }
+
+        if (!didSeed)
+        {
+            logger.LogInformation("Dev/demo data seeding: already seeded, nothing to do.");
+            return app;
         }
 
         logger.LogInformation("Dev/demo data seeding complete.");

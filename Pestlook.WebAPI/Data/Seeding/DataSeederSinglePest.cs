@@ -43,14 +43,15 @@ public static class DataSeederSinglePest
 
     // ─────────────────────────────────────────────────────────────────────────
 
-    public static async Task SeedAsync(IServiceProvider services)
+    /// <returns>True if data was actually seeded; false if the demo tenant already existed (no-op).</returns>
+    public static async Task<bool> SeedAsync(IServiceProvider services)
     {
         using var scope = services.CreateScope();
         var db          = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
         if (await db.Tenants.AnyAsync(t => t.Slug == TenantSlug))
-            return;
+            return false;
 
         // ── Tenant ────────────────────────────────────────────────────────────
         var tenant = new Tenant
@@ -379,6 +380,8 @@ public static class DataSeederSinglePest
             db.SessionObservations.AddRange(observations.Skip(i).Take(obsBatch));
             await db.SaveChangesAsync();
         }
+
+        return true;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
