@@ -10,8 +10,10 @@ export const THEMES = [
   { id: 'chaos',   label: 'Neon Hazard',        swatch: '#FF2EEA' },
 ];
 
+const DEFAULT_THEME = 'light-e';
+
 export function getTheme() {
-  return localStorage.getItem(STORAGE_KEY) || 'light';
+  return localStorage.getItem(STORAGE_KEY) || DEFAULT_THEME;
 }
 
 export function applyTheme(themeId) {
@@ -33,5 +35,5 @@ export function initTheme() {
 
 /** Apply and cache the theme that came back from the server (e.g. after login). */
 export function syncThemeFromUser(user) {
-  setTheme(user?.theme || 'light');
+  setTheme(user?.theme || DEFAULT_THEME);
 }

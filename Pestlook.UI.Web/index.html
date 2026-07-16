@@ -127,8 +127,8 @@
     <script>
       (function () {
         try {
-          var t = localStorage.getItem('pl_theme');
-          if (t && t !== 'light') document.documentElement.setAttribute('data-theme', t);
+          var t = localStorage.getItem('pl_theme') || 'light-e';
+          if (t !== 'light') document.documentElement.setAttribute('data-theme', t);
         } catch (e) {}
       })();
     </script>

@@ -502,6 +502,34 @@ function runChapter6() {
       },
     },
     {
+      element: '#dashCalendar',
+      popover: {
+        title: '📅 Calendar',
+        description: `
+          <p style="margin:0 0 8px;line-height:1.7;font-size:0.88rem;">
+            Every session lands on its date here, colour-coded by status —
+            <span style="color:#4ade80;">●</span> completed, <span style="color:#fbbf24;">●</span> active,
+            <span style="color:#3b82f6;">●</span> planned. Use <strong>‹</strong> <strong>›</strong> to change month.
+          </p>
+          <p style="margin:0;font-size:0.8rem;color:#5a6b62;">
+            Click any day to see that day's sessions in a popup — click one to jump straight to it.
+          </p>`,
+        side: 'right', align: 'start',
+      },
+    },
+    {
+      element: '#dashActivity',
+      popover: {
+        title: '📋 Recent Activity',
+        description: `
+          <p style="margin:0 0 8px;line-height:1.7;font-size:0.88rem;">
+            A live feed of the most recent pest observations logged across all your sessions —
+            pest, count, field, and time. Good for spotting emerging problems as they happen.
+          </p>`,
+        side: 'left', align: 'start',
+      },
+    },
+    {
       element: '#dashSessions',
       popover: {
         title: '🥾 Recent Sessions',
@@ -510,19 +538,7 @@ function runChapter6() {
             Your most recent scouting sessions are listed here with their status and scout.
             Click <strong>View all</strong> to go to the full Sessions page.
           </p>`,
-        side: 'top', align: 'start',
-      },
-    },
-    {
-      element: '#dashTopPests',
-      popover: {
-        title: '🦗 Top Pests',
-        description: `
-          <p style="margin:0 0 8px;line-height:1.7;font-size:0.88rem;">
-            This panel ranks the pests with the highest observation counts across all recent sessions.
-            It's your quick early-warning indicator — if something is climbing the list, act on it.
-          </p>`,
-        side: 'top', align: 'start',
+        side: 'left', align: 'start',
       },
     },
     {

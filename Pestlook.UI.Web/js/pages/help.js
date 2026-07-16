@@ -238,35 +238,54 @@ const SVG = {
       <rect x="342" y="0" width="138" height="52" rx="7" fill="#243428" stroke="#3a5040" stroke-width="1"/>
       <text x="411" y="19" text-anchor="middle" fill="#86efac" font-size="8.5" font-weight="600">Observations</text>
       <text x="411" y="39" text-anchor="middle" fill="#e2e8f0" font-size="18" font-weight="700">1,842</text>
-      <!-- Active sessions panel -->
-      <rect x="0"   y="60" width="224" height="162" rx="7" fill="#243428" stroke="#3a5040" stroke-width="1"/>
-      <text x="112" y="76" text-anchor="middle" fill="#86efac" font-size="8.5" font-weight="600">Active Sessions</text>
-      <line x1="8" y1="82" x2="216" y2="82" stroke="#3a5040" stroke-width="1"/>
-      <rect x="10" y="88"  width="204" height="18" rx="3" fill="#1e3028"/>
-      <text x="18" y="100" fill="#94a3b8" font-size="7.5">North Farm — Scout A — 09:15</text>
-      <rect x="10" y="110" width="204" height="18" rx="3" fill="#1e3028"/>
-      <text x="18" y="122" fill="#94a3b8" font-size="7.5">South Paddock — Scout B — 10:40</text>
-      <rect x="10" y="132" width="204" height="18" rx="3" fill="#1e3028"/>
-      <text x="18" y="144" fill="#94a3b8" font-size="7.5">East Field — Scout C — 11:05</text>
-      <text x="112" y="180" text-anchor="middle" fill="#3a5040" font-size="7.5">Activity Feed below ↓</text>
-      <!-- Map panel -->
-      <rect x="230" y="60" width="250" height="162" rx="7" fill="#243428" stroke="#3a5040" stroke-width="1"/>
-      <text x="355" y="76" text-anchor="middle" fill="#86efac" font-size="8.5" font-weight="600">Trap Map</text>
+      <!-- Calendar panel (left) -->
+      <rect x="0" y="60" width="224" height="162" rx="7" fill="#243428" stroke="#3a5040" stroke-width="1"/>
+      <text x="14" y="76" fill="#86efac" font-size="8.5" font-weight="600">Calendar</text>
+      <text x="14" y="88" fill="#64748b" font-size="7">July 2026</text>
+      <text x="196" y="76" fill="#64748b" font-size="8" text-anchor="middle">‹  Today  ›</text>
+      <line x1="8" y1="94" x2="216" y2="94" stroke="#3a5040" stroke-width="1"/>
+      <!-- weekday row -->
+      <text x="22"  y="104" text-anchor="middle" fill="#64748b" font-size="6">Su</text>
+      <text x="52"  y="104" text-anchor="middle" fill="#64748b" font-size="6">Mo</text>
+      <text x="82"  y="104" text-anchor="middle" fill="#64748b" font-size="6">Tu</text>
+      <text x="112" y="104" text-anchor="middle" fill="#64748b" font-size="6">We</text>
+      <text x="142" y="104" text-anchor="middle" fill="#64748b" font-size="6">Th</text>
+      <text x="172" y="104" text-anchor="middle" fill="#64748b" font-size="6">Fr</text>
+      <text x="202" y="104" text-anchor="middle" fill="#64748b" font-size="6">Sa</text>
+      <!-- day grid: 3 sample rows of 7 cells -->
+      <g font-size="6.5" fill="#94a3b8" text-anchor="middle">
+        <rect x="9"   y="110" width="26" height="24" rx="3" fill="#1e3028"/><text x="22"  y="122">12</text>
+        <rect x="39"  y="110" width="26" height="24" rx="3" fill="#1e3028"/><text x="52"  y="122">13</text>
+        <rect x="69"  y="110" width="26" height="24" rx="3" fill="#1e3028"/><text x="82"  y="122">14</text><circle cx="82" cy="128" r="1.6" fill="#4ade80"/>
+        <rect x="99"  y="110" width="26" height="24" rx="3" fill="#2d4a37" stroke="#4ade80" stroke-width="1"/><text x="112" y="122" fill="#4ade80" font-weight="700">15</text><circle cx="112" cy="128" r="1.6" fill="#fbbf24"/>
+        <rect x="129" y="110" width="26" height="24" rx="3" fill="#1e3028"/><text x="142" y="122">16</text>
+        <rect x="159" y="110" width="26" height="24" rx="3" fill="#1e3028"/><text x="172" y="122">17</text><circle cx="172" cy="128" r="1.6" fill="#3b82f6"/>
+        <rect x="189" y="110" width="26" height="24" rx="3" fill="#1e3028"/><text x="202" y="122">18</text>
+      </g>
+      <text x="112" y="150" text-anchor="middle" fill="#64748b" font-size="6.5">Click a day → session list opens in a popup</text>
+      <circle cx="60" cy="164" r="3" fill="#4ade80"/><text x="68" y="167" fill="#86efac" font-size="6.5">Completed</text>
+      <circle cx="130" cy="164" r="3" fill="#fbbf24"/><text x="138" y="167" fill="#fde68a" font-size="6.5">Active</text>
+      <circle cx="180" cy="164" r="3" fill="#3b82f6"/><text x="188" y="167" fill="#93c5fd" font-size="6.5">Planned</text>
+      <!-- Recent Activity panel (top right) -->
+      <rect x="230" y="60" width="250" height="78" rx="7" fill="#243428" stroke="#3a5040" stroke-width="1"/>
+      <text x="244" y="76" fill="#86efac" font-size="8.5" font-weight="600">Recent Activity</text>
       <line x1="238" y1="82" x2="472" y2="82" stroke="#3a5040" stroke-width="1"/>
-      <rect x="238" y="86" width="234" height="128" rx="4" fill="#1a2e22"/>
-      <line x1="238" y1="120" x2="472" y2="120" stroke="#2a3e30" stroke-width="0.5"/>
-      <line x1="238" y1="154" x2="472" y2="154" stroke="#2a3e30" stroke-width="0.5"/>
-      <line x1="316" y1="86" x2="316" y2="214" stroke="#2a3e30" stroke-width="0.5"/>
-      <line x1="394" y1="86" x2="394" y2="214" stroke="#2a3e30" stroke-width="0.5"/>
-      <circle cx="280" cy="108" r="7" fill="#4ade80" opacity="0.85"/>
-      <circle cx="345" cy="133" r="7" fill="#f87171" opacity="0.85"/>
-      <circle cx="415" cy="112" r="7" fill="#fbbf24" opacity="0.85"/>
-      <circle cx="455" cy="170" r="7" fill="#4ade80" opacity="0.85"/>
-      <circle cx="260" cy="175" r="7" fill="#4ade80" opacity="0.85"/>
-      <!-- Map legend -->
-      <circle cx="244" cy="208" r="4" fill="#4ade80"/><text x="252" y="211" fill="#86efac" font-size="6.5">Active</text>
-      <circle cx="284" cy="208" r="4" fill="#f87171"/><text x="292" y="211" fill="#fca5a5" font-size="6.5">Inactive</text>
-      <circle cx="328" cy="208" r="4" fill="#fbbf24"/><text x="336" y="211" fill="#fde68a" font-size="6.5">Maintenance</text>
+      <circle cx="244" cy="94" r="3" fill="#f87171"/><text x="252" y="97" fill="#94a3b8" font-size="7">Fall Armyworm — 22 counted — North Farm</text>
+      <circle cx="244" cy="110" r="3" fill="#4ade80"/><text x="252" y="113" fill="#94a3b8" font-size="7">Aphids — 6 counted — East Field</text>
+      <circle cx="244" cy="126" r="3" fill="#fbbf24"/><text x="252" y="129" fill="#94a3b8" font-size="7">Unknown Pest — South Paddock</text>
+      <!-- Active Sessions panel (bottom right) -->
+      <rect x="230" y="144" width="250" height="78" rx="7" fill="#243428" stroke="#3a5040" stroke-width="1"/>
+      <text x="244" y="160" fill="#86efac" font-size="8.5" font-weight="600">Active Sessions</text>
+      <line x1="238" y1="166" x2="472" y2="166" stroke="#3a5040" stroke-width="1"/>
+      <text x="244" y="178" fill="#64748b" font-size="6.5" font-weight="700">SCOUT</text>
+      <text x="330" y="178" fill="#64748b" font-size="6.5" font-weight="700">STARTED</text>
+      <text x="400" y="178" fill="#64748b" font-size="6.5" font-weight="700">STATUS</text>
+      <text x="244" y="192" fill="#e2e8f0" font-size="7">Scout A</text>
+      <text x="330" y="192" fill="#94a3b8" font-size="7">09:15</text>
+      <rect x="396" y="185" width="46" height="12" rx="6" fill="#4ade8022" stroke="#4ade8088"/><text x="419" y="193" text-anchor="middle" fill="#4ade80" font-size="6">● Active</text>
+      <text x="244" y="208" fill="#e2e8f0" font-size="7">Scout B</text>
+      <text x="330" y="208" fill="#94a3b8" font-size="7">10:40</text>
+      <rect x="396" y="201" width="46" height="12" rx="6" fill="#4ade8022" stroke="#4ade8088"/><text x="419" y="209" text-anchor="middle" fill="#4ade80" font-size="6">● Active</text>
     </svg>
   </div>`,
 
@@ -646,10 +665,9 @@ const GROUPS = [
     intro: 'The Dashboard is your home screen — an at-a-glance view of everything happening across your farms right now.',
     items: [
       { heading: 'Stat Cards', body: 'Four summary tiles at the top show: <strong>Active Farms</strong> (total farms in your organisation), <strong>Traps</strong> (deployed traps, with enabled count), <strong>Scouting Sessions</strong> (total ever recorded), and <strong>Observations</strong> (total pest observations logged across all sessions).' },
-      { heading: 'Active Sessions Panel', body: 'Lists sessions currently <em>In Progress</em>. Each row shows the farm, scout name, and start time. Click a row to open the full Session Detail page.' },
-      { heading: 'Recent Activity Feed', body: 'A chronological feed of the most recent pest observations. Each entry shows the pest name, session, field, farm, count, and time logged. Useful for spotting emerging problems in near-real time.' },
-      { heading: 'Map Panel', body: 'Plots all traps on an interactive map using GPS coordinates. Markers are colour-coded: <span style="color:#4ade80;">●</span> Green = Active, <span style="color:#f87171;">●</span> Red = Inactive, <span style="color:#fbbf24;">●</span> Yellow = Maintenance. Click a marker to see trap details.' },
-      { heading: 'Top Pests Panel', body: 'Bar chart of the top 5 most frequently observed pest species in the current period. Use this to quickly identify which species to prioritise.' },
+      { heading: 'Calendar', body: 'A month calendar on the left, built from your scouting sessions. Each day shows a small coloured dot for every session that lands on it: <span style="color:#4ade80;">●</span> green = completed, <span style="color:#fbbf24;">●</span> amber = active/in progress, <span style="color:#3b82f6;">●</span> blue = planned. Use the <strong>‹</strong> / <strong>›</strong> arrows to change month, or <strong>Today</strong> to jump back. Click any day to open a popup listing that day&rsquo;s sessions — click a session in the popup to go straight to its Session Detail page.' },
+      { heading: 'Recent Activity Feed', body: 'A chronological feed of the most recent pest observations, at the top of the right column. Each entry shows the pest name, session, field, farm, count, and time logged. Useful for spotting emerging problems in near-real time.' },
+      { heading: 'Active Sessions Panel', body: 'Below Recent Activity. Lists sessions currently <em>In Progress</em> (or the most recent sessions if none are active). Each row shows the scout name, start time, observation count, and status. Click <strong>View all</strong> to go to the full Sessions page.' },
     ],
   },
   {
