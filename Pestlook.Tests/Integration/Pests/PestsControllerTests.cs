@@ -35,7 +35,7 @@ public sealed class PestsControllerTests(TestWebApplicationFactory factory) : IA
         var req = new HttpRequestMessage(new HttpMethod(method), url);
         if (method is "POST" or "PUT")
             req.Content = JsonContent.Create(
-                new CreatePestRequest("X", null, PestCategory.Other, CaptureMode.Count, null, null, null));
+                new CreatePestRequest("X", null, PestCategory.Other, CaptureMode.Count, null, null));
         var resp = await _anon.SendAsync(req);
         resp.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
@@ -98,7 +98,7 @@ public sealed class PestsControllerTests(TestWebApplicationFactory factory) : IA
     {
         var req = new CreatePestRequest(
             "Whitefly", "Bemisia tabaci", PestCategory.Insect, CaptureMode.Count,
-            ThresholdCount: 50, "Tiny sap-sucking insect", "https://img.example.com/whitefly.jpg");
+            ThresholdCount: 50, "Tiny sap-sucking insect");
         var resp = await _admin.PostAsJsonAsync("/api/v1/pests", req);
         resp.StatusCode.Should().Be(HttpStatusCode.Created);
         var body = await resp.Content.ReadFromJsonAsync<ApiResponse<PestResponse>>();
@@ -114,7 +114,7 @@ public sealed class PestsControllerTests(TestWebApplicationFactory factory) : IA
     public async Task Create_WithMinimalData_ShouldReturn201()
     {
         var resp = await _admin.PostAsJsonAsync("/api/v1/pests",
-            new CreatePestRequest("Minimal Pest", null, PestCategory.Weed, CaptureMode.Presence, null, null, null));
+            new CreatePestRequest("Minimal Pest", null, PestCategory.Weed, CaptureMode.Presence, null, null));
         resp.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
@@ -128,7 +128,7 @@ public sealed class PestsControllerTests(TestWebApplicationFactory factory) : IA
         PestCategory category, CaptureMode captureMode)
     {
         var resp = await _admin.PostAsJsonAsync("/api/v1/pests",
-            new CreatePestRequest($"Pest {category} {captureMode}", null, category, captureMode, null, null, null));
+            new CreatePestRequest($"Pest {category} {captureMode}", null, category, captureMode, null, null));
         resp.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
@@ -148,7 +148,7 @@ public sealed class PestsControllerTests(TestWebApplicationFactory factory) : IA
     {
         var resp = await _admin.PutAsJsonAsync($"/api/v1/pests/{_pestId}",
             new UpdatePestRequest("Updated Aphid", "Acyrthosiphon pisum",
-                PestCategory.Insect, CaptureMode.Presence, 100, "Updated desc", null));
+                PestCategory.Insect, CaptureMode.Presence, 100, "Updated desc"));
         resp.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await resp.Content.ReadFromJsonAsync<ApiResponse<PestResponse>>();
         body!.Data!.CommonName.Should().Be("Updated Aphid");
@@ -161,7 +161,7 @@ public sealed class PestsControllerTests(TestWebApplicationFactory factory) : IA
     public async Task Update_WhenNotFound_ShouldReturn404()
     {
         var resp = await _admin.PutAsJsonAsync($"/api/v1/pests/{Guid.NewGuid()}",
-            new UpdatePestRequest("X", null, PestCategory.Other, CaptureMode.Count, null, null, null));
+            new UpdatePestRequest("X", null, PestCategory.Other, CaptureMode.Count, null, null));
         resp.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
@@ -176,7 +176,7 @@ public sealed class PestsControllerTests(TestWebApplicationFactory factory) : IA
         if (systemPest is null) return; // no system pests seeded in this test run
 
         var resp = await _admin.PutAsJsonAsync($"/api/v1/pests/{systemPest.Id}",
-            new UpdatePestRequest("Hacked System Pest", null, PestCategory.Other, CaptureMode.Count, null, null, null));
+            new UpdatePestRequest("Hacked System Pest", null, PestCategory.Other, CaptureMode.Count, null, null));
         resp.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
@@ -240,7 +240,7 @@ public sealed class PestsControllerTests(TestWebApplicationFactory factory) : IA
     private async Task<Guid> CreatePestAsync(string name, PestCategory category, CaptureMode captureMode)
     {
         var resp = await _admin.PostAsJsonAsync("/api/v1/pests",
-            new CreatePestRequest(name, null, category, captureMode, null, null, null));
+            new CreatePestRequest(name, null, category, captureMode, null, null));
         return (await resp.Content.ReadFromJsonAsync<ApiResponse<PestResponse>>())!.Data!.Id;
     }
 

@@ -192,6 +192,13 @@ public static class WebApplicationExtensions
 
     public static WebApplication UseDevDataSeeding(this WebApplication app)
     {
+        // Escape hatch for integration tests: they run with the "Development" environment
+        // (needed so other Development-only branches behave normally) but supply their own
+        // isolated seed data via TestWebApplicationFactory, so this must not also seed the
+        // real dev/demo dataset into the test database.
+        if (app.Configuration.GetValue<bool>("DevSeed:Disabled"))
+            return app;
+
         var force = app.Configuration.GetValue<bool>("DevSeed:RunOnce");
         if (!app.Environment.IsDevelopment() && !force)
             return app;

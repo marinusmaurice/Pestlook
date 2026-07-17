@@ -68,8 +68,8 @@ app.UseSecurityPipeline();            // Exception → ReqRes Logging → Securi
 app.UseSerilogRequestLogging();       // Serilog structured access log
 app.UseCors("AllowFrontend");
 app.UseRateLimiter();
-app.UseTenantResolution();            // X-Tenant-ID → ITenantContext
 app.UseAuthentication();
+app.UseTenantResolution();            // JWT "tenantId" claim → ITenantContext (must run after authentication)
 app.UseAuthorization();
 
 // ── Serve SPA static files from Pestlook.UI.Web ──────────────────────────────

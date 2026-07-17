@@ -26,8 +26,8 @@ public sealed class RolesControllerTests(TestWebApplicationFactory factory)
         using var scope = factory.Services.CreateScope();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
-        _adminId = await SeedUserAsync(userManager, "admin_roles@test.com", "Admin");
-        _scoutId = await SeedUserAsync(userManager, "scout_roles@test.com", "Scout");
+        _adminId = await SeedUserAsync(userManager, "admin_roles@mailsac.com", "Admin");
+        _scoutId = await SeedUserAsync(userManager, "scout_roles@mailsac.com", "Scout");
     }
 
     public Task DisposeAsync() => Task.CompletedTask;
@@ -87,7 +87,7 @@ public sealed class RolesControllerTests(TestWebApplicationFactory factory)
     [Fact]
     public async Task GetRoles_AsScout_ShouldReturn403()
     {
-        var response = await ClientFor(_scoutId, "scout_roles@test.com", "Scout")
+        var response = await ClientFor(_scoutId, "scout_roles@mailsac.com", "Scout")
             .GetAsync("/api/v1/roles");
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
@@ -95,7 +95,7 @@ public sealed class RolesControllerTests(TestWebApplicationFactory factory)
     [Fact]
     public async Task GetRoles_AsAdmin_ShouldReturn200WithAllRoles()
     {
-        var response = await ClientFor(_adminId, "admin_roles@test.com", "Admin")
+        var response = await ClientFor(_adminId, "admin_roles@mailsac.com", "Admin")
             .GetAsync("/api/v1/roles");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -108,7 +108,7 @@ public sealed class RolesControllerTests(TestWebApplicationFactory factory)
     [Fact]
     public async Task GetUsers_AsAdmin_ShouldReturn200WithUsers()
     {
-        var response = await ClientFor(_adminId, "admin_roles@test.com", "Admin")
+        var response = await ClientFor(_adminId, "admin_roles@mailsac.com", "Admin")
             .GetAsync("/api/v1/roles/users");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -119,7 +119,7 @@ public sealed class RolesControllerTests(TestWebApplicationFactory factory)
     [Fact]
     public async Task GetUsers_AsScout_ShouldReturn403()
     {
-        var response = await ClientFor(_scoutId, "scout_roles@test.com", "Scout")
+        var response = await ClientFor(_scoutId, "scout_roles@mailsac.com", "Scout")
             .GetAsync("/api/v1/roles/users");
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
@@ -129,18 +129,18 @@ public sealed class RolesControllerTests(TestWebApplicationFactory factory)
     [Fact]
     public async Task GetUser_AsAdmin_ShouldReturn200()
     {
-        var response = await ClientFor(_adminId, "admin_roles@test.com", "Admin")
+        var response = await ClientFor(_adminId, "admin_roles@mailsac.com", "Admin")
             .GetAsync($"/api/v1/roles/users/{_scoutId}");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await response.Content.ReadFromJsonAsync<ApiResponse<UserInfoResponse>>();
-        body!.Data!.Email.Should().Be("scout_roles@test.com");
+        body!.Data!.Email.Should().Be("scout_roles@mailsac.com");
     }
 
     [Fact]
     public async Task GetUser_WhenNotFound_ShouldReturn404()
     {
-        var response = await ClientFor(_adminId, "admin_roles@test.com", "Admin")
+        var response = await ClientFor(_adminId, "admin_roles@mailsac.com", "Admin")
             .GetAsync("/api/v1/roles/users/nonexistent-id");
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
@@ -152,9 +152,9 @@ public sealed class RolesControllerTests(TestWebApplicationFactory factory)
     {
         using var scope = factory.Services.CreateScope();
         var um       = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        var targetId = await CreateFreshUserAsync(um, $"target_aa_{Guid.NewGuid():N}@test.com");
+        var targetId = await CreateFreshUserAsync(um, $"target_aa_{Guid.NewGuid():N}@mailsac.com");
 
-        var response = await ClientFor(_adminId, "admin_roles@test.com", "Admin")
+        var response = await ClientFor(_adminId, "admin_roles@mailsac.com", "Admin")
             .PostAsJsonAsync($"/api/v1/roles/users/{targetId}/assign", new AssignRoleRequest("Admin"));
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
@@ -165,9 +165,9 @@ public sealed class RolesControllerTests(TestWebApplicationFactory factory)
     {
         using var scope = factory.Services.CreateScope();
         var um       = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        var targetId = await CreateFreshUserAsync(um, $"target_as_{Guid.NewGuid():N}@test.com");
+        var targetId = await CreateFreshUserAsync(um, $"target_as_{Guid.NewGuid():N}@mailsac.com");
 
-        var response = await ClientFor(_adminId, "admin_roles@test.com", "Admin")
+        var response = await ClientFor(_adminId, "admin_roles@mailsac.com", "Admin")
             .PostAsJsonAsync($"/api/v1/roles/users/{targetId}/assign", new AssignRoleRequest("Scout"));
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
@@ -178,7 +178,7 @@ public sealed class RolesControllerTests(TestWebApplicationFactory factory)
     [Fact]
     public async Task AssignRole_AsScout_ShouldReturn403()
     {
-        var response = await ClientFor(_scoutId, "scout_roles@test.com", "Scout")
+        var response = await ClientFor(_scoutId, "scout_roles@mailsac.com", "Scout")
             .PostAsJsonAsync($"/api/v1/roles/users/{_adminId}/assign", new AssignRoleRequest("Scout"));
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
@@ -188,9 +188,9 @@ public sealed class RolesControllerTests(TestWebApplicationFactory factory)
     {
         using var scope = factory.Services.CreateScope();
         var um       = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        var targetId = await CreateFreshUserAsync(um, $"target_ir_{Guid.NewGuid():N}@test.com");
+        var targetId = await CreateFreshUserAsync(um, $"target_ir_{Guid.NewGuid():N}@mailsac.com");
 
-        var response = await ClientFor(_adminId, "admin_roles@test.com", "Admin")
+        var response = await ClientFor(_adminId, "admin_roles@mailsac.com", "Admin")
             .PostAsJsonAsync($"/api/v1/roles/users/{targetId}/assign", new AssignRoleRequest("SuperAdmin"));
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -201,7 +201,7 @@ public sealed class RolesControllerTests(TestWebApplicationFactory factory)
     [Fact]
     public async Task AssignRole_WhenUserAlreadyHasRole_ShouldReturn400()
     {
-        var response = await ClientFor(_adminId, "admin_roles@test.com", "Admin")
+        var response = await ClientFor(_adminId, "admin_roles@mailsac.com", "Admin")
             .PostAsJsonAsync($"/api/v1/roles/users/{_scoutId}/assign", new AssignRoleRequest("Scout"));
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
@@ -209,7 +209,7 @@ public sealed class RolesControllerTests(TestWebApplicationFactory factory)
     [Fact]
     public async Task AssignRole_WhenUserNotFound_ShouldReturn404()
     {
-        var response = await ClientFor(_adminId, "admin_roles@test.com", "Admin")
+        var response = await ClientFor(_adminId, "admin_roles@mailsac.com", "Admin")
             .PostAsJsonAsync("/api/v1/roles/users/nonexistent-id/assign", new AssignRoleRequest("Scout"));
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
@@ -221,10 +221,10 @@ public sealed class RolesControllerTests(TestWebApplicationFactory factory)
     {
         using var scope = factory.Services.CreateScope();
         var um       = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        var email    = $"revoke_scout_{Guid.NewGuid():N}@test.com";
+        var email    = $"revoke_scout_{Guid.NewGuid():N}@mailsac.com";
         var targetId = await SeedUserAsync(um, email, "Scout");
 
-        var response = await ClientFor(_adminId, "admin_roles@test.com", "Admin")
+        var response = await ClientFor(_adminId, "admin_roles@mailsac.com", "Admin")
             .DeleteAsync($"/api/v1/roles/users/{targetId}/roles/Scout");
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
@@ -235,10 +235,10 @@ public sealed class RolesControllerTests(TestWebApplicationFactory factory)
     {
         using var scope = factory.Services.CreateScope();
         var um       = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        var email    = $"revoke_admin_{Guid.NewGuid():N}@test.com";
+        var email    = $"revoke_admin_{Guid.NewGuid():N}@mailsac.com";
         var targetId = await SeedUserAsync(um, email, "Admin");
 
-        var response = await ClientFor(_adminId, "admin_roles@test.com", "Admin")
+        var response = await ClientFor(_adminId, "admin_roles@mailsac.com", "Admin")
             .DeleteAsync($"/api/v1/roles/users/{targetId}/roles/Admin");
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
@@ -249,7 +249,7 @@ public sealed class RolesControllerTests(TestWebApplicationFactory factory)
     [Fact]
     public async Task RevokeRole_AsScout_ShouldReturn403()
     {
-        var response = await ClientFor(_scoutId, "scout_roles@test.com", "Scout")
+        var response = await ClientFor(_scoutId, "scout_roles@mailsac.com", "Scout")
             .DeleteAsync($"/api/v1/roles/users/{_adminId}/roles/Admin");
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
@@ -259,7 +259,7 @@ public sealed class RolesControllerTests(TestWebApplicationFactory factory)
     [Fact]
     public async Task RevokeRole_WhenUserDoesNotHaveRole_ShouldReturn400()
     {
-        var response = await ClientFor(_adminId, "admin_roles@test.com", "Admin")
+        var response = await ClientFor(_adminId, "admin_roles@mailsac.com", "Admin")
             .DeleteAsync($"/api/v1/roles/users/{_scoutId}/roles/Admin");
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
@@ -271,11 +271,11 @@ public sealed class RolesControllerTests(TestWebApplicationFactory factory)
     {
         using var scope = factory.Services.CreateScope();
         var um       = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        var targetId = await CreateFreshUserAsync(um, $"edit_valid_{Guid.NewGuid():N}@test.com");
+        var targetId = await CreateFreshUserAsync(um, $"edit_valid_{Guid.NewGuid():N}@mailsac.com");
         await um.AddToRoleAsync(await um.FindByIdAsync(targetId)!, "Scout");
 
         var request = new UpdateUserRequest("Updated", "Name", IsActive: false, Role: "Admin");
-        var response = await ClientFor(_adminId, "admin_roles@test.com", "Admin")
+        var response = await ClientFor(_adminId, "admin_roles@mailsac.com", "Admin")
             .PutAsJsonAsync($"/api/v1/roles/users/{targetId}", request);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -291,11 +291,11 @@ public sealed class RolesControllerTests(TestWebApplicationFactory factory)
     {
         using var scope = factory.Services.CreateScope();
         var um       = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        var targetId = await CreateFreshUserAsync(um, $"edit_role_{Guid.NewGuid():N}@test.com");
+        var targetId = await CreateFreshUserAsync(um, $"edit_role_{Guid.NewGuid():N}@mailsac.com");
         var user     = await um.FindByIdAsync(targetId)!;
         await um.AddToRoleAsync(user!, "Scout");
 
-        var response = await ClientFor(_adminId, "admin_roles@test.com", "Admin")
+        var response = await ClientFor(_adminId, "admin_roles@mailsac.com", "Admin")
             .PutAsJsonAsync($"/api/v1/roles/users/{targetId}",
                 new UpdateUserRequest("Fresh", "User", IsActive: true, Role: "Admin"));
 
@@ -309,9 +309,9 @@ public sealed class RolesControllerTests(TestWebApplicationFactory factory)
     {
         using var scope = factory.Services.CreateScope();
         var um       = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        var targetId = await CreateFreshUserAsync(um, $"edit_badrole_{Guid.NewGuid():N}@test.com");
+        var targetId = await CreateFreshUserAsync(um, $"edit_badrole_{Guid.NewGuid():N}@mailsac.com");
 
-        var response = await ClientFor(_adminId, "admin_roles@test.com", "Admin")
+        var response = await ClientFor(_adminId, "admin_roles@mailsac.com", "Admin")
             .PutAsJsonAsync($"/api/v1/roles/users/{targetId}",
                 new UpdateUserRequest("Fresh", "User", IsActive: true, Role: "Manager"));
 
@@ -321,7 +321,7 @@ public sealed class RolesControllerTests(TestWebApplicationFactory factory)
     [Fact]
     public async Task UpdateUser_WhenUserNotFound_ShouldReturn404()
     {
-        var response = await ClientFor(_adminId, "admin_roles@test.com", "Admin")
+        var response = await ClientFor(_adminId, "admin_roles@mailsac.com", "Admin")
             .PutAsJsonAsync("/api/v1/roles/users/nonexistent-id",
                 new UpdateUserRequest("First", "Last", IsActive: true, Role: "Scout"));
 
@@ -331,7 +331,7 @@ public sealed class RolesControllerTests(TestWebApplicationFactory factory)
     [Fact]
     public async Task UpdateUser_AsScout_ShouldReturn403()
     {
-        var response = await ClientFor(_scoutId, "scout_roles@test.com", "Scout")
+        var response = await ClientFor(_scoutId, "scout_roles@mailsac.com", "Scout")
             .PutAsJsonAsync($"/api/v1/roles/users/{_adminId}",
                 new UpdateUserRequest("First", "Last", IsActive: true, Role: "Scout"));
 

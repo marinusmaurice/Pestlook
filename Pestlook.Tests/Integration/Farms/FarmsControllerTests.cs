@@ -107,18 +107,26 @@ public sealed class FarmsControllerTests(TestWebApplicationFactory factory) : IA
         resp.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
+    // Tenant scoping is resolved server-side from the JWT's "tenantId" claim
+    // (TenantResolutionMiddleware), not from the client-supplied X-Tenant-ID
+    // header — see TenantIsolationTests for the full regression coverage of
+    // that fix. A valid JWT is therefore sufficient on its own; the header is
+    // no longer required, or trusted, for tenant scoping to work.
     [Fact]
-    public async Task Create_WithoutTenantHeader_ShouldReturn400()
+    public async Task Create_WithoutTenantHeader_ButWithValidJwt_ShouldStillSucceed()
     {
-        var noTenant = factory.CreateClient();
-        noTenant.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",
+        var noHeaderClient = factory.CreateClient();
+        noHeaderClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",
             JwtTestHelper.GenerateToken(TestWebApplicationFactory.DefaultAdminId,
                 TestWebApplicationFactory.DefaultAdminEmail,
                 TestWebApplicationFactory.DefaultTenantId, ["Admin"]));
 
-        var resp = await noTenant.PostAsJsonAsync("/api/v1/farms",
-            new CreateFarmRequest("No Tenant Farm", null, null, null, null, null));
-        resp.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var resp = await noHeaderClient.PostAsJsonAsync("/api/v1/farms",
+            new CreateFarmRequest("No Tenant Header Farm", null, null, null, null, null));
+        resp.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var body = await resp.Content.ReadFromJsonAsync<ApiResponse<FarmResponse>>();
+        body!.Data!.TenantId.Should().Be(TestWebApplicationFactory.DefaultTenantId);
     }
 
     // ── PUT ──────────────────────────────────────────────────────────────────

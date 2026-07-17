@@ -90,11 +90,11 @@ public sealed class AuthServiceTests : IDisposable
         _tenantContext.TenantId = TenantId;
 
         _userManagerMock
-            .Setup(m => m.FindByEmailAsync("exists@test.com"))
+            .Setup(m => m.FindByEmailAsync("exists@mailsac.com"))
             .ReturnsAsync(new ApplicationUser());
 
         var act = () => _sut.RegisterAsync(
-            new RegisterRequest("exists@test.com", "P@ssw0rd1!", "A", "B"), "127.0.0.1");
+            new RegisterRequest("exists@mailsac.com", "P@ssw0rd1!", "A", "B"), "127.0.0.1");
 
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*already registered*");
@@ -117,7 +117,7 @@ public sealed class AuthServiceTests : IDisposable
             .ReturnsAsync(IdentityResult.Success);
 
         var result = await _sut.RegisterAsync(
-            new RegisterRequest("new@test.com", "P@ssw0rd1!", "New", "User"), "127.0.0.1");
+            new RegisterRequest("new@mailsac.com", "P@ssw0rd1!", "New", "User"), "127.0.0.1");
 
         result.Should().NotBeNull();
         result.AccessToken.Should().Be("mocked.access.token");
@@ -130,11 +130,11 @@ public sealed class AuthServiceTests : IDisposable
         _tenantContext.TenantId = TenantId;
 
         _userManagerMock
-            .Setup(m => m.FindByEmailAsync("ghost@test.com"))
+            .Setup(m => m.FindByEmailAsync("ghost@mailsac.com"))
             .ReturnsAsync((ApplicationUser?)null);
 
         var act = () => _sut.LoginAsync(
-            new LoginRequest("ghost@test.com", "pass"), "127.0.0.1");
+            new LoginRequest("ghost@mailsac.com", "pass"), "127.0.0.1");
 
         await act.Should().ThrowAsync<UnauthorizedAccessException>();
     }

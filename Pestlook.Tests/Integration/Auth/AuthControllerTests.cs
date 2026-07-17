@@ -21,7 +21,7 @@ public sealed class AuthControllerTests(TestWebApplicationFactory factory)
     public async Task Register_WhenValid_ShouldReturn200WithAccessAndRefreshTokens()
     {
         var request = new RegisterRequest(
-            Email: $"new_{Guid.NewGuid():N}@test.com",
+            Email: $"new_{Guid.NewGuid():N}@mailsac.com",
             Password: "P@ssw0rd1!",
             FirstName: "John",
             LastName: "Doe");
@@ -41,9 +41,9 @@ public sealed class AuthControllerTests(TestWebApplicationFactory factory)
     [Theory]
     [InlineData("not-an-email", "P@ssw0rd1!", "John", "Doe")]
     [InlineData("", "P@ssw0rd1!", "John", "Doe")]
-    [InlineData("valid@test.com", "weak", "John", "Doe")]
-    [InlineData("valid@test.com", "P@ssw0rd1!", "", "Doe")]
-    [InlineData("valid@test.com", "P@ssw0rd1!", "John", "")]
+    [InlineData("valid@mailsac.com", "weak", "John", "Doe")]
+    [InlineData("valid@mailsac.com", "P@ssw0rd1!", "", "Doe")]
+    [InlineData("valid@mailsac.com", "P@ssw0rd1!", "John", "")]
     public async Task Register_WhenRequestIsInvalid_ShouldReturn400(
         string email, string password, string firstName, string lastName)
     {
@@ -57,7 +57,7 @@ public sealed class AuthControllerTests(TestWebApplicationFactory factory)
     [Fact]
     public async Task Register_WhenEmailAlreadyExists_ShouldReturn400()
     {
-        var email = $"dup_{Guid.NewGuid():N}@test.com";
+        var email = $"dup_{Guid.NewGuid():N}@mailsac.com";
         var request = new RegisterRequest(email, "P@ssw0rd1!", "John", "Doe");
 
         await _adminClient.PostAsJsonAsync("/api/v1/auth/register", request);
@@ -71,7 +71,7 @@ public sealed class AuthControllerTests(TestWebApplicationFactory factory)
     [Fact]
     public async Task Login_AfterRegister_ShouldReturn200WithTokens()
     {
-        var email = $"login_{Guid.NewGuid():N}@test.com";
+        var email = $"login_{Guid.NewGuid():N}@mailsac.com";
         var password = "P@ssw0rd1!";
         await _adminClient.PostAsJsonAsync("/api/v1/auth/register",
             new RegisterRequest(email, password, "Login", "User"));
@@ -88,7 +88,7 @@ public sealed class AuthControllerTests(TestWebApplicationFactory factory)
     [Fact]
     public async Task Login_WithWrongPassword_ShouldReturn401()
     {
-        var email = $"wp_{Guid.NewGuid():N}@test.com";
+        var email = $"wp_{Guid.NewGuid():N}@mailsac.com";
         await _adminClient.PostAsJsonAsync("/api/v1/auth/register",
             new RegisterRequest(email, "P@ssw0rd1!", "Test", "User"));
 
@@ -112,7 +112,7 @@ public sealed class AuthControllerTests(TestWebApplicationFactory factory)
     [Fact]
     public async Task Refresh_WithValidTokens_ShouldReturn200WithNewTokens()
     {
-        var email = $"refresh_{Guid.NewGuid():N}@test.com";
+        var email = $"refresh_{Guid.NewGuid():N}@mailsac.com";
         var registerResp = await _adminClient.PostAsJsonAsync("/api/v1/auth/register",
             new RegisterRequest(email, "P@ssw0rd1!", "Refresh", "User"));
 
@@ -161,7 +161,7 @@ public sealed class AuthControllerTests(TestWebApplicationFactory factory)
     [Fact]
     public async Task Me_WithValidRegisteredUser_ShouldReturn200WithUserInfo()
     {
-        var email = $"me_{Guid.NewGuid():N}@test.com";
+        var email = $"me_{Guid.NewGuid():N}@mailsac.com";
         var registerResp = await _adminClient.PostAsJsonAsync("/api/v1/auth/register",
             new RegisterRequest(email, "P@ssw0rd1!", "Me", "Test"));
 
@@ -182,7 +182,7 @@ public sealed class AuthControllerTests(TestWebApplicationFactory factory)
     [Fact]
     public async Task Register_ShouldDefaultToScoutRole()
     {
-        var email = $"scout_default_{Guid.NewGuid():N}@test.com";
+        var email = $"scout_default_{Guid.NewGuid():N}@mailsac.com";
         var registerResp = await _adminClient.PostAsJsonAsync("/api/v1/auth/register",
             new RegisterRequest(email, "P@ssw0rd1!", "New", "Scout"));
 
@@ -216,7 +216,7 @@ public sealed class AuthControllerTests(TestWebApplicationFactory factory)
     public async Task SignUp_ShouldAlwaysAssignAdminRole()
     {
         var slug = $"org-{Guid.NewGuid():N}";
-        var email = $"owner_{Guid.NewGuid():N}@test.com";
+        var email = $"owner_{Guid.NewGuid():N}@mailsac.com";
 
         var signUpResp = await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/sign-up",
             new SignUpRequest(
@@ -245,7 +245,7 @@ public sealed class AuthControllerTests(TestWebApplicationFactory factory)
     [Fact]
     public async Task Register_WhenRoleIsAdmin_ShouldAssignAdminRole()
     {
-        var email = $"admin_explicit_{Guid.NewGuid():N}@test.com";
+        var email = $"admin_explicit_{Guid.NewGuid():N}@mailsac.com";
         var registerResp = await _adminClient.PostAsJsonAsync("/api/v1/auth/register",
             new RegisterRequest(email, "P@ssw0rd1!", "Admin", "User", Role: "Admin"));
 
@@ -262,7 +262,7 @@ public sealed class AuthControllerTests(TestWebApplicationFactory factory)
     [Fact]
     public async Task Register_WhenRoleIsExplicitlyScout_ShouldAssignScoutRole()
     {
-        var email = $"scout_explicit_{Guid.NewGuid():N}@test.com";
+        var email = $"scout_explicit_{Guid.NewGuid():N}@mailsac.com";
         var registerResp = await _adminClient.PostAsJsonAsync("/api/v1/auth/register",
             new RegisterRequest(email, "P@ssw0rd1!", "Scout", "User", Role: "Scout"));
 
@@ -279,7 +279,7 @@ public sealed class AuthControllerTests(TestWebApplicationFactory factory)
     [Fact]
     public async Task Register_WhenRoleIsInvalid_ShouldReturn400()
     {
-        var email = $"bad_role_{Guid.NewGuid():N}@test.com";
+        var email = $"bad_role_{Guid.NewGuid():N}@mailsac.com";
         var response = await _adminClient.PostAsJsonAsync("/api/v1/auth/register",
             new RegisterRequest(email, "P@ssw0rd1!", "Bad", "Role", Role: "Manager"));
 

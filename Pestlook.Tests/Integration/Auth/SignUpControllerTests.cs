@@ -22,7 +22,7 @@ public sealed class SignUpControllerTests(TestWebApplicationFactory factory)
         string? email = null) => new(
             TenantName:       tenantName ?? $"Acme Farms {Guid.NewGuid():N}",
             SubscriptionPlan: plan,
-            Email:            email ?? $"owner_{Guid.NewGuid():N}@acme.com",
+            Email:            email ?? $"owner_{Guid.NewGuid():N}@mailsac.com",
             Password:         "P@ssw0rd1!",
             FirstName:        "Jane",
             LastName:         "Farmer");
@@ -143,7 +143,7 @@ public sealed class SignUpControllerTests(TestWebApplicationFactory factory)
     [Fact]
     public async Task SignUp_WithDuplicateEmail_ShouldReturn409()
     {
-        var email  = $"dup-email-{Guid.NewGuid():N}@test.com";
+        var email  = $"dup-email-{Guid.NewGuid():N}@mailsac.com";
         var first  = Valid(email: email);
         var second = Valid(email: email); // different slug, same email
 
@@ -157,19 +157,19 @@ public sealed class SignUpControllerTests(TestWebApplicationFactory factory)
 
     [Theory]
     // Tenant name
-    [InlineData("",      "owner@test.com", "P@ssw0rd1!", "Jane", "Farmer")] // empty name
+    [InlineData("",      "owner@mailsac.com", "P@ssw0rd1!", "Jane", "Farmer")] // empty name
     // Email
     [InlineData("Acme",  "",               "P@ssw0rd1!", "Jane", "Farmer")] // empty email
     [InlineData("Acme",  "not-an-email",   "P@ssw0rd1!", "Jane", "Farmer")] // not an email
     // Password rules
-    [InlineData("Acme",  "owner@test.com", "Short1!",    "Jane", "Farmer")] // < 8 chars
-    [InlineData("Acme",  "owner@test.com", "nouppercase1!","Jane","Farmer")]// no uppercase
-    [InlineData("Acme",  "owner@test.com", "NOLOWERCASE1!","Jane","Farmer")]// no lowercase
-    [InlineData("Acme",  "owner@test.com", "NoDigitHere!", "Jane","Farmer")]// no digit
-    [InlineData("Acme",  "owner@test.com", "NoSpecial123", "Jane","Farmer")]// no special char
+    [InlineData("Acme",  "owner@mailsac.com", "Short1!",    "Jane", "Farmer")] // < 8 chars
+    [InlineData("Acme",  "owner@mailsac.com", "nouppercase1!","Jane","Farmer")]// no uppercase
+    [InlineData("Acme",  "owner@mailsac.com", "NOLOWERCASE1!","Jane","Farmer")]// no lowercase
+    [InlineData("Acme",  "owner@mailsac.com", "NoDigitHere!", "Jane","Farmer")]// no digit
+    [InlineData("Acme",  "owner@mailsac.com", "NoSpecial123", "Jane","Farmer")]// no special char
     // Name fields
-    [InlineData("Acme",  "owner@test.com", "P@ssw0rd1!", "",     "Farmer")] // empty first name
-    [InlineData("Acme",  "owner@test.com", "P@ssw0rd1!", "Jane", "")]       // empty last name
+    [InlineData("Acme",  "owner@mailsac.com", "P@ssw0rd1!", "",     "Farmer")] // empty first name
+    [InlineData("Acme",  "owner@mailsac.com", "P@ssw0rd1!", "Jane", "")]       // empty last name
     public async Task SignUp_WhenRequestIsInvalid_ShouldReturn400(
         string tenantName, string email, string password,
         string firstName,  string lastName)
@@ -215,7 +215,7 @@ public sealed class SignUpControllerTests(TestWebApplicationFactory factory)
     [Fact]
     public async Task SignUp_UserCanLogInWithCredentialsAfterwards()
     {
-        var email    = $"login-after-{Guid.NewGuid():N}@test.com";
+        var email    = $"login-after-{Guid.NewGuid():N}@mailsac.com";
         var password = "P@ssw0rd1!";
         await factory.CreateClient().PostAsJsonAsync("/api/v1/auth/sign-up",
             Valid(email: email) with { Password = password });

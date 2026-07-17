@@ -10,7 +10,7 @@ public sealed class RegisterRequestValidatorTests
     private readonly RegisterRequestValidator _validator = new();
 
     private static RegisterRequest Valid() =>
-        new("user@test.com", "P@ssw0rd1!", "John", "Doe");
+        new("user@mailsac.com", "P@ssw0rd1!", "John", "Doe");
 
     [Theory]
     [InlineData("")]

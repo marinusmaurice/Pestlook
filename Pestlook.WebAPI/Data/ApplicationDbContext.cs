@@ -387,8 +387,9 @@ public sealed class ApplicationDbContext(
                             ?.Split(',', StringSplitOptions.TrimEntries).FirstOrDefault()
                         ?? httpContext?.Connection.RemoteIpAddress?.ToString();
 
-        // Resolve tenant: middleware sets it from the X-Tenant-ID header;
-        // fall back to the claim embedded in the JWT for requests that skip the header.
+        // Both now resolve to the same JWT "tenantId" claim (TenantResolutionMiddleware
+        // sets tenantContext.TenantId from it); currentUserService.TenantId as a fallback
+        // covers save operations that run outside the HTTP pipeline (e.g. background jobs).
         var tenantId = tenantContext.TenantId ?? currentUserService.TenantId;
 
         var userId = currentUserService.UserId;

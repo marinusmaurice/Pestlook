@@ -26,6 +26,11 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
         // Override connection string so Serilog SQL Server sink is never configured in tests
         builder.UseSetting("ConnectionStrings:DefaultConnection", string.Empty);
 
+        // Prevent Program.cs's real dev/demo seeding (appsettings.Development.json's
+        // DevSeed:Mode) from running against the InMemory test database — this factory
+        // seeds its own minimal, deterministic data via InitializeAsync() below.
+        builder.UseSetting("DevSeed:Disabled", "true");
+
         // Make IOptions<JwtOptions> (used by TokenService) use the same secret as
         // the PostConfigure<JwtBearerOptions> override below, so tokens issued during
         // integration tests are accepted by [Authorize] endpoints.
@@ -43,12 +48,22 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
 
         builder.ConfigureServices(services =>
         {
-            // Remove SQL Server provider AND its per-context options configuration.
-            // EF Core 8+ accumulates IDbContextOptionsConfiguration<T> entries; removing
-            // only DbContextOptions<T> still leaves the SQL Server config in place, which
-            // causes the "multiple providers" error when InMemory is added next.
-            services.RemoveAll(typeof(IDbContextOptionsConfiguration<ApplicationDbContext>));
-            services.RemoveAll<DbContextOptions<ApplicationDbContext>>();
+            // Remove every descriptor AddDbContext<ApplicationDbContext>() registered in
+            // Program.cs (the DbContext itself, its options, and the SQL Server provider's
+            // per-context configuration) before re-registering with the InMemory provider.
+            // RemoveAll<T>() alone is not reliable across EF Core versions — some of these
+            // are registered via TryAdd, so a stale SQL Server registration can silently
+            // survive and the real dev database gets used instead of the test double.
+            var toRemove = services.Where(d =>
+                d.ServiceType == typeof(ApplicationDbContext) ||
+                d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>) ||
+                d.ServiceType == typeof(DbContextOptions) ||
+                (d.ServiceType.IsGenericType &&
+                 d.ServiceType.GetGenericArguments().Contains(typeof(ApplicationDbContext)))
+            ).ToList();
+            foreach (var descriptor in toRemove)
+                services.Remove(descriptor);
+
             services.AddDbContext<ApplicationDbContext>((_, options) =>
                 options.UseInMemoryDatabase(_dbName));
 
