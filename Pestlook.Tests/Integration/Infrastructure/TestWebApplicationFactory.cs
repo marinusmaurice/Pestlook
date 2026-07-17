@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Tokens;
 using Pestlook.WebAPI.Data;
 using Pestlook.WebAPI.Domain.Entities;
+using Pestlook.WebAPI.Infrastructure.Services.Interfaces;
 using Pestlook.Tests.Helpers;
 using System.Text;
 
@@ -67,6 +68,12 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
             services.AddDbContext<ApplicationDbContext>((_, options) =>
                 options.UseInMemoryDatabase(_dbName));
 
+            // Never let a test hit the real Resend API — replaces the whole IEmailService,
+            // so nothing downstream (SignUp activation, password reset, feedback, admin
+            // alerts) can burn real email quota during a test run.
+            services.RemoveAll<IEmailService>();
+            services.AddSingleton<IEmailService, FakeEmailService>();
+
             // Swap JWT validation to use the test secret
             services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
             {
@@ -120,6 +127,9 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>, 
     }
 
     public new Task DisposeAsync() => base.DisposeAsync().AsTask();
+
+    /// <summary>The fake mailbox — inspect this instead of a real inbox (e.g. to pull an activation link out of a test).</summary>
+    public FakeEmailService FakeEmails => (FakeEmailService)Services.GetRequiredService<IEmailService>();
 
     public HttpClient CreateTenantClient(string? jwtToken = null)
     {
