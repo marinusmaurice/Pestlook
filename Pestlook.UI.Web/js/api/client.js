@@ -154,3 +154,74 @@ export function patch(path, body) {
 export function del(path) {
   return apiRequest(path, { method: 'DELETE' });
 }
+
+function authHeaders() {
+  const headers = {};
+  const token = getAccessToken();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const user = getUser();
+  if (user?.tenantSlug) headers['X-Tenant-ID'] = user.tenantSlug;
+  return headers;
+}
+
+/** Downloads a binary response (e.g. a generated file) as a Blob, with the auth headers a plain <a href> can't carry. */
+export async function downloadFile(path, query) {
+  await ensureToken();
+
+  let url = `${BASE_URL}${path}`;
+  if (query) {
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(query)) {
+      if (v !== undefined && v !== null && v !== '') params.append(k, v);
+    }
+    const qs = params.toString();
+    if (qs) url += `?${qs}`;
+  }
+
+  const res = await fetch(url, { headers: authHeaders() });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Download failed (${res.status}): ${text.slice(0, 200)}`);
+  }
+
+  const disposition = res.headers.get('content-disposition') || '';
+  const match = disposition.match(/filename="?([^";]+)"?/i);
+  const filename = match ? match[1] : 'download';
+
+  return { blob: await res.blob(), filename };
+}
+
+/** Triggers a browser download of a Blob without navigating away from the SPA. */
+export function saveBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/** Uploads a File as multipart/form-data (field name "file") and returns the parsed ApiResponse JSON. */
+export async function uploadFile(path, file) {
+  await ensureToken();
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: formData,
+  });
+
+  const json = await res.json();
+  if (!res.ok) {
+    const err = new Error(json.message || `Request failed (${res.status})`);
+    err.status = res.status;
+    err.apiResponse = json;
+    throw err;
+  }
+  return json;
+}

@@ -8,6 +8,7 @@ import { tag } from '../components/tag.js';
 import { escapeHtml, formatDateTime, formatTemperature, toDateTimeLocalValue, toUtcIso } from '../utils/helpers.js';
 import { getUser } from '../utils/storage.js';
 import { navigate } from '../utils/router.js';
+import { openImportModal } from './import-observations.js';
 
 let cachedUsers = [];
 let cachedFarms = [];
@@ -55,7 +56,10 @@ export async function renderSessions(container) {
         <div class="page-heading">Scouting Sessions</div>
         <div class="page-desc">Plan, track and review scouting runs</div>
       </div>
-      <button class="btn-primary" id="planSessionBtn">＋ Plan Session</button>
+      <div style="display:flex;gap:10px;">
+        <button class="btn-outline" id="importSessionBtn">📥 Import from Paper</button>
+        <button class="btn-primary" id="planSessionBtn">＋ Plan Session</button>
+      </div>
     </div>
     <div class="card" id="sessionsTableCard" style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;transform:none;transition:none;">
       <div id="sessionsFilterBar" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);">
@@ -80,6 +84,7 @@ export async function renderSessions(container) {
   `;
 
   document.getElementById('planSessionBtn').addEventListener('click', () => showPlannedSessionModal());
+  document.getElementById('importSessionBtn').addEventListener('click', () => openImportModal(() => loadTable()));
 
   // Search (debounced)
   let _debounce;

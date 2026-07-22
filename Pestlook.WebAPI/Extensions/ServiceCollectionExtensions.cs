@@ -152,6 +152,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IEmailService, EmailService>();
         services.AddScoped<IPhotoStorageService, PhotoStorageService>();
         services.AddScoped<IUserTimezoneService, UserTimezoneService>();
+        services.AddScoped<IObservationImportService, ObservationImportService>();
 
         services.Configure<EmailOptions>(config.GetSection(EmailOptions.SectionName));
         services.AddHttpClient<ResendClient>();
