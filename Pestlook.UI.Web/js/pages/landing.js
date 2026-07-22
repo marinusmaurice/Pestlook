@@ -304,6 +304,11 @@ function _getLandingHTML() {
             <h3>Custom reporting</h3>
             <p>Build ad-hoc queries across farms, fields, pests, sessions, observations, and traps. Filter, group, aggregate, sort, and export to CSV &mdash; all scoped automatically to your organisation.</p>
           </div>
+          <div class="feature-card">
+            <div class="icon-box"><i class="fas fa-file-excel"></i></div>
+            <h3>Paper sheet import</h3>
+            <p>Download a pre-filled Excel template scoped to one field, with dropdown-validated traps, pests, and scouts. Fill it in offline, upload it back, and PestLook validates every row before creating the session &mdash; converting temperature units and timezones automatically.</p>
+          </div>
         </div>
 
         <!-- SCREENSHOTS -->
