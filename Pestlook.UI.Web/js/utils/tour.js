@@ -437,6 +437,22 @@ function runChapter5() {
       },
     },
     {
+      element: '#importSessionBtn',
+      popover: {
+        title: '📥 Import from Paper',
+        description: `
+          <p style="margin:0 0 8px;line-height:1.7;font-size:0.88rem;">
+            Got backlog paper scouting sheets? Click here to download an Excel
+            template pre-filled with a field's traps and dropdown-validated pests,
+            fill it in offline, then upload it back.
+          </p>
+          <p style="margin:0;font-size:0.8rem;color:#5a6b62;">
+            PestLook checks every row before creating the session — no manual re-typing needed.
+          </p>`,
+        side: 'bottom', align: 'start',
+      },
+    },
+    {
       element: '#sessionsTableCard',
       popover: {
         title: '📋 Sessions List',

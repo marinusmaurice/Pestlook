@@ -108,6 +108,11 @@ public sealed class ObservationImportService(
         ws.Cell("A6").Value = "Scout *";
         UnlockCell(ws.Cell("B6"));
         ApplyListValidation(ws.Cell("B6"), lookups, "C", scouts.Count);
+        ws.Cell("C6").Value = "Dates/times below use this scout's timezone";
+        ws.Cell("C6").Style.Font.FontColor = XLColor.FromHtml("#9AA8A1");
+        ws.Cell("C6").Style.Font.Italic = true;
+        LockCell(ws.Cell("C6"));
+        ws.Cell("C6").Style.Fill.BackgroundColor = XLColor.NoColor;
 
         ws.Cell("A7").Value = "Weather Conditions";
         UnlockCell(ws.Cell("B7"));

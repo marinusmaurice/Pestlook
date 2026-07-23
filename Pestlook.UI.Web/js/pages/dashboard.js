@@ -5,6 +5,7 @@ import { greeting, todayFormatted, formatTime, formatDateTime, escapeHtml } from
 import { showToast } from '../components/toast.js';
 import { tag } from '../components/tag.js';
 import { openModal, closeModal } from '../components/modal.js';
+import { openImportModal } from './import-observations.js';
 
 export async function renderDashboard(container) {
 
@@ -12,9 +13,12 @@ export async function renderDashboard(container) {
   const name = user?.firstName || 'there';
 
   container.innerHTML = `
-    <div style="margin-bottom:24px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
-      <div style="font-family:'Fraunces',serif;font-size:1.6rem;font-weight:600;color:var(--text);letter-spacing:-0.02em;">${greeting()}, ${escapeHtml(name)} 👋</div>
-      <div style="font-size:0.85rem;color:var(--text-dim);">Here's what's happening across your farms today — ${todayFormatted()}</div>
+    <div style="margin-bottom:24px;display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+      <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
+        <div style="font-family:'Fraunces',serif;font-size:1.6rem;font-weight:600;color:var(--text);letter-spacing:-0.02em;">${greeting()}, ${escapeHtml(name)} 👋</div>
+        <div style="font-size:0.85rem;color:var(--text-dim);">Here's what's happening across your farms today — ${todayFormatted()}</div>
+      </div>
+      <button class="btn-outline" id="dashImportBtn">📥 Import from Paper</button>
     </div>
     <div class="stat-grid" id="dashStats">
       <div class="stat-card"><div class="skeleton skeleton-card"></div></div>
@@ -30,6 +34,8 @@ export async function renderDashboard(container) {
       </div>
     </div>
   `;
+
+  document.getElementById('dashImportBtn').addEventListener('click', () => openImportModal(() => renderDashboard(container)));
 
   try {
     const [dashRes, sessionsRes] = await Promise.all([getDashboard(), getSessions()]);
